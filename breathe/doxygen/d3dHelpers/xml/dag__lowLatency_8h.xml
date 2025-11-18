@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__lowLatency_8h" kind="file" language="C++">
+    <compoundname>dag_lowLatency.h</compoundname>
+    <includes refid="dag__latencyTypes_8h" local="no">3d/dag_latencyTypes.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>3d/dag_latencyTypes.h</label>
+        <link refid="dag__latencyTypes_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_lowLatency.h</label>
+        <link refid="dag__lowLatency_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/numeric_limits.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespacelowlatency">lowlatency</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>This<sp/>header<sp/>contains<sp/>the<sp/>interface<sp/>for<sp/>the<sp/>platform<sp/>independent<sp/>low<sp/>latency<sp/>system</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>It<sp/>has<sp/>backends<sp/>for<sp/>both<sp/>REFLEX,<sp/>Anti<sp/>Lag<sp/>2<sp/>and<sp/>XeLL.</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__latencyTypes_8h" kindref="compound">3d/dag_latencyTypes.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacelowlatency" kindref="compound">lowlatency</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="namespacelowlatency_1a7ccddffa254659770ef9c8d09747476e" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1a7ccddffa254659770ef9c8d09747476e" kindref="member">is_available</ref>();</highlight></codeline>
+<codeline lineno="21" refid="namespacelowlatency_1a0db73556ae7a15449b2c9cecae4a2828" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1a0db73556ae7a15449b2c9cecae4a2828" kindref="member">start_frame</ref>(uint32_t<sp/>frame_id);</highlight></codeline>
+<codeline lineno="22" refid="namespacelowlatency_1a9254b8ca992f47c6b7dc37b9dfe36509" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1a9254b8ca992f47c6b7dc37b9dfe36509" kindref="member">set_latency_mode</ref>(<ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref><sp/>mode);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>set<sp/>fps<sp/>limit<sp/>using<sp/>Nvidia<sp/>Reflex<sp/>SDK</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>minimum_interval_ms<sp/>should<sp/>be<sp/>1000<sp/>/<sp/>&lt;max_frames_per_sec&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>minimum_interval_ms<sp/>=<sp/>0<sp/>means<sp/>no<sp/>limit</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="namespacelowlatency_1aee8d1b80ccdc7961346582fc6a6c3e65" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1a9254b8ca992f47c6b7dc37b9dfe36509" kindref="member">set_latency_mode</ref>(<ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref><sp/>mode,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>minimum_interval_ms);</highlight></codeline>
+<codeline lineno="27" refid="namespacelowlatency_1a6daf34059d5a3e86d420c642e73a72ba" refkind="member"><highlight class="normal"><ref refid="namespacelowlatency_1ac1470239a11ed863d099db245fa53aa6" kindref="member">LatencyModeFlag</ref><sp/><ref refid="namespacelowlatency_1a6daf34059d5a3e86d420c642e73a72ba" kindref="member">get_supported_latency_modes</ref>();</highlight></codeline>
+<codeline lineno="28" refid="namespacelowlatency_1ac00631193e2f47b6920e9aa2b2b27d37" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1ac00631193e2f47b6920e9aa2b2b27d37" kindref="member">sleep</ref>(uint32_t<sp/>frame_id);</highlight></codeline>
+<codeline lineno="29" refid="namespacelowlatency_1a7388f0c92196c2122b5734660e948a6c" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1a7388f0c92196c2122b5734660e948a6c" kindref="member">set_marker</ref>(uint32_t<sp/>frame_id,<sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cf" kindref="member">LatencyMarkerType</ref><sp/>marker_type);</highlight></codeline>
+<codeline lineno="30" refid="namespacelowlatency_1abb28174f9c569f28bb4eb8a8f0063fc8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1abb28174f9c569f28bb4eb8a8f0063fc8" kindref="member">mark_flash_indicator</ref>();</highlight></codeline>
+<codeline lineno="31" refid="namespacelowlatency_1ab70889282a7f81cb7a3f7be55706d871" refkind="member"><highlight class="normal"><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref><sp/><ref refid="namespacelowlatency_1ab70889282a7f81cb7a3f7be55706d871" kindref="member">get_latency_mode</ref>();</highlight></codeline>
+<codeline lineno="32" refid="namespacelowlatency_1a7fb3f828463fd9a75daacc54fc264ca6" refkind="member"><highlight class="normal"><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref><sp/><ref refid="namespacelowlatency_1a7fb3f828463fd9a75daacc54fc264ca6" kindref="member">get_from_blk</ref>();</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="comment">//<sp/>max_count<sp/>=<sp/>0<sp/>-&gt;<sp/>no<sp/>limit</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="namespacelowlatency_1a98ae9b54e5eb6f4d161cc6470b1d5682" refkind="member"><highlight class="normal"><ref refid="structlowlatency_1_1LatencyData" kindref="compound">LatencyData</ref><sp/><ref refid="namespacelowlatency_1a98ae9b54e5eb6f4d161cc6470b1d5682" kindref="member">get_statistics_since</ref>(uint32_t<sp/>frame_id,<sp/>uint32_t<sp/>max_count<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="35" refid="namespacelowlatency_1a640e2c45668cd3cfb4b8a8b7b809e016" refkind="member"><highlight class="normal"><ref refid="structlowlatency_1_1LatencyData" kindref="compound">LatencyData</ref><sp/><ref refid="namespacelowlatency_1a640e2c45668cd3cfb4b8a8b7b809e016" kindref="member">get_new_statistics</ref>(uint32_t<sp/>max_count<sp/>=<sp/>0);<sp/></highlight><highlight class="comment">//<sp/>frames,<sp/>that<sp/>have<sp/>not<sp/>been<sp/>queried</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="namespacelowlatency_1acfa871b191407e3feda573b4d85e21de" refkind="member"><highlight class="normal"><ref refid="structlowlatency_1_1LatencyData" kindref="compound">LatencyData</ref><sp/><ref refid="namespacelowlatency_1acfa871b191407e3feda573b4d85e21de" kindref="member">get_last_statistics</ref>();</highlight></codeline>
+<codeline lineno="37" refid="namespacelowlatency_1aa8af4ad639d7040bfe034bb35d3aaee7" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1aa8af4ad639d7040bfe034bb35d3aaee7" kindref="member">render_debug_low_latency</ref>();</highlight></codeline>
+<codeline lineno="38" refid="namespacelowlatency_1a23ae3a906da66ccf731d629b3abc0fe1" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1a23ae3a906da66ccf731d629b3abc0fe1" kindref="member">is_vsync_allowed</ref>();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lowlatency</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_lowLatency.h"/>
+  </compounddef>
+</doxygen>

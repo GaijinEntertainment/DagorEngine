@@ -1,0 +1,2625 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__rendInstRes_8h" kind="file" language="C++">
+    <compoundname>dag_rendInstRes.h</compoundname>
+    <includes refid="dag__shadersRes_8h" local="no">shaders/dag_shadersRes.h</includes>
+    <includes refid="dag__instShaderMeshRes_8h" local="no">shaders/dag_instShaderMeshRes.h</includes>
+    <includes local="no">math/dag_bounds3.h</includes>
+    <includes local="no">3d/dag_textureIDHolder.h</includes>
+    <includes local="no">math/dag_Point4.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includes local="no">startup/dag_globalSettings.h</includes>
+    <includes local="no">EASTL/array.h</includes>
+    <incdepgraph>
+      <node id="13">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="41">
+        <label>shaders/dag_instShaderMeshRes.h</label>
+        <link refid="dag__instShaderMeshRes_8h_source"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_rendInstRes.h</label>
+        <link refid="dag__rendInstRes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>shaders/dag_shSkinMesh.h</label>
+        <link refid="dag__shSkinMesh_8h_source"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>shaders/dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="12">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shaders/dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shadersRes.h</label>
+        <link refid="dag__shadersRes_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="43">
+        <label>3d/dag_textureIDHolder.h</label>
+      </node>
+      <node id="47">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="25">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="23">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="24">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="33">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="22">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="31">
+        <label>drv/3d/dag_draw.h</label>
+      </node>
+      <node id="32">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="27">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="26">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="34">
+        <label>generic/dag_patchTab.h</label>
+      </node>
+      <node id="40">
+        <label>generic/dag_ptrTab.h</label>
+      </node>
+      <node id="35">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="38">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="18">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="44">
+        <label>math/dag_Point4.h</label>
+      </node>
+      <node id="39">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="42">
+        <label>math/dag_bounds3.h</label>
+      </node>
+      <node id="15">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="19">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="45">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="17">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="28">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="46">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="14">
+        <label>stdint.h</label>
+      </node>
+      <node id="29">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="36">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="20">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="16">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structRigidObject" prot="protected">RigidObject</innerclass>
+    <innerclass refid="structImpostorData" prot="protected">ImpostorData</innerclass>
+    <innerclass refid="structImpostorTextures" prot="protected">ImpostorTextures</innerclass>
+    <innerclass refid="structImpostorSliceData" prot="protected">ImpostorSliceData</innerclass>
+    <innerclass refid="structImpostorParams" prot="protected">ImpostorParams</innerclass>
+    <innerclass refid="structImpostorRtData" prot="protected">ImpostorRtData</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__rendInstRes_8h_1a073e5a61ea065b0382459401a6cc42ed" prot="public" static="no">
+        <name>RenderableInstanceLodsResourceClassName</name>
+        <initializer>&quot;instobj&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="444" column="9" bodyfile="dag_rendInstRes.h" bodystart="444" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66" prot="protected" static="no" strong="no">
+        <type>uint32_t</type>
+        <name>FieldsMasks</name>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a52bad29d335454133e3b356e5580c80d" prot="protected">
+          <name>RES_SIZE_SHIFT</name>
+          <initializer>= 0x0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a3b85bbdb46aecff522222c1a69252977" prot="protected">
+          <name>RES_SIZE_SIZE</name>
+          <initializer>= 24</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a2a959e09907dfe65df6958fc45083bb5" prot="protected">
+          <name>RES_SIZE_MASK</name>
+          <initializer>= (1 &lt;&lt; RES_SIZE_SIZE) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66ab14ae42722776294db888c20a485b91f" prot="protected">
+          <name>HAS_IMPOSTOR_MAT_SHIFT</name>
+          <initializer>= RES_SIZE_SHIFT + RES_SIZE_SIZE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a6ac7f67dbd415d20fb83bc89fcf8cc06" prot="protected">
+          <name>HAS_IMPOSTOR_MAT_SIZE</name>
+          <initializer>= 0x1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66ad0417e49eca8a6fe6ae3f9193e12adfd" prot="protected">
+          <name>HAS_IMPOSTOR_MAT_MASK</name>
+          <initializer>= (1 &lt;&lt; HAS_IMPOSTOR_MAT_SIZE) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a3c79396fa3fd75ab8bdb9eab04950f32" prot="protected">
+          <name>HAS_OCCLUDER_BOX_SHIFT</name>
+          <initializer>= HAS_IMPOSTOR_MAT_SHIFT + HAS_IMPOSTOR_MAT_SIZE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a1a75be9d3dc597666fb6c7b9735a4020" prot="protected">
+          <name>HAS_OCCLUDER_BOX_SIZE</name>
+          <initializer>= 0x1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66ab28141cb9bc7705706269d53a39ef6c5" prot="protected">
+          <name>HAS_OCCLUDER_BOX_MASK</name>
+          <initializer>= (1 &lt;&lt; HAS_OCCLUDER_BOX_SIZE) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a0651b429f90df905892940ea61590b26" prot="protected">
+          <name>HAS_OCCLUDER_QUAD_SHIFT</name>
+          <initializer>= HAS_OCCLUDER_BOX_SHIFT + HAS_OCCLUDER_BOX_SIZE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66af0328d0694a1fc8ff4324c7c1dd6b96c" prot="protected">
+          <name>HAS_OCCLUDER_QUAD_SIZE</name>
+          <initializer>= 0x1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66aad33bdf3e039ac8a01d9d7ea36d67c2a" prot="protected">
+          <name>HAS_OCCLUDER_QUAD_MASK</name>
+          <initializer>= (1 &lt;&lt; HAS_OCCLUDER_QUAD_SIZE) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a861e0579ee442275c13a2fc0f3efcbe6" prot="protected">
+          <name>HAS_IMPOSTOR_DATA_SHIFT</name>
+          <initializer>= HAS_OCCLUDER_QUAD_SHIFT + HAS_OCCLUDER_QUAD_SIZE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a9e8846393d4ee5d620eda220f165fa07" prot="protected">
+          <name>HAS_IMPOSTOR_DATA_SIZE</name>
+          <initializer>= 0x1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a1543292e182ec77a9334d6f28f0ecf14" prot="protected">
+          <name>HAS_IMPOSTOR_DATA_MASK</name>
+          <initializer>= (1 &lt;&lt; HAS_IMPOSTOR_DATA_SIZE) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66ae26b324525a95a03f584a91b738a959b" prot="protected">
+          <name>QL_BEST_LOD_SHIFT</name>
+          <initializer>= HAS_IMPOSTOR_DATA_SHIFT + HAS_IMPOSTOR_DATA_SIZE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a186000b821f8ac0a000d0788eab6be93" prot="protected">
+          <name>QL_BEST_LOD_SIZE</name>
+          <initializer>= 0x3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66aa9cbcf5ad5a998012f792200adb1688b" prot="protected">
+          <name>QL_BEST_LOD_MASK</name>
+          <initializer>= (1 &lt;&lt; QL_BEST_LOD_SIZE) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66ad2699d04e01ce715149c0bc435627c3e" prot="protected">
+          <name>RES_LD_FLG_SHIFT</name>
+          <initializer>= QL_BEST_LOD_SIZE + QL_BEST_LOD_SHIFT</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66ab353332104d7946634f59c0c7505d7eb" prot="protected">
+          <name>RES_LD_FLG_SIZE</name>
+          <initializer>= 0x1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__rendInstRes_8h_1a3c1595f43d89dc8684b6afcd52613c66a8c6864984f059bf3524807a934363fb0" prot="protected">
+          <name>RES_LD_FLG_MASK</name>
+          <initializer>= (1 &lt;&lt; RES_LD_FLG_SIZE) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="293" column="3" bodyfile="dag_rendInstRes.h" bodystart="294" bodyend="316"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__rendInstRes_8h_1aebea31c969febc0aa9c31619b6220873" prot="protected" static="no" strong="no">
+        <type>uint16_t</type>
+        <name>ExtraFlags</name>
+        <enumvalue id="dag__rendInstRes_8h_1aebea31c969febc0aa9c31619b6220873a6f3e8817bc86c0bfe4032f4d32109366" prot="protected">
+          <name>HAS_FLOATING_BOX_FLG</name>
+          <initializer>= 1 &lt;&lt; 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="338" column="3" bodyfile="dag_rendInstRes.h" bodystart="339" bodyend="341"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__rendInstRes_8h_1ac2ae87f547072b19694e751e2cdfbcb3" prot="public" static="no">
+        <type>void(*)(const RenderableInstanceLodsResource *)</type>
+        <definition>using ImpostorTextureCallback =  void (*)(const RenderableInstanceLodsResource *)</definition>
+        <argsstring></argsstring>
+        <name>ImpostorTextureCallback</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="161" column="3" bodyfile="dag_rendInstRes.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a7413bcb1da135d39e2a4492426818527" prot="protected" static="no" mutable="no">
+        <type><ref refid="structRigidObject" kindref="compound">RigidObject</ref></type>
+        <definition>RigidObject rigid</definition>
+        <argsstring></argsstring>
+        <name>rigid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="74" column="15" bodyfile="dag_rendInstRes.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a42181cac8ba44a9142a32554fe583999" prot="public" static="yes" mutable="no">
+        <type>int(*</type>
+        <definition>int(* get_skip_first_lods_count) (const char *name, bool has_impostors, int total_lods)</definition>
+        <argsstring>)(const char *name, bool has_impostors, int total_lods)</argsstring>
+        <name>get_skip_first_lods_count</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="154" column="10" bodyfile="dag_rendInstRes.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1adc574cd808f0d375abf6898f6ade52b0" prot="public" static="yes" mutable="no">
+        <type>void(*</type>
+        <definition>void(* on_higher_lod_required) (RenderableInstanceLodsResource *res, unsigned req_lod, unsigned cur_lod)</definition>
+        <argsstring>)(RenderableInstanceLodsResource *res, unsigned req_lod, unsigned cur_lod)</argsstring>
+        <name>on_higher_lod_required</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="232" column="10" bodyfile="dag_rendInstRes.h" bodystart="232" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a37e677bda8a7f1ba82e62a33ce5cc8c6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr short int</type>
+        <definition>constexpr short int qlReqLodInitialValue</definition>
+        <argsstring></argsstring>
+        <name>qlReqLodInitialValue</name>
+        <initializer>= 16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="234" column="30" bodyfile="dag_rendInstRes.h" bodystart="234" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1af8a275bd70da65886608a1de4338c82e" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t packedFields</definition>
+        <argsstring></argsstring>
+        <name>packedFields</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="319" column="12" bodyfile="dag_rendInstRes.h" bodystart="319" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1abd318f6d674a3be4620f8663ceb65dab" prot="protected" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char rotationPaletteSize</definition>
+        <argsstring></argsstring>
+        <name>rotationPaletteSize</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="320" column="17" bodyfile="dag_rendInstRes.h" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a24dc233de14597fbc94bba0e05ff2e81" prot="protected" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char qlMinAllowedLod</definition>
+        <argsstring></argsstring>
+        <name>qlMinAllowedLod</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="321" column="17" bodyfile="dag_rendInstRes.h" bodystart="321" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a544d979b2c2cb4a12974aee2c45302e4" prot="protected" static="no" mutable="no">
+        <type>volatile unsigned short</type>
+        <definition>volatile unsigned short qlReqLod</definition>
+        <argsstring></argsstring>
+        <name>qlReqLod</name>
+        <initializer>= qlReqLodInitialValue</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="322" column="27" bodyfile="dag_rendInstRes.h" bodystart="322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1af74d6baf904c2fecbb49b7720519b281" prot="protected" static="no" mutable="no">
+        <type>volatile unsigned short</type>
+        <definition>volatile unsigned short qlReqLodPrev</definition>
+        <argsstring></argsstring>
+        <name>qlReqLodPrev</name>
+        <initializer>= qlReqLodInitialValue</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="322" column="37" bodyfile="dag_rendInstRes.h" bodystart="322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a85e79cfb3cef9cb827f37c646c85171c" prot="protected" static="no" mutable="no">
+        <type>volatile unsigned short</type>
+        <definition>volatile unsigned short qlReloadCnt</definition>
+        <argsstring></argsstring>
+        <name>qlReloadCnt</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="323" column="27" bodyfile="dag_rendInstRes.h" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a4be066f31d8ddd3a733efa18b1c41318" prot="protected" static="no" mutable="no">
+        <type>volatile unsigned short</type>
+        <definition>volatile unsigned short qlDiscardCnt</definition>
+        <argsstring></argsstring>
+        <name>qlDiscardCnt</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="323" column="40" bodyfile="dag_rendInstRes.h" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a9e09da9aa4e8def34ae58e60972410c8" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int qlReqLFU</definition>
+        <argsstring></argsstring>
+        <name>qlReqLFU</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="324" column="7" bodyfile="dag_rendInstRes.h" bodystart="324" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1aa004e85d793d476d90860a9b94cfb2f9" prot="protected" static="no" mutable="yes">
+        <type>uint32_t</type>
+        <definition>uint32_t bvhId</definition>
+        <argsstring></argsstring>
+        <name>bvhId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="325" column="20" bodyfile="dag_rendInstRes.h" bodystart="325" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1af676230d2869507a88efee7d421e82cd" prot="protected" static="no" mutable="yes">
+        <type>bool</type>
+        <definition>bool hasTreeOrFlagMaterial</definition>
+        <argsstring></argsstring>
+        <name>hasTreeOrFlagMaterial</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="326" column="16" bodyfile="dag_rendInstRes.h" bodystart="326" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1ab7ef386e6f2f97b33153b26d686e38a4" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderMatVdata&gt; smvd</definition>
+        <argsstring></argsstring>
+        <name>smvd</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="327" column="7" bodyfile="dag_rendInstRes.h" bodystart="327" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1aebb557ecfc95f3b01682bd533c2a86c6" prot="public" static="no" mutable="no">
+        <type>PatchableTab&lt; <ref refid="structLod" kindref="compound">Lod</ref> &gt;</type>
+        <definition>PatchableTab&lt;Lod&gt; lods</definition>
+        <argsstring></argsstring>
+        <name>lods</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="331" column="16" bodyfile="dag_rendInstRes.h" bodystart="331" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1aa32e6ee619428614678385783d5a52a8" prot="public" static="no" mutable="no">
+        <type>BBox3</type>
+        <definition>BBox3 bbox</definition>
+        <argsstring></argsstring>
+        <name>bbox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="332" column="9" bodyfile="dag_rendInstRes.h" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1ab860f42b65423296ced291ea1789223e" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 bsphCenter</definition>
+        <argsstring></argsstring>
+        <name>bsphCenter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="333" column="10" bodyfile="dag_rendInstRes.h" bodystart="333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a66267fbb72d723d1321d88965c18d31c" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real bsphRad</definition>
+        <argsstring></argsstring>
+        <name>bsphRad</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="334" column="8" bodyfile="dag_rendInstRes.h" bodystart="334" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a23eaed0044433aeaa9d45247ae1aa16d" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real bound0rad</definition>
+        <argsstring></argsstring>
+        <name>bound0rad</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="335" column="8" bodyfile="dag_rendInstRes.h" bodystart="335" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a782e80177e987fc3936ab471dd9eb7aa" prot="protected" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t impostorDataOfs</definition>
+        <argsstring></argsstring>
+        <name>impostorDataOfs</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="337" column="12" bodyfile="dag_rendInstRes.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a17432fe2100b1456e0c7add99d9d2e30" prot="protected" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t extraFlags</definition>
+        <argsstring></argsstring>
+        <name>extraFlags</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="342" column="12" bodyfile="dag_rendInstRes.h" bodystart="342" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a9814e1fc1c9dda17912bde0179adc806" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float occl[4 *3]</definition>
+        <argsstring>[4 *3]</argsstring>
+        <name>occl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="344" column="9" bodyfile="dag_rendInstRes.h" bodystart="344" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__rendInstRes_8h_1a8081a53a0af8c067d1ad876827f3970d" prot="protected" static="no" mutable="no">
+        <type>BBox3</type>
+        <definition>BBox3 floatingBox</definition>
+        <argsstring></argsstring>
+        <name>floatingBox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="345" column="9" bodyfile="dag_rendInstRes.h" bodystart="345" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a190dc7bef42d47e7817c8a69d963aa85" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void init_rendinst_impostor_shader</definition>
+        <argsstring>()</argsstring>
+        <name>init_rendinst_impostor_shader</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="21" column="6" declfile="dag_rendInstRes.h" declline="21" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a992da80dbfc24fc1c1837b7c9a8ab196" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void rendinst_impostor_set_parallax_mode</definition>
+        <argsstring>(bool allowed)</argsstring>
+        <name>rendinst_impostor_set_parallax_mode</name>
+        <param>
+          <type>bool</type>
+          <declname>allowed</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="22" column="6" declfile="dag_rendInstRes.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a5c65e7541189ae5c72bfcfe0cb856bfd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void rendinst_impostor_set_view_mode</definition>
+        <argsstring>(bool allowed)</argsstring>
+        <name>rendinst_impostor_set_view_mode</name>
+        <param>
+          <type>bool</type>
+          <declname>allowed</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="23" column="6" declfile="dag_rendInstRes.h" declline="23" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1aaf164a111605bffd5e0da36254b1a753" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool rendinst_impostor_is_parallax_allowed</definition>
+        <argsstring>()</argsstring>
+        <name>rendinst_impostor_is_parallax_allowed</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="24" column="6" declfile="dag_rendInstRes.h" declline="24" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a50e07d54be81a34844794471851b6ffb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool rendinst_impostor_is_tri_view_allowed</definition>
+        <argsstring>()</argsstring>
+        <name>rendinst_impostor_is_tri_view_allowed</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="25" column="6" declfile="dag_rendInstRes.h" declline="25" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a54829665d2e47c6789c63fa55d1f556a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void rendinst_impostor_disable_anisotropy</definition>
+        <argsstring>()</argsstring>
+        <name>rendinst_impostor_disable_anisotropy</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="26" column="6" declfile="dag_rendInstRes.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a8fae9469fe581843e387b809c8a52ac6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>decl_dclass_and_id(RenderableInstanceResource, DObject, 0xBD23B4A7u) public void</type>
+        <definition>decl_dclass_and_id(RenderableInstanceResource, DObject, 0xBD23B4A7u) public void render</definition>
+        <argsstring>(const TMatrix &amp;tm, IRenderWrapperControl &amp;rwc, real trans=1)</argsstring>
+        <name>render</name>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type><ref refid="classIRenderWrapperControl" kindref="compound">IRenderWrapperControl</ref> &amp;</type>
+          <declname>rwc</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>trans</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="34" column="8" declfile="dag_rendInstRes.h" declline="34" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1aefc2a0b0600b3dcaa997b5d8b4775480" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void renderTrans</definition>
+        <argsstring>(const TMatrix &amp;tm, IRenderWrapperControl &amp;rwc, real trans=1)</argsstring>
+        <name>renderTrans</name>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type><ref refid="classIRenderWrapperControl" kindref="compound">IRenderWrapperControl</ref> &amp;</type>
+          <declname>rwc</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>trans</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="35" column="8" declfile="dag_rendInstRes.h" declline="35" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a9bb1f6a8c933316063c53c9b753557b8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void gatherUsedTex</definition>
+        <argsstring>(TextureIdSet &amp;tex_id_list) const</argsstring>
+        <name>gatherUsedTex</name>
+        <param>
+          <type>TextureIdSet &amp;</type>
+          <declname>tex_id_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="37" column="8" declfile="dag_rendInstRes.h" declline="37" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a662e5fe1f822213025f04895d60c96de" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void gatherUsedMat</definition>
+        <argsstring>(Tab&lt; ShaderMaterial * &gt; &amp;mat_list) const</argsstring>
+        <name>gatherUsedMat</name>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>mat_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="38" column="8" declfile="dag_rendInstRes.h" declline="38" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a2ca9c44ce010ad3bd0dbfb6452350475" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool replaceTexture</definition>
+        <argsstring>(TEXTUREID tex_id_old, TEXTUREID tex_id_new)</argsstring>
+        <name>replaceTexture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_old</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_new</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="40" column="8" declfile="dag_rendInstRes.h" declline="40" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a47a095158f5a230a213eb65f20031687" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void duplicateMaterial</definition>
+        <argsstring>(TEXTUREID tex_id, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMaterial</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="42" column="8" bodyfile="dag_rendInstRes.h" bodystart="42" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1acc2785c1f3120286a4a9348760c160fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void duplicateMat</definition>
+        <argsstring>(ShaderMaterial *prev_m, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMat</name>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>prev_m</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="48" column="8" bodyfile="dag_rendInstRes.h" bodystart="48" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a64e72723d2414e0f996cbbc29e842894" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>InstShaderMeshResource *</type>
+        <definition>InstShaderMeshResource * getMesh</definition>
+        <argsstring>()</argsstring>
+        <name>getMesh</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="55" column="26" bodyfile="dag_rendInstRes.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a97fb3a61d10c4e659158692e47a508ef" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>RenderableInstanceResource *</type>
+        <definition>RenderableInstanceResource * clone</definition>
+        <argsstring>() const</argsstring>
+        <name>clone</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="58" column="30" declfile="dag_rendInstRes.h" declline="58" declcolumn="30"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1af29d43f001e20dbfa3f65d682cab46d9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void updateShaderElems</definition>
+        <argsstring>()</argsstring>
+        <name>updateShaderElems</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="59" column="8" bodyfile="dag_rendInstRes.h" bodystart="59" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a591164ae8a0aa3ba556554aa644419eb" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int dumpStartOfs</definition>
+        <argsstring>()</argsstring>
+        <name>dumpStartOfs</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="65" column="21" bodyfile="dag_rendInstRes.h" bodystart="65" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a718ff2c40226132f5e7736eaa6d10b82" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * dumpStartPtr</definition>
+        <argsstring>()</argsstring>
+        <name>dumpStartPtr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="66" column="8" bodyfile="dag_rendInstRes.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a9361ed9ef652b16a617939da49fb1b74" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderableInstanceResource</definition>
+        <argsstring>()</argsstring>
+        <name>RenderableInstanceResource</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="76" column="3" bodyfile="dag_rendInstRes.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ad8c59d3509ba55387fa5389afda47beb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>end_dclass_decl</definition>
+        <argsstring>()</argsstring>
+        <name>end_dclass_decl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="77" column="1" declfile="dag_rendInstRes.h" declline="77" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1aa27da38fb10c3277db08caddd4eda618" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RenderableInstanceLodsResource *</type>
+        <definition>static RenderableInstanceLodsResource * loadResource</definition>
+        <argsstring>(IGenLoad &amp;crd, int srl_flags, const char *name, const DataBlock *desc=nullptr)</argsstring>
+        <name>loadResource</name>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>srl_flags</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const DataBlock *</type>
+          <declname>desc</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="157" column="41" declfile="dag_rendInstRes.h" declline="157" declcolumn="41"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ab33238257d5aa6f7bee8ad8cb7f1566b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RenderableInstanceLodsResource *</type>
+        <definition>static RenderableInstanceLodsResource * makeStubRes</definition>
+        <argsstring>(const DataBlock *b=NULL)</argsstring>
+        <name>makeStubRes</name>
+        <param>
+          <type>const DataBlock *</type>
+          <declname>b</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="159" column="41" declfile="dag_rendInstRes.h" declline="159" declcolumn="41"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a29f79a7b82086357e24ed7a3df9159a1" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void setImpostorTextureCallback</definition>
+        <argsstring>(ImpostorTextureCallback callback)</argsstring>
+        <name>setImpostorTextureCallback</name>
+        <param>
+          <type>ImpostorTextureCallback</type>
+          <declname>callback</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="162" column="15" declfile="dag_rendInstRes.h" declline="162" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a458aa34fa0ad28309dd203a404d9aeff" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float getMaxDist</definition>
+        <argsstring>() const</argsstring>
+        <name>getMaxDist</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="182" column="16" bodyfile="dag_rendInstRes.h" bodystart="182" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a0bcd8c70fcde575a57ecd54f9c18a56a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool isBakedImpostor</definition>
+        <argsstring>() const</argsstring>
+        <name>isBakedImpostor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="184" column="8" declfile="dag_rendInstRes.h" declline="184" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1af5341d6abbfc83f8bfc048cc68013687" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool setImpostorVars</definition>
+        <argsstring>(ShaderMaterial *mat) const</argsstring>
+        <name>setImpostorVars</name>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="185" column="8" declfile="dag_rendInstRes.h" declline="185" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a9e21ac4e8cb3f2ce040730878fc6f915" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool hasImpostorVars</definition>
+        <argsstring>(ShaderMaterial *mat) const</argsstring>
+        <name>hasImpostorVars</name>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="186" column="8" declfile="dag_rendInstRes.h" declline="186" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a655216d1ece687a7c651159d3576e844" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool setImpostorTransitionRange</definition>
+        <argsstring>(ShaderMaterial *mat, float transition_lod_start, float transition_range) const</argsstring>
+        <name>setImpostorTransitionRange</name>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>mat</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>transition_lod_start</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>transition_range</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="187" column="8" declfile="dag_rendInstRes.h" declline="187" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ad11c41644de417dd001159038ba7ee3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void prepareTextures</definition>
+        <argsstring>(const char *name, uint32_t shadow_atlas_size, int shadow_atlas_mip_offset, int texture_format_flags)</argsstring>
+        <name>prepareTextures</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>shadow_atlas_size</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>shadow_atlas_mip_offset</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>texture_format_flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="188" column="8" declfile="dag_rendInstRes.h" declline="188" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a2c361f7a96258f1ff183f302c4b9dbe0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float getTexScale</definition>
+        <argsstring>(int lod) const</argsstring>
+        <name>getTexScale</name>
+        <param>
+          <type>int</type>
+          <declname>lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="198" column="9" bodyfile="dag_rendInstRes.h" bodystart="198" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1aa87fda905c35b834553860c9133900f4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const uint8_t *</type>
+        <definition>const uint8_t * dumpStart</definition>
+        <argsstring>() const</argsstring>
+        <name>dumpStart</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="202" column="17" bodyfile="dag_rendInstRes.h" bodystart="202" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1afbdd8f9846442ca3f6524b3b49c91555" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * getStaticClassName</definition>
+        <argsstring>()</argsstring>
+        <name>getStaticClassName</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="204" column="21" bodyfile="dag_rendInstRes.h" bodystart="204" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a7653f305429bdd07b7fa6a8985feac9a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt; &gt;</type>
+        <definition>dag::ConstSpan&lt; Ptr&lt; ShaderMatVdata &gt; &gt; getSmvd</definition>
+        <argsstring>() const</argsstring>
+        <name>getSmvd</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="206" column="18" bodyfile="dag_rendInstRes.h" bodystart="206" bodyend="206"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ab731206716b6ebabd04f61a33bafdedb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setResLoadingFlag</definition>
+        <argsstring>(bool is_loading)</argsstring>
+        <name>setResLoadingFlag</name>
+        <param>
+          <type>bool</type>
+          <declname>is_loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="207" column="8" bodyfile="dag_rendInstRes.h" bodystart="207" bodyend="213"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ac36ab71ac455672f42480dc998d4ecb0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool getResLoadingFlag</definition>
+        <argsstring>() const</argsstring>
+        <name>getResLoadingFlag</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="214" column="8" bodyfile="dag_rendInstRes.h" bodystart="214" bodyend="214"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a0c28a60ee23bdfc046523ef8b35005c0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool areLodsSplit</definition>
+        <argsstring>() const</argsstring>
+        <name>areLodsSplit</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="215" column="8" bodyfile="dag_rendInstRes.h" bodystart="215" bodyend="215"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ab279af2c7535fb874031ac55880026ce" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structLod" kindref="compound">Lod</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; Lod &gt; getUsedLods</definition>
+        <argsstring>() const</argsstring>
+        <name>getUsedLods</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="216" column="18" bodyfile="dag_rendInstRes.h" bodystart="216" bodyend="220"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a381fe9c05ef893d6d4b38c7852b2bb7b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RenderableInstanceLodsResource *</type>
+        <definition>RenderableInstanceLodsResource * getFirstOriginal</definition>
+        <argsstring>()</argsstring>
+        <name>getFirstOriginal</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="226" column="34" bodyfile="dag_rendInstRes.h" bodystart="226" bodyend="226"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a3993437b3d358b053ab7d3c8b29ef383" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RenderableInstanceLodsResource *</type>
+        <definition>RenderableInstanceLodsResource * getNextClone</definition>
+        <argsstring>()</argsstring>
+        <name>getNextClone</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="227" column="34" bodyfile="dag_rendInstRes.h" bodystart="227" bodyend="227"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a0ba274acbd1b433a18b6309b40bbcbac" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void lockClonesList</definition>
+        <argsstring>()</argsstring>
+        <name>lockClonesList</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="230" column="15" bodyfile="dag_rendInstRes.h" bodystart="230" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a74aa64f9d17986a535e2fd999eebc281" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void unlockClonesList</definition>
+        <argsstring>()</argsstring>
+        <name>unlockClonesList</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="231" column="15" bodyfile="dag_rendInstRes.h" bodystart="231" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a5bee9129915a4fafb2f1433506395321" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned getQlReqLod</definition>
+        <argsstring>() const</argsstring>
+        <name>getQlReqLod</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="235" column="12" bodyfile="dag_rendInstRes.h" bodystart="235" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a4c6234607e5246ec4ad3c5dc31f137cc" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned getQlReqLodEff</definition>
+        <argsstring>() const</argsstring>
+        <name>getQlReqLodEff</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="236" column="12" bodyfile="dag_rendInstRes.h" bodystart="236" bodyend="241"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a5554d43eeca3a1de50ccf6639e8fe432" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int getQlReqLFU</definition>
+        <argsstring>() const</argsstring>
+        <name>getQlReqLFU</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="242" column="7" bodyfile="dag_rendInstRes.h" bodystart="242" bodyend="242"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a8b3caab0ccb93eaf47da24165986043c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void updateReqLod</definition>
+        <argsstring>(unsigned lod)</argsstring>
+        <name>updateReqLod</name>
+        <param>
+          <type>unsigned</type>
+          <declname>lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="243" column="8" bodyfile="dag_rendInstRes.h" bodystart="243" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a09311dd91cd6355d6050713fca18de31" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int getQlBestLod</definition>
+        <argsstring>() const</argsstring>
+        <name>getQlBestLod</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="273" column="7" bodyfile="dag_rendInstRes.h" bodystart="273" bodyend="273"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a573c63d8065763d62b2e42353bceaebf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void applyQlBestLod</definition>
+        <argsstring>(int lod0)</argsstring>
+        <name>applyQlBestLod</name>
+        <param>
+          <type>int</type>
+          <declname>lod0</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="274" column="8" bodyfile="dag_rendInstRes.h" bodystart="274" bodyend="280"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1aa2f90f90293741dc3131deb3dce85880" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned getQlMinAllowedLod</definition>
+        <argsstring>() const</argsstring>
+        <name>getQlMinAllowedLod</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="282" column="12" bodyfile="dag_rendInstRes.h" bodystart="282" bodyend="282"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a2026779f0b4b28911acadb04f5a54795" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned incQlReloadCnt</definition>
+        <argsstring>()</argsstring>
+        <name>incQlReloadCnt</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="284" column="12" bodyfile="dag_rendInstRes.h" bodystart="284" bodyend="284"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a41c3f00c669d0b14d07016b8b0264ec8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned getQlReloadCnt</definition>
+        <argsstring>() const</argsstring>
+        <name>getQlReloadCnt</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="285" column="12" bodyfile="dag_rendInstRes.h" bodystart="285" bodyend="285"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a913ac072a502c948a4bde60fb5dacdf7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned incQlDiscardCnt</definition>
+        <argsstring>()</argsstring>
+        <name>incQlDiscardCnt</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="286" column="12" bodyfile="dag_rendInstRes.h" bodystart="286" bodyend="286"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a8c9e894ddc72776d095565a0ab8a440d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned getQlDiscardCnt</definition>
+        <argsstring>() const</argsstring>
+        <name>getQlDiscardCnt</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="287" column="12" bodyfile="dag_rendInstRes.h" bodystart="287" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ad0ce88733acc9172ba3318c8cd99cbf9" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setQlReqLod</definition>
+        <argsstring>(uint16_t new_lod)</argsstring>
+        <name>setQlReqLod</name>
+        <param>
+          <type>uint16_t</type>
+          <declname>new_lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="290" column="8" bodyfile="dag_rendInstRes.h" bodystart="290" bodyend="290"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1afccc9f1f2e72f67a1a0e2c40d1bc2cb2" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setQlReqLFU</definition>
+        <argsstring>(int frame_no)</argsstring>
+        <name>setQlReqLFU</name>
+        <param>
+          <type>int</type>
+          <declname>frame_no</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="291" column="8" bodyfile="dag_rendInstRes.h" bodystart="291" bodyend="291"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a9c73fe54dbd63f4e6599c025a03b6410" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PATCHABLE_32BIT_PAD32</definition>
+        <argsstring>(_resv[3])</argsstring>
+        <name>PATCHABLE_32BIT_PAD32</name>
+        <param>
+          <type>_resv</type>
+          <array>[3]</array>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="328" column="3" declfile="dag_rendInstRes.h" declline="328" declcolumn="3"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a487f2b5044e8451ca4aa8ceecc4d2be0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t getBvhId</definition>
+        <argsstring>() const</argsstring>
+        <name>getBvhId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="358" column="12" bodyfile="dag_rendInstRes.h" bodystart="358" bodyend="358"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a52bbce5704f170b9e2f2ce933c9a4fd9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setBvhId</definition>
+        <argsstring>(uint32_t id) const</argsstring>
+        <name>setBvhId</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="359" column="8" bodyfile="dag_rendInstRes.h" bodystart="359" bodyend="359"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a782bdf5d0c974fbd6986cec9171f685a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool hasTreeOrFlag</definition>
+        <argsstring>() const</argsstring>
+        <name>hasTreeOrFlag</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="361" column="8" bodyfile="dag_rendInstRes.h" bodystart="361" bodyend="361"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ae89bdcd647d6cbbe510442cc9583190a" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr void</type>
+        <definition>constexpr void setRiExtraId</definition>
+        <argsstring>(int)</argsstring>
+        <name>setRiExtraId</name>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="367" column="18" bodyfile="dag_rendInstRes.h" bodystart="367" bodyend="367"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a2fefb55a93f2870153a0974af97a6969" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int getRiExtraId</definition>
+        <argsstring>() const</argsstring>
+        <name>getRiExtraId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="368" column="17" bodyfile="dag_rendInstRes.h" bodystart="368" bodyend="368"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a76ba7e51df9fe50f160ebb0edda71886" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void loadImpostorData</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>loadImpostorData</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="371" column="8" declfile="dag_rendInstRes.h" declline="371" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a3a14412ee3bdfb061ad5c07d45c0b326" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool hasImpostor</definition>
+        <argsstring>() const</argsstring>
+        <name>hasImpostor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="372" column="8" bodyfile="dag_rendInstRes.h" bodystart="372" bodyend="375"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ae27dc4c0a92f5a75087af5dbd5d648c9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const BBox3 *</type>
+        <definition>const BBox3 * getOccluderBox</definition>
+        <argsstring>() const</argsstring>
+        <name>getOccluderBox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="376" column="15" bodyfile="dag_rendInstRes.h" bodystart="376" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1adbef60f1230e687d189db708d6352082" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const Point3 *</type>
+        <definition>const Point3 * getOccluderQuadPts</definition>
+        <argsstring>() const</argsstring>
+        <name>getOccluderQuadPts</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="377" column="16" bodyfile="dag_rendInstRes.h" bodystart="377" bodyend="377"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a707cfee38d16d76b7eaa30c422a1626c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const BBox3 *</type>
+        <definition>const BBox3 * getFloatingBox</definition>
+        <argsstring>() const</argsstring>
+        <name>getFloatingBox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="378" column="15" bodyfile="dag_rendInstRes.h" bodystart="378" bodyend="378"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1aa82655868df1defddc444ddc4c923b09" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structImpostorData" kindref="compound">ImpostorData</ref> *</type>
+        <definition>const ImpostorData * getImpostorData</definition>
+        <argsstring>() const</argsstring>
+        <name>getImpostorData</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="379" column="22" bodyfile="dag_rendInstRes.h" bodystart="379" bodyend="382"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ac33ef60b0d4bea9c0e393ca655a786d3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t getRotationPaletteSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getRotationPaletteSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="383" column="12" bodyfile="dag_rendInstRes.h" bodystart="383" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ad22a5d230a2e3928fa892fc730d982d9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref> &amp;</type>
+        <definition>const ImpostorParams &amp; getImpostorParams</definition>
+        <argsstring>() const</argsstring>
+        <name>getImpostorParams</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="385" column="24" bodyfile="dag_rendInstRes.h" bodystart="385" bodyend="385"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1afb8f8d9af18083c47df26d1846bba55d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref> &amp;</type>
+        <definition>ImpostorParams &amp; getImpostorParamsE</definition>
+        <argsstring>()</argsstring>
+        <name>getImpostorParamsE</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="386" column="18" bodyfile="dag_rendInstRes.h" bodystart="386" bodyend="390"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a4d841bbf024ff06f7db75826a54b91a1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref> &amp;</type>
+        <definition>const ImpostorTextures &amp; getImpostorTextures</definition>
+        <argsstring>() const</argsstring>
+        <name>getImpostorTextures</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="391" column="26" bodyfile="dag_rendInstRes.h" bodystart="391" bodyend="391"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a2dc188f13b99834a9a4aee187fcfca78" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref> &amp;</type>
+        <definition>ImpostorTextures &amp; getImpostorTexturesE</definition>
+        <argsstring>()</argsstring>
+        <name>getImpostorTexturesE</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="392" column="20" bodyfile="dag_rendInstRes.h" bodystart="392" bodyend="392"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a195a912a5bcb1828b71a34ee9fb3e468" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 getTiltLimit</definition>
+        <argsstring>() const</argsstring>
+        <name>getTiltLimit</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="393" column="10" bodyfile="dag_rendInstRes.h" bodystart="393" bodyend="393"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a28ce996cb9a345b6252b8d2d09c69422" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setTiltLimit</definition>
+        <argsstring>(const Point3 &amp;lim)</argsstring>
+        <name>setTiltLimit</name>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>lim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="394" column="8" bodyfile="dag_rendInstRes.h" bodystart="394" bodyend="398"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a566d5af3f35ebf995779980ea8dd694b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderableInstanceLodsResource</definition>
+        <argsstring>()</argsstring>
+        <name>RenderableInstanceLodsResource</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="401" column="3" bodyfile="dag_rendInstRes.h" bodystart="401" bodyend="401"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a6f21b1d90df34953a44fad8a78393430" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderableInstanceLodsResource</definition>
+        <argsstring>(const RenderableInstanceLodsResource &amp;)</argsstring>
+        <name>RenderableInstanceLodsResource</name>
+        <param>
+          <type>const RenderableInstanceLodsResource &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="402" column="3" declfile="dag_rendInstRes.h" declline="402" declcolumn="3"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a2b12acd409e20d57482d4e61e2226710" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>~RenderableInstanceLodsResource</definition>
+        <argsstring>()</argsstring>
+        <name>~RenderableInstanceLodsResource</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="403" column="3" bodyfile="dag_rendInstRes.h" bodystart="403" bodyend="403"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1af7058a20d5002c4997f169376e3611b5" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void patchAndLoadData</definition>
+        <argsstring>(int res_sz, IGenLoad &amp;crd, int flags, const char *name)</argsstring>
+        <name>patchAndLoadData</name>
+        <param>
+          <type>int</type>
+          <declname>res_sz</declname>
+        </param>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="405" column="8" declfile="dag_rendInstRes.h" declline="405" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a515ecf0a701ab226b5fc9579c9950fc1" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structImpostorRtData" kindref="compound">ImpostorRtData</ref> *</type>
+        <definition>ImpostorRtData * impRtdPtr</definition>
+        <argsstring>() const</argsstring>
+        <name>impRtdPtr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="407" column="18" bodyfile="dag_rendInstRes.h" bodystart="407" bodyend="410"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1abd4e5c937c4b98dd42745acb33815cdf" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void clearData</definition>
+        <argsstring>()</argsstring>
+        <name>clearData</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="413" column="8" declfile="dag_rendInstRes.h" declline="413" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a625ce929218f054bf94f0ab4adec2fd5" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t getResSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getResSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="415" column="12" bodyfile="dag_rendInstRes.h" bodystart="415" bodyend="415"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a60c28451c0f619f545b7c03c5869b8f7" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setHasImpostorMat</definition>
+        <argsstring>()</argsstring>
+        <name>setHasImpostorMat</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="417" column="8" bodyfile="dag_rendInstRes.h" bodystart="417" bodyend="417"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ab30991eff2598ebb8eeae8c3d570112a" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setResSizeNonTS</definition>
+        <argsstring>(uint32_t res_size)</argsstring>
+        <name>setResSizeNonTS</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>res_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="419" column="8" bodyfile="dag_rendInstRes.h" bodystart="419" bodyend="422"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1ab8753a56c7268786d220b830948d5582" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool hasOccluderBox</definition>
+        <argsstring>() const</argsstring>
+        <name>hasOccluderBox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="424" column="8" bodyfile="dag_rendInstRes.h" bodystart="424" bodyend="427"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a7ce1e2fd03cf0adbb11a5452e3b98ec4" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool hasOccluderQuad</definition>
+        <argsstring>() const</argsstring>
+        <name>hasOccluderQuad</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="429" column="8" bodyfile="dag_rendInstRes.h" bodystart="429" bodyend="432"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a6cba1370e388a48bddcd259ae8ecd7bf" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool hasFloatingBox</definition>
+        <argsstring>() const</argsstring>
+        <name>hasFloatingBox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="434" column="8" bodyfile="dag_rendInstRes.h" bodystart="434" bodyend="434"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__rendInstRes_8h_1a28fcf5d1a205973fec340c30a6e4df22" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool hasImpostorData</definition>
+        <argsstring>() const</argsstring>
+        <name>hasImpostorData</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="436" column="8" bodyfile="dag_rendInstRes.h" bodystart="436" bodyend="439"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shadersRes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_instShaderMeshRes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_bounds3.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_textureIDHolder.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point4.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;startup/dag_globalSettings.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIRenderWrapperControl" kindref="compound">IRenderWrapperControl</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TMatrix;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>init_rendinst_impostor_shader();</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rendinst_impostor_set_parallax_mode(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allowed);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rendinst_impostor_set_view_mode(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allowed);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>rendinst_impostor_is_parallax_allowed();</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>rendinst_impostor_is_tri_view_allowed();</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>rendinst_impostor_disable_anisotropy();</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">decl_dclass_and_id(RenderableInstanceResource,<sp/>DObject,<sp/>0xBD23B4A7u)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">public:</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>static<sp/>RenderableInstanceResource<sp/>*loadResourceInternal(IGenLoad<sp/>&amp;<sp/>crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>srl_flags,<sp/><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref><sp/>&amp;smvd);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>render(const<sp/>TMatrix<sp/>&amp;tm,<sp/><ref refid="classIRenderWrapperControl" kindref="compound">IRenderWrapperControl</ref><sp/>&amp;rwc,<sp/>real<sp/>trans<sp/>=<sp/>1);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>renderTrans(const<sp/>TMatrix<sp/>&amp;tm,<sp/><ref refid="classIRenderWrapperControl" kindref="compound">IRenderWrapperControl</ref><sp/>&amp;rwc,<sp/>real<sp/>trans<sp/>=<sp/>1);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedTex(TextureIdSet<sp/>&amp;<sp/>tex_id_list)<sp/>const;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedMat(Tab&lt;<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*&gt;<sp/>&amp;<sp/>mat_list)<sp/>const;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>replaceTexture(TEXTUREID<sp/>tex_id_old,<sp/>TEXTUREID<sp/>tex_id_new);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>duplicateMaterial(TEXTUREID<sp/>tex_id,<sp/>Tab&lt;<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*&gt;<sp/>&amp;<sp/>old_mat,<sp/>Tab&lt;<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*&gt;<sp/>&amp;<sp/>new_mat)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(getMesh())</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref><sp/>*mesh<sp/>=<sp/>getMesh()-&gt;getMesh()-&gt;getMesh())</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mesh-&gt;duplicateMaterial(tex_id,<sp/>old_mat,<sp/>new_mat);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>duplicateMat(<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*<sp/>prev_m,<sp/>Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;<sp/>old_mat,<sp/>Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;<sp/>new_mat)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(getMesh())</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref><sp/>*mesh<sp/>=<sp/>getMesh()-&gt;getMesh()-&gt;getMesh())</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mesh-&gt;duplicateMat(prev_m,<sp/>old_mat,<sp/>new_mat);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>InstShaderMeshResource<sp/>*getMesh()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rigid.mesh;<sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>InstShaderMeshResource<sp/>*getMesh()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rigid.mesh;<sp/>}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>RenderableInstanceResource<sp/>*clone()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateShaderElems()</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(rigid.mesh)</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>rigid.mesh-&gt;getMesh()-&gt;getMesh()-&gt;updateShaderElems();</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dumpStartOfs()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>offsetof(RenderableInstanceResource,<sp/>rigid);<sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dumpStartPtr()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;rigid;<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRigidObject" kindref="compound">RigidObject</ref></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>PATCHABLE_DATA64(Ptr&lt;InstShaderMeshResource&gt;,<sp/>mesh);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><ref refid="structRigidObject" kindref="compound">RigidObject</ref><sp/>rigid;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>RenderableInstanceResource()<sp/>{}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">end_dclass_decl();</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Container<sp/>for<sp/>LODs,<sp/>each<sp/>LOD<sp/>is<sp/>RenderableInstanceResource.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal">decl_dclass_and_id(RenderableInstanceLodsResource,<sp/>DObject,<sp/>0x0F076634u)</highlight></codeline>
+<codeline lineno="82"><highlight class="normal">public:</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>struct<sp/><ref refid="structLod" kindref="compound">Lod</ref></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>PatchablePtr&lt;RenderableInstanceResource&gt;<sp/>scene;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>real<sp/>range;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>texScale;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getAllElems(Tab&lt;dag::ConstSpan&lt;ShaderMesh::RElem&gt;&gt;<sp/>&amp;out_elems)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="92" refid="structImpostorData" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structImpostorData" kindref="compound">ImpostorData</ref></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>PatchablePtr&lt;Point3&gt;<sp/>convexPointsPtr;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>PatchablePtr&lt;BBox3&gt;<sp/>shadowPointsPtr;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>convexPointsCount,<sp/>shadowPointsCount;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>minY,<sp/>maxY,<sp/>cylRad;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>maxFacingLeavesDelta,<sp/>bboxAspectRatio;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;Point3&gt;<sp/>convexPoints()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_span_const(convexPointsPtr.get(),<sp/>convexPointsCount);<sp/>}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;BBox3&gt;<sp/>shadowPoints()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_span_const(shadowPointsPtr.get(),<sp/>shadowPointsCount);<sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104" refid="structImpostorTextures" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>TEXTUREID<sp/>albedo_alpha<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/>TEXTUREID<sp/>normal_translucency<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/>TEXTUREID<sp/>ao_smoothness<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>TEXTUREID<sp/>shadowAtlas<sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>Texture<sp/>*shadowAtlasTex<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>close()</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ShaderGlobal::reset_from_vars_and_release_managed_tex(albedo_alpha);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ShaderGlobal::reset_from_vars_and_release_managed_tex(normal_translucency);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ShaderGlobal::reset_from_vars_and_release_managed_tex(ao_smoothness);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(shadowAtlas,<sp/>shadowAtlasTex);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isInitialized()</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>albedo_alpha<sp/>!=<sp/>BAD_TEXTUREID<sp/>&amp;&amp;<sp/>normal_translucency<sp/>!=<sp/>BAD_TEXTUREID<sp/>&amp;&amp;<sp/>ao_smoothness<sp/>!=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImpostorTextures" kindref="compound">~ImpostorTextures</ref>()<sp/>{<sp/>close();<sp/>}</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>&amp;operator=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="structImpostorSliceData" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structImpostorSliceData" kindref="compound">ImpostorSliceData</ref></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/>Point4<sp/>sliceTm<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/>Point4<sp/>clippingLines<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="structImpostorParams" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::array&lt;ImpostorSliceData,<sp/>9&gt;<sp/>perSliceParams<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>Point4<sp/>scale<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/>Point4<sp/>boundingSphere<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::array&lt;Point4,<sp/>4&gt;<sp/>vertexOffsets<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>horizontalSamples<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>verticalSamples<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/>Point4<sp/>crownCenter1<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0),<sp/>invCrownRad1<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/>Point4<sp/>crownCenter2<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0),<sp/>invCrownRad2<sp/>=<sp/>Point4(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>preshadowEnabled<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>bottomGradient<sp/>=<sp/>0.0;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasBakedTexture()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>horizontalSamples<sp/>!=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">RenderableInstanceLodsResSrc;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>int<sp/>(*get_skip_first_lods_count)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>has_impostors,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>total_lods);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>RenderableInstanceLodsResource<sp/>*loadResource(IGenLoad<sp/>&amp;<sp/>crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>srl_flags,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>*desc<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>RenderableInstanceLodsResource<sp/>*makeStubRes(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>*b<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ImpostorTextureCallback<sp/>=<sp/>void<sp/>(*)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderableInstanceLodsResource<sp/>*);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setImpostorTextureCallback(ImpostorTextureCallback<sp/>callback);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedTex(TextureIdSet<sp/>&amp;<sp/>tex_id_list)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gatherUsedMat(Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;<sp/>mat_list)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>replaceTexture(TEXTUREID<sp/>tex_id_old,<sp/>TEXTUREID<sp/>tex_id_new);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>duplicateMaterial(TEXTUREID<sp/>tex_id,<sp/>Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;<sp/>old_mat,<sp/>Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;<sp/>new_mat)</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>lods.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lods[i].scene)</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>lods[i].scene-&gt;duplicateMaterial(tex_id,<sp/>old_mat,<sp/>new_mat);</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>duplicateMat(<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*<sp/>prev_m,<sp/>Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;<sp/>old_mat,<sp/>Tab&lt;ShaderMaterial<sp/>*&gt;<sp/>&amp;<sp/>new_mat)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>lods.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lods[i].scene)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>lods[i].scene-&gt;duplicateMat(prev_m,<sp/>old_mat,<sp/>new_mat);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>getMaxDist()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lods.size()<sp/>?<sp/>lods.back().range<sp/>:<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isBakedImpostor()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setImpostorVars(<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*<sp/>mat)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasImpostorVars(<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*<sp/>mat)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setImpostorTransitionRange(<ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*<sp/>mat,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>transition_lod_start,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>transition_range)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>prepareTextures(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>uint32_t<sp/>shadow_atlas_size,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>shadow_atlas_mip_offset,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texture_format_flags);</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/>RenderableInstanceLodsResource<sp/>*clone()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateShaderElems()</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>lods.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lods[i].scene)</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>lods[i].scene-&gt;updateShaderElems();</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>getTexScale(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lod)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lods[lod].texScale;<sp/>}</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dumpStartOfs()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>offsetof(RenderableInstanceLodsResource,<sp/>lods);<sp/>}</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dumpStartPtr()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;lods;<sp/>}</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*dumpStart()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(uint8_t<sp/>*)(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*)&amp;lods;<sp/>}</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getStaticClassName()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;rendInst&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;Ptr&lt;ShaderMatVdata&gt;&gt;<sp/>getSmvd()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_span_const(&amp;smvd,<sp/>1);<sp/>}</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setResLoadingFlag(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_loading)</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(is_loading)</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>interlocked_or(packedFields,<sp/>RES_LD_FLG_MASK<sp/>&lt;&lt;<sp/>RES_LD_FLG_SHIFT);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>interlocked_and(packedFields,<sp/>~(RES_LD_FLG_MASK<sp/>&lt;&lt;<sp/>RES_LD_FLG_SHIFT));</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getResLoadingFlag()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(packedFields)<sp/>&amp;<sp/>(RES_LD_FLG_MASK<sp/>&lt;&lt;<sp/>RES_LD_FLG_SHIFT))<sp/>!=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>areLodsSplit()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>smvd<sp/>&amp;&amp;<sp/>smvd-&gt;areLodsSplit();<sp/>}</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;Lod&gt;<sp/>getUsedLods()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="217"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>qlBestLod<sp/>=<sp/>getQlBestLod();</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_span_const(lods.data()<sp/>+<sp/>qlBestLod,<sp/>lods.size()<sp/>-<sp/>qlBestLod);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/>dag::Span&lt;Lod&gt;<sp/>getUsedLods()</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>qlBestLod<sp/>=<sp/>getQlBestLod();</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_span(lods.data()<sp/>+<sp/>qlBestLod,<sp/>lods.size()<sp/>-<sp/>qlBestLod);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/>RenderableInstanceLodsResource<sp/>*getFirstOriginal()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/>RenderableInstanceLodsResource<sp/>*getNextClone()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderableInstanceLodsResource<sp/>*getFirstOriginal()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderableInstanceLodsResource<sp/>*getNextClone()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>lockClonesList()<sp/>{}</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>unlockClonesList()<sp/>{}</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>void<sp/>(*on_higher_lod_required)(RenderableInstanceLodsResource<sp/>*res,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>req_lod,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>cur_lod);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"></highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>qlReqLodInitialValue<sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getQlReqLod()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_relaxed_load(qlReqLod);<sp/>}</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getQlReqLodEff()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="237"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint16_t<sp/>reqLod<sp/>=<sp/>getQlReqLod();</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint16_t<sp/>reqLodPrev<sp/>=<sp/>interlocked_relaxed_load(qlReqLodPrev);</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>reqLod<sp/>&lt;<sp/>reqLodPrev<sp/>?<sp/>reqLod<sp/>:<sp/>reqLodPrev;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getQlReqLFU()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_relaxed_load(qlReqLFU);<sp/>}</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateReqLod(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>lod)</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lod<sp/>&lt;<sp/>qlMinAllowedLod)</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lod<sp/>=<sp/>qlMinAllowedLod;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reqLFU<sp/>=<sp/>getQlReqLFU();</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint16_t<sp/>reqLod<sp/>=<sp/>getQlReqLod();</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reqLFU<sp/>==<sp/>::dagor_frame_no()<sp/>&amp;&amp;<sp/>lod<sp/>&lt;<sp/>reqLod)</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>setQlReqLod(lod);</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(on_higher_lod_required)</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>qlBestLod<sp/>=<sp/>getQlBestLod();</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lod<sp/>&lt;<sp/>qlBestLod)</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>on_higher_lod_required(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>lod,<sp/>qlBestLod);</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reqLFU<sp/>!=<sp/>::dagor_frame_no())</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>uint16_t<sp/>newPrevLod<sp/>=<sp/>reqLFU<sp/>+<sp/>10<sp/>&gt;<sp/>::dagor_frame_no()<sp/>?<sp/>reqLod<sp/>:<sp/>lod;</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>interlocked_release_store(qlReqLodPrev,<sp/>newPrevLod);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>setQlReqLod(lod);</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>setQlReqLFU(dagor_frame_no());</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(on_higher_lod_required)</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>qlBestLod<sp/>=<sp/>getQlBestLod();</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lod<sp/>&lt;<sp/>qlBestLod<sp/>||<sp/>lod<sp/>&lt;<sp/>newPrevLod)</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>on_higher_lod_required(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>lod,<sp/>qlBestLod);</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getQlBestLod()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(packedFields)<sp/>&gt;&gt;<sp/>QL_BEST_LOD_SHIFT)<sp/>&amp;<sp/>QL_BEST_LOD_MASK;<sp/>}</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>applyQlBestLod(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lod0)</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>m<sp/>=<sp/>~(QL_BEST_LOD_MASK<sp/>&lt;&lt;<sp/>QL_BEST_LOD_SHIFT),<sp/>v<sp/>=<sp/>(lod0<sp/>&amp;<sp/>QL_BEST_LOD_MASK)<sp/>&lt;&lt;<sp/>QL_BEST_LOD_SHIFT;</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>storedValue<sp/>=<sp/>interlocked_relaxed_load(packedFields);</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(interlocked_compare_exchange(packedFields,<sp/>(storedValue<sp/>&amp;<sp/>m)<sp/>|<sp/>v,<sp/>storedValue)<sp/>!=<sp/>storedValue)</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>storedValue<sp/>=<sp/>interlocked_acquire_load(packedFields);</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getQlMinAllowedLod()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>qlMinAllowedLod;<sp/>}</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>incQlReloadCnt()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_increment(qlReloadCnt);<sp/>}</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getQlReloadCnt()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(qlReloadCnt);<sp/>}</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>incQlDiscardCnt()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_increment(qlDiscardCnt);<sp/>}</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getQlDiscardCnt()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(qlDiscardCnt);<sp/>}</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"></highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setQlReqLod(uint16_t<sp/>new_lod)<sp/>{<sp/>interlocked_release_store(qlReqLod,<sp/>new_lod);<sp/>}</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setQlReqLFU(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>frame_no)<sp/>{<sp/>interlocked_release_store(qlReqLFU,<sp/>frame_no);<sp/>}</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"></highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>FieldsMasks<sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/>RES_SIZE_SHIFT<sp/>=<sp/>0x0,</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/>RES_SIZE_SIZE<sp/>=<sp/>24,</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/>RES_SIZE_MASK<sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>RES_SIZE_SIZE)<sp/>-<sp/>1,</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_IMPOSTOR_MAT_SHIFT<sp/>=<sp/>RES_SIZE_SHIFT<sp/>+<sp/>RES_SIZE_SIZE,</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_IMPOSTOR_MAT_SIZE<sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_IMPOSTOR_MAT_MASK<sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>HAS_IMPOSTOR_MAT_SIZE)<sp/>-<sp/>1,</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_OCCLUDER_BOX_SHIFT<sp/>=<sp/>HAS_IMPOSTOR_MAT_SHIFT<sp/>+<sp/>HAS_IMPOSTOR_MAT_SIZE,</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_OCCLUDER_BOX_SIZE<sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_OCCLUDER_BOX_MASK<sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>HAS_OCCLUDER_BOX_SIZE)<sp/>-<sp/>1,</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_OCCLUDER_QUAD_SHIFT<sp/>=<sp/>HAS_OCCLUDER_BOX_SHIFT<sp/>+<sp/>HAS_OCCLUDER_BOX_SIZE,</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_OCCLUDER_QUAD_SIZE<sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_OCCLUDER_QUAD_MASK<sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>HAS_OCCLUDER_QUAD_SIZE)<sp/>-<sp/>1,</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_IMPOSTOR_DATA_SHIFT<sp/>=<sp/>HAS_OCCLUDER_QUAD_SHIFT<sp/>+<sp/>HAS_OCCLUDER_QUAD_SIZE,</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_IMPOSTOR_DATA_SIZE<sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_IMPOSTOR_DATA_MASK<sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>HAS_IMPOSTOR_DATA_SIZE)<sp/>-<sp/>1,</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/>QL_BEST_LOD_SHIFT<sp/>=<sp/>HAS_IMPOSTOR_DATA_SHIFT<sp/>+<sp/>HAS_IMPOSTOR_DATA_SIZE,</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/>QL_BEST_LOD_SIZE<sp/>=<sp/>0x3,</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/>QL_BEST_LOD_MASK<sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>QL_BEST_LOD_SIZE)<sp/>-<sp/>1,</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/>RES_LD_FLG_SHIFT<sp/>=<sp/>QL_BEST_LOD_SIZE<sp/>+<sp/>QL_BEST_LOD_SHIFT,</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/><sp/><sp/>RES_LD_FLG_SIZE<sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/>RES_LD_FLG_MASK<sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>RES_LD_FLG_SIZE)<sp/>-<sp/>1</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(RES_LD_FLG_SHIFT<sp/>+<sp/>RES_LD_FLG_SIZE<sp/>==<sp/>32,</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Since<sp/>we<sp/>use<sp/>one<sp/>dword<sp/>for<sp/>the<sp/>bitfield,<sp/>we<sp/>shouldn&apos;t<sp/>have<sp/>unhandled<sp/>bits<sp/>there.&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/>uint32_t<sp/>packedFields<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>rotationPaletteSize<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>qlMinAllowedLod<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>qlReqLod<sp/>=<sp/>qlReqLodInitialValue,<sp/>qlReqLodPrev<sp/>=<sp/>qlReqLodInitialValue;</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>qlReloadCnt<sp/>=<sp/>0,<sp/>qlDiscardCnt<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>qlReqLFU<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">mutable</highlight><highlight class="normal"><sp/>uint32_t<sp/>bvhId<sp/>:<sp/>31<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">mutable</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasTreeOrFlagMaterial<sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderMatVdata&gt;<sp/>smvd;</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/>PATCHABLE_32BIT_PAD32(_resv[3]);</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"></highlight></codeline>
+<codeline lineno="330"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/>PatchableTab&lt;Lod&gt;<sp/>lods;</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/>BBox3<sp/>bbox;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//&lt;<sp/>in<sp/>local<sp/>coords:<sp/>bounding<sp/>box</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/>Point3<sp/>bsphCenter;<sp/></highlight><highlight class="comment">//&lt;<sp/>in<sp/>local<sp/>coords:<sp/>bounding<sp/>sphere<sp/>center</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/>real<sp/>bsphRad;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//&lt;<sp/>in<sp/>local<sp/>coords:<sp/>bounding<sp/>sphere<sp/>radius</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/>real<sp/>bound0rad;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//&lt;<sp/>radius<sp/>of<sp/>bounding<sp/>sphere<sp/>with<sp/>center<sp/>at<sp/>(0,0,0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/>uint16_t<sp/>impostorDataOfs;<sp/></highlight><highlight class="comment">//&lt;<sp/>offset<sp/>(in<sp/>bytes)<sp/>from<sp/>&amp;lods<sp/>to<sp/>ImpostorData<sp/>struct<sp/>(or<sp/>0<sp/>when<sp/>no<sp/>impostor<sp/>data)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>ExtraFlags<sp/>:<sp/>uint16_t</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/>HAS_FLOATING_BOX_FLG<sp/>=<sp/>1<sp/>&lt;&lt;<sp/>0,</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/>uint16_t<sp/>extraFlags;</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"></highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>occl[4<sp/>*<sp/>3];<sp/></highlight><highlight class="comment">//&lt;<sp/>present<sp/>ONLY<sp/>if<sp/>hasOccluderBox==1<sp/>or<sp/>hasOccluderQuad=1<sp/>(in<sp/>local<sp/>coords)<sp/>(BBox3<sp/>or<sp/>Point3[4])</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/>BBox3<sp/>floatingBox;<sp/></highlight><highlight class="comment">//&lt;<sp/>present<sp/>ONLY<sp/>if<sp/>hasFloatingBox()<sp/>==<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="346"><highlight class="normal"></highlight></codeline>
+<codeline lineno="347" refid="structImpostorRtData" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structImpostorRtData" kindref="compound">ImpostorRtData</ref></highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref><sp/>params<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>tex<sp/>=<sp/>{};<sp/></highlight><highlight class="comment">//<sp/>(7..8)<sp/>*<sp/>32-bits</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/>tiltLimit<sp/>=<sp/>Point3(5,<sp/>5,<sp/>5)<sp/>*<sp/>DEG_TO_RAD;</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"></highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref><sp/>null_params;</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>null_tex;</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"></highlight></codeline>
+<codeline lineno="357"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/>uint32_t<sp/>getBvhId()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>bvhId;<sp/>}</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setBvhId(uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/>bvhId<sp/>=<sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"></highlight></codeline>
+<codeline lineno="361"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasTreeOrFlag()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasTreeOrFlagMaterial;<sp/>}</highlight></codeline>
+<codeline lineno="362"><highlight class="normal"></highlight></codeline>
+<codeline lineno="363"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_64BIT<sp/>&amp;&amp;<sp/>!defined(DEBUG_DOBJECTS)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setRiExtraId(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/>DObject::_resv<sp/>=<sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getRiExtraId()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>DObject::_resv;<sp/>}</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setRiExtraId(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="368"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getRiExtraId()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;<sp/>}</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="370"><highlight class="normal"></highlight></codeline>
+<codeline lineno="371"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>loadImpostorData(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasImpostor()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="373"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(packedFields)<sp/>&amp;<sp/>(HAS_IMPOSTOR_MAT_MASK<sp/>&lt;&lt;<sp/>HAS_IMPOSTOR_MAT_SHIFT))<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BBox3<sp/>*getOccluderBox()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasOccluderBox()<sp/>?<sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BBox3<sp/>*)occl<sp/>:<sp/>NULL;<sp/>}</highlight></codeline>
+<codeline lineno="377"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>*getOccluderQuadPts()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasOccluderQuad()<sp/>?<sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>*)occl<sp/>:<sp/>NULL;<sp/>}</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BBox3<sp/>*getFloatingBox()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasFloatingBox()<sp/>?<sp/>&amp;floatingBox<sp/>:<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImpostorData" kindref="compound">ImpostorData</ref><sp/>*getImpostorData()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="380"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="381"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>impostorDataOfs<sp/>?<sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImpostorData" kindref="compound">ImpostorData</ref><sp/>*)(dumpStart()<sp/>+<sp/>impostorDataOfs)<sp/>:<sp/>nullptr;</highlight></codeline>
+<codeline lineno="382"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="383"><highlight class="normal"><sp/><sp/>uint32_t<sp/>getRotationPaletteSize()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rotationPaletteSize;<sp/>}</highlight></codeline>
+<codeline lineno="384"><highlight class="normal"></highlight></codeline>
+<codeline lineno="385"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref><sp/>&amp;getImpostorParams()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasImpostor()<sp/>?<sp/>impRtdPtr()-&gt;params<sp/>:<sp/>ImpostorRtData::null_params;<sp/>}</highlight></codeline>
+<codeline lineno="386"><highlight class="normal"><sp/><sp/><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref><sp/>&amp;getImpostorParamsE()</highlight></codeline>
+<codeline lineno="387"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="388"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(hasImpostor());<sp/></highlight><highlight class="comment">//<sp/>otherwise<sp/>non-const<sp/>reference<sp/>is<sp/>returned<sp/>to<sp/>the<sp/>null_params<sp/>value</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="389"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const_cast&lt;</highlight><highlight class="normal"><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref><sp/>&amp;</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(getImpostorParams());</highlight></codeline>
+<codeline lineno="390"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="391"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>&amp;getImpostorTextures()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasImpostor()<sp/>?<sp/>impRtdPtr()-&gt;tex<sp/>:<sp/>ImpostorRtData::null_tex;<sp/>}</highlight></codeline>
+<codeline lineno="392"><highlight class="normal"><sp/><sp/><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>&amp;getImpostorTexturesE()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const_cast&lt;</highlight><highlight class="normal"><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref><sp/>&amp;</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(getImpostorTextures());<sp/>}</highlight></codeline>
+<codeline lineno="393"><highlight class="normal"><sp/><sp/>Point3<sp/>getTiltLimit()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasImpostor()<sp/>?<sp/>impRtdPtr()-&gt;tiltLimit<sp/>:<sp/>Point3(0,<sp/>0,<sp/>0);<sp/>}</highlight></codeline>
+<codeline lineno="394"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setTiltLimit(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;lim)</highlight></codeline>
+<codeline lineno="395"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="396"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hasImpostor())</highlight></codeline>
+<codeline lineno="397"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>impRtdPtr()-&gt;tiltLimit<sp/>=<sp/>lim;</highlight></codeline>
+<codeline lineno="398"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="399"><highlight class="normal"></highlight></codeline>
+<codeline lineno="400"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="401"><highlight class="normal"><sp/><sp/>RenderableInstanceLodsResource()<sp/>{<sp/>setRiExtraId(-1);<sp/>}</highlight></codeline>
+<codeline lineno="402"><highlight class="normal"><sp/><sp/>RenderableInstanceLodsResource(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderableInstanceLodsResource<sp/>&amp;);</highlight></codeline>
+<codeline lineno="403"><highlight class="normal"><sp/><sp/>~RenderableInstanceLodsResource()<sp/>{<sp/>clearData();<sp/>}</highlight></codeline>
+<codeline lineno="404"><highlight class="normal"></highlight></codeline>
+<codeline lineno="405"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patchAndLoadData(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>res_sz,<sp/>IGenLoad<sp/>&amp;crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="406"><highlight class="normal"></highlight></codeline>
+<codeline lineno="407"><highlight class="normal"><sp/><sp/><ref refid="structImpostorRtData" kindref="compound">ImpostorRtData</ref><sp/>*impRtdPtr()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="408"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="409"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structImpostorRtData" kindref="compound">ImpostorRtData</ref><sp/>*)(getResSize()<sp/>+<sp/>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)</highlight><highlight class="keyword">const_cast&lt;</highlight><highlight class="normal">RenderableInstanceLodsResource<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">this</highlight><highlight class="normal">)-&gt;dumpStartPtr());</highlight></codeline>
+<codeline lineno="410"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="411"><highlight class="normal"></highlight></codeline>
+<codeline lineno="412"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>explicit<sp/>destructor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="413"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clearData();</highlight></codeline>
+<codeline lineno="414"><highlight class="normal"></highlight></codeline>
+<codeline lineno="415"><highlight class="normal"><sp/><sp/>uint32_t<sp/>getResSize()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(packedFields)<sp/>&gt;&gt;<sp/>RES_SIZE_SHIFT)<sp/>&amp;<sp/>RES_SIZE_MASK;<sp/>}</highlight></codeline>
+<codeline lineno="416"><highlight class="normal"></highlight></codeline>
+<codeline lineno="417"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setHasImpostorMat()<sp/>{<sp/>interlocked_or(packedFields,<sp/>HAS_IMPOSTOR_MAT_MASK<sp/>&lt;&lt;<sp/>HAS_IMPOSTOR_MAT_SHIFT);<sp/>}</highlight></codeline>
+<codeline lineno="418"><highlight class="normal"></highlight></codeline>
+<codeline lineno="419"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setResSizeNonTS(uint32_t<sp/>res_size)</highlight></codeline>
+<codeline lineno="420"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="421"><highlight class="normal"><sp/><sp/><sp/><sp/>packedFields<sp/>=<sp/>(packedFields<sp/>&amp;<sp/>(~(RES_SIZE_MASK<sp/>&lt;&lt;<sp/>RES_SIZE_SHIFT)))<sp/>|<sp/>res_size<sp/>&lt;&lt;<sp/>RES_SIZE_SHIFT;</highlight></codeline>
+<codeline lineno="422"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="423"><highlight class="normal"></highlight></codeline>
+<codeline lineno="424"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasOccluderBox()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="425"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="426"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(packedFields)<sp/>&amp;<sp/>(HAS_OCCLUDER_BOX_MASK<sp/>&lt;&lt;<sp/>HAS_OCCLUDER_BOX_SHIFT))<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="427"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="428"><highlight class="normal"></highlight></codeline>
+<codeline lineno="429"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasOccluderQuad()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="430"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="431"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(packedFields)<sp/>&amp;<sp/>(HAS_OCCLUDER_QUAD_MASK<sp/>&lt;&lt;<sp/>HAS_OCCLUDER_QUAD_SHIFT))<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="432"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="433"><highlight class="normal"></highlight></codeline>
+<codeline lineno="434"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasFloatingBox()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(extraFlags)<sp/>&amp;<sp/>HAS_FLOATING_BOX_FLG)<sp/>!=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="435"><highlight class="normal"></highlight></codeline>
+<codeline lineno="436"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasImpostorData()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="437"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="438"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(packedFields)<sp/>&amp;<sp/>(HAS_IMPOSTOR_DATA_MASK<sp/>&lt;&lt;<sp/>HAS_IMPOSTOR_DATA_SHIFT))<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="439"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="440"><highlight class="normal"></highlight></codeline>
+<codeline lineno="441"><highlight class="normal">end_dclass_decl();</highlight></codeline>
+<codeline lineno="442"><highlight class="normal"></highlight></codeline>
+<codeline lineno="443"><highlight class="normal"></highlight></codeline>
+<codeline lineno="444"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RenderableInstanceLodsResourceClassName<sp/>&quot;instobj&quot;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_rendInstRes.h"/>
+  </compounddef>
+</doxygen>

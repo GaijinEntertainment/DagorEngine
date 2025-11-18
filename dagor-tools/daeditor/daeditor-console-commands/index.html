@@ -1,0 +1,281 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daEditor Console Commands</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="daEditor Console Commands" href="daeditor_console_commands.html" />
+    <link rel="prev" title="daEditor" href="../daeditor/daeditor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">daEditor</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">daEditor Console Commands</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daeditor_console_commands.html">daEditor Console Commands</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../navmesh/index.html">Navigation Mesh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../splines_in_daeditor.html">Splines in daEditor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">daEditor</a></li>
+      <li class="breadcrumb-item active">daEditor Console Commands</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/daeditor/daeditor-console-commands/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="daeditor-console-commands">
+<h1>daEditor Console Commands<a class="headerlink" href="#daeditor-console-commands" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daeditor_console_commands.html">daEditor Console Commands</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#camera-dir">camera.dir</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#camera-pos">camera.pos</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#clear">clear</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#driver-reset">driver.reset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#entity-stat">entity.stat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#envi-set">envi.set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#sun-from-time">.sun_from_time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#exit">exit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#help">help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#land-commit-changes">land.commit_changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#land-ltmap">land.ltmap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#land-rebuild-colors">land.rebuild_colors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#list">list</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#perf-dump">perf.dump</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#perf-off">perf.off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#perf-on">perf.on</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-export-all">project.export.all</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-export-and">project.export.and</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-export-ios">project.export.ios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-export-pc">project.export.pc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-export-ps3">project.export.ps3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-export-ps4">project.export.ps4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-export-xbox">project.export.xbox</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-open">project.open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#project-tex-metrics">project.tex_metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#screenshot-ortho">screenshot.ortho</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#set-workspace">set_workspace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaders-list">shaders.list</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaders-reload">shaders.reload</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaders-set">shaders.set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shadervar">shadervar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-hide">tex.hide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-info-full">tex.info full</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-refs">tex.refs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-show">tex.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#time-speed">time.speed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#render-shadervar">render.shaderVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#render-shaderblk">render.shaderBlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#app-tex">app.tex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#app-tex-refs">app.tex_refs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#app-save-tex">app.save_tex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#app-save-all-tex">app.save_all_tex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#app-stcode">app.stcode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#render-reset-device">render.reset_device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#render-hang-device">render.hang_device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#render-send-gpu-dump">render.send_gpu_dump</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#render-reload-shaders">render.reload_shaders</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-hq">water.hq</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-foam-hats">water.foam_hats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-surface-folding-foam">water.surface_folding_foam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-foam-turbulent">water.foam_turbulent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-dependency-wind">water.dependency_wind</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-alignment-wind">water.alignment_wind</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-choppiness">water.choppiness</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-facet-size">water.facet_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-amplitude">water.amplitude</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-small-wave-fraction">water.small_wave_fraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-cascade-window-length">water.cascade_window_length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-cascade-facet-size">water.cascade_facet_size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-roughness">water.roughness</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-fft-resolution">water.fft_resolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-tesselation">water.tesselation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-fft-period">water.fft_period</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-spectrum">water.spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-vs-samplers">water.vs_samplers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-reset-render">water.reset_render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#water-num-cascades">water.num_cascades</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#debug-mesh-range">debug_mesh.range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#skies-convert-weather-blk-to-entity">skies.convert_weather_blk_to_entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#rendinst-hide-object">rendinst.hide_object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#rendinst-list">rendinst.list</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#rendinst-profiling">rendinst.profiling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#rendinst-verify-lods">rendinst.verify_lods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#ri-gpu-objects-invalidate">ri_gpu_objects.invalidate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#rigrid-stats">rigrid.stats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaded-collision-none">shaded_collision.none</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaded-collision-alone">shaded_collision.alone</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaded-collision-with-visual">shaded_collision.with_visual</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaded-collision-alone-diff">shaded_collision.alone_diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaded-collision-with-visual-diff">shaded_collision.with_visual_diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaded-collision-wireframe">shaded_collision.wireframe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#shaded-collision-face-orientation">shaded_collision.face_orientation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#gameres-update-pack">gameres.update_pack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#gameres-list-missing-for-res">gameres.list_missing_for_res</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#gameres-list-missing-for-tex">gameres.list_missing_for_tex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#gameres-list-missing-for-all-tex">gameres.list_missing_for_all_tex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#riunitedvdata-list">riUnitedVdata.list</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#riunitedvdata-status">riUnitedVdata.status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#riunitedvdata-dumpmem">riUnitedVdata.dumpMem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#riunitedvdata-perfstat">riUnitedVdata.perfStat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#dmunitedvdata-list">dmUnitedVdata.list</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#dmunitedvdata-status">dmUnitedVdata.status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#dmunitedvdata-dumpmem">dmUnitedVdata.dumpMem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#dmunitedvdata-perfstat">dmUnitedVdata.perfStat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-list">tex.list</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-downgrade">tex.downgrade</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-setmaxlev">tex.setMaxLev</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-set">tex.set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-addref">tex.addRef</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-delref">tex.delRef</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daeditor_console_commands.html#tex-marklfu">tex.markLFU</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../daeditor/daeditor.html" class="btn btn-neutral float-left" title="daEditor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daeditor_console_commands.html" class="btn btn-neutral float-right" title="daEditor Console Commands" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

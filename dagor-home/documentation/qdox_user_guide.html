@@ -1,0 +1,479 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QDox User Guide</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Getting Started with Dagor" href="../../getting-started/index.html" />
+    <link rel="prev" title="Contributing to Documentation" href="contributing_to_docs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Home</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../dagor_engine.html">About Dagor</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Documentation</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="how_to_build_docs_locally.html">How to Build Documentation Locally</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dagor_documentation_style_guide.html">Dagor Documentation Style Guide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing_to_docs.html">Contributing to Documentation</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">QDox User Guide</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-basics">The Basics</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#special-directives">Special Directives</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#autodocumentation-for-func">Autodocumentation for <code class="docutils literal notranslate"><span class="pre">`.Func</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#doc-objects">Doc-objects</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#mutltiline-blocks">Mutltiline (blocks)</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#configurate-what-to-analyze-and-build">Configurate what to Analyze and Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#building-and-testing-qdox">Building and Testing QDox</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#restructuredtext">ReStructuredText</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Home</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Documentation</a></li>
+      <li class="breadcrumb-item active">QDox User Guide</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-home/documentation/qdox_user_guide.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qdox-user-guide">
+<h1>QDox User Guide<a class="headerlink" href="#qdox-user-guide" title="Link to this heading"></a></h1>
+<p>QDox allows you to generate docs (ReStrcturedText, sphinx rst) from .cpp files
+(and later in future - perhaps from .nut quirrel modules).</p>
+<p>written in python 3.10, no external dependecies, should work in Python 3.9 or later.
+Inspired by LuaDox
+but written much more dirty and probably needs refactor.
+It was not possible to use LuaDox mostly not because of different comment style in cpp and lua,
+but because of that Quirrel is much more complex language and I want to try to get more from cpp files</p>
+<p>What is not done yet, but can be done in future:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>outside the scope definitions and later bindings. Can produce unreferenced objects.</p></li>
+<li><p>multiscope path definition <code class="docutils literal notranslate"><span class="pre">&#64;class</span> <span class="pre">foo/bar/Baz</span></code> – add class Baz in module foo and in table bar</p></li>
+<li><p>support for <code class="docutils literal notranslate"><span class="pre">&#64;example</span></code> <code class="docutils literal notranslate"><span class="pre">&#64;usage</span></code> <code class="docutils literal notranslate"><span class="pre">&#64;image</span></code> <code class="docutils literal notranslate"><span class="pre">&#64;icon</span></code> and others handy things</p></li>
+<li><p>multiline param and return definitions</p></li>
+<li><p>generate stubs from parsed representation (one of the goals)</p></li>
+</ul>
+</div></blockquote>
+<p>But it will likely require to significantly rewrite parser again. So maybe later.</p>
+<p>A brief example of how to comment cpp code:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">part of sqWebBrowser.cpp</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">bind_webbrowser</span><span class="p">(</span><span class="n">SqModules</span><span class="o">*</span><span class="w"> </span><span class="n">sq_modules_mgr</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="n">Sqrat</span><span class="o">::</span><span class="n">Table</span><span class="w"> </span><span class="n">tbl</span><span class="p">(</span><span class="n">sq_modules_mgr</span><span class="o">-&gt;</span><span class="n">getVM</span><span class="p">());</span>
+<span class="w">  </span><span class="cm">/* qdox @module browser</span>
+
+<span class="cm">Opens embeded web browser. Requires native cef binary and its integration.</span>
+
+<span class="cm">  */</span>
+<span class="w">  </span><span class="n">tbl</span>
+<span class="w">    </span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">&quot;can_use_embeded_browser&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">can_use_embedded_browser</span><span class="p">)</span>
+<span class="w">    </span><span class="c1">///@return b : Returns can browser be opened</span>
+<span class="w">    </span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">&quot;browser_go_back&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">go_back</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">&quot;browser_reload_page&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">reload</span><span class="p">)</span>
+<span class="w">    </span><span class="c1">///Will reload page</span>
+<span class="w">    </span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">&quot;browser_add_window_method&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">add_window_method</span><span class="p">)</span>
+<span class="w">    </span><span class="c1">///@param method c : add function</span>
+<span class="w">  </span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">webbrowser</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">CONST</span><span class="p">(</span><span class="n">BROWSER_EVENT_INITIALIZED</span><span class="p">);</span>
+<span class="w">  </span><span class="n">CONST</span><span class="p">(</span><span class="n">BROWSER_EVENT_DOCUMENT_READY</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">sq_modules_mgr</span><span class="o">-&gt;</span><span class="n">addNativeModule</span><span class="p">(</span><span class="s">&quot;browser&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">tbl</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<section id="the-basics">
+<h2>The Basics<a class="headerlink" href="#the-basics" title="Link to this heading"></a></h2>
+<p>All QDox comments should begin from three slashes <code class="docutils literal notranslate"><span class="pre">///</span></code> or multiline comment <code class="docutils literal notranslate"><span class="pre">/*</span> <span class="pre">qdox</span>&#160; <span class="pre">*/</span></code>.</p>
+<p>Everything starts with <code class="docutils literal notranslate"><span class="pre">&#64;module</span></code> or <code class="docutils literal notranslate"><span class="pre">&#64;page</span></code>
+You should place <code class="docutils literal notranslate"><span class="pre">///&#64;module</span> <span class="pre">&lt;your</span> <span class="pre">module</span> <span class="pre">name&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">///&#64;page</span> <span class="pre">&lt;your</span> <span class="pre">page</span> <span class="pre">name&gt;</span></code> somewhere in the file,
+cause without module all other things can’t be added</p>
+<p>There are several directives you need to know:</p>
+<p>collections or containers can have some other members in them:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;module</span></code> or <code class="docutils literal notranslate"><span class="pre">&#64;page</span></code> can have tables, classes, functions, consts, values, enums. Usually it exports a table.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;table</span></code> can have functions, classes, enums, tables, consts and values</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;class</span></code> can have functions, ctor, operators, Var, Prop, Const</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;enum</span></code> can have only consts and values</p></li>
+</ul>
+</div></blockquote>
+<p>‘Leaf’ objects (can’t have members):</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;function</span></code> - can be only in tables or module</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;ctor</span></code> - can be only in classes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;operator</span></code> - can be only in classes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;property</span></code> - can be only in classes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;var</span></code> - can be only in classes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;value</span></code> - can be in module, table, class, enum</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;const</span></code> - can be in module, table, class, enum</p></li>
+</ul>
+</div></blockquote>
+<p>‘Doc’ objects:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>multiline - <code class="docutils literal notranslate"><span class="pre">&#64;code</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;expand</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;tip</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;seealso</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;warning</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;tip</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;alert</span></code> or <code class="docutils literal notranslate"><span class="pre">&#64;danger</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;note</span></code>.
+These objects close their scope when <code class="docutils literal notranslate"><span class="pre">&lt;tag_name&gt;&#64;</span></code> appears (like <code class="docutils literal notranslate"><span class="pre">code&#64;</span></code>, <code class="docutils literal notranslate"><span class="pre">tip&#64;</span></code>, etc) or comment ended.
+These objects can be at any scope, as they just add simple way of create rst (see below)</p></li>
+</ul>
+</div></blockquote>
+<p>Each object - container or leaf type - can be defined with scope of module.</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">&#64;class</span> <span class="pre">myModule/MyClass</span></code> will set that MyClass is in myModule.</p>
+</div></blockquote>
+<p>Functions, tables and classes can be defined as a module:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">&#64;class</span> <span class="pre">DataBlock</span> <span class="pre">=</span> <span class="pre">DataBlock</span></code> will describe module that exports class DataBlock.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>In function scope (as well as in operator and ctor) you can use following directive :</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;paramsnum</span></code> - integer for number of parameters (called paramscheck in cpp).
+If negative - means that function can be called with at least that amount of parameters, but also with more than that.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;kwarged</span></code> - means that function paramaters should be provided via table. like: <code class="code highlight sq docutils literal highlight-sq"><span class="kd">function</span><span class="w"> </span><span class="nx">foo</span><span class="p">({</span><span class="nx">argument</span><span class="o">=</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">arg2</span><span class="o">=</span><span class="mf">2</span><span class="p">})</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;typemask</span></code> - string with typemask. See <a class="reference external" href="https://quirrel.io/doc/reference/api/object_creation_and_handling.html#c.sq_setparamscheck">documentation</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;vargved</span></code> - means that function can have variable arguments count</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;param</span></code> - should be <code class="docutils literal notranslate"><span class="pre">&#64;param</span> <span class="pre">&lt;name&gt;</span> <span class="pre">&lt;type&gt;</span> <span class="pre">:</span> <span class="pre">description</span></code>, for example <code class="docutils literal notranslate"><span class="pre">&#64;param</span> <span class="pre">title</span> <span class="pre">t</span> <span class="pre">:</span> <span class="pre">Title</span> <span class="pre">of</span> <span class="pre">messagebox</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;return</span></code> - should be <code class="docutils literal notranslate"><span class="pre">&#64;return</span> <span class="pre">typemask</span> <span class="pre">:</span> <span class="pre">any</span> <span class="pre">description</span></code> or <code class="docutils literal notranslate"><span class="pre">&#64;return</span> <span class="pre">typemask</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All directives, except doc-objects, <code class="docutils literal notranslate"><span class="pre">&#64;param</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;return</span></code> follows very simple declaration rule:</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;fieldname</span> <span class="pre">value</span> <span class="pre">brief</span> <span class="pre">description</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;param</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;return</span></code> use <code class="docutils literal notranslate"><span class="pre">:</span></code> to separate description from other arguments, cause they can have variable number of arguments</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;param</span></code> can have following variants:</p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;param</span> <span class="pre">name</span> <span class="pre">:</span> <span class="pre">description</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;param</span> <span class="pre">name</span> <span class="pre">type</span> <span class="pre">:</span> <span class="pre">description</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;param</span> <span class="pre">name</span> <span class="pre">type</span> <span class="pre">defvalue</span> <span class="pre">:</span> <span class="pre">description</span></code></p>
+<p>and description is always optional</p>
+</div>
+<dl class="simple">
+<dt>In class scope:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;extends</span></code> - what class does this class extends</p></li>
+</ul>
+</dd>
+<dt>In property of class:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;writeable</span></code> - can you modify property.</p></li>
+</ul>
+</dd>
+<dt>In value or const or Var scope:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;ftype</span></code> - type of constant (typemask-like string or just any text)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;fvalue</span></code> - value of constant</p></li>
+</ul>
+</dd>
+<dt>In scope of any object you can use following directives:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;brief</span></code> - short description</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;parent</span></code> - scope reference (to show name like <code class="docutils literal notranslate"><span class="pre">parent.Object</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
+<section id="special-directives">
+<h3>Special Directives<a class="headerlink" href="#special-directives" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">&#64;resetscope</span></code> - to exit all scopes (modules, functions).</dt><dd><p>Basically to stop autodocumentation till next module scope will be entered</p>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;skipline</span></code> - skipnext line in parsing</p>
+</section>
+</section>
+<section id="autodocumentation-for-func">
+<h2>Autodocumentation for <code class="docutils literal notranslate"><span class="pre">`.Func</span></code><a class="headerlink" href="#autodocumentation-for-func" title="Link to this heading"></a></h2>
+<p>If function used in <code class="docutils literal notranslate"><span class="pre">.Func()</span></code> is defined in the same cpp file - it can be
+autodocumented.
+No lambdas or namespaces are supported.
+No multiline function definition is supported also</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">addTen</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">val</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">val</span><span class="o">+</span><span class="mi">10</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">...</span>
+<span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">&quot;bindFuncName&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">CppFuncName</span><span class="p">)</span><span class="w">  </span><span class="c1">//will generate return type and arguments type and name in documentation</span>
+</pre></div>
+</div>
+</section>
+<section id="doc-objects">
+<h2>Doc-objects<a class="headerlink" href="#doc-objects" title="Link to this heading"></a></h2>
+<section id="mutltiline-blocks">
+<h3>Mutltiline (blocks)<a class="headerlink" href="#mutltiline-blocks" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;alert</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@alert</span>
+  <span class="nb">any</span> <span class="n">alert</span> <span class="n">here</span>
+<span class="n">alert</span><span class="o">@</span>
+</pre></div>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>any alert here</p>
+</div>
+<p>The same syntax goes for <code class="docutils literal notranslate"><span class="pre">&#64;tip</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;note</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;seealso</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;warning</span></code></p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Tip! Nice tip!</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Warning!</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Use this alert block to bring the reader’s attention to a serious threat.</p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>place here some links</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>And this is note</p>
+</div>
+<hr class="docutils" />
+<p><code class="docutils literal notranslate"><span class="pre">&#64;expand</span></code> (aliases <code class="docutils literal notranslate"><span class="pre">&#64;spoiler</span></code>, <code class="docutils literal notranslate"><span class="pre">dropdown</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@spoiler</span> <span class="n">My</span> <span class="n">spoiler</span>
+  <span class="n">toggle</span> <span class="n">text</span> <span class="n">that</span> <span class="n">can</span> <span class="n">be</span> <span class="nb">any</span> <span class="n">rst</span> <span class="p">(</span><span class="n">but</span> <span class="ow">not</span> <span class="n">recursive</span> <span class="n">code</span> <span class="n">objects</span><span class="p">)</span>
+
+  <span class="n">preformat</span><span class="p">::</span>
+
+    <span class="n">some</span> <span class="n">code</span> <span class="ow">or</span> <span class="n">preformat</span> <span class="n">text</span>
+<span class="n">spoiler</span><span class="o">@</span>
+</pre></div>
+</div>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+My spoiler<div class="sd-summary-down docutils">
+<svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-down" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5.22 8.72a.75.75 0 000 1.06l6.25 6.25a.75.75 0 001.06 0l6.25-6.25a.75.75 0 00-1.06-1.06L12 14.44 6.28 8.72a.75.75 0 00-1.06 0z"></path></svg></div>
+<div class="sd-summary-up docutils">
+<svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-up" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M18.78 15.28a.75.75 0 000-1.06l-6.25-6.25a.75.75 0 00-1.06 0l-6.25 6.25a.75.75 0 101.06 1.06L12 9.56l5.72 5.72a.75.75 0 001.06 0z"></path></svg></div>
+</summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">toggle text that can be any rst (but not recursive code objects)</p>
+<p class="sd-card-text">preformat:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">some</span> <span class="n">code</span> <span class="ow">or</span> <span class="n">preformat</span> <span class="n">text</span>
+</pre></div>
+</div>
+</div>
+</details><hr class="docutils" />
+<p><code class="docutils literal notranslate"><span class="pre">&#64;code</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@code</span> <span class="n">some_name</span> <span class="n">cpp</span>
+  <span class="n">watch</span> <span class="n">indent</span>
+    <span class="n">will</span> <span class="n">generate</span> <span class="n">block</span>
+<span class="n">code</span><span class="o">@</span>
+</pre></div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">some_name</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">watch</span><span class="w"> </span><span class="n">indent</span>
+<span class="w">  </span><span class="n">will</span><span class="w"> </span><span class="n">generate</span><span class="w"> </span><span class="n">block</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="configurate-what-to-analyze-and-build">
+<h2>Configurate what to Analyze and Build<a class="headerlink" href="#configurate-what-to-analyze-and-build" title="Link to this heading"></a></h2>
+<p>You need to set where your files to parse are placed and what is documentation
+about. This is done via <code class="docutils literal notranslate"><span class="pre">.qdox</span></code> config <code class="docutils literal notranslate"><span class="pre">.qdox</span></code> config is json (with cpp
+style single line comments supported)</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">.qdox</span></code></span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="s">&quot;paths&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s">&quot;prog/gameLibs/quirrel&quot;</span><span class="p">],</span><span class="w"> </span><span class="c1">//folders or files list, required, relative to config</span>
+<span class="w">  </span><span class="s">&quot;doc_chapter&quot;</span><span class="o">:</span><span class="w"> </span><span class="s">&quot;quirrel_gamelibs&quot;</span><span class="p">,</span><span class="w"> </span><span class="c1">//internal folder name, required</span>
+<span class="w">  </span><span class="s">&quot;chapter_desc&quot;</span><span class="o">:</span><span class="w"> </span><span class="s">&quot;Docs for Quirrel modules extracted from source in gameLibs&quot;</span><span class="p">,</span><span class="w"> </span><span class="c1">//displayed title, optional</span>
+<span class="w">  </span><span class="s">&quot;chapter_title&quot;</span><span class="o">:</span><span class="w"> </span><span class="s">&quot;Quirrel Gamelibs Native Modules&quot;</span><span class="p">,</span><span class="w"> </span><span class="c1">//displayed title, optional</span>
+<span class="w">  </span><span class="s">&quot;extensions&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s">&quot;.cpp&quot;</span><span class="p">],</span><span class="w"> </span><span class="c1">//optional, list of extensions of files</span>
+<span class="w">  </span><span class="s">&quot;exclude_dirs_re&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">[],</span><span class="w"> </span><span class="c1">//optional, list of regexps that should full match to exclude dirs in recursive search</span>
+<span class="w">  </span><span class="s">&quot;exclude_files_re&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">[],</span><span class="w"> </span><span class="c1">//optional, list of full match regexp to skip files&#39;</span>
+<span class="w">  </span><span class="s">&quot;recursive&quot;</span><span class="o">:</span><span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="c1">//optional, do recursive search for folders&#39;</span>
+<span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="building-and-testing-qdox">
+<h2>Building and Testing QDox<a class="headerlink" href="#building-and-testing-qdox" title="Link to this heading"></a></h2>
+<p><strong>You need python 3.10+ installed with python in paths.</strong></p>
+<p>Installation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">sphinx</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">myst</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">myst_parser</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">sphinx_rtd_theme</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">sphinx</span><span class="o">-</span><span class="n">autobuild</span>
+</pre></div>
+</div>
+<p>Than in your dagor folder you can just run following commandlines:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">_docs</span><span class="o">/</span><span class="n">qdoc_main</span><span class="o">.</span><span class="n">py</span>
+<span class="n">sphinx</span><span class="o">-</span><span class="n">build</span> <span class="o">-</span><span class="n">b</span> <span class="n">html</span> <span class="o">-</span><span class="n">d</span> <span class="n">_docs</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">doctrees</span> <span class="n">_docs</span><span class="o">/</span><span class="n">source</span> <span class="n">_docs</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">html</span>
+</pre></div>
+</div>
+<p>(in folder where <code class="docutils literal notranslate"><span class="pre">.qdox</span></code> config is build (see usage for details))</p>
+<p>to watch changes in <code class="docutils literal notranslate"><span class="pre">.cpp</span></code> files, configs and autorebuild:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@start</span> <span class="n">python</span> <span class="n">_docs</span><span class="o">/</span><span class="n">watch</span><span class="o">.</span><span class="n">py</span>
+<span class="nd">@start</span> <span class="n">sphinx</span><span class="o">-</span><span class="n">autobuild</span> <span class="o">--</span><span class="n">port</span> <span class="mi">8080</span> <span class="n">_docs</span><span class="o">/</span><span class="n">source</span> <span class="n">_docs</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">html</span>
+</pre></div>
+</div>
+<p>(in <code class="docutils literal notranslate"><span class="pre">.qdox</span></code> folder to start autorebuild rst from source and config)</p>
+<p>To have a look on a result - open with you browser
+<code class="docutils literal notranslate"><span class="pre">_docs/build/html/index.html</span></code> if you build manually (first way) or
+<code class="docutils literal notranslate"><span class="pre">localhost:8080</span></code> if you launch autobuild</p>
+</section>
+<section id="restructuredtext">
+<h2>ReStructuredText<a class="headerlink" href="#restructuredtext" title="Link to this heading"></a></h2>
+<p>Any docline that is not some directives is just restructured text</p>
+<p>There is lots of RTFM of Sphinx rst in internet</p>
+<p><strong>Strong emphasis:</strong> <cite>small emphasis</cite></p>
+<p>Here are some goodies you can do (see source in <code class="docutils literal notranslate"><span class="pre">source/user-guid/qdox.rst</span></code> to
+understand how that was made)</p>
+<p>inline <code class="code highlight sq docutils literal highlight-sq"><span class="kd">let</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="p">(){}</span></code> wow</p>
+<p>inline <code class="code highlight cpp docutils literal highlight-cpp"><span class="kt">void</span><span class="w"> </span><span class="nf">function</span><span class="p">(){}</span></code> here</p>
+<p>For example separate text by lines:</p>
+<hr class="docutils" />
+<p>A coloured icon: <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-report sd-text-info" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1.75 1.5a.25.25 0 00-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 01.75.75v2.19l2.72-2.72a.75.75 0 01.53-.22h6.5a.25.25 0 00.25-.25v-9.5a.25.25 0 00-.25-.25H1.75zM0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0114.25 13H8.06l-2.573 2.573A1.457 1.457 0 013 14.543V13H1.75A1.75 1.75 0 010 11.25v-9.5zM9 9a1 1 0 11-2 0 1 1 0 012 0zm-.25-5.25a.75.75 0 00-1.5 0v2.5a.75.75 0 001.5 0v-2.5z"></path></svg>, look at it.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information about rst Cheatsheet, see:
+<a class="reference external" href="https://bashtage.github.io/sphinx-material/rst-cheatsheet/rst-cheatsheet.html">https://bashtage.github.io/sphinx-material/rst-cheatsheet/rst-cheatsheet.html</a></p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="contributing_to_docs.html" class="btn btn-neutral float-left" title="Contributing to Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../getting-started/index.html" class="btn btn-neutral float-right" title="Getting Started with Dagor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,278 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__outliner_8h" kind="file" language="C++">
+    <compoundname>ec_outliner.h</compoundname>
+    <includes refid="ec__outlinerInterface_8h" local="no">EditorCore/ec_outlinerInterface.h</includes>
+    <includes local="no">propPanel/control/menu.h</includes>
+    <includes local="no">propPanel/messageQueue.h</includes>
+    <includes local="no">propPanel/propPanel.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_outliner.h</label>
+        <link refid="ec__outliner_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_outlinerInterface.h</label>
+        <link refid="ec__outlinerInterface_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="4">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="5">
+        <label>propPanel/messageQueue.h</label>
+      </node>
+      <node id="6">
+        <label>propPanel/propPanel.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classOutliner_1_1OutlinerWindow" prot="public">Outliner::OutlinerWindow</innerclass>
+    <innerclass refid="structOutliner_1_1OutlinerWindow_1_1DragData" prot="private">Outliner::OutlinerWindow::DragData</innerclass>
+    <innerclass refid="structOutliner_1_1OutlinerWindow_1_1Icons" prot="private">Outliner::OutlinerWindow::Icons</innerclass>
+    <innernamespace refid="namespacePropPanel">PropPanel</innernamespace>
+    <innernamespace refid="namespaceOutliner">Outliner</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="ec__outliner_8h_1a364f4447ecbc4ca176145ccff9db6286" prot="public" static="no">
+        <type>void *</type>
+        <definition>typedef void* ImTextureID</definition>
+        <argsstring></argsstring>
+        <name>ImTextureID</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="24" column="14" bodyfile="ec_outliner.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__outlinerInterface_8h" kindref="compound">EditorCore/ec_outlinerInterface.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/control/menu.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/messageQueue.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/propPanel.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacePropPanel" kindref="compound">PropPanel</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IMenu;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref>;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ImGuiMultiSelectIO;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ImGuiSelectionRequest;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ImVec4;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>ImTextureID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="ec__outliner_8h_1a364f4447ecbc4ca176145ccff9db6286" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="ec__outliner_8h_1a364f4447ecbc4ca176145ccff9db6286" kindref="member">ImTextureID</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="namespaceOutliner" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceOutliner" kindref="compound">Outliner</ref></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">LayerTreeItem;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ObjectAssetNameTreeItem;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ObjectTreeItem;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ObjectTypeTreeItem;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">OutlinerModel;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">OutlinerTreeItem;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TreeItemInlineRenamerControl;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>OutlinerSelectionState;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classOutliner_1_1OutlinerWindow" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classOutliner_1_1OutlinerWindow" kindref="compound">OutlinerWindow</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::IMenuEventHandler,<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::IDelayedCallbackHandler</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="42" refid="classOutliner_1_1OutlinerWindow_1ac9ab0858633e8383590e86ad45073721" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classOutliner_1_1OutlinerWindow_1ac9ab0858633e8383590e86ad45073721" kindref="member">OutlinerWindow</ref>();</highlight></codeline>
+<codeline lineno="43" refid="classOutliner_1_1OutlinerWindow_1a308623f615e529656d6d4ac9f913b17e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a308623f615e529656d6d4ac9f913b17e" kindref="member">~OutlinerWindow</ref>();</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classOutliner_1_1OutlinerWindow_1a352adae1e0d35bad5351114498d09ca4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a352adae1e0d35bad5351114498d09ca4" kindref="member">setTreeInterface</ref>(<ref refid="classOutliner_1_1IOutliner" kindref="compound">IOutliner</ref><sp/>*tree_interface)<sp/>{<sp/>treeInterface<sp/>=<sp/>tree_interface;<sp/>}</highlight></codeline>
+<codeline lineno="46" refid="classOutliner_1_1OutlinerWindow_1a499393961f6efb6b7e4f694d059ce1b5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a499393961f6efb6b7e4f694d059ce1b5" kindref="member">fillTypesAndLayers</ref>();</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>loadOutlinerSettings<sp/>must<sp/>be<sp/>after<sp/>fillTypesAndLayers<sp/>because<sp/>it<sp/>depends<sp/>on<sp/>the<sp/>number<sp/>of<sp/>object<sp/>types<sp/>being</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>available.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="classOutliner_1_1OutlinerWindow_1a8338344e2716fe5566d9114373d71975" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a8338344e2716fe5566d9114373d71975" kindref="member">loadOutlinerSettings</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;settings);</highlight></codeline>
+<codeline lineno="51" refid="classOutliner_1_1OutlinerWindow_1ab6754b44669d75e55e31a9dde0962eee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1ab6754b44669d75e55e31a9dde0962eee" kindref="member">saveOutlinerSettings</ref>(DataBlock<sp/>&amp;settings)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>loadOutlinerState<sp/>must<sp/>be<sp/>called<sp/>after<sp/>the<sp/>objects<sp/>have<sp/>been<sp/>added<sp/>to<sp/>properly<sp/>restore<sp/>their<sp/>expansion<sp/>state,<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>saveOutlinerState<sp/>must<sp/>be<sp/>called<sp/>before<sp/>removing<sp/>the<sp/>objects<sp/>to<sp/>be<sp/>able<sp/>to<sp/>get<sp/>their<sp/>expansion<sp/>state.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classOutliner_1_1OutlinerWindow_1aae48ccd3520773340e1b709474f618f0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1aae48ccd3520773340e1b709474f618f0" kindref="member">loadOutlinerState</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;state);</highlight></codeline>
+<codeline lineno="56" refid="classOutliner_1_1OutlinerWindow_1afe05fd9b3b82e1f5537d0c1d44aad9c7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1afe05fd9b3b82e1f5537d0c1d44aad9c7" kindref="member">saveOutlinerState</ref>(DataBlock<sp/>&amp;state)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="classOutliner_1_1OutlinerWindow_1a7d9c9a81d356291d17ba74b6a363ce79" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a7d9c9a81d356291d17ba74b6a363ce79" kindref="member">onAddObject</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="59" refid="classOutliner_1_1OutlinerWindow_1a83104ea89bde5ec200eab664c060411b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a83104ea89bde5ec200eab664c060411b" kindref="member">onRemoveObject</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="60" refid="classOutliner_1_1OutlinerWindow_1ad26488a02717956095b0a2ea8522dca5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1ad26488a02717956095b0a2ea8522dca5" kindref="member">onRenameObject</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="61" refid="classOutliner_1_1OutlinerWindow_1a7d9d9b9323ce8b3825a79c8c32fa755d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a7d9d9b9323ce8b3825a79c8c32fa755d" kindref="member">onObjectSelectionChanged</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="62" refid="classOutliner_1_1OutlinerWindow_1a07e4215bdd9174af9c09d6134c5c2d3a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a07e4215bdd9174af9c09d6134c5c2d3a" kindref="member">onObjectAssetNameChanged</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="63" refid="classOutliner_1_1OutlinerWindow_1a4133048e7662b2957db05446ae73e5e8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1a4133048e7662b2957db05446ae73e5e8" kindref="member">onObjectEditLayerChanged</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classOutliner_1_1OutlinerWindow_1ab846899425361faeff208e74516a8f50" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOutliner_1_1OutlinerWindow_1ab846899425361faeff208e74516a8f50" kindref="member">updateImgui</ref>();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">DragData</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>objectType;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>perTypeLayerIndex;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Icons</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>getForType(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>getSelectionIcon(OutlinerSelectionState<sp/>selection_state)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>getVisibilityIcon(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>visible)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>getLockIcon(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>locked)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>settings<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>settingsOpen<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>search<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>typeEntity<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>typeSpline<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>typePolygon<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>layerDefault<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>layerActive<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>layerActiveLocked<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>layerLocked<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>layerAdd<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>layerCreate<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>selectAll<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>selectPartial<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>selectNone<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>visibilityVisible<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>visibilityHidden<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>lockOpen<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>lockClosed<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>applyToMask<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>applyToMaskDisabled<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>exportLayer<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>exportLayerDisabled<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>alert<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/>PropPanel::IconId<sp/>close<sp/>=<sp/>PropPanel::IconId::Invalid;</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>MenuItemId</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>SelectAllTypeObjects<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/>DeselectAllTypeObjects,</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/>MoveToThisLayer,</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>SelectAllLayerObjects,</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>DeselectAllLayerObjects,</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>ExpandLayerChildren,</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>CollapseLayerChildren,</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/>AddNewLayer,</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>RenameLayer,</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>MoveObjectToLayerSubMenu,</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/>MoveObjectToLayerStart<sp/>=<sp/>MoveObjectToLayerSubMenu<sp/>+<sp/>1,<sp/></highlight><highlight class="comment">//<sp/>Inclusive</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>MoveObjectToLayerEnd<sp/>=<sp/>MoveObjectToLayerStart<sp/>+<sp/>64,<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Not<sp/>inclusive.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/>RenameObject,</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/>ChangeObjectAsset,</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>DeleteObject,</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>EnsureVisibleRequestState</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/>NoRequest,</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>FoundSelection,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/>Requested,</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>onMenuItemClick(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onImguiDelayedCallback(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*user_data)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>PropPanel::IconId<sp/>getObjectAssetTypeIcon(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>handleDragAndDropDropping(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>per_type_layer_index);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showTypeControls(ObjectTypeTreeItem<sp/>&amp;tree_item,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>type_visible,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>type_locked,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dim_type_color,</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImVec4<sp/>&amp;dimmed_text_color,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>action_buttons_total_width);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showLayerControls(LayerTreeItem<sp/>&amp;tree_item,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>per_type_layer_index,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>layer_visible,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>layer_locked,</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dim_layer_color,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImVec4<sp/>&amp;dimmed_text_color,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>action_buttons_total_width,<sp/>ImGuiMultiSelectIO<sp/>*multiSelectIo);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getObjectNoun(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showObjectControls(ObjectTreeItem<sp/>&amp;tree_item,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>per_type_layer_index,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>has_child);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showObjectAssetNameControls(ObjectAssetNameTreeItem<sp/>&amp;tree_item,<sp/><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>&amp;</highlight><highlight class="keywordtype">object</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>fillTypeContextMenu(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>fillLayerContextMenu(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>per_type_layer_index);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>fillObjectContextMenu(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>per_type_layer_index);</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>createContextMenu(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>per_type_layer_index<sp/>=<sp/>-1,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>object_menu<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>createContextMenuByKeyboard();</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>LayerTreeItem<sp/>*getContextMenuTargetLayer()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resetContextMenu(PropPanel::IMenu<sp/>*context_menu<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type<sp/>=<sp/>-1,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>per_type_layer_index<sp/>=<sp/>-1);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateSelectionHead(OutlinerTreeItem<sp/>&amp;tree_item);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>fillTree(ImGuiMultiSelectIO<sp/>*multiSelectIo);</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>applyRangeSelectionRequestInternal(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImGuiSelectionRequest<sp/>&amp;request,<sp/>OutlinerTreeItem<sp/>&amp;tree_item,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;found_first);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>applyRangeSelectionRequest(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImGuiSelectionRequest<sp/>&amp;request);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>applySelectionRequests(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImGuiMultiSelectIO<sp/>&amp;multi_select_io,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;started_selecting);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>showAddLayerControls();</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>showSettingsPanel(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*popup_id);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>IOutliner<sp/>*treeInterface<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/>Icons<sp/>icons;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Add<sp/>layer.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addingLayerToType<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/>String<sp/>addLayerName;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>String<sp/>addLayerErrorMessage;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Settings<sp/>panel.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>settingsPanelOpen<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showActionButtonVisibility<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showActionButtonLock<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showActionButtonApplyToMask<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showActionButtonExportLayer<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Context<sp/>menu.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;PropPanel::IMenu&gt;<sp/>contextMenu;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>contextMenuType<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>contextMenuPerTypeLayerIndex<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;OutlinerModel&gt;<sp/>outlinerModel;</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;TreeItemInlineRenamerControl&gt;<sp/>layerRenamer;</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;TreeItemInlineRenamerControl&gt;<sp/>objectRenamer;</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>dag::Vector&lt;eastl::optional&lt;PropPanel::IconId&gt;&gt;<sp/>assetTypeIcons;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>*changeAssetRequested<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/>EnsureVisibleRequestState<sp/>ensureVisibleRequested<sp/>=<sp/>EnsureVisibleRequestState::NoRequest;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>searchInputFocusId<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>Only<sp/>the<sp/>address<sp/>of<sp/>this<sp/>member<sp/>is<sp/>used.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>Outliner</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="ec_outliner.h"/>
+  </compounddef>
+</doxygen>

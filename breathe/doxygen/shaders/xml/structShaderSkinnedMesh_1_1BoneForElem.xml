@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSkinnedMesh_1_1BoneForElem" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderSkinnedMesh::BoneForElem</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSkinnedMesh_1_1BoneForElem_1a31490ed2174f66e399b2662882d30b62" prot="public" static="no" mutable="no">
+        <type>TMatrix</type>
+        <definition>TMatrix ShaderSkinnedMesh::BoneForElem::origTm</definition>
+        <argsstring></argsstring>
+        <name>origTm</name>
+        <qualifiedname>ShaderSkinnedMesh::BoneForElem::origTm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="36" column="13" bodyfile="dag_shSkinMesh.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSkinnedMesh_1_1BoneForElem_1a57d5da6ab3f92db7056bb12ba023b965" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSkinnedMesh::BoneForElem::nodeId</definition>
+        <argsstring></argsstring>
+        <name>nodeId</name>
+        <qualifiedname>ShaderSkinnedMesh::BoneForElem::nodeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="37" column="9" bodyfile="dag_shSkinMesh.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shSkinMesh.h" line="34" column="3" bodyfile="dag_shSkinMesh.h" bodystart="35" bodyend="38"/>
+    <listofallmembers>
+      <member refid="structShaderSkinnedMesh_1_1BoneForElem_1a57d5da6ab3f92db7056bb12ba023b965" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh::BoneForElem</scope><name>nodeId</name></member>
+      <member refid="structShaderSkinnedMesh_1_1BoneForElem_1a31490ed2174f66e399b2662882d30b62" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh::BoneForElem</scope><name>origTm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

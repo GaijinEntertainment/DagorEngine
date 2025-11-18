@@ -1,0 +1,416 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="hwAssembly_8h" kind="file" language="C++">
+    <compoundname>hwAssembly.h</compoundname>
+    <includes local="yes">EASTL/string.h</includes>
+    <includedby refid="hwAssembly_8cpp" local="yes">hwAssembly.cpp</includedby>
+    <includedby refid="shCompContext_8h" local="yes">shCompContext.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EASTL/string.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="10">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="9">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="12">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="37">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="32">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="19">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="1">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="4">
+        <label>hwSemantic.h</label>
+        <link refid="hwSemantic_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="24">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="23">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="28">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="25">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="42">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="3">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="15">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="26">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="30">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="31">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="14">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="17">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="45">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="18">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="34">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="36">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <innernamespace refid="namespaceassembly">assembly</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;EASTL/string.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">CompilationContext;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceassembly" kindref="compound">assembly</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">eastl::string<sp/><ref refid="namespaceassembly_1a7c62fb915f6b0f8146ecec1045b43bbb" kindref="member">build_common_hardware_defines_hlsl</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">eastl::string<sp/><ref refid="namespaceassembly_1a07f2c200251b6e2fc46997a991093302" kindref="member">build_hardware_defines_hlsl</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>use_halfs,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>assembly</highlight></codeline>
+    </programlisting>
+    <location file="hwAssembly.h"/>
+  </compounddef>
+</doxygen>

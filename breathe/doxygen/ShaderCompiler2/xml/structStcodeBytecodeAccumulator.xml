@@ -1,0 +1,238 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeBytecodeAccumulator" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeBytecodeAccumulator</compoundname>
+    <includes refid="stcodeBytecode_8h" local="no">stcodeBytecode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeBytecodeAccumulator_1a0548df4771375aa02b7d292da657c62a" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; StcodeBytecodeAccumulator::stcode</definition>
+        <argsstring></argsstring>
+        <name>stcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::stcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="180" column="7" bodyfile="stcodeBytecode.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; StcodeBytecodeAccumulator::stblkcode</definition>
+        <argsstring></argsstring>
+        <name>stblkcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::stblkcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="181" column="7" bodyfile="stcodeBytecode.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeBytecodeAccumulator_1ad0f379ff1b62a2277340b6ea463b345d" prot="public" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;StcodeVMRegisterAllocator&gt; StcodeBytecodeAccumulator::regAllocator</definition>
+        <argsstring></argsstring>
+        <name>regAllocator</name>
+        <qualifiedname>StcodeBytecodeAccumulator::regAllocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="182" column="21" bodyfile="stcodeBytecode.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1abea8b18725041acf5304fcdd778d358b" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StcodeBytecodeAccumulator::StcodeBytecodeAccumulator</definition>
+        <argsstring>(Parser &amp;parser)</argsstring>
+        <name>StcodeBytecodeAccumulator</name>
+        <qualifiedname>StcodeBytecodeAccumulator::StcodeBytecodeAccumulator</qualifiedname>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="184" column="12" bodyfile="stcodeBytecode.h" bodystart="184" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1a81d4ca7d0854e932a4fdbbfd41caee71" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBytecodeAccumulator::push_stcode</definition>
+        <argsstring>(int a)</argsstring>
+        <name>push_stcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::push_stcode</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="186" column="8" bodyfile="stcodeBytecode.h" bodystart="186" bodyend="186"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1a81e7776e1af220968a4c58f1ed27346d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBytecodeAccumulator::push_stblkcode</definition>
+        <argsstring>(int a)</argsstring>
+        <name>push_stblkcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::push_stblkcode</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="187" column="8" bodyfile="stcodeBytecode.h" bodystart="187" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1a7be2d5e41fb77e3caa1028fa61c78466" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBytecodeAccumulator::append_stcode</definition>
+        <argsstring>(dag::ConstSpan&lt; int &gt; c)</argsstring>
+        <name>append_stcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::append_stcode</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="188" column="8" bodyfile="stcodeBytecode.h" bodystart="188" bodyend="188"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1aaccb64a6da13c337bc82efbe1ceaec55" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBytecodeAccumulator::append_stblkcode</definition>
+        <argsstring>(dag::ConstSpan&lt; int &gt; c)</argsstring>
+        <name>append_stblkcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::append_stblkcode</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="189" column="8" bodyfile="stcodeBytecode.h" bodystart="189" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1aadd39a557a0960ffc96710d4a5df9931" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBytecodeAccumulator::push_alt_stcode</definition>
+        <argsstring>(bool dyn, int a)</argsstring>
+        <name>push_alt_stcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::push_alt_stcode</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>dyn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="191" column="8" bodyfile="stcodeBytecode.h" bodystart="191" bodyend="197"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1a00ce6156560f33b4e7deede3abd08fd4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBytecodeAccumulator::append_alt_stcode</definition>
+        <argsstring>(bool dyn, dag::ConstSpan&lt; int &gt; c)</argsstring>
+        <name>append_alt_stcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::append_alt_stcode</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>dyn</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="198" column="8" bodyfile="stcodeBytecode.h" bodystart="198" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1a9a3613b1842f4fe8efbf4b2e2969dc2b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Tab&lt; int &gt; &amp;</type>
+        <definition>Tab&lt; int &gt; &amp; StcodeBytecodeAccumulator::get_alt_curstcode</definition>
+        <argsstring>(bool dyn)</argsstring>
+        <name>get_alt_curstcode</name>
+        <qualifiedname>StcodeBytecodeAccumulator::get_alt_curstcode</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>dyn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="205" column="7" bodyfile="stcodeBytecode.h" bodystart="205" bodyend="205"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeBytecodeAccumulator_1adf1bdd68387a4d3bebef7e261974d2a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBytecodeAccumulator::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>StcodeBytecodeAccumulator::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="207" column="8" bodyfile="stcodeBytecode.h" bodystart="207" bodyend="211"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="stcodeBytecode.h" line="178" column="1" bodyfile="stcodeBytecode.h" bodystart="179" bodyend="212"/>
+    <listofallmembers>
+      <member refid="structStcodeBytecodeAccumulator_1a00ce6156560f33b4e7deede3abd08fd4" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>append_alt_stcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1aaccb64a6da13c337bc82efbe1ceaec55" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>append_stblkcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1a7be2d5e41fb77e3caa1028fa61c78466" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>append_stcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1a9a3613b1842f4fe8efbf4b2e2969dc2b" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>get_alt_curstcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1aadd39a557a0960ffc96710d4a5df9931" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>push_alt_stcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1a81e7776e1af220968a4c58f1ed27346d" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>push_stblkcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1a81d4ca7d0854e932a4fdbbfd41caee71" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>push_stcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1ad0f379ff1b62a2277340b6ea463b345d" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>regAllocator</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1adf1bdd68387a4d3bebef7e261974d2a3" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>reset</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1a6398fb138d9b59883d7640a8533126f0" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>stblkcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1a0548df4771375aa02b7d292da657c62a" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>stcode</name></member>
+      <member refid="structStcodeBytecodeAccumulator_1abea8b18725041acf5304fcdd778d358b" prot="public" virt="non-virtual"><scope>StcodeBytecodeAccumulator</scope><name>StcodeBytecodeAccumulator</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

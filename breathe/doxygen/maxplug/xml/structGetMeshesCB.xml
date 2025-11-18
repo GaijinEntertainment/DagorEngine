@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGetMeshesCB" kind="struct" language="C++" prot="public">
+    <compoundname>GetMeshesCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+    <innerclass refid="structGetMeshesCB_1_1Obj" prot="public">GetMeshesCB::Obj</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGetMeshesCB_1a4a6274678605afddab1d4153a143adfb" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue GetMeshesCB::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>GetMeshesCB::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="104" column="13" bodyfile="util2.cpp" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGetMeshesCB_1a5b975ed51e184343987d17221899127a" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* GetMeshesCB::snode</definition>
+        <argsstring></argsstring>
+        <name>snode</name>
+        <qualifiedname>GetMeshesCB::snode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="105" column="9" bodyfile="util2.cpp" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGetMeshesCB_1ad15562ba8c7d34a501cc8a312a5e1406" prot="public" static="no" mutable="no">
+        <type>Box3</type>
+        <definition>Box3 GetMeshesCB::sbox</definition>
+        <argsstring></argsstring>
+        <name>sbox</name>
+        <qualifiedname>GetMeshesCB::sbox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="106" column="8" bodyfile="util2.cpp" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGetMeshesCB_1a81af46241b097409118de6628e8aa0e9" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structGetMeshesCB_1_1Obj" kindref="compound">Obj</ref> * &gt;</type>
+        <definition>Tab&lt;Obj *&gt; GetMeshesCB::mesh</definition>
+        <argsstring></argsstring>
+        <name>mesh</name>
+        <qualifiedname>GetMeshesCB::mesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="127" column="7" bodyfile="util2.cpp" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structGetMeshesCB_1a259816bce040c300d027cc616de2d5dd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GetMeshesCB::GetMeshesCB</definition>
+        <argsstring>(Interface *ip, INode *sn, Box3 sb)</argsstring>
+        <name>GetMeshesCB</name>
+        <qualifiedname>GetMeshesCB::GetMeshesCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>sn</declname>
+        </param>
+        <param>
+          <type>Box3</type>
+          <declname>sb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="129" column="3" bodyfile="util2.cpp" bodystart="129" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="structGetMeshesCB_1a41ce3c637e1249641725eaa09b930063" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GetMeshesCB::~GetMeshesCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~GetMeshesCB</name>
+        <qualifiedname>GetMeshesCB::~GetMeshesCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="135" column="3" bodyfile="util2.cpp" bodystart="135" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="structGetMeshesCB_1a3a7e908f75e67194944d8dc66dfe387f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int GetMeshesCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>GetMeshesCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="141" column="7" bodyfile="util2.cpp" bodystart="141" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="structGetMeshesCB_1a8d41251cdbb098e10699bf9882ebb4c9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int GetMeshesCB::isectray</definition>
+        <argsstring>(Ray &amp;ray, float &amp;at, int &amp;mi, int &amp;fi, Point3 &amp;bary)</argsstring>
+        <name>isectray</name>
+        <qualifiedname>GetMeshesCB::isectray</qualifiedname>
+        <param>
+          <type>Ray &amp;</type>
+          <declname>ray</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>at</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>mi</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>fi</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>bary</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="168" column="7" bodyfile="util2.cpp" bodystart="168" bodyend="193"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>GetMeshesCB</label>
+        <link refid="structGetMeshesCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>GetMeshesCB</label>
+        <link refid="structGetMeshesCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="util2.cpp" line="102" column="1" bodyfile="util2.cpp" bodystart="103" bodyend="194"/>
+    <listofallmembers>
+      <member refid="structGetMeshesCB_1a259816bce040c300d027cc616de2d5dd" prot="public" virt="non-virtual"><scope>GetMeshesCB</scope><name>GetMeshesCB</name></member>
+      <member refid="structGetMeshesCB_1a8d41251cdbb098e10699bf9882ebb4c9" prot="public" virt="non-virtual"><scope>GetMeshesCB</scope><name>isectray</name></member>
+      <member refid="structGetMeshesCB_1a81af46241b097409118de6628e8aa0e9" prot="public" virt="non-virtual"><scope>GetMeshesCB</scope><name>mesh</name></member>
+      <member refid="structGetMeshesCB_1a3a7e908f75e67194944d8dc66dfe387f" prot="public" virt="virtual"><scope>GetMeshesCB</scope><name>proc</name></member>
+      <member refid="structGetMeshesCB_1ad15562ba8c7d34a501cc8a312a5e1406" prot="public" virt="non-virtual"><scope>GetMeshesCB</scope><name>sbox</name></member>
+      <member refid="structGetMeshesCB_1a5b975ed51e184343987d17221899127a" prot="public" virt="non-virtual"><scope>GetMeshesCB</scope><name>snode</name></member>
+      <member refid="structGetMeshesCB_1a4a6274678605afddab1d4153a143adfb" prot="public" virt="non-virtual"><scope>GetMeshesCB</scope><name>time</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>GetMeshesCB</scope><name>~ENodeCB</name></member>
+      <member refid="structGetMeshesCB_1a41ce3c637e1249641725eaa09b930063" prot="public" virt="non-virtual"><scope>GetMeshesCB</scope><name>~GetMeshesCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__gpuConfig_8h" kind="file" language="C++">
+    <compoundname>dag_gpuConfig.h</compoundname>
+    <includes local="no">drv/3d/dag_consts.h</includes>
+    <includes local="no">drv/3d/dag_decl.h</includes>
+    <includes local="no">EASTL/vector.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_gpuConfig.h</label>
+        <link refid="dag__gpuConfig_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_decl.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structGpuVideoSettings" prot="public">GpuVideoSettings</innerclass>
+    <innerclass refid="structGpuUserConfig" prot="public">GpuUserConfig</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__gpuConfig_8h_1ac3b07ab3b2c9509afc2bdda999a32b31" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_read_gpu_video_settings</definition>
+        <argsstring>(const DataBlock &amp;blk, GpuVideoSettings &amp;out_video)</argsstring>
+        <name>d3d_read_gpu_video_settings</name>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type><ref refid="structGpuVideoSettings" kindref="compound">GpuVideoSettings</ref> &amp;</type>
+          <declname>out_video</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="65" column="6" declfile="dag_gpuConfig.h" declline="65" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__gpuConfig_8h_1a783e709a68f4a41e39da4b3f5080fbc9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structGpuUserConfig" kindref="compound">GpuUserConfig</ref> &amp;</type>
+        <definition>const GpuUserConfig &amp; d3d_get_gpu_cfg</definition>
+        <argsstring>()</argsstring>
+        <name>d3d_get_gpu_cfg</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="66" column="21" declfile="dag_gpuConfig.h" declline="66" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__gpuConfig_8h_1ada313490f0a8583cf707a2dd44769989" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_apply_gpu_settings</definition>
+        <argsstring>(const GpuVideoSettings &amp;video)</argsstring>
+        <name>d3d_apply_gpu_settings</name>
+        <param>
+          <type>const <ref refid="structGpuVideoSettings" kindref="compound">GpuVideoSettings</ref> &amp;</type>
+          <declname>video</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="68" column="6" declfile="dag_gpuConfig.h" declline="68" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__gpuConfig_8h_1a17cfef0b8af49cb75880334110feb7ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d_apply_gpu_settings</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>d3d_apply_gpu_settings</name>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="69" column="6" declfile="dag_gpuConfig.h" declline="69" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_decl.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="structGpuVideoSettings" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGpuVideoSettings" kindref="compound">GpuVideoSettings</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15" refid="structGpuVideoSettings_1a945c0124982431101ffc1203ba463aca" refkind="member"><highlight class="normal"><sp/><sp/>DriverCode<sp/><ref refid="structGpuVideoSettings_1a945c0124982431101ffc1203ba463aca" kindref="member">drvCode</ref>;</highlight></codeline>
+<codeline lineno="16" refid="structGpuVideoSettings_1a5fe73c9d2879eb8dcd90ce4a10306645" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1a5fe73c9d2879eb8dcd90ce4a10306645" kindref="member">disableNvTweaks</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="17" refid="structGpuVideoSettings_1a6aa3cd4dc22065dfdfa44d8c936ba2a4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1a6aa3cd4dc22065dfdfa44d8c936ba2a4" kindref="member">disableAtiTweaks</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="18" refid="structGpuVideoSettings_1ae027f6adb3571e215f5bbb6ae9e8568a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1ae027f6adb3571e215f5bbb6ae9e8568a" kindref="member">ignoreOutdatedDriver</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="19" refid="structGpuVideoSettings_1ac25a782024b4b78d995ad1f3e3a05649" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1ac25a782024b4b78d995ad1f3e3a05649" kindref="member">configCompatibilityMode</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="20" refid="structGpuVideoSettings_1a4164d6f9245c49698ef3db8c991c5de5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1a4164d6f9245c49698ef3db8c991c5de5" kindref="member">allowDx10Fallback</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21" refid="structGpuVideoSettings_1a4e5bfa9ad11e4585d06909905446e453" refkind="member"><highlight class="normal"><sp/><sp/>eastl::vector&lt;String&gt;<sp/><ref refid="structGpuVideoSettings_1a4e5bfa9ad11e4585d06909905446e453" kindref="member">oldHardwareList</ref>;</highlight></codeline>
+<codeline lineno="22" refid="structGpuVideoSettings_1a09254cf1a65ae645810a1c3de6f1b4e3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1a09254cf1a65ae645810a1c3de6f1b4e3" kindref="member">adjustVideoSettings</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="23" refid="structGpuVideoSettings_1a0388581ff2cc5ce54745630678b4ac3d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1a0388581ff2cc5ce54745630678b4ac3d" kindref="member">lowVideoMemMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="24" refid="structGpuVideoSettings_1a286adedc50140736bb8a8bc9f45b2836" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1a286adedc50140736bb8a8bc9f45b2836" kindref="member">ultraLowVideoMemMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="25" refid="structGpuVideoSettings_1adf66bfa94b36cb5168d943aa38b1b668" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1adf66bfa94b36cb5168d943aa38b1b668" kindref="member">lowSystemMemAtMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="26" refid="structGpuVideoSettings_1a8df478b01453ec4372d6870b51647947" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings_1a8df478b01453ec4372d6870b51647947" kindref="member">ultralowSystemMemAtMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="structGpuUserConfig" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGpuUserConfig" kindref="compound">GpuUserConfig</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31" refid="structGpuUserConfig_1a7194efc5e79be1bafd9d25285d7169bd" refkind="member"><highlight class="normal"><sp/><sp/>GpuVendor<sp/><ref refid="structGpuUserConfig_1a7194efc5e79be1bafd9d25285d7169bd" kindref="member">primaryVendor</ref><sp/>=<sp/>GpuVendor::UNKNOWN;</highlight></codeline>
+<codeline lineno="32" refid="structGpuUserConfig_1af481a3e9c01b76bfac814f3086b6b256" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structGpuUserConfig_1af481a3e9c01b76bfac814f3086b6b256" kindref="member">physicalFrameBufferSize</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="33" refid="structGpuUserConfig_1af002cc8cfa6af013b747aef39c2c54fd" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structGpuUserConfig_1af002cc8cfa6af013b747aef39c2c54fd" kindref="member">deviceId</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="34" refid="structGpuUserConfig_1a768257bd20fffd78ef5fe0f74132d4b8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a768257bd20fffd78ef5fe0f74132d4b8" kindref="member">vendorAAisOn</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35" refid="structGpuUserConfig_1a6ddfa2004baed9b1517e65bc45955dca" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a6ddfa2004baed9b1517e65bc45955dca" kindref="member">outdatedDriver</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="36" refid="structGpuUserConfig_1af6ce0b69dda3ba37341b66705305307e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1af6ce0b69dda3ba37341b66705305307e" kindref="member">fallbackToCompatibilty</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="37" refid="structGpuUserConfig_1a5629f46849b45d5c2128e6152462e926" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a5629f46849b45d5c2128e6152462e926" kindref="member">disableUav</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="40" refid="structGpuUserConfig_1a767d54bb93cbddd9237527812214c474" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a767d54bb93cbddd9237527812214c474" kindref="member">integrated</ref>;</highlight></codeline>
+<codeline lineno="41" refid="structGpuUserConfig_1a80c2402e6fbd2bdc73eec183ecd371fc" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a80c2402e6fbd2bdc73eec183ecd371fc" kindref="member">usedSlowIntegrated</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="43" refid="structGpuUserConfig_1a475042b777ad8241ad2751aece36f4bd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a475042b777ad8241ad2751aece36f4bd" kindref="member">usedSlowIntegratedSwitchableGpu</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44" refid="structGpuUserConfig_1a977d1c9a017df209196f56496cc52912" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a977d1c9a017df209196f56496cc52912" kindref="member">gradientWorkaroud</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="45" refid="structGpuUserConfig_1a47817d9d5e5f9b30a1e23263b499916d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a47817d9d5e5f9b30a1e23263b499916d" kindref="member">disableTexArrayCompression</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46" refid="structGpuUserConfig_1a0cc3ae2000dce3571e004a417ce8ebfb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a0cc3ae2000dce3571e004a417ce8ebfb" kindref="member">disableSbuffers</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47" refid="structGpuUserConfig_1a6a384540142d17214449e97394cef16e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a6a384540142d17214449e97394cef16e" kindref="member">disableMeshStreaming</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48" refid="structGpuUserConfig_1a167595a9696b95e0a507ead34efe8846" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a167595a9696b95e0a507ead34efe8846" kindref="member">disableDepthCopyResource</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49" refid="structGpuUserConfig_1a88e58280757afccdb3c25c5d767f8aae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a88e58280757afccdb3c25c5d767f8aae" kindref="member">multipleCopySubresourceWorkaround</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50" refid="structGpuUserConfig_1a16a48ef669c89a3bcad976d6eedcf2e0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a16a48ef669c89a3bcad976d6eedcf2e0" kindref="member">forceDx10</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="51" refid="structGpuUserConfig_1a326678fbac7187a7264131a1f1b864fa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a326678fbac7187a7264131a1f1b864fa" kindref="member">hardwareDx10</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="52" refid="structGpuUserConfig_1a16610a60c82d8d3e6b75c9a5143f3986" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a16610a60c82d8d3e6b75c9a5143f3986" kindref="member">oldHardware</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53" refid="structGpuUserConfig_1a315e02d632f160ca3b7d668144d035b9" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structGpuUserConfig_1a315e02d632f160ca3b7d668144d035b9" kindref="member">driverVersion</ref>[4]<sp/>=<sp/>{0,<sp/>0,<sp/>0,<sp/>0};</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="structGpuUserConfig_1a216761b7ab670e285f3f9a6617051f6f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a216761b7ab670e285f3f9a6617051f6f" kindref="member">lowMem</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="56" refid="structGpuUserConfig_1a3cbcf2e2e91a880aae5b279a6528eeab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a3cbcf2e2e91a880aae5b279a6528eeab" kindref="member">ultraLowMem</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57" refid="structGpuUserConfig_1a46bc887dd7dc61f485f0df1c848fd76e" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structGpuUserConfig_1a46bc887dd7dc61f485f0df1c848fd76e" kindref="member">videoMemMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="58" refid="structGpuUserConfig_1a14b7b6341c914022542f3912eae459ab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig_1a14b7b6341c914022542f3912eae459ab" kindref="member">freePhysMemMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="59" refid="structGpuUserConfig_1a1e252174195a3a88bda1c715aa500e06" refkind="member"><highlight class="normal"><sp/><sp/>int64_t<sp/><ref refid="structGpuUserConfig_1a1e252174195a3a88bda1c715aa500e06" kindref="member">freeVirtualMemMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="60" refid="structGpuUserConfig_1a7445878a89a701e197ad328b8f4b6bc8" refkind="member"><highlight class="normal"><sp/><sp/>int64_t<sp/><ref refid="structGpuUserConfig_1a7445878a89a701e197ad328b8f4b6bc8" kindref="member">totalVirtualMemMb</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structGpuUserConfig_1a4a81ee2cef50a5804cb2c969d6720489" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structGpuUserConfig_1a4a81ee2cef50a5804cb2c969d6720489" kindref="member">generateDriverVersionString</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="dag__gpuConfig_8h_1ac3b07ab3b2c9509afc2bdda999a32b31" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__gpuConfig_8h_1ac3b07ab3b2c9509afc2bdda999a32b31" kindref="member">d3d_read_gpu_video_settings</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/><ref refid="structGpuVideoSettings" kindref="compound">GpuVideoSettings</ref><sp/>&amp;out_video);</highlight></codeline>
+<codeline lineno="66" refid="dag__gpuConfig_8h_1a783e709a68f4a41e39da4b3f5080fbc9" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structGpuUserConfig" kindref="compound">GpuUserConfig</ref><sp/>&amp;<ref refid="dag__gpuConfig_8h_1a783e709a68f4a41e39da4b3f5080fbc9" kindref="member">d3d_get_gpu_cfg</ref>();</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="dag__gpuConfig_8h_1ada313490f0a8583cf707a2dd44769989" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__gpuConfig_8h_1ada313490f0a8583cf707a2dd44769989" kindref="member">d3d_apply_gpu_settings</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structGpuVideoSettings" kindref="compound">GpuVideoSettings</ref><sp/>&amp;video);</highlight></codeline>
+<codeline lineno="69" refid="dag__gpuConfig_8h_1a17cfef0b8af49cb75880334110feb7ea" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__gpuConfig_8h_1ada313490f0a8583cf707a2dd44769989" kindref="member">d3d_apply_gpu_settings</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+    </programlisting>
+    <location file="dag_gpuConfig.h"/>
+  </compounddef>
+</doxygen>

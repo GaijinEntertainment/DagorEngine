@@ -1,0 +1,1306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderMapSC" kind="class" language="C++" prot="public">
+    <compoundname>RenderMapSC</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ShadeContext</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classRenderMapSC_1aa096feae82a54412fba08010bae85316" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue RenderMapSC::curtime</definition>
+        <argsstring></argsstring>
+        <name>curtime</name>
+        <qualifiedname>RenderMapSC::curtime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3955" column="13" bodyfile="util.cpp" bodystart="3955" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1ad1ba24144f3301418ac3f4af70389aa3" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* RenderMapSC::node</definition>
+        <argsstring></argsstring>
+        <name>node</name>
+        <qualifiedname>RenderMapSC::node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3956" column="9" bodyfile="util.cpp" bodystart="3956" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1ae92d56d9484d27260c84455ce4b511c5" prot="public" static="no" mutable="no">
+        <type>Mesh *</type>
+        <definition>Mesh* RenderMapSC::mesh</definition>
+        <argsstring></argsstring>
+        <name>mesh</name>
+        <qualifiedname>RenderMapSC::mesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3957" column="8" bodyfile="util.cpp" bodystart="3957" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a3f87e466679d4f709a04d8b4401a1abb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderMapSC::face</definition>
+        <argsstring></argsstring>
+        <name>face</name>
+        <qualifiedname>RenderMapSC::face</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3958" column="7" bodyfile="util.cpp" bodystart="3958" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a08c73cc8594ec2f60f557f5cd89cb799" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 RenderMapSC::cam2obj</definition>
+        <argsstring></argsstring>
+        <name>cam2obj</name>
+        <qualifiedname>RenderMapSC::cam2obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3959" column="11" bodyfile="util.cpp" bodystart="3959" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1ac614b87bf9774ec85a46ff0b97b9d28e" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 RenderMapSC::obj2cam</definition>
+        <argsstring></argsstring>
+        <name>obj2cam</name>
+        <qualifiedname>RenderMapSC::obj2cam</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3959" column="19" bodyfile="util.cpp" bodystart="3959" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1abe6bbcc43421e86a5f76631d8aa9147a" prot="public" static="no" mutable="no">
+        <type>Box3</type>
+        <definition>Box3 RenderMapSC::objbox</definition>
+        <argsstring></argsstring>
+        <name>objbox</name>
+        <qualifiedname>RenderMapSC::objbox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3960" column="8" bodyfile="util.cpp" bodystart="3960" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a3b1bd636b7d8fcf4213b5e63e4d0134d" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::bary</definition>
+        <argsstring></argsstring>
+        <name>bary</name>
+        <qualifiedname>RenderMapSC::bary</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="10" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1ae6bcf7be08b5f1f1ecd1c85cdcbe2a95" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::norm</definition>
+        <argsstring></argsstring>
+        <name>norm</name>
+        <qualifiedname>RenderMapSC::norm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="15" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a2f2d48e7e6344a50203d7e1b6e5b4560" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::normal</definition>
+        <argsstring></argsstring>
+        <name>normal</name>
+        <qualifiedname>RenderMapSC::normal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="20" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a31917ec5b0d38da7851b01d9d27f7235" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::facenorm</definition>
+        <argsstring></argsstring>
+        <name>facenorm</name>
+        <qualifiedname>RenderMapSC::facenorm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="27" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a819339af8e7ab1dcab878328b34c42a3" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::view</definition>
+        <argsstring></argsstring>
+        <name>view</name>
+        <qualifiedname>RenderMapSC::view</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="36" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a76789b6a8ffbbfb213e6dffc1bc5f476" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::orgview</definition>
+        <argsstring></argsstring>
+        <name>orgview</name>
+        <qualifiedname>RenderMapSC::orgview</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="41" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a6950d68f79e2e251c19726459c384c31" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::pt</definition>
+        <argsstring></argsstring>
+        <name>pt</name>
+        <qualifiedname>RenderMapSC::pt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="49" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a0292a054b21cf51563aa0efd60f07699" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::dpt</definition>
+        <argsstring></argsstring>
+        <name>dpt</name>
+        <qualifiedname>RenderMapSC::dpt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="52" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a1f7d5f9902b42ceaf1d66b73a39a9a19" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::dpt_dx</definition>
+        <argsstring></argsstring>
+        <name>dpt_dx</name>
+        <qualifiedname>RenderMapSC::dpt_dx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="56" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1abea445424fb55f2033b721c2231dc5eb" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::dpt_dy</definition>
+        <argsstring></argsstring>
+        <name>dpt_dy</name>
+        <qualifiedname>RenderMapSC::dpt_dy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="63" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1af8ac316e6010bd9fdd93480758c75ebf" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::vp[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>vp</name>
+        <qualifiedname>RenderMapSC::vp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="70" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a26a92cf5794b55b216bb90a041e2843a" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::bv[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>bv</name>
+        <qualifiedname>RenderMapSC::bv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="73" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a487f9207ea973dbcf934824cd75f271c" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::bo</definition>
+        <argsstring></argsstring>
+        <name>bo</name>
+        <qualifiedname>RenderMapSC::bo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3961" column="76" bodyfile="util.cpp" bodystart="3961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a4d70eca225917a6ed3b582ee60678483" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::tv[MAX_MESHMAPS][3]</definition>
+        <argsstring>[MAX_MESHMAPS][3]</argsstring>
+        <name>tv</name>
+        <qualifiedname>RenderMapSC::tv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3962" column="10" bodyfile="util.cpp" bodystart="3962" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a2cbedeef8f3dac0a18a08f8099373115" prot="public" static="no" mutable="no">
+        <type>Color</type>
+        <definition>Color RenderMapSC::back_color</definition>
+        <argsstring></argsstring>
+        <name>back_color</name>
+        <qualifiedname>RenderMapSC::back_color</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3963" column="9" bodyfile="util.cpp" bodystart="3963" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a12db1739023242c18451a91fc5f912a1" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderMapSC::curve</definition>
+        <argsstring></argsstring>
+        <name>curve</name>
+        <qualifiedname>RenderMapSC::curve</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3964" column="9" bodyfile="util.cpp" bodystart="3964" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1ac52d57740d5b2d4527fe424e626abead" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderMapSC::face_sz</definition>
+        <argsstring></argsstring>
+        <name>face_sz</name>
+        <qualifiedname>RenderMapSC::face_sz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3964" column="15" bodyfile="util.cpp" bodystart="3964" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1afedbdaccd0062df64a296948c542450c" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderMapSC::sz_ratio</definition>
+        <argsstring></argsstring>
+        <name>sz_ratio</name>
+        <qualifiedname>RenderMapSC::sz_ratio</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3964" column="23" bodyfile="util.cpp" bodystart="3964" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1ae7c3ced4b9ea471a81a7749148fa5617" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderMapSC::facecurve</definition>
+        <argsstring></argsstring>
+        <name>facecurve</name>
+        <qualifiedname>RenderMapSC::facecurve</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3964" column="32" bodyfile="util.cpp" bodystart="3964" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1ab81f5ccf05753ac5f11c22a9d49f169e" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Point3 &gt;</type>
+        <definition>Tab&lt;Point3&gt; RenderMapSC::fnorm</definition>
+        <argsstring></argsstring>
+        <name>fnorm</name>
+        <qualifiedname>RenderMapSC::fnorm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3965" column="7" bodyfile="util.cpp" bodystart="3965" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a350a0b624b36d86e77857446e1a4940b" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Point3[3]&gt;</type>
+        <definition>Tab&lt;Point3[3]&gt; RenderMapSC::vnorm</definition>
+        <argsstring></argsstring>
+        <name>vnorm</name>
+        <qualifiedname>RenderMapSC::vnorm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3966" column="7" bodyfile="util.cpp" bodystart="3966" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a7d1792b80536cf282521a136ef014544" prot="public" static="no" mutable="no">
+        <type>Tab&lt; ObjLightDesc * &gt;</type>
+        <definition>Tab&lt;ObjLightDesc *&gt; RenderMapSC::light</definition>
+        <argsstring></argsstring>
+        <name>light</name>
+        <qualifiedname>RenderMapSC::light</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3967" column="7" bodyfile="util.cpp" bodystart="3967" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1acb2e7367e59c74bb654d8bac1a3483f0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderMapSC::hastv[MAX_MESHMAPS]</definition>
+        <argsstring>[MAX_MESHMAPS]</argsstring>
+        <name>hastv</name>
+        <qualifiedname>RenderMapSC::hastv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3968" column="8" bodyfile="util.cpp" bodystart="3968" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderMapSC_1a028473d1a1604eacf92cb3d4bf1720b6" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char RenderMapSC::lighting</definition>
+        <argsstring></argsstring>
+        <name>lighting</name>
+        <qualifiedname>RenderMapSC::lighting</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3969" column="8" bodyfile="util.cpp" bodystart="3969" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderMapSC_1a8d096bc8323890cd70888dbb4830e60c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderMapSC::RenderMapSC</definition>
+        <argsstring>(TimeValue t, char lt, Interface *ip)</argsstring>
+        <name>RenderMapSC</name>
+        <qualifiedname>RenderMapSC::RenderMapSC</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>char</type>
+          <declname>lt</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3971" column="3" bodyfile="util.cpp" bodystart="3971" bodyend="3996"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a168e70286e5f67482e609927b911e479" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::setnode</definition>
+        <argsstring>(INode *n)</argsstring>
+        <name>setnode</name>
+        <qualifiedname>RenderMapSC::setnode</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3997" column="8" bodyfile="util.cpp" bodystart="3997" bodyend="4005"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a853d17fc3129714778590b3b8d9dcf9b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::setmesh</definition>
+        <argsstring>(Mesh &amp;m)</argsstring>
+        <name>setmesh</name>
+        <qualifiedname>RenderMapSC::setmesh</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4006" column="8" bodyfile="util.cpp" bodystart="4006" bodyend="4041"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a4e01aca88a143357f17bdb5310c14e86" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::gettv</definition>
+        <argsstring>(int ch)</argsstring>
+        <name>gettv</name>
+        <qualifiedname>RenderMapSC::gettv</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4042" column="8" bodyfile="util.cpp" bodystart="4042" bodyend="4060"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a8cae242d8fd51457bddaf2681c7a9e0a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::setface</definition>
+        <argsstring>(int fi, int ch)</argsstring>
+        <name>setface</name>
+        <qualifiedname>RenderMapSC::setface</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>fi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4061" column="8" bodyfile="util.cpp" bodystart="4061" bodyend="4083"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a93da7a1c6c52b06cf3303ba66eee49bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::setpt</definition>
+        <argsstring>(float u, float v, float du, float dv)</argsstring>
+        <name>setpt</name>
+        <qualifiedname>RenderMapSC::setpt</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>u</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>du</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>dv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4084" column="8" bodyfile="util.cpp" bodystart="4084" bodyend="4097"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a02730738d474566752249e8887550c56" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL RenderMapSC::InMtlEditor</definition>
+        <argsstring>() override</argsstring>
+        <name>InMtlEditor</name>
+        <qualifiedname>RenderMapSC::InMtlEditor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4098" column="8" bodyfile="util.cpp" bodystart="4098" bodyend="4098"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a59241f8f332347f6caee53b19eaa8733" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderMapSC::Antialias</definition>
+        <argsstring>() override</argsstring>
+        <name>Antialias</name>
+        <qualifiedname>RenderMapSC::Antialias</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4099" column="7" bodyfile="util.cpp" bodystart="4099" bodyend="4099"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a5d1dd7326c02925250065b4047bb3937" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderMapSC::ProjType</definition>
+        <argsstring>() override</argsstring>
+        <name>ProjType</name>
+        <qualifiedname>RenderMapSC::ProjType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4100" column="7" bodyfile="util.cpp" bodystart="4100" bodyend="4100"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1aa60dff568a009be99db3fdfbb01285f2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>LightDesc *</type>
+        <definition>LightDesc * RenderMapSC::Light</definition>
+        <argsstring>(int n) override</argsstring>
+        <name>Light</name>
+        <qualifiedname>RenderMapSC::Light</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4101" column="13" bodyfile="util.cpp" bodystart="4101" bodyend="4101"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1ae9ccaa034ded6acab458c996c90b8e93" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TimeValue</type>
+        <definition>TimeValue RenderMapSC::CurTime</definition>
+        <argsstring>() override</argsstring>
+        <name>CurTime</name>
+        <qualifiedname>RenderMapSC::CurTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4102" column="13" bodyfile="util.cpp" bodystart="4102" bodyend="4102"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a2d9adea40912fccaea972c1416e2f911" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>INode *</type>
+        <definition>INode * RenderMapSC::Node</definition>
+        <argsstring>() override</argsstring>
+        <name>Node</name>
+        <qualifiedname>RenderMapSC::Node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4103" column="9" bodyfile="util.cpp" bodystart="4103" bodyend="4103"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a1b4f8f8fa6d0f0bbe9315e2f3be2b14b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Object *</type>
+        <definition>Object * RenderMapSC::GetEvalObject</definition>
+        <argsstring>() override</argsstring>
+        <name>GetEvalObject</name>
+        <qualifiedname>RenderMapSC::GetEvalObject</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4104" column="10" bodyfile="util.cpp" bodystart="4104" bodyend="4109"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a8b9570fd8bbadaa29d50c9ba5dcaaae9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::BarycentricCoords</definition>
+        <argsstring>() override</argsstring>
+        <name>BarycentricCoords</name>
+        <qualifiedname>RenderMapSC::BarycentricCoords</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4110" column="10" bodyfile="util.cpp" bodystart="4110" bodyend="4110"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a23d046cd1a1537cb0f6e59dffdb3de19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderMapSC::FaceNumber</definition>
+        <argsstring>() override</argsstring>
+        <name>FaceNumber</name>
+        <qualifiedname>RenderMapSC::FaceNumber</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4111" column="7" bodyfile="util.cpp" bodystart="4111" bodyend="4111"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1aa962b1a7a95dffd00df83fbeec6b6ba9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::Normal</definition>
+        <argsstring>() override</argsstring>
+        <name>Normal</name>
+        <qualifiedname>RenderMapSC::Normal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4112" column="10" bodyfile="util.cpp" bodystart="4112" bodyend="4112"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a8d2335c381bd79f1991773a66f953133" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::SetNormal</definition>
+        <argsstring>(Point3 p) override</argsstring>
+        <name>SetNormal</name>
+        <qualifiedname>RenderMapSC::SetNormal</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4113" column="8" bodyfile="util.cpp" bodystart="4113" bodyend="4113"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a1e2bb29d23e55428043188d12083e1c7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::OrigNormal</definition>
+        <argsstring>() override</argsstring>
+        <name>OrigNormal</name>
+        <qualifiedname>RenderMapSC::OrigNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4114" column="10" bodyfile="util.cpp" bodystart="4114" bodyend="4114"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a73c443ad5d622d8f99e4a733be605356" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float RenderMapSC::Curve</definition>
+        <argsstring>() override</argsstring>
+        <name>Curve</name>
+        <qualifiedname>RenderMapSC::Curve</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4115" column="9" bodyfile="util.cpp" bodystart="4115" bodyend="4115"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a6279b187f2b69f1a233206ea08677ad3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::GNormal</definition>
+        <argsstring>() override</argsstring>
+        <name>GNormal</name>
+        <qualifiedname>RenderMapSC::GNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4116" column="10" bodyfile="util.cpp" bodystart="4116" bodyend="4116"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a32a8bcf429cd69a36685f141df2867b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::CamPos</definition>
+        <argsstring>() override</argsstring>
+        <name>CamPos</name>
+        <qualifiedname>RenderMapSC::CamPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4117" column="10" bodyfile="util.cpp" bodystart="4117" bodyend="4117"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a0cb2d2616d3ecf7b29ab565c8f99e48a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::V</definition>
+        <argsstring>() override</argsstring>
+        <name>V</name>
+        <qualifiedname>RenderMapSC::V</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4118" column="10" bodyfile="util.cpp" bodystart="4118" bodyend="4118"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a3e7a1fa93f763cc1d89fe9f32d219eee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::SetView</definition>
+        <argsstring>(Point3 p) override</argsstring>
+        <name>SetView</name>
+        <qualifiedname>RenderMapSC::SetView</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4119" column="8" bodyfile="util.cpp" bodystart="4119" bodyend="4119"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1aeedf2f7b95ecdb519caddf066d1b6e96" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::OrigView</definition>
+        <argsstring>() override</argsstring>
+        <name>OrigView</name>
+        <qualifiedname>RenderMapSC::OrigView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4120" column="10" bodyfile="util.cpp" bodystart="4120" bodyend="4120"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1aa5d24d4e879a707f677b779436aac374" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::ReflectVector</definition>
+        <argsstring>() override</argsstring>
+        <name>ReflectVector</name>
+        <qualifiedname>RenderMapSC::ReflectVector</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4121" column="10" bodyfile="util.cpp" bodystart="4121" bodyend="4125"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1af4c3eab0f178c189e96a304a4699f0af" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::RefractVector</definition>
+        <argsstring>(float ior) override</argsstring>
+        <name>RefractVector</name>
+        <qualifiedname>RenderMapSC::RefractVector</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>ior</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4126" column="10" bodyfile="util.cpp" bodystart="4126" bodyend="4145"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1ae68b5cbbb73cae8b0395c5ea292c7f41" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::P</definition>
+        <argsstring>() override</argsstring>
+        <name>P</name>
+        <qualifiedname>RenderMapSC::P</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4146" column="10" bodyfile="util.cpp" bodystart="4146" bodyend="4146"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1af2bff2126dbad69cb73ade35f5cb1ff5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::DP</definition>
+        <argsstring>() override</argsstring>
+        <name>DP</name>
+        <qualifiedname>RenderMapSC::DP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4147" column="10" bodyfile="util.cpp" bodystart="4147" bodyend="4147"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a90ed30aea59d81a5fd3df21bce7d8dea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::DP</definition>
+        <argsstring>(Point3 &amp;dx, Point3 &amp;dy) override</argsstring>
+        <name>DP</name>
+        <qualifiedname>RenderMapSC::DP</qualifiedname>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>dy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4148" column="8" bodyfile="util.cpp" bodystart="4148" bodyend="4152"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1aa93ce41830cebc962ec0d2cb06fb7b74" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::PObj</definition>
+        <argsstring>() override</argsstring>
+        <name>PObj</name>
+        <qualifiedname>RenderMapSC::PObj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4153" column="10" bodyfile="util.cpp" bodystart="4153" bodyend="4153"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a15acae2c9523c8e4ab92b1464236da4c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::DPObj</definition>
+        <argsstring>() override</argsstring>
+        <name>DPObj</name>
+        <qualifiedname>RenderMapSC::DPObj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4154" column="10" bodyfile="util.cpp" bodystart="4154" bodyend="4154"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a6404b08de7835f0b6c258d89d45eccb9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Box3</type>
+        <definition>Box3 RenderMapSC::ObjectBox</definition>
+        <argsstring>() override</argsstring>
+        <name>ObjectBox</name>
+        <qualifiedname>RenderMapSC::ObjectBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4155" column="8" bodyfile="util.cpp" bodystart="4155" bodyend="4155"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a060bee78c9c16a8ec6253c2eb61e3022" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::PObjRelBox</definition>
+        <argsstring>() override</argsstring>
+        <name>PObjRelBox</name>
+        <qualifiedname>RenderMapSC::PObjRelBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4156" column="10" bodyfile="util.cpp" bodystart="4156" bodyend="4164"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a9f62d066ea92af1dbe49cd5321960f07" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::DPObjRelBox</definition>
+        <argsstring>() override</argsstring>
+        <name>DPObjRelBox</name>
+        <qualifiedname>RenderMapSC::DPObjRelBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4165" column="10" bodyfile="util.cpp" bodystart="4165" bodyend="4173"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a4d90226c11a4d017432ffc8d07322ea1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::ScreenUV</definition>
+        <argsstring>(Point2 &amp;uv, Point2 &amp;duv) override</argsstring>
+        <name>ScreenUV</name>
+        <qualifiedname>RenderMapSC::ScreenUV</qualifiedname>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>uv</declname>
+        </param>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>duv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4174" column="8" bodyfile="util.cpp" bodystart="4174" bodyend="4178"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a261cc9f4278d2bd7983a1268945b590b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 RenderMapSC::ScreenCoord</definition>
+        <argsstring>() override</argsstring>
+        <name>ScreenCoord</name>
+        <qualifiedname>RenderMapSC::ScreenCoord</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4179" column="11" bodyfile="util.cpp" bodystart="4179" bodyend="4179"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1aa8b19c4f4f3d50abb712e6106fee60dd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::UVW</definition>
+        <argsstring>(int ch) override</argsstring>
+        <name>UVW</name>
+        <qualifiedname>RenderMapSC::UVW</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4180" column="10" bodyfile="util.cpp" bodystart="4180" bodyend="4184"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1ab2d2b6a1cde47f7648a787360636ec15" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::DUVW</definition>
+        <argsstring>(int ch) override</argsstring>
+        <name>DUVW</name>
+        <qualifiedname>RenderMapSC::DUVW</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4185" column="10" bodyfile="util.cpp" bodystart="4185" bodyend="4189"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a16a336e32b9536522ba78f52512db3a1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::DPdUVW</definition>
+        <argsstring>(Point3 dP[3], int ch) override</argsstring>
+        <name>DPdUVW</name>
+        <qualifiedname>RenderMapSC::DPdUVW</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>dP</declname>
+          <array>[3]</array>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4190" column="8" bodyfile="util.cpp" bodystart="4190" bodyend="4197"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1ae1d9cd88a61a463a59b6197ef22e441e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderMapSC::GetBGColor</definition>
+        <argsstring>(Color &amp;co, Color &amp;tr, int fogBG) override</argsstring>
+        <name>GetBGColor</name>
+        <qualifiedname>RenderMapSC::GetBGColor</qualifiedname>
+        <param>
+          <type>Color &amp;</type>
+          <declname>co</declname>
+        </param>
+        <param>
+          <type>Color &amp;</type>
+          <declname>tr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fogBG</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4198" column="8" bodyfile="util.cpp" bodystart="4198" bodyend="4202"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1aae7d088425fbb401c8f677716eeb18a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::PointTo</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>PointTo</name>
+        <qualifiedname>RenderMapSC::PointTo</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4203" column="10" bodyfile="util.cpp" bodystart="4203" bodyend="4212"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1ace138a9a1e884cce05a3055e96860618" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::PointFrom</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>PointFrom</name>
+        <qualifiedname>RenderMapSC::PointFrom</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4213" column="10" bodyfile="util.cpp" bodystart="4213" bodyend="4222"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a406ac66880c8091ea62603adf458cde6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::VectorTo</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>VectorTo</name>
+        <qualifiedname>RenderMapSC::VectorTo</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4223" column="10" bodyfile="util.cpp" bodystart="4223" bodyend="4232"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderMapSC_1a83a408092e2c6e106ca0fc28a638d6b9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RenderMapSC::VectorFrom</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>VectorFrom</name>
+        <qualifiedname>RenderMapSC::VectorFrom</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4233" column="10" bodyfile="util.cpp" bodystart="4233" bodyend="4242"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>RenderMapSC</label>
+        <link refid="classRenderMapSC"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShadeContext</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>RenderMapSC</label>
+        <link refid="classRenderMapSC"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShadeContext</label>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="3952" column="1" bodyfile="util.cpp" bodystart="3953" bodyend="4243"/>
+    <listofallmembers>
+      <member refid="classRenderMapSC_1a59241f8f332347f6caee53b19eaa8733" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>Antialias</name></member>
+      <member refid="classRenderMapSC_1a2cbedeef8f3dac0a18a08f8099373115" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>back_color</name></member>
+      <member refid="classRenderMapSC_1a3b1bd636b7d8fcf4213b5e63e4d0134d" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>bary</name></member>
+      <member refid="classRenderMapSC_1a8b9570fd8bbadaa29d50c9ba5dcaaae9" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>BarycentricCoords</name></member>
+      <member refid="classRenderMapSC_1a487f9207ea973dbcf934824cd75f271c" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>bo</name></member>
+      <member refid="classRenderMapSC_1a26a92cf5794b55b216bb90a041e2843a" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>bv</name></member>
+      <member refid="classRenderMapSC_1a08c73cc8594ec2f60f557f5cd89cb799" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>cam2obj</name></member>
+      <member refid="classRenderMapSC_1a32a8bcf429cd69a36685f141df2867b2" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>CamPos</name></member>
+      <member refid="classRenderMapSC_1aa096feae82a54412fba08010bae85316" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>curtime</name></member>
+      <member refid="classRenderMapSC_1ae9ccaa034ded6acab458c996c90b8e93" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>CurTime</name></member>
+      <member refid="classRenderMapSC_1a73c443ad5d622d8f99e4a733be605356" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>Curve</name></member>
+      <member refid="classRenderMapSC_1a12db1739023242c18451a91fc5f912a1" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>curve</name></member>
+      <member refid="classRenderMapSC_1af2bff2126dbad69cb73ade35f5cb1ff5" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>DP</name></member>
+      <member refid="classRenderMapSC_1a90ed30aea59d81a5fd3df21bce7d8dea" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>DP</name></member>
+      <member refid="classRenderMapSC_1a16a336e32b9536522ba78f52512db3a1" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>DPdUVW</name></member>
+      <member refid="classRenderMapSC_1a15acae2c9523c8e4ab92b1464236da4c" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>DPObj</name></member>
+      <member refid="classRenderMapSC_1a9f62d066ea92af1dbe49cd5321960f07" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>DPObjRelBox</name></member>
+      <member refid="classRenderMapSC_1a0292a054b21cf51563aa0efd60f07699" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>dpt</name></member>
+      <member refid="classRenderMapSC_1a1f7d5f9902b42ceaf1d66b73a39a9a19" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>dpt_dx</name></member>
+      <member refid="classRenderMapSC_1abea445424fb55f2033b721c2231dc5eb" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>dpt_dy</name></member>
+      <member refid="classRenderMapSC_1ab2d2b6a1cde47f7648a787360636ec15" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>DUVW</name></member>
+      <member refid="classRenderMapSC_1a3f87e466679d4f709a04d8b4401a1abb" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>face</name></member>
+      <member refid="classRenderMapSC_1ac52d57740d5b2d4527fe424e626abead" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>face_sz</name></member>
+      <member refid="classRenderMapSC_1ae7c3ced4b9ea471a81a7749148fa5617" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>facecurve</name></member>
+      <member refid="classRenderMapSC_1a31917ec5b0d38da7851b01d9d27f7235" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>facenorm</name></member>
+      <member refid="classRenderMapSC_1a23d046cd1a1537cb0f6e59dffdb3de19" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>FaceNumber</name></member>
+      <member refid="classRenderMapSC_1ab81f5ccf05753ac5f11c22a9d49f169e" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>fnorm</name></member>
+      <member refid="classRenderMapSC_1ae1d9cd88a61a463a59b6197ef22e441e" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>GetBGColor</name></member>
+      <member refid="classRenderMapSC_1a1b4f8f8fa6d0f0bbe9315e2f3be2b14b" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>GetEvalObject</name></member>
+      <member refid="classRenderMapSC_1a4e01aca88a143357f17bdb5310c14e86" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>gettv</name></member>
+      <member refid="classRenderMapSC_1a6279b187f2b69f1a233206ea08677ad3" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>GNormal</name></member>
+      <member refid="classRenderMapSC_1acb2e7367e59c74bb654d8bac1a3483f0" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>hastv</name></member>
+      <member refid="classRenderMapSC_1a02730738d474566752249e8887550c56" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>InMtlEditor</name></member>
+      <member refid="classRenderMapSC_1a7d1792b80536cf282521a136ef014544" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>light</name></member>
+      <member refid="classRenderMapSC_1aa60dff568a009be99db3fdfbb01285f2" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>Light</name></member>
+      <member refid="classRenderMapSC_1a028473d1a1604eacf92cb3d4bf1720b6" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>lighting</name></member>
+      <member refid="classRenderMapSC_1ae92d56d9484d27260c84455ce4b511c5" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>mesh</name></member>
+      <member refid="classRenderMapSC_1a2d9adea40912fccaea972c1416e2f911" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>Node</name></member>
+      <member refid="classRenderMapSC_1ad1ba24144f3301418ac3f4af70389aa3" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>node</name></member>
+      <member refid="classRenderMapSC_1ae6bcf7be08b5f1f1ecd1c85cdcbe2a95" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>norm</name></member>
+      <member refid="classRenderMapSC_1a2f2d48e7e6344a50203d7e1b6e5b4560" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>normal</name></member>
+      <member refid="classRenderMapSC_1aa962b1a7a95dffd00df83fbeec6b6ba9" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>Normal</name></member>
+      <member refid="classRenderMapSC_1ac614b87bf9774ec85a46ff0b97b9d28e" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>obj2cam</name></member>
+      <member refid="classRenderMapSC_1abe6bbcc43421e86a5f76631d8aa9147a" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>objbox</name></member>
+      <member refid="classRenderMapSC_1a6404b08de7835f0b6c258d89d45eccb9" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>ObjectBox</name></member>
+      <member refid="classRenderMapSC_1a76789b6a8ffbbfb213e6dffc1bc5f476" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>orgview</name></member>
+      <member refid="classRenderMapSC_1a1e2bb29d23e55428043188d12083e1c7" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>OrigNormal</name></member>
+      <member refid="classRenderMapSC_1aeedf2f7b95ecdb519caddf066d1b6e96" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>OrigView</name></member>
+      <member refid="classRenderMapSC_1ae68b5cbbb73cae8b0395c5ea292c7f41" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>P</name></member>
+      <member refid="classRenderMapSC_1aa93ce41830cebc962ec0d2cb06fb7b74" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>PObj</name></member>
+      <member refid="classRenderMapSC_1a060bee78c9c16a8ec6253c2eb61e3022" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>PObjRelBox</name></member>
+      <member refid="classRenderMapSC_1ace138a9a1e884cce05a3055e96860618" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>PointFrom</name></member>
+      <member refid="classRenderMapSC_1aae7d088425fbb401c8f677716eeb18a7" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>PointTo</name></member>
+      <member refid="classRenderMapSC_1a5d1dd7326c02925250065b4047bb3937" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>ProjType</name></member>
+      <member refid="classRenderMapSC_1a6950d68f79e2e251c19726459c384c31" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>pt</name></member>
+      <member refid="classRenderMapSC_1aa5d24d4e879a707f677b779436aac374" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>ReflectVector</name></member>
+      <member refid="classRenderMapSC_1af4c3eab0f178c189e96a304a4699f0af" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>RefractVector</name></member>
+      <member refid="classRenderMapSC_1a8d096bc8323890cd70888dbb4830e60c" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>RenderMapSC</name></member>
+      <member refid="classRenderMapSC_1a261cc9f4278d2bd7983a1268945b590b" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>ScreenCoord</name></member>
+      <member refid="classRenderMapSC_1a4d90226c11a4d017432ffc8d07322ea1" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>ScreenUV</name></member>
+      <member refid="classRenderMapSC_1a8cae242d8fd51457bddaf2681c7a9e0a" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>setface</name></member>
+      <member refid="classRenderMapSC_1a853d17fc3129714778590b3b8d9dcf9b" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>setmesh</name></member>
+      <member refid="classRenderMapSC_1a168e70286e5f67482e609927b911e479" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>setnode</name></member>
+      <member refid="classRenderMapSC_1a8d2335c381bd79f1991773a66f953133" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>SetNormal</name></member>
+      <member refid="classRenderMapSC_1a93da7a1c6c52b06cf3303ba66eee49bd" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>setpt</name></member>
+      <member refid="classRenderMapSC_1a3e7a1fa93f763cc1d89fe9f32d219eee" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>SetView</name></member>
+      <member refid="classRenderMapSC_1afedbdaccd0062df64a296948c542450c" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>sz_ratio</name></member>
+      <member refid="classRenderMapSC_1a4d70eca225917a6ed3b582ee60678483" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>tv</name></member>
+      <member refid="classRenderMapSC_1aa8b19c4f4f3d50abb712e6106fee60dd" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>UVW</name></member>
+      <member refid="classRenderMapSC_1a0cb2d2616d3ecf7b29ab565c8f99e48a" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>V</name></member>
+      <member refid="classRenderMapSC_1a83a408092e2c6e106ca0fc28a638d6b9" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>VectorFrom</name></member>
+      <member refid="classRenderMapSC_1a406ac66880c8091ea62603adf458cde6" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>VectorTo</name></member>
+      <member refid="classRenderMapSC_1a819339af8e7ab1dcab878328b34c42a3" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>view</name></member>
+      <member refid="classRenderMapSC_1a350a0b624b36d86e77857446e1a4940b" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>vnorm</name></member>
+      <member refid="classRenderMapSC_1af8ac316e6010bd9fdd93480758c75ebf" prot="public" virt="non-virtual"><scope>RenderMapSC</scope><name>vp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

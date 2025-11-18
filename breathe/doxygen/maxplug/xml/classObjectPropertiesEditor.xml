@@ -1,0 +1,264 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classObjectPropertiesEditor" kind="class" language="C++" prot="public">
+    <compoundname>ObjectPropertiesEditor</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UtilityObj</basecompoundref>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" prot="protected" static="no" mutable="no">
+        <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+        <definition>RollupPanel* ObjectPropertiesEditor::panel</definition>
+        <argsstring></argsstring>
+        <name>panel</name>
+        <qualifiedname>ObjectPropertiesEditor::panel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="48" column="15" bodyfile="objectPropertiesEditor.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" prot="protected" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ObjectPropertiesEditor::m_hPanel</definition>
+        <argsstring></argsstring>
+        <name>m_hPanel</name>
+        <qualifiedname>ObjectPropertiesEditor::m_hPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="50" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" prot="protected" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* ObjectPropertiesEditor::m_pInterface</definition>
+        <argsstring></argsstring>
+        <name>m_pInterface</name>
+        <qualifiedname>ObjectPropertiesEditor::m_pInterface</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="51" column="13" bodyfile="objectPropertiesEditor.cpp" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classObjectPropertiesEditor_1af08555d2288155efd8ef81ff3f562f56" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; bool &gt;</type>
+        <definition>Tab&lt;bool&gt; ObjectPropertiesEditor::selectedNodes</definition>
+        <argsstring></argsstring>
+        <name>selectedNodes</name>
+        <qualifiedname>ObjectPropertiesEditor::selectedNodes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="52" column="7" bodyfile="objectPropertiesEditor.cpp" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classObjectPropertiesEditor_1ab6236e758fb749e7a66185f50d63860d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ObjectPropertiesEditor::ObjectPropertiesEditor</definition>
+        <argsstring>()</argsstring>
+        <name>ObjectPropertiesEditor</name>
+        <qualifiedname>ObjectPropertiesEditor::ObjectPropertiesEditor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="35" column="3" bodyfile="objectPropertiesEditor.cpp" bodystart="80" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditor_1a285263375298d0cb66e1afb11f0685d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditor::Init</definition>
+        <argsstring>()</argsstring>
+        <name>Init</name>
+        <qualifiedname>ObjectPropertiesEditor::Init</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="36" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="88" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditor_1a573ceb98ebcd1941168b01dfa29582e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditor::Destroy</definition>
+        <argsstring>()</argsstring>
+        <name>Destroy</name>
+        <qualifiedname>ObjectPropertiesEditor::Destroy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="37" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="91" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditor_1a93ae8ad512daa24a8e92e97e779ac617" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditor::BeginEditParams</definition>
+        <argsstring>(Interface *, IUtil *) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>ObjectPropertiesEditor::BeginEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <defname>in_pInterface</defname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <defname>util</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="39" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="104" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditor_1a5cdfe992732040e544ec005dc5d9134a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditor::EndEditParams</definition>
+        <argsstring>(Interface *, IUtil *) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>ObjectPropertiesEditor::EndEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <defname>in_pInterface</defname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="40" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="124" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditor_1af7ff96ecccbe2fdcfde5ac1687f1deb0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditor::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>ObjectPropertiesEditor::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="41" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="130" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectPropertiesEditor_1a10bec84adfa62a8ed7ac212a5fe73ada" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditor::UpdateControls</definition>
+        <argsstring>(Interface *interface_pointer)</argsstring>
+        <name>UpdateControls</name>
+        <qualifiedname>ObjectPropertiesEditor::UpdateControls</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>interface_pointer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="42" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="208" bodyend="220"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classObjectPropertiesEditor_1a6d08c03998f27df9d2337ff279b512e1" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR CALLBACK</type>
+        <definition>INT_PTR CALLBACK ObjectPropertiesEditor::DialogProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>DialogProc</name>
+        <qualifiedname>ObjectPropertiesEditor::DialogProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="44" column="27" bodyfile="objectPropertiesEditor.cpp" bodystart="136" bodyend="169"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ObjectPropertiesEditor</label>
+        <link refid="classObjectPropertiesEditor"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ObjectPropertiesEditor</label>
+        <link refid="classObjectPropertiesEditor"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>panel</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>RollupPanel</label>
+        <link refid="classRollupPanel"/>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="objectPropertiesEditor.cpp" line="32" column="1" bodyfile="objectPropertiesEditor.cpp" bodystart="33" bodyend="53"/>
+    <listofallmembers>
+      <member refid="classObjectPropertiesEditor_1a93ae8ad512daa24a8e92e97e779ac617" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>BeginEditParams</name></member>
+      <member refid="classObjectPropertiesEditor_1af7ff96ecccbe2fdcfde5ac1687f1deb0" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>DeleteThis</name></member>
+      <member refid="classObjectPropertiesEditor_1a573ceb98ebcd1941168b01dfa29582e2" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>Destroy</name></member>
+      <member refid="classObjectPropertiesEditor_1a6d08c03998f27df9d2337ff279b512e1" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>DialogProc</name></member>
+      <member refid="classObjectPropertiesEditor_1a5cdfe992732040e544ec005dc5d9134a" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>EndEditParams</name></member>
+      <member refid="classObjectPropertiesEditor_1a285263375298d0cb66e1afb11f0685d0" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>Init</name></member>
+      <member refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" prot="protected" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>m_hPanel</name></member>
+      <member refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" prot="protected" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>m_pInterface</name></member>
+      <member refid="classObjectPropertiesEditor_1ab6236e758fb749e7a66185f50d63860d" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>ObjectPropertiesEditor</name></member>
+      <member refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" prot="protected" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>panel</name></member>
+      <member refid="classObjectPropertiesEditor_1af08555d2288155efd8ef81ff3f562f56" prot="protected" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>selectedNodes</name></member>
+      <member refid="classObjectPropertiesEditor_1a10bec84adfa62a8ed7ac212a5fe73ada" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditor</scope><name>UpdateControls</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

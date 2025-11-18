@@ -1,0 +1,655 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shaders</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Materials" href="materials.html" />
+    <link rel="prev" title="Channels" href="channels.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Shading Language (DSHL) docs</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic-concepts.html">Basic Concepts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="channels.html">Channels</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Shaders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#defining-and-compiling-shaders">Defining and compiling shaders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#preshader">Preshader</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#textures-and-samplers">Textures and samplers</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#material-textures">Material textures</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#buffers">Buffers</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#hardcoded-registers">Hardcoded registers</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#unordered-access-view">Unordered Access View</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#top-level-acceleration-structure">Top-level Acceleration Structure</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#shader-blocks">Shader blocks</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#shader-block-layers">Shader block layers</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#using-shader-blocks-in-shaders">Using shader blocks in shaders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="materials.html">Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="directives.html">Common directives</a></li>
+<li class="toctree-l3"><a class="reference internal" href="intrinsics.html">Intrinsics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="global-constants.html">Global constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pipeline-states.html">Pipeline state configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="keywords.html">Keywords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stream_output.html">Stream output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Shading Language (DSHL) docs</a></li>
+      <li class="breadcrumb-item active">Shaders</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-dshl/index/shaders.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="shaders">
+<span id="id1"></span><h1>Shaders<a class="headerlink" href="#shaders" title="Link to this heading"></a></h1>
+<p>Dagor Shading Language acts as a preprocessor/compiler for pure HLSL shaders. In DSHL, we can bind resources
+for HLSL shaders, configure fixed shader stages (culling, Z test, …) and more.
+Pure HLSL code needs to be contained within <code class="docutils literal notranslate"><span class="pre">hlsl{...}</span></code> blocks.</p>
+<section id="defining-and-compiling-shaders">
+<h2>Defining and compiling shaders<a class="headerlink" href="#defining-and-compiling-shaders" title="Link to this heading"></a></h2>
+<p>Let’s look at a simple DSHL shader example:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>shader simple_shader
+{
+  // this is the description of vertex buffer expected for the vertex shader
+  channel float3 pos=pos; // position
+  channel float3 vcol=vcol; // vertex color
+
+  hlsl {
+    struct VsInput
+    {
+      float3 pos: POSITION0;
+      float3 color: COLOR0;
+    };
+
+    struct VsOutput
+    {
+      float4 pos : SV_POSITION;
+      float3 color : COLOR0;
+    };
+
+    VsOutput test_vertex(VsInput input)
+    {
+      VsOutput ret;
+      ret.pos = float4(input.pos, 1.0);
+      ret.color = input.color;
+
+      return ret;
+    }
+
+    float4 test_pixel(VsOutput input) : SV_Target0
+    {
+      return float4(input.color.rgb, 1.0);
+    }
+  }
+  compile(&quot;target_vs&quot;, &quot;test_vertex&quot;);
+  compile(&quot;target_ps&quot;, &quot;test_pixel&quot;);
+}
+</pre></div>
+</div>
+<p>Here, <code class="docutils literal notranslate"><span class="pre">shader</span> <span class="pre">(name)</span></code> defines the actual name that the shader will have after its compilation into pure HLSL.</p>
+<p>Channels <code class="docutils literal notranslate"><span class="pre">pos</span></code> and <code class="docutils literal notranslate"><span class="pre">vcol</span></code> describe the vertex buffer data that the vertex shaders expects to recieve.
+DSHL preshader creates appropriate layout for the C++ code based on these <code class="docutils literal notranslate"><span class="pre">channel</span></code> variables. See <a class="reference internal" href="channels.html#channels"><span class="std std-ref">Channels</span></a> for more info.</p>
+<p>After defining the shader in the <code class="docutils literal notranslate"><span class="pre">hlsl</span></code> block, you need to specify its entry point via <code class="docutils literal notranslate"><span class="pre">compile(&quot;target_(stage)&quot;,</span> <span class="pre">&quot;entry_function&quot;)</span></code>, where the
+<code class="docutils literal notranslate"><span class="pre">entry_function</span></code> should be the name of the respective shader function in the <code class="docutils literal notranslate"><span class="pre">hlsl</span></code> block and <code class="docutils literal notranslate"><span class="pre">stage</span></code> defines one of the following shader stages:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">target_vs</span></code> (vertex shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_hs</span></code> (hull shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_ds</span></code> (domain shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_gs</span></code> (geometry shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_ps</span></code> (pixel shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_cs</span></code> (compute shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_ms</span></code> (mesh shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_as</span></code> (amplification shader)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_vs_for_gs</span></code> (if vertex shader is used together with geometry shader on PS4/PS5, vertex shader must be compiled differently)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_vs_for_tess</span></code> (if vertex shader is used together with tesselation shader on PS4/PS5, vertex shader must be compiled differently)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_vs_half</span></code> (vertex shader with half type)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_ps_half</span></code> (pixel shader with half type)</p></li>
+</ul>
+<p>You can also specify to which specific shader stage will the code from <code class="docutils literal notranslate"><span class="pre">hlsl</span></code> block go by specifying the shader stage in the parentheses, e.g. <code class="docutils literal notranslate"><span class="pre">hlsl(stage)</span> <span class="pre">{...}</span></code>
+Available shaders are: <code class="docutils literal notranslate"><span class="pre">ps</span></code>, <code class="docutils literal notranslate"><span class="pre">vs</span></code>, <code class="docutils literal notranslate"><span class="pre">cs</span></code>, <code class="docutils literal notranslate"><span class="pre">ds</span></code>, <code class="docutils literal notranslate"><span class="pre">hs</span></code>, <code class="docutils literal notranslate"><span class="pre">gs</span></code>, <code class="docutils literal notranslate"><span class="pre">ms</span></code>, <code class="docutils literal notranslate"><span class="pre">as</span></code>. If you omit the specification, the code from <code class="docutils literal notranslate"><span class="pre">hlsl{...}</span></code> block will be
+sent to all of these shaders.</p>
+</section>
+<section id="preshader">
+<span id="id2"></span><h2>Preshader<a class="headerlink" href="#preshader" title="Link to this heading"></a></h2>
+<p>In addition to declaring just the shader code itself, DSHL allows you to declare a pre-shader,
+which is a script that allows you to easily pipe data from C++ to the shader.</p>
+<p>The most common use case for this piping are various bindings of textures and buffers:
+instead of doing the classical dance of “pick the slot, set the texture to the slot, remember not to mess up and use the same slot twice”,
+you can bind variables to a shader through a global <code class="docutils literal notranslate"><span class="pre">string</span></code> to <code class="docutils literal notranslate"><span class="pre">DSHL</span> <span class="pre">data</span> <span class="pre">type</span></code> map called <em>shader variables</em>.
+This map is in a 1-to-1 correspondence with the global DSHL variables you define in .dshl files <a class="reference internal" href="basic-concepts/data-types.html#global-variables"><span class="std std-ref">Global variables</span></a>, and is RW.</p>
+<p>So you can, for example, both read an <code class="docutils literal notranslate"><span class="pre">int</span></code> defined inside a shader from C++, and set a texture to a global <code class="docutils literal notranslate"><span class="pre">texture</span></code> variable defined inside a shader.
+On the C++ side, you simply fill in this map using <code class="docutils literal notranslate"><span class="pre">set_texture</span></code>, and on the shader side, you ask the preshader system to grab a certain shader
+variable and set it to an HLSL variable. The syntax is as follows:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(shader_stage) {
+  hlsl_variable_name @type_suffix = variable|expression [hlsl {/*hlsl text*/}]
+}
+</pre></div>
+</div>
+<p>This code is then compiled by our shader compiler into a sequence of simple interpreted commands,
+which are stored in the shader dump and executed before running a shader.</p>
+<p>Acceptable shader stages:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cs</span></code> – Compute Shader</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ps</span></code> – Pixel Shader</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vs</span></code> – Vertex Shader</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ms</span></code> – Mesh Shader</p></li>
+</ul>
+<p>Acceptable types:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Postfix</p></th>
+<th class="head"><p>Type</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>&#64;f1</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;f2</p></td>
+<td><p>float2</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;f3</p></td>
+<td><p>float3</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;f4</p></td>
+<td><p>float4</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;f44</p></td>
+<td><p>float4x4</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;i1</p></td>
+<td><p>int</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;i2</p></td>
+<td><p>int2</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;i3</p></td>
+<td><p>int3</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;i4</p></td>
+<td><p>int4</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;u1</p></td>
+<td><p>uint</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;u2</p></td>
+<td><p>uint2</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;u3</p></td>
+<td><p>uint3</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;u4</p></td>
+<td><p>uint4</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;tex</p></td>
+<td><p>Texture</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;tex2d</p></td>
+<td><p>Texture2D</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;tex3d</p></td>
+<td><p>Texture3D</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;texArray</p></td>
+<td><p>Texture2DArray</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;texCube</p></td>
+<td><p>TextureCube</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;texCubeArray</p></td>
+<td><p>TextureCubeArray</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;uav</p></td>
+<td><p>Unordered Access View flag</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;smp</p></td>
+<td><p>Texture with SamplerState</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;smp2d</p></td>
+<td><p>Texture2D with SamplerState</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;smp3d</p></td>
+<td><p>Texture3D with SamplerState</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;smpArray</p></td>
+<td><p>Texture2DArray with SamplerState</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;smpCube</p></td>
+<td><p>TextureCube with SamplerState</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;smpCubeArray</p></td>
+<td><p>TextureCubeArray with SamplerState</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;shd</p></td>
+<td><p>Texture2D with SamplerComparisonState</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;shdArray</p></td>
+<td><p>Texture2DArray with SamplerComparisonState</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;buf</p></td>
+<td><p>Buffer/StructuredBuffer</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;cbuf</p></td>
+<td><p>ConstantBuffer</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;static</p></td>
+<td><p>Material Texture2D with SamplerState</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;staticCube</p></td>
+<td><p>Material TextureCube with SamplerState</p></td>
+</tr>
+<tr class="row-even"><td><p>&#64;staticTexArray</p></td>
+<td><p>Material Texture2DArray with SamplerState</p></td>
+</tr>
+<tr class="row-odd"><td><p>&#64;tlas</p></td>
+<td><p>Top-level acceleration structure (RT)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All variables declared in <code class="docutils literal notranslate"><span class="pre">(vs)</span></code> stage are also visible for <code class="docutils literal notranslate"><span class="pre">hlsl(&lt;gs,</span> <span class="pre">hs,</span> <span class="pre">ds&gt;){...}</span></code> blocks.
+All variables declared in <code class="docutils literal notranslate"><span class="pre">(ms)</span></code> stage are also visible for <code class="docutils literal notranslate"><span class="pre">hlsl(as){...}</span></code> block.</p>
+</div>
+<section id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h3>
+<p>Let’s create <code class="docutils literal notranslate"><span class="pre">float4x4</span></code> matrix:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { globtm_psf@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 }; }
+</pre></div>
+</div>
+<p>Here, the HLSL variable of <code class="docutils literal notranslate"><span class="pre">globtm_psf</span></code> will be initialized by the preshader with the values of <code class="docutils literal notranslate"><span class="pre">globtm_psf_0..3</span></code>,
+which are all <code class="docutils literal notranslate"><span class="pre">float4</span></code> types, stored inside the global shader variable map.
+It is the C++ code’s responsibility to call</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>set_color4(get_shader_variable_id(&quot;get_globtm_psf_X&quot;), Point4(...));
+</pre></div>
+</div>
+<p>for <code class="docutils literal notranslate"><span class="pre">X=0..3</span></code> to fill the rows with adequate values. Yes, the <code class="docutils literal notranslate"><span class="pre">color4</span></code> name is very unfortunate.</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">(vs)</span></code> block there is a built-in <code class="docutils literal notranslate"><span class="pre">globtm</span></code> <em>shader variable</em> available. You can declare HLSL <code class="docutils literal notranslate"><span class="pre">globtm</span></code> directly from it:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { globtm@f44 = globtm; }
+</pre></div>
+</div>
+<p>You can also operate on arrays</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { my_arr@type[] = {element1, element2, ..., elementN}; }
+</pre></div>
+</div>
+</section>
+<section id="textures-and-samplers">
+<h3>Textures and samplers<a class="headerlink" href="#textures-and-samplers" title="Link to this heading"></a></h3>
+<p>Default <code class="docutils literal notranslate"><span class="pre">float4</span></code> HLSL textures are defined via <code class="docutils literal notranslate"><span class="pre">&#64;tex2d,</span> <span class="pre">&#64;tex3d,</span> <span class="pre">&#64;texArray,</span> <span class="pre">&#64;texCube,</span> <span class="pre">&#64;texCubeArray</span></code> postfixes.
+For example, this code</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) {
+  hlsl_texture@tex2d = some_texture;
+  hlsl_texarray@texArray = some_texarray;
+}
+</pre></div>
+</div>
+<p>will be compiled to</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span> Texture2D hlsl_texture: register(t16);
+Texture2D hlsl_texarray: register(t17);
+ // registers are automatically chosen by the compiler
+</pre></div>
+</div>
+<p>Postfixes <code class="docutils literal notranslate"><span class="pre">&#64;smp2d,</span> <span class="pre">&#64;smp3d,</span> <span class="pre">&#64;smpArray,</span> <span class="pre">&#64;smpCube,</span> <span class="pre">&#64;smpCubeArray</span></code> ensure that a <code class="docutils literal notranslate"><span class="pre">SamplerState</span></code> object gets defined with texture/textures,
+assigned to the same register number.</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">&#64;shd,</span> <span class="pre">&#64;shdArray</span></code> postfixes, a <code class="docutils literal notranslate"><span class="pre">SamplerComparisonState</span></code> object also gets defined in addition to <code class="docutils literal notranslate"><span class="pre">SamplerState</span></code>
+(<code class="docutils literal notranslate"><span class="pre">shd</span></code> stands for shadow, as these textures are often used for shadows).</p>
+<p>For example, this code</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) {
+  hlsl_texture@smp2d = some_texture;
+  hlsl_texarray@smpArray = some_texarray;
+  hlsl_shdtexture@shd = some_shdtexture;
+}
+</pre></div>
+</div>
+<p>will be compiled to</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>SamplerState hlsl_texture_samplerstate: register(s0);
+SamplerState hlsl_texarray_samplerstate: register(s1);
+SamplerState hlsl_shdtexture_samplerstate: register(s2);
+
+SamplerComparisonState hlsl_shdtexture_cmpSampler:register(s2);
+
+Texture2D hlsl_texture: register(t0);
+Texture2DArray hlsl_texarray: register(t1);
+Texture2D hlsl_shdtexture: register(t2);
+</pre></div>
+</div>
+<p>Note that you can use <code class="docutils literal notranslate"><span class="pre">&lt;texture_name&gt;_samplerstate</span></code> or <code class="docutils literal notranslate"><span class="pre">&lt;texture_name&gt;_cmpSampler</span></code>, generated by the shader compiler, in <code class="docutils literal notranslate"><span class="pre">hlsl{...}</span></code> blocks
+(e.g. <code class="docutils literal notranslate"><span class="pre">hlsl_shdtexture_cmpSampler</span></code> from the example).</p>
+<p>Postfixes <code class="docutils literal notranslate"><span class="pre">&#64;tex</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;smp</span></code> define a texture of a specific type and must be followed by <code class="docutils literal notranslate"><span class="pre">hlsl{...}</span></code> block
+(which defines the texture type).</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) {
+  // textures without samplers
+  uint_texture@tex = uint_texture hlsl { Texture2D&lt;uint&gt; uint_texture@tex; }
+  float_texarray@tex = float_texarray hlsl { Texture2DArray&lt;float&gt; float_texarray@tex; }
+
+  // textures with samplers
+  uint_texture@smp = uint_texture hlsl { Texture2D&lt;uint&gt; uint_texture@smp; }
+  float_texarray@smp = float_texarray hlsl { Texture2DArray&lt;float&gt; float_texarray@smp; }
+}
+</pre></div>
+</div>
+</section>
+<section id="material-textures">
+<h3>Material textures<a class="headerlink" href="#material-textures" title="Link to this heading"></a></h3>
+<p>Textures bound to a material (diffuse, normals, etc.) are called <em>material textures</em>.
+In preshader, these textures must be treated differently than global or dynamic textures,
+using <code class="docutils literal notranslate"><span class="pre">&#64;static,</span> <span class="pre">&#64;staticCube,</span> <span class="pre">&#64;staticTexArray</span></code> postfixes.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>shader example_shader
+{
+  texture diffuse_tex = material.texture.diffuse;
+  texture normal_tex = material.texture[1];
+  texture cube_tex = material.texture[2];
+  texture some_texarray = material.texture[3];
+
+  (ps) {
+    diffuse_tex@static = diffuse_tex;
+    normal_tex@static = normal_tex;
+    cube_tex@staticCube = cube_tex;
+    some_texarray@staticTexArray = some_texarray;
+  }
+}
+</pre></div>
+</div>
+<p>Material textures are automatically used as bindless textures if you are compiling for DX12;
+bindless is also supported for Vulkan and PlayStation (with special <code class="docutils literal notranslate"><span class="pre">-enableBindless:on</span></code> compiler flag).</p>
+<p>Inside HLSL blocks, material textures should be referenced by their getters <code class="docutils literal notranslate"><span class="pre">get_&lt;texture_name&gt;()</span></code>,
+instead of their names:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>hlsl(ps) {
+  float4 albedo = tex2DBindless(get_diffuse_tex(), input.diffuseTexCoord.uv);
+}
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Even if bindless textures feature is disabled, the aformentioned syntax still applies.</p>
+</div>
+<p>In case when bindless textures are used, <code class="docutils literal notranslate"><span class="pre">MaterialProperties</span></code> constant buffer will be filled with <code class="docutils literal notranslate"><span class="pre">uint2</span></code>
+indices of such textures (first component indexes the texture, second component indexes the sampler).</p>
+<p>These indices are then used to retrieve the corresponding texture and sampler from <code class="docutils literal notranslate"><span class="pre">static_textures[]</span></code> and <code class="docutils literal notranslate"><span class="pre">static_samplers[]</span></code> arrays.</p>
+<p>This is what <code class="docutils literal notranslate"><span class="pre">get_&lt;texture_name&gt;()</span></code> essentialy does for you.</p>
+</section>
+<section id="buffers">
+<h3>Buffers<a class="headerlink" href="#buffers" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Buffer</span></code> and <code class="docutils literal notranslate"><span class="pre">ConstantBuffer</span></code> declarations must be followed with <code class="docutils literal notranslate"><span class="pre">hlsl{...}</span></code> block. For example</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) {
+  some@buf = my_buffer hlsl {
+    #include &lt;myStruct.h&gt;
+    StructuredBuffer&lt;MyStruct&gt; some@buf;
+  }
+}
+
+(ps) {
+  my_buf@cbuf = my_const_buffer hlsl {
+    #include &lt;myStruct.h&gt;
+    cbuffer my_buf@cbuf
+    {
+      MyStruct data;
+    };
+  }
+}
+</pre></div>
+</div>
+</section>
+<section id="hardcoded-registers">
+<h3>Hardcoded registers<a class="headerlink" href="#hardcoded-registers" title="Link to this heading"></a></h3>
+<p>You can bind any resource to a hardcoded register, while all auto resources will not overlap with it.
+Also, the <code class="docutils literal notranslate"><span class="pre">always_referenced</span></code> keyword is not required, the integer variable will be saved in the dump and will be readable on the CPU side.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>int reg_no = 3;
+
+shader sh {
+  (ps) {
+    foo_vec@f4 : register(reg_no);
+    foo_tex@smp2d : register(reg_no);
+    foo_buf@buf : register(reg_no) hlsl { StructuredBuffer&lt;uint&gt; foo_buf@buf; };
+    foo_uav@uav : register(reg_no) hlsl { RWStructuredBuffer&lt;uint&gt; foo_uav@uav; };
+  }
+}
+</pre></div>
+</div>
+<p>Register number must be declared as a global <code class="docutils literal notranslate"><span class="pre">int</span></code> variable.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>With this method of declaring a resource, no stcode will be generated.</p>
+</div>
+</section>
+<section id="unordered-access-view">
+<h3>Unordered Access View<a class="headerlink" href="#unordered-access-view" title="Link to this heading"></a></h3>
+<p>Unordered Access View <code class="docutils literal notranslate"><span class="pre">&#64;uav</span></code> postfix provides a hint for the shader compiler that the resource should be bound to the appropriate <code class="docutils literal notranslate"><span class="pre">u</span></code> register.
+Note that such declaration must be followed with the <code class="docutils literal notranslate"><span class="pre">hlsl{...}</span></code> block to define the actual type of the UAV resource.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>buffer some_buffer;
+texture some_texture;
+
+shader some_shader {
+  (cs) {
+   hlsl_buffer@uav = some_buffer hlsl {
+     RWStructuredBuffer&lt;uint&gt; hlsl_buffer@uav;
+    }
+    hlsl_texture@uav = some_texture hlsl {
+      RWTexture2D&lt;float4&gt; hlsl_texture@uav;
+    }
+  }
+  // ...
+}
+</pre></div>
+</div>
+</section>
+<section id="top-level-acceleration-structure">
+<h3>Top-level Acceleration Structure<a class="headerlink" href="#top-level-acceleration-structure" title="Link to this heading"></a></h3>
+<p>For raytracing purposes, you can also declare a TLAS (top-level acceleration structure) like this:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>tlas some_tlas;
+
+shader some_shader {
+  (cs) {
+    hlsl_tlas@tlas = some_tlas;
+  }
+  // ...
+}
+</pre></div>
+</div>
+<p>In HLSL terms, <code class="docutils literal notranslate"><span class="pre">hlsl_tlas</span></code> will have the type <code class="docutils literal notranslate"><span class="pre">RaytracingAccelerationStructure</span></code>.</p>
+</section>
+</section>
+<section id="shader-blocks">
+<span id="id3"></span><h2>Shader blocks<a class="headerlink" href="#shader-blocks" title="Link to this heading"></a></h2>
+<p>Shader Blocks are an extension of the Preshader idea and define variables/constants which are common for multiple shaders that <code class="docutils literal notranslate"><span class="pre">support</span></code> them.
+The intent is to optimize constant/texture switching.
+For example:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>float4 world_view_pos;
+
+block(global_const|frame|scene|object) name_of_block
+{
+  (ps) { world_view_pos@f3 = world_view_pos; }
+  (vs) { world_view_pos@f3 = world_view_pos; }
+}
+</pre></div>
+</div>
+<p>Note that a <code class="docutils literal notranslate"><span class="pre">block</span></code>, just like a <code class="docutils literal notranslate"><span class="pre">shader</span></code>, defines a preshader script.
+This is basically the main gist of why blocks are useful:
+they allow you to extract a part of a preshader common to multiple shaders and execute it once when setting the block, not every time a shader is executed.
+In this example, <code class="docutils literal notranslate"><span class="pre">world_view_pos</span></code> would be visible within pixel and vertex shader in each shader that supports this block.</p>
+<section id="shader-block-layers">
+<h3>Shader block layers<a class="headerlink" href="#shader-block-layers" title="Link to this heading"></a></h3>
+<p>Specifier in <code class="docutils literal notranslate"><span class="pre">block(...)</span></code> parentheses is called a layer. It indicates how often the values inside the block are supposed to change.
+Available layers are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">global_const</span></code> (for global constants, supposed to change rarely)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frame</span></code> (for shader variables that are supposed to change once per frame)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scene</span></code> (for shader variables that are supposed to change when the rendering mode changes, within one frame)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">object</span></code> (for shader variables that are supposed to change for each object)</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Per-object blocks are evil and should be avoided at all costs.
+They imply a draw-call-per-object model, which has historically proven itself antagonistic to performance.</p>
+</div>
+<p>Rendering modes mentioned in the <code class="docutils literal notranslate"><span class="pre">frame</span></code> layer are defined by the user and can be specific for each shader.
+For example, there are <code class="docutils literal notranslate"><span class="pre">4</span></code> scene blocks in <code class="docutils literal notranslate"><span class="pre">rendinst_opaque_inc.dshl</span></code> shader, that are switched throughout the rendering of a single frame:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst_scene</span></code> for color pass</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst_depth_scene</span></code> for depth pass</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst_grassify_scene</span></code> for grassify pass</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst_voxelize_scene</span></code> for voxelization pass</p></li>
+</ul>
+</section>
+<section id="using-shader-blocks-in-shaders">
+<h3>Using shader blocks in shaders<a class="headerlink" href="#using-shader-blocks-in-shaders" title="Link to this heading"></a></h3>
+<p>Syntax for using such blocks in shaders is as follows:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>shader shader_name
+{
+  supports some_block;
+  supports some_other_block;
+
+  hlsl(ps) {
+    // assuming world_view_pos was defined in one of these blocks
+    float3 multiplied_world_pos = 2.0 * world_view_pos;
+    ...
+  }
+}
+</pre></div>
+</div>
+<p>With the support of multiple blocks you can use only variables from intersection of these blocks.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="channels.html" class="btn btn-neutral float-left" title="Channels" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="materials.html" class="btn btn-neutral float-right" title="Materials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,474 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shSemCode_8h" kind="file" language="C++">
+    <compoundname>shSemCode.h</compoundname>
+    <includedby refid="linkShaders_8h" local="yes">linkShaders.h</includedby>
+    <includedby refid="samplers_8cpp" local="yes">samplers.cpp</includedby>
+    <includedby refid="shSemCode_8cpp" local="yes">shSemCode.cpp</includedby>
+    <includedby refid="shShaderContext_8h" local="yes">shShaderContext.h</includedby>
+    <includedby refid="shVariantContext_8h" local="yes">shVariantContext.h</includedby>
+    <includedby refid="shaderBytecodeCache_8cpp" local="yes">shaderBytecodeCache.cpp</includedby>
+    <invincdepgraph>
+      <node id="23">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="14">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="13">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="2">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="5">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="10">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="6">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="7">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="25">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+      </node>
+      <node id="17">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="15">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="20">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="21">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="19">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="22">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structSemanticShaderPass" prot="public">SemanticShaderPass</innerclass>
+    <innerclass refid="structSemanticShaderPass_1_1EnableFp16State" prot="public">SemanticShaderPass::EnableFp16State</innerclass>
+    <innerclass refid="classShaderSemCode" prot="public">ShaderSemCode</innerclass>
+    <innerclass refid="structShaderSemCode_1_1Var" prot="public">ShaderSemCode::Var</innerclass>
+    <innerclass refid="structShaderSemCode_1_1StVarMapping" prot="public">ShaderSemCode::StVarMapping</innerclass>
+    <innerclass refid="structShaderSemCode_1_1PassTab" prot="public">ShaderSemCode::PassTab</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shSemCode_8h_1a9d5126adea9eafeb93403ed8b06ebbe9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_semcode_var_name</definition>
+        <argsstring>(const ShaderSemCode::Var &amp;var, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_semcode_var_name</name>
+        <param>
+          <type>const <ref refid="structShaderSemCode_1_1Var" kindref="compound">ShaderSemCode::Var</ref> &amp;</type>
+          <declname>var</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="245" column="12" bodyfile="shSemCode.cpp" bodystart="351" bodyend="354" declfile="shSemCode.h" declline="245" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>shader<sp/>semantic<sp/>code</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="const3d_8h" kindref="compound">const3d.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_renderStates.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderCommon.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderVariant_8h" kindref="compound">shaderVariant.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shcode_8h" kindref="compound">shcode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="cppStcodeAssembly_8h" kindref="compound">cppStcodeAssembly.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLocVar_8h" kindref="compound">shLocVar.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shVarBool_8h" kindref="compound">shVarBool.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderVariantSrc_8h" kindref="compound">shaderVariantSrc.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/slotTexturesRange.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderBytecodeCache_8h" kindref="compound">shaderBytecodeCache.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory/dag_regionMemAlloc.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_stackHlp.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">VariantContext;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="structSemanticShaderPass" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34" refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref><sp/>=<sp/>eastl::array&lt;int8_t,<sp/>shaders::RenderState::NumIndependentBlendParameters&gt;;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="structSemanticShaderPass_1_1EnableFp16State" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structSemanticShaderPass_1_1EnableFp16State" kindref="compound">EnableFp16State</ref></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="38" refid="structSemanticShaderPass_1_1EnableFp16State_1ad591dd4b977e7e7a832c8a6ef9e3b6bf" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1_1EnableFp16State_1ad591dd4b977e7e7a832c8a6ef9e3b6bf" kindref="member">vsOrMs</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39" refid="structSemanticShaderPass_1_1EnableFp16State_1a7ce49d8670320a52b4713a0eccd344e9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1_1EnableFp16State_1a7ce49d8670320a52b4713a0eccd344e9" kindref="member">hs</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="40" refid="structSemanticShaderPass_1_1EnableFp16State_1af03ad92139661849917571bc27bd483b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1_1EnableFp16State_1af03ad92139661849917571bc27bd483b" kindref="member">ds</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41" refid="structSemanticShaderPass_1_1EnableFp16State_1a896e356f854a95da3e6dcd9231e9ba18" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1_1EnableFp16State_1a896e356f854a95da3e6dcd9231e9ba18" kindref="member">gsOrAs</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="42" refid="structSemanticShaderPass_1_1EnableFp16State_1a31cd4803eafd7de81f1d3b0d87b2a7ca" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1_1EnableFp16State_1a31cd4803eafd7de81f1d3b0d87b2a7ca" kindref="member">psOrCs</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="structSemanticShaderPass_1af4b76eca2c9bc848cbd1377214a92ebd" refkind="member"><highlight class="normal"><sp/><sp/>FSHTYPE<sp/><ref refid="structSemanticShaderPass_1af4b76eca2c9bc848cbd1377214a92ebd" kindref="member">fshver</ref>;</highlight></codeline>
+<codeline lineno="46" refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;unsigned&gt;<sp/><ref refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" kindref="member">fsh</ref>;</highlight></codeline>
+<codeline lineno="47" refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;unsigned&gt;<sp/><ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">vpr</ref>;</highlight></codeline>
+<codeline lineno="48" refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;unsigned&gt;<sp/><ref refid="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" kindref="member">hs</ref>,<sp/><ref refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" kindref="member">ds</ref>,<sp/><ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">gs</ref>;</highlight></codeline>
+<codeline lineno="49" refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;unsigned&gt;<sp/><ref refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" kindref="member">cs</ref>;</highlight></codeline>
+<codeline lineno="50" refid="structSemanticShaderPass_1a95cfbada8dc84fc6b43cc084c21ec41c" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;int&gt;<sp/><ref refid="structSemanticShaderPass_1a3be6b5c08d771a3e5e57d89b08f9315d" kindref="member">stcode</ref>,<sp/><ref refid="structSemanticShaderPass_1a95cfbada8dc84fc6b43cc084c21ec41c" kindref="member">stblkcode</ref>;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structStcodePass" kindref="compound">StcodePass</ref><sp/><ref refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" kindref="member">cppstcode</ref>;</highlight></codeline>
+<codeline lineno="53" refid="structSemanticShaderPass_1a0a93717959f273d97c583d31f37d93f4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="structSemanticShaderPass_1a0a93717959f273d97c583d31f37d93f4" kindref="member">psOrCsConstRange</ref>,<sp/><ref refid="structSemanticShaderPass_1a70495e6029e8dae0d7e1c59dcb31a17b" kindref="member">vsConstRange</ref>;</highlight></codeline>
+<codeline lineno="54" refid="structSemanticShaderPass_1a30d5ae5be555e0ca2f008666c081bb00" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="structSemanticShaderPass_1a30d5ae5be555e0ca2f008666c081bb00" kindref="member">bufferedConstRange</ref>;</highlight></codeline>
+<codeline lineno="55" refid="structSemanticShaderPass_1adbd7751cbda4b402f3cf48ad98cfee85" refkind="member"><highlight class="normal"><sp/><sp/>SlotTexturesRangeInfo<sp/><ref refid="structSemanticShaderPass_1adbd7751cbda4b402f3cf48ad98cfee85" kindref="member">psTexSmpRange</ref>,<sp/><ref refid="structSemanticShaderPass_1a1e2a4969a9c01d5d8ec9a2732f297c7a" kindref="member">vsTexSmpRange</ref>;</highlight></codeline>
+<codeline lineno="56" refid="structSemanticShaderPass_1a7d7d388fa23d82e6986e5400093c4a17" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" kindref="member">ShaderParser::VariablesMerger::MergedVarsMapsPerStage</ref><sp/><ref refid="structSemanticShaderPass_1a7d7d388fa23d82e6986e5400093c4a17" kindref="member">constPackedVarsMaps</ref>{};</highlight></codeline>
+<codeline lineno="57" refid="structSemanticShaderPass_1a5225fbd044d643fbea249c74b7acc8d3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">ShaderParser::VariablesMerger::MergedVarsMap</ref><sp/><ref refid="structSemanticShaderPass_1a5225fbd044d643fbea249c74b7acc8d3" kindref="member">bufferedPackedVarsMap</ref>{};</highlight></codeline>
+<codeline lineno="58" refid="structSemanticShaderPass_1ab03570130a7945edd74b4fca3b26c6cc" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;uintptr_t&gt;<sp/><ref refid="structSemanticShaderPass_1ab03570130a7945edd74b4fca3b26c6cc" kindref="member">usedConstStatAstNodes</ref>{};</highlight></codeline>
+<codeline lineno="59" refid="structSemanticShaderPass_1af8339973cd8d164abb08d2e783f80a77" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;eastl::pair&lt;uintptr_t,<sp/>ShVarBool&gt;&gt;<sp/><ref refid="structSemanticShaderPass_1af8339973cd8d164abb08d2e783f80a77" kindref="member">boolAstNodesEvaluationResults</ref>{};</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="structSemanticShaderPass_1aabb5def7ca52dba676348f941a66b179" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1aabb5def7ca52dba676348f941a66b179" kindref="member">scarlettWave32</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="structSemanticShaderPass_1a9bf7beb92808cc36ccdefe438f102444" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structSemanticShaderPass_1_1EnableFp16State" kindref="compound">EnableFp16State</ref><sp/><ref refid="structSemanticShaderPass_1a9bf7beb92808cc36ccdefe438f102444" kindref="member">enableFp16</ref>{};</highlight></codeline>
+<codeline lineno="64" refid="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" refkind="member"><highlight class="normal"><sp/><sp/>eastl::array&lt;uint16_t,<sp/>3&gt;<sp/><ref refid="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" kindref="member">threadGroupSizes</ref><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="structSemanticShaderPass_1ab4e5c742d3d758b998dc8d58646ac019" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref><sp/><ref refid="structSemanticShaderPass_1a7ddc29244ba230d69eb7475799d62090" kindref="member">blend_src</ref>,<sp/><ref refid="structSemanticShaderPass_1a675a659d17bd94d8f8303752deddc5b2" kindref="member">blend_dst</ref>,<sp/><ref refid="structSemanticShaderPass_1a69bc37ba9af5f2f50eb3202c11d9da5b" kindref="member">blend_asrc</ref>,<sp/><ref refid="structSemanticShaderPass_1ab4e5c742d3d758b998dc8d58646ac019" kindref="member">blend_adst</ref>,<sp/><ref refid="structSemanticShaderPass_1a6c40dba0ddca2a26f062ae6ccefe32d7" kindref="member">blend_op</ref>,<sp/><ref refid="structSemanticShaderPass_1a98b534cca73cdf01921cd2a4bc1261b6" kindref="member">blend_aop</ref>;</highlight></codeline>
+<codeline lineno="67" refid="structSemanticShaderPass_1aaaf05343f2a887f2de92a33a329c03af" refkind="member"><highlight class="normal"><sp/><sp/>E3DCOLOR<sp/><ref refid="structSemanticShaderPass_1aaaf05343f2a887f2de92a33a329c03af" kindref="member">blend_factor</ref><sp/>=<sp/>E3DCOLOR{0xFFFFFFFF};</highlight></codeline>
+<codeline lineno="68" refid="structSemanticShaderPass_1a96edda45ee81cf38bb81baeec422e2b9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a96edda45ee81cf38bb81baeec422e2b9" kindref="member">blend_factor_specified</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="structSemanticShaderPass_1a3dcbc5389573f47fcccad6dcce354c42" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1aa7e5cf7b15d913c7dd5d0297df99bc8f" kindref="member">cull_mode</ref>,<sp/><ref refid="structSemanticShaderPass_1a3dcbc5389573f47fcccad6dcce354c42" kindref="member">alpha_to_coverage</ref>,<sp/><ref refid="structSemanticShaderPass_1a3fcdfe39fe1ec4994be0ccd1b7018e6a" kindref="member">view_instances</ref>,<sp/><ref refid="structSemanticShaderPass_1adc658424eab012dc9714430d63be6a1f" kindref="member">z_write</ref>,<sp/><ref refid="structSemanticShaderPass_1a8d0deaac5133973cdd3f198a184c4ae2" kindref="member">atest_val</ref>,<sp/><ref refid="structSemanticShaderPass_1a6f0804b714fb61b19395eef264d55a81" kindref="member">fog_color</ref>;</highlight></codeline>
+<codeline lineno="71" refid="structSemanticShaderPass_1a173e9299fe86de021056dcc04d3dcfce" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1ac0d4c616a51fc2af2ca90c2f16715d96" kindref="member">color_write</ref>,<sp/><ref refid="structSemanticShaderPass_1ab0bf024e5d47d170324896dce4762b99" kindref="member">z_test</ref>,<sp/><ref refid="structSemanticShaderPass_1a173e9299fe86de021056dcc04d3dcfce" kindref="member">atest_func</ref>;</highlight></codeline>
+<codeline lineno="72" refid="structSemanticShaderPass_1a7f68cf1f427cdeefc9d6f379379f9f10" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a7f68cf1f427cdeefc9d6f379379f9f10" kindref="member">stencil</ref>,<sp/><ref refid="structSemanticShaderPass_1aade5d357409294c748420181a8804bdd" kindref="member">stencil_func</ref>,<sp/><ref refid="structSemanticShaderPass_1afd0a12e229c1ec543d65c9646e0e680c" kindref="member">stencil_ref</ref>,<sp/><ref refid="structSemanticShaderPass_1a98c200dcef0d75d4551506eb1d5d48b7" kindref="member">stencil_pass</ref>,<sp/><ref refid="structSemanticShaderPass_1ace43b6711eb9fe520f0f02f0b6c421a2" kindref="member">stencil_fail</ref>,<sp/><ref refid="structSemanticShaderPass_1a0be11a73500cb0f4f5a8be6fb39076bc" kindref="member">stencil_zfail</ref>,<sp/><ref refid="structSemanticShaderPass_1a583438567acd98d925687a9c95e330d8" kindref="member">stencil_mask</ref>;</highlight></codeline>
+<codeline lineno="73" refid="structSemanticShaderPass_1ad261baacf1cbe7bbced475127b318768" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1ad261baacf1cbe7bbced475127b318768" kindref="member">z_func</ref>;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="structSemanticShaderPass_1a5d310334b7b8ec2fcbb426867ebefb34" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a5d310334b7b8ec2fcbb426867ebefb34" kindref="member">fog_mode</ref>;</highlight></codeline>
+<codeline lineno="76" refid="structSemanticShaderPass_1a0e671e3a6d48ca27e51affd8de3e0a9c" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="structSemanticShaderPass_1a0e671e3a6d48ca27e51affd8de3e0a9c" kindref="member">fog_density</ref>;</highlight></codeline>
+<codeline lineno="77" refid="structSemanticShaderPass_1ab92d35f5c57fd9cd96f83b7004ae1744" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a22e0377ab73defcfc71d7258a617c1f5" kindref="member">z_bias_val</ref><sp/>=<sp/>0,<sp/><ref refid="structSemanticShaderPass_1ab92d35f5c57fd9cd96f83b7004ae1744" kindref="member">slope_z_bias_val</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="78" refid="structSemanticShaderPass_1a9ab702fa03a317c3124275ecda1289a9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a9ab702fa03a317c3124275ecda1289a9" kindref="member">z_bias</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="79" refid="structSemanticShaderPass_1ad6663916487140d0dba2b427eef126cf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1ad6663916487140d0dba2b427eef126cf" kindref="member">slope_z_bias</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="80" refid="structSemanticShaderPass_1afe3a630185f7c1448f9f50ac3a9108f5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1afe3a630185f7c1448f9f50ac3a9108f5" kindref="member">force_noablend</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="81" refid="structSemanticShaderPass_1ad4ff83ab835a58805addbcca7492ebfe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1ad4ff83ab835a58805addbcca7492ebfe" kindref="member">independent_blending</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="82" refid="structSemanticShaderPass_1aba89d35638c7caa0e1c5967554c36304" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1aba89d35638c7caa0e1c5967554c36304" kindref="member">dual_source_blending</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="83" refid="structSemanticShaderPass_1a04ae58c79551385255c790150847373e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a04ae58c79551385255c790150847373e" kindref="member">vs30</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="84" refid="structSemanticShaderPass_1a1a76224b7f7f66632a9ac54cdbde7f46" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a1a76224b7f7f66632a9ac54cdbde7f46" kindref="member">ps30</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="structSemanticShaderPass_1a3b65d4ff793ed7b4967a3104ccb37bc1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderCode_1_1Pass" kindref="compound">ShaderCode::Pass</ref><sp/>*<ref refid="structSemanticShaderPass_1a3b65d4ff793ed7b4967a3104ccb37bc1" kindref="member">target</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="structSemanticShaderPass_1a17c7116451986505d22a418e914257b1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>eastl::array&lt;dag::ConstSpan&lt;unsigned&gt;<sp/><ref refid="structSemanticShaderPass_1a02696ec1fd2f03674d6715054d496fa7" kindref="member">SemanticShaderPass</ref>::*,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82aeb49af7a231e731ab3151b388ac59618" kindref="member">HLSL_COUNT</ref>&gt;<sp/><ref refid="structSemanticShaderPass_1a17c7116451986505d22a418e914257b1" kindref="member">BYTECODE_MEMBERS_MAPPING</ref><sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" kindref="member">SemanticShaderPass::fsh</ref>,<sp/></highlight><highlight class="comment">//<sp/>HLSL_PS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">SemanticShaderPass::vpr</ref>,<sp/></highlight><highlight class="comment">//<sp/>HLSL_VS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" kindref="member">SemanticShaderPass::cs</ref>,<sp/><sp/></highlight><highlight class="comment">//<sp/>HLSL_CS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" kindref="member">SemanticShaderPass::ds</ref>,<sp/><sp/></highlight><highlight class="comment">//<sp/>HLSL_DS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" kindref="member">SemanticShaderPass::hs</ref>,<sp/><sp/></highlight><highlight class="comment">//<sp/>HLSL_HS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">SemanticShaderPass::gs</ref>,<sp/><sp/></highlight><highlight class="comment">//<sp/>HLSL_GS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">SemanticShaderPass::vpr</ref>,<sp/></highlight><highlight class="comment">//<sp/>HLSL_MS<sp/>-<sp/>aliased<sp/>with<sp/>vs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>&amp;<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">SemanticShaderPass::gs</ref>,<sp/><sp/></highlight><highlight class="comment">//<sp/>HLSL_AS<sp/>-<sp/>aliased<sp/>with<sp/>gs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="structSemanticShaderPass_1a02696ec1fd2f03674d6715054d496fa7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structSemanticShaderPass_1a02696ec1fd2f03674d6715054d496fa7" kindref="member">SemanticShaderPass</ref>()<sp/>:</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a04ae58c79551385255c790150847373e" kindref="member">vs30</ref>(false),</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a1a76224b7f7f66632a9ac54cdbde7f46" kindref="member">ps30</ref>(false),</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1aa7e5cf7b15d913c7dd5d0297df99bc8f" kindref="member">cull_mode</ref>(-1),</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a3dcbc5389573f47fcccad6dcce354c42" kindref="member">alpha_to_coverage</ref>(-1),</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a3fcdfe39fe1ec4994be0ccd1b7018e6a" kindref="member">view_instances</ref>(-1),</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1adc658424eab012dc9714430d63be6a1f" kindref="member">z_write</ref>(-1),</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a8d0deaac5133973cdd3f198a184c4ae2" kindref="member">atest_val</ref>(-1),</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a6f0804b714fb61b19395eef264d55a81" kindref="member">fog_color</ref>(-1),</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a5d310334b7b8ec2fcbb426867ebefb34" kindref="member">fog_mode</ref>(-1),</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a0e671e3a6d48ca27e51affd8de3e0a9c" kindref="member">fog_density</ref>(-1),</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1ac0d4c616a51fc2af2ca90c2f16715d96" kindref="member">color_write</ref>(-1),</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1ad261baacf1cbe7bbced475127b318768" kindref="member">z_func</ref>(<ref refid="const3d_8h_1ab6c9bf187dfc3187da8935db59d02f87" kindref="member">DRV3DC</ref>::CMPF_GREATEREQUAL),</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1ab0bf024e5d47d170324896dce4762b99" kindref="member">z_test</ref>(-1),</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a173e9299fe86de021056dcc04d3dcfce" kindref="member">atest_func</ref>(-1),</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a7f68cf1f427cdeefc9d6f379379f9f10" kindref="member">stencil</ref>(0),</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1aade5d357409294c748420181a8804bdd" kindref="member">stencil_func</ref>(<ref refid="const3d_8h_1ab6c9bf187dfc3187da8935db59d02f87" kindref="member">DRV3DC</ref>::CMPF_ALWAYS),</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1afd0a12e229c1ec543d65c9646e0e680c" kindref="member">stencil_ref</ref>(0),</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a98c200dcef0d75d4551506eb1d5d48b7" kindref="member">stencil_pass</ref>(<ref refid="const3d_8h_1ab6c9bf187dfc3187da8935db59d02f87" kindref="member">DRV3DC</ref>::STNCLOP_KEEP),</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1ace43b6711eb9fe520f0f02f0b6c421a2" kindref="member">stencil_fail</ref>(<ref refid="const3d_8h_1ab6c9bf187dfc3187da8935db59d02f87" kindref="member">DRV3DC</ref>::STNCLOP_KEEP),</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a0be11a73500cb0f4f5a8be6fb39076bc" kindref="member">stencil_zfail</ref>(<ref refid="const3d_8h_1ab6c9bf187dfc3187da8935db59d02f87" kindref="member">DRV3DC</ref>::STNCLOP_KEEP),</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a583438567acd98d925687a9c95e330d8" kindref="member">stencil_mask</ref>(255),</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a9ab702fa03a317c3124275ecda1289a9" kindref="member">z_bias</ref>(false),</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1ad6663916487140d0dba2b427eef126cf" kindref="member">slope_z_bias</ref>(false),</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1afe3a630185f7c1448f9f50ac3a9108f5" kindref="member">force_noablend</ref>(false),</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1ad4ff83ab835a58805addbcca7492ebfe" kindref="member">independent_blending</ref>(false),</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1aba89d35638c7caa0e1c5967554c36304" kindref="member">dual_source_blending</ref>(false)</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::fill(<ref refid="structSemanticShaderPass_1a7ddc29244ba230d69eb7475799d62090" kindref="member">blend_src</ref>.begin(),<sp/><ref refid="structSemanticShaderPass_1a7ddc29244ba230d69eb7475799d62090" kindref="member">blend_src</ref>.end(),<sp/>-1);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::fill(<ref refid="structSemanticShaderPass_1a675a659d17bd94d8f8303752deddc5b2" kindref="member">blend_dst</ref>.begin(),<sp/><ref refid="structSemanticShaderPass_1a675a659d17bd94d8f8303752deddc5b2" kindref="member">blend_dst</ref>.end(),<sp/>-1);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::fill(<ref refid="structSemanticShaderPass_1a69bc37ba9af5f2f50eb3202c11d9da5b" kindref="member">blend_asrc</ref>.begin(),<sp/><ref refid="structSemanticShaderPass_1a69bc37ba9af5f2f50eb3202c11d9da5b" kindref="member">blend_asrc</ref>.end(),<sp/>-1);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::fill(<ref refid="structSemanticShaderPass_1ab4e5c742d3d758b998dc8d58646ac019" kindref="member">blend_adst</ref>.begin(),<sp/><ref refid="structSemanticShaderPass_1ab4e5c742d3d758b998dc8d58646ac019" kindref="member">blend_adst</ref>.end(),<sp/>-1);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::fill(<ref refid="structSemanticShaderPass_1a6c40dba0ddca2a26f062ae6ccefe32d7" kindref="member">blend_op</ref>.begin(),<sp/><ref refid="structSemanticShaderPass_1a6c40dba0ddca2a26f062ae6ccefe32d7" kindref="member">blend_op</ref>.end(),<sp/>BLENDOP_ADD);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::fill(<ref refid="structSemanticShaderPass_1a98b534cca73cdf01921cd2a4bc1261b6" kindref="member">blend_aop</ref>.begin(),<sp/><ref refid="structSemanticShaderPass_1a98b534cca73cdf01921cd2a4bc1261b6" kindref="member">blend_aop</ref>.end(),<sp/>BLENDOP_ADD);</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135" refid="structSemanticShaderPass_1a0e420bd269f317e789737e865b4f1632" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;<ref refid="structSemanticShaderPass_1a0e420bd269f317e789737e865b4f1632" kindref="member">bytecodeForStage</ref>(<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>this-&gt;*BYTECODE_MEMBERS_MAPPING[stage];<sp/>}</highlight></codeline>
+<codeline lineno="136" refid="structSemanticShaderPass_1a5642a085317e99c954789a93e4969aab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;<ref refid="structSemanticShaderPass_1a5642a085317e99c954789a93e4969aab" kindref="member">bytecodeForStage</ref>(<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>this-&gt;*BYTECODE_MEMBERS_MAPPING[stage];<sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="structSemanticShaderPass_1aa25a041dc6f1fb543eac3e5dbc3e21ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1aa25a041dc6f1fb543eac3e5dbc3e21ee" kindref="member">setCidx</ref>(<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage,<sp/><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>entryIds)</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>c1<sp/>=<sp/>(entryIds.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref><sp/>&lt;&lt;<sp/>4)<sp/>|<sp/>3;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cnt<sp/>=<sp/>(entryIds.<ref refid="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" kindref="member">l2</ref><sp/>&lt;&lt;<sp/>16)<sp/>+<sp/>entryIds.<ref refid="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" kindref="member">l3</ref>;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1a0e420bd269f317e789737e865b4f1632" kindref="member">bytecodeForStage</ref>(stage).set((</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>*)intptr_t(c1),<sp/>cnt);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145" refid="structSemanticShaderPass_1a11a21009c7377aa3365da273c097c24d" refkind="member"><highlight class="normal"><sp/><sp/>eastl::optional&lt;ShaderCacheLevelIds&gt;<sp/><ref refid="structSemanticShaderPass_1a11a21009c7377aa3365da273c097c24d" kindref="member">getCidx</ref>(<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>verify<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="146"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;bytecode<sp/>=<sp/><ref refid="structSemanticShaderPass_1a0e420bd269f317e789737e865b4f1632" kindref="member">bytecodeForStage</ref>(stage);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>intptr_t<sp/>p<sp/>=<sp/>intptr_t(bytecode.data());</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>cnt<sp/>=<sp/>bytecode.size();</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>res<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/>res.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref><sp/>=<sp/>intptr_t(p)<sp/>&amp;<sp/>0xffffffff;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(intptr_t(res.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref>)<sp/>!=<sp/>p<sp/>||<sp/>(res.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref><sp/>&amp;<sp/>0xF)<sp/>!=<sp/>3)</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(verify)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Packed<sp/>indices<sp/>are<sp/>corrupted:<sp/>p=%p,<sp/>res.l1=%i,<sp/>cnt=%i,<sp/>profile=%c&quot;</highlight><highlight class="normal">,<sp/>p,<sp/>res.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref>,<sp/>cnt,</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="hlslStage_8h_1ae9773b673d1146c459397c715389a236" kindref="member">hlsl_stage_to_profile_letter</ref>(stage));</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/>res.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref><sp/>=<sp/>res.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref><sp/>&gt;&gt;<sp/>4;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/>res.<ref refid="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" kindref="member">l2</ref><sp/>=<sp/>cnt<sp/>&gt;&gt;<sp/>16;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/>res.<ref refid="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" kindref="member">l3</ref><sp/>=<sp/>cnt<sp/>&amp;<sp/>0xFFFF;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1aa79e2a0883559cc16724cd876bda852d" kindref="member">equal</ref>(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;p);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a97feaed74846d0d34fb15d4a4f721752" kindref="member">dump</ref>(<ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref><sp/>&amp;c);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168" refid="structSemanticShaderPass_1a60a4cf0869252cee430568e1c4d196c1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass_1a60a4cf0869252cee430568e1c4d196c1" kindref="member">clearCppStcodeData</ref>()</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" kindref="member">cppstcode</ref><sp/>=<sp/><ref refid="structStcodePass" kindref="compound">StcodePass</ref>{};</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;map<sp/>:<sp/><ref refid="structSemanticShaderPass_1a7d7d388fa23d82e6986e5400093c4a17" kindref="member">constPackedVarsMaps</ref>)</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>clear_and_shrink(map);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(<ref refid="structSemanticShaderPass_1a5225fbd044d643fbea249c74b7acc8d3" kindref="member">bufferedPackedVarsMap</ref>);</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(<ref refid="structSemanticShaderPass_1ab03570130a7945edd74b4fca3b26c6cc" kindref="member">usedConstStatAstNodes</ref>);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(<ref refid="structSemanticShaderPass_1af8339973cd8d164abb08d2e783f80a77" kindref="member">boolAstNodesEvaluationResults</ref>);</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179" refid="classShaderSemCode" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref></highlight></codeline>
+<codeline lineno="180"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="182" refid="structShaderSemCode_1_1Var" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderSemCode_1_1Var" kindref="compound">Var</ref></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="184" refid="structShaderSemCode_1_1Var_1a86cdadeac01f2ab2618ead6a2ad21736" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderSemCode_1_1Var_1a86cdadeac01f2ab2618ead6a2ad21736" kindref="member">nameId</ref>;</highlight></codeline>
+<codeline lineno="185" refid="structShaderSemCode_1_1Var_1a670250d27af8de5e58c91f0bce515ead" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderVarType<sp/><ref refid="structShaderSemCode_1_1Var_1a670250d27af8de5e58c91f0bce515ead" kindref="member">type</ref>;</highlight></codeline>
+<codeline lineno="186" refid="structShaderSemCode_1_1Var_1a95c0c925bab6a7daa97cb06ae076e81f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderSemCode_1_1Var_1a95c0c925bab6a7daa97cb06ae076e81f" kindref="member">slot</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="187" refid="structShaderSemCode_1_1Var_1ac84930f25b5f6aab069e88295c8302b6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderVarTextureType<sp/><ref refid="structShaderSemCode_1_1Var_1ac84930f25b5f6aab069e88295c8302b6" kindref="member">texType</ref><sp/>=<sp/>ShaderVarTextureType::SHVT_TEX_UNKNOWN;</highlight></codeline>
+<codeline lineno="188" refid="structShaderSemCode_1_1Var_1a15d03f52a51f3979c9f6b1f08cc2d714" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="structShaderSemCode_1_1Var_1a15d03f52a51f3979c9f6b1f08cc2d714" kindref="member">terminal</ref>;</highlight></codeline>
+<codeline lineno="189" refid="structShaderSemCode_1_1Var_1a88b199052f426ef5cd3573f1b5e4bd9b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structShaderSemCode_1_1Var_1a0fec4a32aa8fdba3e34b7aba1518c76f" kindref="member">used</ref>,<sp/><ref refid="structShaderSemCode_1_1Var_1a88b199052f426ef5cd3573f1b5e4bd9b" kindref="member">dynamic</ref>,<sp/><ref refid="structShaderSemCode_1_1Var_1a83075d22200a17a9468ea42d34ffe065" kindref="member">noWarnings</ref>;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191" refid="structShaderSemCode_1_1Var_1aa764633c08c147e3f70001f04bbb64bb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderSemCode_1_1Var_1aa764633c08c147e3f70001f04bbb64bb" kindref="member">Var</ref>()<sp/>:<sp/><ref refid="structShaderSemCode_1_1Var_1a86cdadeac01f2ab2618ead6a2ad21736" kindref="member">nameId</ref>(-1),<sp/><ref refid="structShaderSemCode_1_1Var_1a15d03f52a51f3979c9f6b1f08cc2d714" kindref="member">terminal</ref>(NULL),<sp/><ref refid="structShaderSemCode_1_1Var_1a0fec4a32aa8fdba3e34b7aba1518c76f" kindref="member">used</ref>(false),<sp/><ref refid="structShaderSemCode_1_1Var_1a88b199052f426ef5cd3573f1b5e4bd9b" kindref="member">dynamic</ref>(false),<sp/><ref refid="structShaderSemCode_1_1Var_1a83075d22200a17a9468ea42d34ffe065" kindref="member">noWarnings</ref>(false)<sp/>{}</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="structShaderSemCode_1_1StVarMapping" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderSemCode_1_1StVarMapping" kindref="compound">StVarMapping</ref></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="196" refid="structShaderSemCode_1_1StVarMapping_1ad50ee56fbcd9de4d0ba30bca89479829" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderSemCode_1_1StVarMapping_1a8853a7cd153a42d9441fa20dfc3e9cfa" kindref="member">v</ref>,<sp/><ref refid="structShaderSemCode_1_1StVarMapping_1ad50ee56fbcd9de4d0ba30bca89479829" kindref="member">sv</ref>;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>each<sp/>variant<sp/>create<sp/>it&apos;s<sp/>own<sp/>passes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="200" refid="structShaderSemCode_1_1PassTab" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderSemCode_1_1PassTab" kindref="compound">PassTab</ref></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="202" refid="structShaderSemCode_1_1PassTab_1a510383fcc909f26223207e76596b4e69" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::optional&lt;SemanticShaderPass&gt;<sp/><ref refid="structShaderSemCode_1_1PassTab_1a510383fcc909f26223207e76596b4e69" kindref="member">pass</ref>;</highlight></codeline>
+<codeline lineno="203" refid="structShaderSemCode_1_1PassTab_1ab1dcfc9dcecf5b96d07bb11c38570f86" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;ShaderStateBlock<sp/>*&gt;<sp/><ref refid="structShaderSemCode_1_1PassTab_1ab1dcfc9dcecf5b96d07bb11c38570f86" kindref="member">suppBlk</ref>;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205" refid="structShaderSemCode_1_1PassTab_1a64cc7b61943435f13a1267d947563506" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;int&gt;<sp/><ref refid="structShaderSemCode_1_1PassTab_1a64cc7b61943435f13a1267d947563506" kindref="member">varmap</ref>;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="208" refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;<ref refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" kindref="member">ctx</ref>;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210" refid="classShaderSemCode_1a8b32469ee07d07ba8dd9b6a7d2d20805" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderChannelId&gt;<sp/><ref refid="classShaderSemCode_1a8b32469ee07d07ba8dd9b6a7d2d20805" kindref="member">channel</ref>;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212" refid="classShaderSemCode_1ac5254af5ecdf0f52e2d648e94a90d2e8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1ac5254af5ecdf0f52e2d648e94a90d2e8" kindref="member">flags</ref>;</highlight></codeline>
+<codeline lineno="213" refid="classShaderSemCode_1acbae3ddeaf15f11dbef5e0de44097ea0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1acbae3ddeaf15f11dbef5e0de44097ea0" kindref="member">renderStageIdx</ref>;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215" refid="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structStcodeStaticVars" kindref="compound">StcodeStaticVars</ref><sp/><ref refid="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" kindref="member">staticStcodeVars</ref>;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217" refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;Var&gt;<sp/><ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>;</highlight></codeline>
+<codeline lineno="218" refid="classShaderSemCode_1af8edbdef53e3a9de78f27f09f1611ddd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1af8edbdef53e3a9de78f27f09f1611ddd" kindref="member">regsize</ref>;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220" refid="classShaderSemCode_1a63a202d1e669c2a0a09e709e8e962d93" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/><ref refid="classShaderSemCode_1a63a202d1e669c2a0a09e709e8e962d93" kindref="member">initcode</ref>;</highlight></codeline>
+<codeline lineno="221" refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;StVarMapping&gt;<sp/><ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>;</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"></highlight></codeline>
+<codeline lineno="223" refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" refkind="member"><highlight class="normal"><sp/><sp/>dag::Vector&lt;eastl::unique_ptr&lt;PassTab&gt;&gt;<sp/><ref refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" kindref="member">passes</ref>;</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;a_ctx);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1a65b81634f689797e098f940d0029be3f" kindref="member">find_var</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classShaderSemCode_1add322f136e40abda10f755b23b652907" kindref="member">equal</ref>(<ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref><sp/>&amp;,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>compare_passes_and_vars);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1abfd30ee047bb5e92b5e403ed62191bf0" kindref="member">dump</ref>();</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"></highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1a5152815192d39ea106f827b07955b044" kindref="member">initPassMap</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pass_id);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderSemCode_1a0f6ee922626b00aaf01a7268de9b742a" kindref="member">mergeVars</ref>(Tab&lt;Var&gt;<sp/>&amp;&amp;other_vars,<sp/>Tab&lt;StVarMapping&gt;<sp/>&amp;&amp;other_stvarmap,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pass_id);</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><ref refid="classShaderCode" kindref="compound">ShaderCode</ref><sp/>*<ref refid="classShaderSemCode_1aef25e17512cd2562d12377a47b3433b5" kindref="member">generateShaderCode</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantTableSrc" kindref="compound">ShaderVariant::VariantTableSrc</ref><sp/>&amp;dynVariants);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>convert_passes(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;semP,<sp/><ref refid="structShaderCode_1_1Pass" kindref="compound">ShaderCode::Pass</ref><sp/>&amp;p,<sp/>Tab&lt;int&gt;<sp/>&amp;cvar,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;int&gt;<sp/>&amp;var_map);</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>convert_stcode(dag::Span&lt;int&gt;<sp/>cod,<sp/>Tab&lt;int&gt;<sp/>&amp;cvar,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;int&gt;<sp/>&amp;var_map);</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_var_in_tab(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;Var&gt;<sp/>&amp;<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="243"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="shSemCode_8h_1a9d5126adea9eafeb93403ed8b06ebbe9" kindref="member">get_semcode_var_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSemCode_1_1Var" kindref="compound">ShaderSemCode::Var</ref><sp/>&amp;var,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+    </programlisting>
+    <location file="shSemCode.h"/>
+  </compounddef>
+</doxygen>

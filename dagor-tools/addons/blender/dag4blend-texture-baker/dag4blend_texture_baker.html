@@ -1,0 +1,396 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dag4blend Texture Baker</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Add-ons for 3ds Max" href="../../3ds-max/index.html" />
+    <link rel="prev" title="dag4blend Texture Baker" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for Blender</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dag4blend/index.html">dag4blend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../dag4blend-comp-editor/index.html">dag4blend Composite Editor</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">dag4blend Texture Baker</a><ul class="current">
+<li class="toctree-l5 current"><a class="current reference internal" href="#">dag4blend Texture Baker</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#where-to-find-it">Where to Find It</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#settings">Settings</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#renderer">Renderer</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#inputs">Inputs</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#active-node">Active Node</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#outputs">Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#operators">Operators</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#scene-requirements">Scene Requirements</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../3ds-max/index.html">Add-ons for 3ds Max</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for Blender</a></li>
+          <li class="breadcrumb-item"><a href="index.html">dag4blend Texture Baker</a></li>
+      <li class="breadcrumb-item active">dag4blend Texture Baker</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/blender/dag4blend-texture-baker/dag4blend_texture_baker.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dag4blend-texture-baker">
+<h1>dag4blend Texture Baker<a class="headerlink" href="#dag4blend-texture-baker" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This tool is designed to convert “heavy” materials into a single low-resolution
+<code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code> material, suitable for use on the last LOD (level of detail).
+It is also useful for porting assets to mobile projects.</p>
+<p>Starting from version <code class="docutils literal notranslate"><span class="pre">2.2.0</span></code>, the baker also supports re-baking Blender’s
+Principled BSDF, enabling the transfer of assets with textures from other
+software via GLB/glTF with texture conversion, as well as “mixing” materials
+directly in Blender.</p>
+</section>
+<section id="where-to-find-it">
+<h2>Where to Find It<a class="headerlink" href="#where-to-find-it" title="Link to this heading"></a></h2>
+<p>The <strong>Bake</strong> panel is located in the N-panel under the <strong>Dagor</strong> tab. To ensure
+proper operation of the baking process, you need to specify the rendering device
+in Blender’s <strong>Edit &gt; Preferences</strong> settings. However, this parameter is set for
+any render, so it is likely already configured.</p>
+<img alt="Where to find it" class="align-center" src="../../../../_images/dag4blend_text_baker_01.png" />
+</section>
+<section id="settings">
+<h2>Settings<a class="headerlink" href="#settings" title="Link to this heading"></a></h2>
+<p>Here, various parameters for the upcoming bake are organized into groups.</p>
+<img alt="Settings" class="align-center" src="../../../../_images/dag4blend_text_baker_02.png" />
+<section id="renderer">
+<h3>Renderer<a class="headerlink" href="#renderer" title="Link to this heading"></a></h3>
+<p>You can choose the device to perform the baking – either the CPU or GPU – and
+set the number of samples. It is recommended to start with one sample and only
+increasing the value if the bake appears “noisy”.</p>
+</section>
+<section id="inputs">
+<h3>Inputs<a class="headerlink" href="#inputs" title="Link to this heading"></a></h3>
+<p>Here, you can select the baking mode – either from the object to itself or from
+one object to another. Depending on the mode, the parameters may vary slightly.</p>
+<img alt="Inputs - self bake" class="align-center" src="../../../../_images/dag4blend_text_baker_03.png" />
+<img alt="Inputs - HP to LP" class="align-center" src="../../../../_images/dag4blend_text_baker_04.png" />
+<ul class="simple">
+<li><p><strong>Asset</strong>: the collection containing the asset to be baked. It will be
+converted to <strong>Lowpoly</strong> when the mode is switched.</p></li>
+<li><p><strong>Highpoly</strong>: the collection with the asset from which the bake will be
+performed. This is only relevant in the second mode, so it is hidden in the
+first.</p></li>
+<li><p>The <strong>Recursive</strong> checkbox determines whether to check child collections. If
+baking a house for War Thunder that consists of a base and several <code class="docutils literal notranslate"><span class="pre">_dp</span></code>,
+it’s better to place their collections in a parent collection and activate
+this parameter.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The parameters below are only relevant when baking from one object to another,
+but not from UV to UV.</p>
+</div>
+<ul class="simple">
+<li><p><strong>Use Cage</strong>: whether to use a cage for baking. This option is only relevant
+when baking from object to object, so it is hidden in the first mode.</p></li>
+<li><p><strong>Extrusion</strong>: defines how much the search area for the high-poly will be
+“inflated” along the normal. If the <strong>Use Cage</strong> checkbox is enabled and a
+custom cage is not specified, the low-poly node itself will be used as the
+cage, inflated evenly without considering sharp edges. If the checkbox is not
+enabled, the inflation will account for sharp edges.</p></li>
+</ul>
+<img alt="Inputs - extrusion" class="align-center" src="../../../../_images/dag4blend_text_baker_05.png" />
+<img alt="Inputs - extrusion" class="align-center" src="../../../../_images/dag4blend_text_baker_06.png" />
+<ul class="simple">
+<li><p><strong>Max Ray Distance</strong>: specifies the distance from the cage (inward) to search
+for baking information. If set to zero, the ray is not limited.</p></li>
+</ul>
+</section>
+<section id="active-node">
+<h3>Active Node<a class="headerlink" href="#active-node" title="Link to this heading"></a></h3>
+<p>This tab only exists in the <strong>HP to LP</strong> mode and allows for detailed settings
+for Lowpoly nodes. It displays the parameters of the active object.</p>
+<img alt="Active node" class="align-center" src="../../../../_images/dag4blend_text_baker_07.png" />
+<img alt="Active node" class="align-center" src="../../../../_images/dag4blend_text_baker_08.png" />
+<ul>
+<li><p><strong>Cage</strong>: if the <strong>Use Cage</strong> checkbox is active, you can specify a custom
+cage here. Press <strong>Init Custom Cage</strong> to create a parameter reference, then
+select the desired node. This can be done from the general list by clicking on
+the parameter, using the eyedropper from the <strong>Viewport</strong> or <strong>Outliner</strong>, or
+simply dragging the node from the <strong>Outliner</strong>. You can delete the parameter
+entirely by pressing the <strong>trash can</strong> icon, or reset it with <strong>X</strong> and select
+a different node. If the selected node does not match the topology of the
+baked object, the bake will fail with an error.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Do not place the cage in the <strong>Lowpoly</strong> or <strong>Highpoly</strong> collection.</p>
+</div>
+</li>
+<li><p><strong>Highpoly</strong> allows you to specify nodes from which information should be
+captured for the active node. If nothing is specified, the bake will be
+performed from each Highpoly node sequentially, which can take a significant
+amount of time. It is better to specify only the relevant sources. To do this,
+click on <strong>ADD</strong> and select sources similarly to how the cage is selected.
+Multiple sources can be selected.</p></li>
+</ul>
+</section>
+<section id="outputs">
+<h3>Outputs<a class="headerlink" href="#outputs" title="Link to this heading"></a></h3>
+<p>This section allows you to define what you want to get as output.</p>
+<img alt="Outputs" class="align-center" src="../../../../_images/dag4blend_text_baker_09.png" />
+<ul class="simple">
+<li><p><strong>tex_d</strong>, <strong>tex_n</strong>: the checkboxes for selecting the corresponding textures.
+If neither is enabled, the bake will not start as there is nothing to bake.</p></li>
+<li><p><strong>Width</strong> and <strong>Height</strong>: rhe resolution of the output texture. Limited to
+powers of two.</p></li>
+<li><p>If the <strong>Reveal Result</strong> checkbox is enabled, the add-on will open the
+directories containing the output files after a successful bake.</p></li>
+<li><p><strong>Tex Dirpath</strong>: where to save the textures. You can enter the path as text or
+select it through Blender’s built-in file browser by clicking the folder icon
+on the right.</p></li>
+<li><p><strong>open texture folder</strong>: opens the specified directory using your operating
+system’s file explorer.</p></li>
+<li><p>If the <strong>Save Proxymat</strong> checkbox is enabled, the Baker will also create new
+<code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code> proxy materials from the new textures. If one of the
+textures is missing in the directory (for example, if only <strong>tex_d</strong> was
+baked), the process will be interrupted with a corresponding log entry. The
+path for saving it is set in the same way as for textures.</p></li>
+</ul>
+<p>The add-on can also assign the resulting proxymat immediately after baking. In
+this case, unnecessary UVs and materials will be removed, and the Bake UV
+channel will be renamed to UVMap, which the add-on expects for correct display.
+This saves time if you need to export the result as render instance. If the
+<strong>Viewport</strong> result is unsatisfactory and needs re-baking, the assignment of the
+proxymat and deletion of information can be undone with <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code>+<code class="docutils literal notranslate"><span class="pre">Z</span></code>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../../../assets/materials/proxymats.html"><span class="std std-doc">Proxymats</span></a>.</p>
+</div>
+</section>
+</section>
+<section id="operators">
+<h2>Operators<a class="headerlink" href="#operators" title="Link to this heading"></a></h2>
+<img alt="Outputs" class="align-center" src="../../../../_images/dag4blend_text_baker_10.png" />
+<ul>
+<li><p><strong>Convert Principled BSDF</strong>: as the name suggests, this converts Blender’s
+standard shader, allowing it to be baked as
+<a class="reference internal" href="../../../../assets/shaders/dng-shaders/rendinst_simple.html"><span class="std std-doc">rendinst_simple</span></a>.
+Useful when the material was mixed directly in Blender or when an asset was
+imported from GLB/glTF from another program along with textures.</p></li>
+<li><p><strong>Cleanup geometry</strong>: removes unsupported shader polygons from the source
+geometry. How do you know if a shader is supported? In the <em>Shader Editor</em>,
+the material’s Shader node should have outputs for <code class="docutils literal notranslate"><span class="pre">_tex_d_rgb</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_tex_d_alpha</span></code>, <code class="docutils literal notranslate"><span class="pre">_tex_met_gloss</span></code>, and <code class="docutils literal notranslate"><span class="pre">_tex_mask</span></code>. This feature is primarily
+designed for decals, which cannot be baked. Blender cannot bake through
+transparent polygons; the top polygon will completely overwrite the
+information beneath it.</p>
+<p>If there is an unsupported shader on the geometry that is important for
+baking, you can reassign it to a similar one. For example, the unsupported
+<a class="reference internal" href="../../../../assets/shaders/dng-shaders/rendinst_mask_layered.html"><span class="std std-doc">rendinst_mask_layered</span></a>
+can be replaced with
+<a class="reference internal" href="../../../../assets/shaders/rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a>.
+This does not have to be done manually. In the directory with the installed
+add-on, there is a text file with remapping parameters:</p>
+<p><code class="docutils literal notranslate"><span class="pre">C:\Users\&lt;username&gt;\AppData\Roaming\Blender</span> <span class="pre">Foundation\Blender\&lt;version</span> <span class="pre">number&gt;\scripts\addons\dag4blend\extras\remap.txt</span></code>.</p>
+<p>Use a colon to specify the name of the missing shader node and the name of the
+replacement node. If you only want to change the material, specify its name.
+If you also want to remap texture coordinates, include them as well (same
+names with the <code class="docutils literal notranslate"><span class="pre">_uv</span></code> postfix).</p>
+</li>
+<li><p><strong>To Palette</strong>: as the name suggests, creates a “palette” of materials. A
+plane is created for each material with the name of that material and the Bake
+UV layer. Useful when you need to re-bake tiles – the actual geometry of the
+asset would only get in the way for such a task.</p></li>
+<li><p><strong>BAKE</strong>: starts the baking process. Creates texture files (asset collection
+name + texture type postfix separated by <code class="docutils literal notranslate"><span class="pre">_</span></code>). The collection name is
+truncated at the first dot, so <code class="docutils literal notranslate"><span class="pre">my_material.001</span></code> creates
+<code class="docutils literal notranslate"><span class="pre">my_material_tex_d.tif</span></code> instead of <code class="docutils literal notranslate"><span class="pre">my_material.001_tex_d.tif</span></code>. It also
+removes endings indicating the LOD number.</p>
+<p>If something goes wrong, it will display an explanatory popup and write a log
+entry.</p>
+<p>Baking is performed on the UV channel named Bake – you need to create it for
+all low-poly objects. Shaders are bound to the naming of UV channels, so
+renaming existing ones is not recommended.</p>
+</li>
+</ul>
+</section>
+<section id="scene-requirements">
+<h2>Scene Requirements<a class="headerlink" href="#scene-requirements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>All geometry used in the bake must be visible and selectable when you press
+the <strong>BAKE</strong> button. The only exceptions are optional cages.</p></li>
+<li><p>The source geometry must only have supported shaders. The receiver geometry
+must have a UV channel named <code class="docutils literal notranslate"><span class="pre">Bake</span></code>. For self-baking, this is the same asset.</p></li>
+<li><p>Naturally, the UV layout must be reasonable. It’s not enough to just create a
+UV channel; you also need to unwrap it properly.</p></li>
+<li><p>Everything outside the unit square will not affect the result – shift
+overlapping geometry left/up to avoid strange artifacts from blending
+information from different triangles in the same place.</p></li>
+</ul>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
+<p>The output textures and proxymat are ready for use in the engine and display
+correctly in most image viewers and editors. However, Photoshop is currently an
+exception. It does not interpret the alpha channel correctly, neither displaying
+it as the fourth channel nor as a layer mask.</p>
+<img alt="Limitations" class="align-center" src="../../../../_images/dag4blend_text_baker_11.png" />
+<p>If you need to make changes to the alpha channel of such a texture, here’s a
+temporary solution: <strong>Layer &gt; Layer Mask &gt;From Transparency</strong> allows you to
+extract the alpha channel into a mask. After this, you can copy the mask’s
+contents, delete the mask, and place its copied contents into a new alpha
+channel.</p>
+<img alt="Limitations" class="align-center" src="../../../../_images/dag4blend_text_baker_12.png" />
+<p>This solution is not the most elegant, but it works. Apply it only when
+necessary to edit the alpha.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="dag4blend Texture Baker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../3ds-max/index.html" class="btn btn-neutral float-right" title="Add-ons for 3ds Max" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

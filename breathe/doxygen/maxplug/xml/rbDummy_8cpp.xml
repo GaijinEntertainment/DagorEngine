@@ -1,0 +1,596 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="rbDummy_8cpp" kind="file" language="C++">
+    <compoundname>rbDummy.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">simpobj.h</includes>
+    <includes local="no">iparamm.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <incdepgraph>
+      <node id="5">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="1">
+        <label>rbDummy.cpp</label>
+        <link refid="rbDummy_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="4">
+        <label>iparamm.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>simpobj.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classRBHelper" prot="public">RBHelper</innerclass>
+    <innerclass refid="classRBHelperClassDesc" prot="public">RBHelperClassDesc</innerclass>
+    <innerclass refid="classRBHelperCreateCallBack" prot="public">RBHelperCreateCallBack</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="rbDummy_8cpp_1a9fec1f6a9b3f91e0171263391663f6ea" prot="public" static="no">
+        <name>PARAM_LEN</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="157" column="9" bodyfile="rbDummy.cpp" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="rbDummy_8cpp_1a8e59901d1f9240ad3e47c12df414a970" prot="public" static="no">
+        <name>PBLOCK_LEN</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="162" column="9" bodyfile="rbDummy.cpp" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="rbDummy_8cpp_1ae6174d38fef796b5c42c96ce7e954533" prot="public" static="no">
+        <name>CURRENT_VER</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="164" column="9" bodyfile="rbDummy.cpp" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" prot="public">
+          <name>PB_SIZE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="130" column="1" bodyfile="rbDummy.cpp" bodystart="131" bodyend="133"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="rbDummy_8cpp_1a5851d587985c4eaaf9870d4ec44891f3" prot="public" static="yes" mutable="no">
+        <type><ref refid="classRBHelperClassDesc" kindref="compound">RBHelperClassDesc</ref></type>
+        <definition>RBHelperClassDesc RBHelperCD</definition>
+        <argsstring></argsstring>
+        <name>RBHelperCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="152" column="26" bodyfile="rbDummy.cpp" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="rbDummy_8cpp_1a50fd5bf1f022bca957fd4832ee1d38ae" prot="public" static="yes" mutable="no">
+        <type>ParamUIDesc</type>
+        <definition>ParamUIDesc descParam[]</definition>
+        <argsstring>[]</argsstring>
+        <name>descParam</name>
+        <initializer>= {ParamUIDesc(<ref refid="dummy_8cpp_1a726ca809ffd3d67ab4b8476646f26635a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>, EDITTYPE_UNIVERSE, <ref refid="resource_8h_1a53033aedabefdb4699b484a8cc6e94a6" kindref="member">IDC_SIZ</ref>, <ref refid="resource_8h_1af594aa86e01e67da252dea6c1550a1cc" kindref="member">IDC_SIZE_S</ref>, 0.0f, 9999999999.0f, SPIN_AUTOSCALE)}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="156" column="20" bodyfile="rbDummy.cpp" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="rbDummy_8cpp_1a26acfd6551acff8b82667a03c0f8e679" prot="public" static="yes" mutable="no">
+        <type>ParamBlockDescID</type>
+        <definition>ParamBlockDescID descVer0[]</definition>
+        <argsstring>[]</argsstring>
+        <name>descVer0</name>
+        <initializer>= {
+  {TYPE_FLOAT, NULL, FALSE, <ref refid="dummy_8cpp_1a726ca809ffd3d67ab4b8476646f26635a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>},
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="159" column="25" bodyfile="rbDummy.cpp" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="rbDummy_8cpp_1affb0313fbf5a9939523ae4b17c0ce94c" prot="public" static="yes" mutable="no">
+        <type><ref refid="classRBHelperCreateCallBack" kindref="compound">RBHelperCreateCallBack</ref></type>
+        <definition>RBHelperCreateCallBack RBHelperCreateCB</definition>
+        <argsstring></argsstring>
+        <name>RBHelperCreateCB</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="255" column="31" bodyfile="rbDummy.cpp" bodystart="255" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="rbDummy_8cpp_1a6bb2f584d223a9aa53c81ea04c888bc5" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>static Matrix3 ident</definition>
+        <argsstring>(1)</argsstring>
+        <name>ident</name>
+        <param>
+          <type>1</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="91" column="16" declfile="rbDummy.cpp" declline="91" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="rbDummy_8cpp_1a273f5592dd92108b41cf55c45a98a4c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetRBDummyCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetRBDummyCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="154" column="11" bodyfile="rbDummy.cpp" bodystart="154" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="rbDummy_8cpp_1ac2ace43d6c166bb1cf371056ba1d0f54" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ParamVersionDesc</type>
+        <definition>static ParamVersionDesc curVersion</definition>
+        <argsstring>(descVer0, PBLOCK_LEN, CURRENT_VER)</argsstring>
+        <name>curVersion</name>
+        <param>
+          <type>descVer0</type>
+        </param>
+        <param>
+          <type><ref refid="dummy_8cpp_1a8e59901d1f9240ad3e47c12df414a970" kindref="member">PBLOCK_LEN</ref></type>
+        </param>
+        <param>
+          <type><ref refid="dummy_8cpp_1ae6174d38fef796b5c42c96ce7e954533" kindref="member">CURRENT_VER</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="165" column="25" declfile="rbDummy.cpp" declline="165" declcolumn="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;simpobj.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;iparamm.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SimpleObject<sp/>*SimpleObject::editOb=NULL;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="classRBHelper" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRBHelper" kindref="compound">RBHelper</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>SimpleObject</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classRBHelper" kindref="compound">RBHelper</ref><sp/>*<ref refid="classRBHelper_1ab211bfa2410616329b78f2d80f01c3fa" kindref="member">editOb</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>IParamMap<sp/>*<ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>IObjParam<sp/>*<ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1ad5f250ddba0f4aae6b6e8d17ff6f2bae" kindref="member">crtSize</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1a7e142ff9eb0373c6c2ed7b2d59c24b35" kindref="member">RBHelper</ref>();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a98200ead9c934891b0e2c0d5775c706d" kindref="member">InvalidateUI</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a00453d74753fc4ddab02f1164c51959d" kindref="member">set_axis_color</ref>(GraphicsWindow<sp/>*gw,<sp/>INode<sp/>*,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>axis);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1acfb869e92a8afc6ca89e2f68cd52f114" kindref="member">Display</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a3eb00d57def8ab2c30c88080d745dd28" kindref="member">HitTest</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>crossing,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>IPoint2<sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>ViewExp<sp/>*vpt)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a961a38466c1c154628813b40d92260c6" kindref="member">DeleteThis</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classRBHelper_1a405be019a0277e38fc9eb390ffba4b17" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>HELPER_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a1a188875fa3cab90cf7f7ddc00b1d74e" kindref="member">IsRenderable</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a7400afcab291aa8ec27ee29be0382a4b" kindref="member">UsesWireColor</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a1eb1f6f0a38bfb911b491a8072229974" kindref="member">DoOwnSelectHilite</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>CreateMouseCallBack<sp/>*<ref refid="classRBHelper_1a711e32cb04c425c9d84dbbce2b76205a" kindref="member">GetCreateMouseCallBack</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classRBHelper_1aea3004ed65c0df6b32b54b41d39f097e" kindref="member">GetObjectName</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>localized<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1aa32e73e0c5d9728cc09345c5ba1f7857" kindref="member">IDS_Dummy</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R15)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R15</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRBHelper_1aea3004ed65c0df6b32b54b41d39f097e" kindref="member">GetObjectName</ref>()</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1af678c7905385e7965916b29083f1109a" kindref="member">IDS_RBHelper</ref>);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>RefTargetHandle<sp/><ref refid="classRBHelper_1a476e6c74a8904d228c4d80453b030553" kindref="member">Clone</ref>(RemapDir<sp/>&amp;remap)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classRBHelper_1a5808438ac968fcb2d2a297c142895cc5" kindref="member">OKtoDisplay</ref>(TimeValue<sp/>t)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>ParamDimension<sp/>*<ref refid="classRBHelper_1a3aab75c508d13019514e97942a7a34a8" kindref="member">GetParameterDim</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pbIndex)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>MSTR<sp/><ref refid="classRBHelper_1a0f24e34c0996bfb34f0d38989a489cb7" kindref="member">GetParameterName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pbIndex,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>localized)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>MSTR(_T(</highlight><highlight class="stringliteral">&quot;???&quot;</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>TSTR<sp/><ref refid="classRBHelper_1a0f24e34c0996bfb34f0d38989a489cb7" kindref="member">GetParameterName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pbIndex)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TSTR(_T(</highlight><highlight class="stringliteral">&quot;???&quot;</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a8d93a5d5184ad5aa287b7f96a632934a" kindref="member">BeginEditParams</ref>(IObjParam<sp/>*<ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>,<sp/>ULONG<sp/>flags,<sp/>Animatable<sp/>*prev)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a5cc3eb40d8a8b21a322ea65e04af37c5" kindref="member">EndEditParams</ref>(IObjParam<sp/>*<ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>,<sp/>ULONG<sp/>flags,<sp/>Animatable<sp/>*next)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a99405fb6d3e16770bc2a7e00428e6fd8" kindref="member">BuildMesh</ref>(TimeValue)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a373a97023e84f847a85367ea3dff6b36" kindref="member">DrawIt</ref>(GraphicsWindow<sp/>*gw,<sp/>TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sel,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>ViewExp<sp/>*vpt);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a40b5261335b10c62ed1ff301a8f27b3d" kindref="member">GetLocalBoundBox</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/>Box3<sp/>&amp;box)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1af22ac02b65baf2d2d7eb4c92572b5b18" kindref="member">GetWorldBoundBox</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/>Box3<sp/>&amp;box)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a883488607ba14357bf80df6e7013f7c2" kindref="member">GetDeformBBox</ref>(TimeValue<sp/>t,<sp/>Box3<sp/>&amp;box,<sp/>Matrix3<sp/>*tm<sp/>=<sp/>NULL,<sp/>BOOL<sp/>useSel<sp/>=<sp/>FALSE)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classRBHelper_1a746d97eaff6aaa6264739f2b573ab610" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aa92de089f2ac292ce0c8f82ba8b751bf" kindref="member">RBDummy_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><ref refid="classRBHelper" kindref="compound">RBHelper</ref><sp/>*<ref refid="classRBHelper_1ab211bfa2410616329b78f2d80f01c3fa" kindref="member">RBHelper::editOb</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">IObjParam<sp/>*<ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">RBHelper::ip</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">IParamMap<sp/>*<ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">RBHelper::pmapParam</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a98200ead9c934891b0e2c0d5775c706d" kindref="member">RBHelper::InvalidateUI</ref>()</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>-&gt;Invalidate();</highlight></codeline>
+<codeline lineno="76"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a00453d74753fc4ddab02f1164c51959d" kindref="member">RBHelper::set_axis_color</ref>(GraphicsWindow<sp/>*gw,<sp/>INode<sp/>*n,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(n-&gt;IsFrozen())</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setColor(LINE_COLOR,<sp/>0.5,<sp/>0.5,<sp/>0.5);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(n-&gt;Selected())</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setColor(LINE_COLOR,<sp/>1,<sp/>1,<sp/>1);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setColor(LINE_COLOR,<sp/>0.5,<sp/>1.0,<sp/>0.5);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>Matrix3<sp/>ident(1);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a3eb00d57def8ab2c30c88080d745dd28" kindref="member">RBHelper::HitTest</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>crossing,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>IPoint2<sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>ViewExp<sp/>*vpt)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>HitRegion<sp/>hitRegion;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/>GraphicsWindow<sp/>*gw<sp/>=<sp/>vpt-&gt;getGW();</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>MakeHitRegion(hitRegion,<sp/>type,<sp/>crossing,<sp/>4,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>DWORD<sp/>rlim<sp/>=<sp/>gw-&gt;getRndLimits();</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>gw-&gt;setTransform(ident);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>gw-&gt;setHitRegion(&amp;hitRegion);</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>gw-&gt;clearHitCode();</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>gw-&gt;setRndLimits(rlim<sp/>|<sp/>GW_PICK);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1a373a97023e84f847a85367ea3dff6b36" kindref="member">DrawIt</ref>(gw,<sp/>t,<sp/>inode,<sp/>inode-&gt;Selected(),<sp/>flags,<sp/>vpt);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>res<sp/>=<sp/>gw-&gt;checkHitCode();</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>gw-&gt;setRndLimits(rlim);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1acfb869e92a8afc6ca89e2f68cd52f114" kindref="member">RBHelper::Display</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/>GraphicsWindow<sp/>*gw<sp/>=<sp/>vpt-&gt;getGW();</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>DWORD<sp/>rlim<sp/>=<sp/>gw-&gt;getRndLimits();</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>gw-&gt;setRndLimits(GW_WIREFRAME|GW_BACKCULL|<sp/>(rlim&amp;GW_Z_BUFFER?GW_Z_BUFFER:0)<sp/>);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>gw-&gt;setTransform(ident);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1a373a97023e84f847a85367ea3dff6b36" kindref="member">DrawIt</ref>(gw,<sp/>t,<sp/>inode,<sp/>inode-&gt;Selected(),<sp/>flags,<sp/>vpt);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>gw-&gt;setRndLimits(rlim);</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,</highlight></codeline>
+<codeline lineno="133"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1ad5f250ddba0f4aae6b6e8d17ff6f2bae" kindref="member">RBHelper::crtSize</ref><sp/>=<sp/>20.0f;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137" refid="classRBHelperClassDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRBHelperClassDesc" kindref="compound">RBHelperClassDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelperClassDesc_1a837adf643168ac1cbad0f37086780103" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;<sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classRBHelperClassDesc_1aa94f1eca2b4ecb741dc7ecd0762088e8" kindref="member">Create</ref>(BOOL<sp/>loading<sp/>=<sp/>FALSE)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classRBHelper" kindref="compound">RBHelper</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classRBHelperClassDesc_1a629569343c9a0c65225b5695ff348076" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1af678c7905385e7965916b29083f1109a" kindref="member">IDS_RBHelper</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classRBHelperClassDesc_1a4398a689830d8f28eb8ea54360858e9b" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRBHelperClassDesc_1a629569343c9a0c65225b5695ff348076" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classRBHelperClassDesc_1a4398a689830d8f28eb8ea54360858e9b" kindref="member">NonLocalizedClassName</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRBHelperClassDesc_1a629569343c9a0c65225b5695ff348076" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classRBHelperClassDesc_1a6d0be6c84f6953b128be018cd042324e" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>HELPER_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classRBHelperClassDesc_1adf59efe985f2ee0db54e2eddb6a2e32f" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aa92de089f2ac292ce0c8f82ba8b751bf" kindref="member">RBDummy_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classRBHelperClassDesc_1a1168e2bc9a32cc8b0fa1a2522eb350ae" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a9175aa3ceff18a9c81290c7da42d0ec4" kindref="member">IDS_DAGOR_CAT</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classRBHelperClassDesc" kindref="compound">RBHelperClassDesc</ref><sp/>RBHelperCD;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal">ClassDesc<sp/>*<ref refid="rbDummy_8cpp_1a273f5592dd92108b41cf55c45a98a4c9" kindref="member">GetRBDummyCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;RBHelperCD;<sp/>}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>ParamUIDesc<sp/>descParam[]<sp/>=<sp/>{ParamUIDesc(<ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>EDITTYPE_UNIVERSE,<sp/><ref refid="resource_8h_1a53033aedabefdb4699b484a8cc6e94a6" kindref="member">IDC_SIZ</ref>,<sp/><ref refid="resource_8h_1af594aa86e01e67da252dea6c1550a1cc" kindref="member">IDC_SIZE_S</ref>,<sp/>0.0f,<sp/>9999999999.0f,<sp/>SPIN_AUTOSCALE)};</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PARAM_LEN<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>ParamBlockDescID<sp/>descVer0[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>{TYPE_FLOAT,<sp/>NULL,<sp/>FALSE,<sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>},</highlight></codeline>
+<codeline lineno="161"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PBLOCK_LEN<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CURRENT_VER<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>ParamVersionDesc<sp/>curVersion(descVer0,<sp/><ref refid="rbDummy_8cpp_1a8e59901d1f9240ad3e47c12df414a970" kindref="member">PBLOCK_LEN</ref>,<sp/><ref refid="rbDummy_8cpp_1ae6174d38fef796b5c42c96ce7e954533" kindref="member">CURRENT_VER</ref>);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><ref refid="classRBHelper_1a7e142ff9eb0373c6c2ed7b2d59c24b35" kindref="member">RBHelper::RBHelper</ref>()</highlight></codeline>
+<codeline lineno="168"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>MakeRefByID(FOREVER,<sp/>0,<sp/>CreateParameterBlock(descVer0,<sp/><ref refid="rbDummy_8cpp_1a8e59901d1f9240ad3e47c12df414a970" kindref="member">PBLOCK_LEN</ref>,<sp/><ref refid="rbDummy_8cpp_1ae6174d38fef796b5c42c96ce7e954533" kindref="member">CURRENT_VER</ref>));</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>assert(pblock);</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/>pblock-&gt;SetValue(<ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>0,<sp/><ref refid="classRBHelper_1ad5f250ddba0f4aae6b6e8d17ff6f2bae" kindref="member">crtSize</ref>);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a8d93a5d5184ad5aa287b7f96a632934a" kindref="member">RBHelper::BeginEditParams</ref>(IObjParam<sp/>*ip,<sp/>ULONG<sp/>flags,<sp/>Animatable<sp/>*prev)</highlight></codeline>
+<codeline lineno="175"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>SimpleObject::BeginEditParams(<ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>,<sp/>flags,<sp/>prev);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1ab211bfa2410616329b78f2d80f01c3fa" kindref="member">editOb</ref><sp/>=<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>this-&gt;ip<sp/>=<sp/><ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>)</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>-&gt;SetParamBlock(pblock);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref><sp/>=<sp/>CreateCPParamMap(descParam,<sp/><ref refid="rbDummy_8cpp_1a9fec1f6a9b3f91e0171263391663f6ea" kindref="member">PARAM_LEN</ref>,<sp/>pblock,<sp/><ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>,<sp/><ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>MAKEINTRESOURCE(<ref refid="resource_8h_1a8de9795568b725e580ddf21390672807" kindref="member">IDD_RBDUMMY_PARAM</ref>),</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1afe0448a3f0de1fb78e95542f5cacd8d6" kindref="member">IDS_RBDUMMY_ROLL</ref>),<sp/>0);</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a5cc3eb40d8a8b21a322ea65e04af37c5" kindref="member">RBHelper::EndEditParams</ref>(IObjParam<sp/>*ip,<sp/>ULONG<sp/>flags,<sp/>Animatable<sp/>*next)</highlight></codeline>
+<codeline lineno="192"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>SimpleObject::EndEditParams(<ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>,<sp/>flags,<sp/>next);</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1ab211bfa2410616329b78f2d80f01c3fa" kindref="member">editOb</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>this-&gt;ip<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flags<sp/>&amp;<sp/>END_EDIT_REMOVEUI)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/>DestroyCPParamMap(<ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>);</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/><ref refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" kindref="member">ip</ref>-&gt;GetTime(),<sp/><ref refid="classRBHelper_1ad5f250ddba0f4aae6b6e8d17ff6f2bae" kindref="member">crtSize</ref>);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206" refid="classRBHelperCreateCallBack" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRBHelperCreateCallBack" kindref="compound">RBHelperCreateCallBack</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>CreateMouseCallBack</highlight></codeline>
+<codeline lineno="207"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/>IPoint2<sp/>sp1;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper" kindref="compound">RBHelper</ref><sp/>*ob;</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/>Point3<sp/>p0,<sp/>p1;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelperCreateCallBack_1adc707344b114c98dc357eb83a44fa7ac" kindref="member">proc</ref>(ViewExp<sp/>*vpt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>msg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>point,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>IPoint2<sp/>m,<sp/>Matrix3<sp/>&amp;mat)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelperCreateCallBack_1ab04311694ec6a8f06fcbafecd181dcbc" kindref="member">SetObj</ref>(<ref refid="classRBHelper" kindref="compound">RBHelper</ref><sp/>*obj)<sp/>{<sp/>ob<sp/>=<sp/>obj;<sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRBHelperCreateCallBack_1adc707344b114c98dc357eb83a44fa7ac" kindref="member">RBHelperCreateCallBack::proc</ref>(ViewExp<sp/>*vpt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>msg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>point,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>IPoint2<sp/>m,<sp/>Matrix3<sp/>&amp;mat)</highlight></codeline>
+<codeline lineno="218"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(msg<sp/>==<sp/>MOUSE_POINT<sp/>||<sp/>msg<sp/>==<sp/>MOUSE_MOVE)</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(point)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>0:<sp/></highlight><highlight class="comment">//<sp/>only<sp/>happens<sp/>with<sp/>MOUSE_POINT<sp/>msg</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;suspendSnap<sp/>=<sp/>TRUE;</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sp1<sp/>=<sp/>m;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>p0<sp/>=<sp/>vpt-&gt;SnapPoint(m,<sp/>m,<sp/>NULL,<sp/>SNAP_IN_PLANE);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetTrans(p0);</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;GetParamBlock()-&gt;SetValue(<ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>0,<sp/>0.01f);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;<ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>-&gt;Invalidate();</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>1:</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>p1<sp/>=<sp/>vpt-&gt;SnapPoint(m,<sp/>m,<sp/>NULL,<sp/>SNAP_IN_PLANE);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(1,<sp/>Point3(0,<sp/>0,<sp/>1));</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(2,<sp/>Normalize(p1<sp/>-<sp/>p0));</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(0,<sp/>Point3(0,<sp/>0,<sp/>1)<sp/>^<sp/>mat.GetRow(2));</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(3,<sp/>p0);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;GetParamBlock()-&gt;SetValue(<ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>0,<sp/>Length(p1<sp/>-<sp/>p0));</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;<ref refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" kindref="member">pmapParam</ref>-&gt;Invalidate();</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(msg<sp/>==<sp/>MOUSE_POINT)</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;suspendSnap<sp/>=<sp/>FALSE;</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(Length(m<sp/>-<sp/>sp1)<sp/>&lt;<sp/>3)<sp/>?<sp/>CREATE_ABORT<sp/>:<sp/>CREATE_STOP;</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(msg<sp/>==<sp/>MOUSE_ABORT)</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>CREATE_ABORT;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="253"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"></highlight></codeline>
+<codeline lineno="255"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classRBHelperCreateCallBack" kindref="compound">RBHelperCreateCallBack</ref><sp/>RBHelperCreateCB;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal">CreateMouseCallBack<sp/>*<ref refid="classRBHelper_1a711e32cb04c425c9d84dbbce2b76205a" kindref="member">RBHelper::GetCreateMouseCallBack</ref>()</highlight></codeline>
+<codeline lineno="258"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/>RBHelperCreateCB.<ref refid="classRBHelperCreateCallBack_1ab04311694ec6a8f06fcbafecd181dcbc" kindref="member">SetObj</ref>(</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(&amp;RBHelperCreateCB);</highlight></codeline>
+<codeline lineno="261"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="normal">BOOL<sp/><ref refid="classRBHelper_1a5808438ac968fcb2d2a297c142895cc5" kindref="member">RBHelper::OKtoDisplay</ref>(TimeValue<sp/>t)</highlight></codeline>
+<codeline lineno="264"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>r;</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>t,<sp/>r);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(r<sp/>==<sp/>0.0f)</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"></highlight></codeline>
+<codeline lineno="273"><highlight class="normal">ParamDimension<sp/>*<ref refid="classRBHelper_1a3aab75c508d13019514e97942a7a34a8" kindref="member">RBHelper::GetParameterDim</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pbIndex)</highlight></codeline>
+<codeline lineno="274"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(pbIndex)</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>stdWorldDim;</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>defaultDim;</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="280"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight></codeline>
+<codeline lineno="282"><highlight class="normal">RefTargetHandle<sp/><ref refid="classRBHelper_1a476e6c74a8904d228c4d80453b030553" kindref="member">RBHelper::Clone</ref>(RemapDir<sp/>&amp;remap)</highlight></codeline>
+<codeline lineno="283"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper" kindref="compound">RBHelper</ref><sp/>*newob<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a7e142ff9eb0373c6c2ed7b2d59c24b35" kindref="member">RBHelper</ref>();</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/>newob-&gt;ReplaceReference(0,<sp/>pblock-&gt;Clone(remap));</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/>newob-&gt;ivalid.SetEmpty();</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>MAX_RELEASE<sp/>&gt;=<sp/>4000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/>BaseClone(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>newob,<sp/>remap);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(newob);</highlight></codeline>
+<codeline lineno="291"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"></highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a99405fb6d3e16770bc2a7e00428e6fd8" kindref="member">RBHelper::BuildMesh</ref>(TimeValue<sp/>tm)</highlight></codeline>
+<codeline lineno="294"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/>ivalid.SetInfinite();</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/>mesh.setNumTVerts(0);</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/>mesh.setNumTVFaces(0);</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/>mesh.setNumFaces(0);</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/>mesh.setNumVerts(0);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"></highlight></codeline>
+<codeline lineno="302"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a373a97023e84f847a85367ea3dff6b36" kindref="member">RBHelper::DrawIt</ref>(GraphicsWindow<sp/>*gw,<sp/>TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sel,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>ViewExp<sp/>*vpt)</highlight></codeline>
+<codeline lineno="303"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/>DWORD<sp/>rlim<sp/>=<sp/>gw-&gt;getRndLimits();</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/>gw-&gt;setRndLimits((rlim<sp/>|<sp/>GW_WIREFRAME)<sp/>&amp;<sp/>~(GW_ILLUM<sp/>|<sp/>GW_BACKCULL<sp/>|<sp/>GW_FLAT<sp/>|<sp/>GW_SPECULAR));</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/>Matrix3<sp/>tm<sp/>=<sp/>inode-&gt;GetNodeTM(t);</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/>Point3<sp/>vx,<sp/>vy,<sp/>vz,<sp/>p0,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[9];</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sz;</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>t,<sp/>sz);</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/>vx<sp/>=<sp/>tm.GetRow(0)<sp/>*<sp/>sz;</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/>vy<sp/>=<sp/>tm.GetRow(1)<sp/>*<sp/>sz;</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/>vz<sp/>=<sp/>tm.GetRow(2)<sp/>*<sp/>sz;</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/>p0<sp/>=<sp/>tm.GetRow(3);</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"></highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1a00453d74753fc4ddab02f1164c51959d" kindref="member">set_axis_color</ref>(gw,<sp/>inode,<sp/>0);</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[0]<sp/>=<sp/>p0<sp/>-<sp/>vx;</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1]<sp/>=<sp/>p0<sp/>+<sp/>vx;</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[2]<sp/>=<sp/>p0<sp/>+<sp/>vx<sp/>*<sp/>0.5f<sp/>-<sp/>vy<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[3]<sp/>=<sp/>p0<sp/>+<sp/>vx<sp/>*<sp/>0.5f<sp/>+<sp/>vy<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[4]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[5]<sp/>=<sp/>p0<sp/>+<sp/>vx<sp/>*<sp/>0.5f<sp/>-<sp/>vz<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[6]<sp/>=<sp/>p0<sp/>+<sp/>vx<sp/>*<sp/>0.5f<sp/>+<sp/>vz<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[7]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/>gw-&gt;polyline(8,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>NULL,<sp/>NULL,<sp/>FALSE,<sp/>NULL);</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1a00453d74753fc4ddab02f1164c51959d" kindref="member">set_axis_color</ref>(gw,<sp/>inode,<sp/>1);</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[0]<sp/>=<sp/>p0<sp/>-<sp/>vy;</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1]<sp/>=<sp/>p0<sp/>+<sp/>vy;</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[2]<sp/>=<sp/>p0<sp/>+<sp/>vy<sp/>*<sp/>0.5f<sp/>-<sp/>vx<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[3]<sp/>=<sp/>p0<sp/>+<sp/>vy<sp/>*<sp/>0.5f<sp/>+<sp/>vx<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[4]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[5]<sp/>=<sp/>p0<sp/>+<sp/>vy<sp/>*<sp/>0.5f<sp/>-<sp/>vz<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[6]<sp/>=<sp/>p0<sp/>+<sp/>vy<sp/>*<sp/>0.5f<sp/>+<sp/>vz<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[7]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/>gw-&gt;polyline(8,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>NULL,<sp/>NULL,<sp/>FALSE,<sp/>NULL);</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1a00453d74753fc4ddab02f1164c51959d" kindref="member">set_axis_color</ref>(gw,<sp/>inode,<sp/>2);</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[0]<sp/>=<sp/>p0<sp/>-<sp/>vz;</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1]<sp/>=<sp/>p0<sp/>+<sp/>vz;</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[2]<sp/>=<sp/>p0<sp/>+<sp/>vz<sp/>*<sp/>0.5f<sp/>-<sp/>vx<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[3]<sp/>=<sp/>p0<sp/>+<sp/>vz<sp/>*<sp/>0.5f<sp/>+<sp/>vx<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[4]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[5]<sp/>=<sp/>p0<sp/>+<sp/>vz<sp/>*<sp/>0.5f<sp/>-<sp/>vy<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[6]<sp/>=<sp/>p0<sp/>+<sp/>vz<sp/>*<sp/>0.5f<sp/>+<sp/>vy<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[7]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/>gw-&gt;polyline(8,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>NULL,<sp/>NULL,<sp/>FALSE,<sp/>NULL);</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"></highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/>gw-&gt;setRndLimits(rlim);</highlight></codeline>
+<codeline lineno="349"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"></highlight></codeline>
+<codeline lineno="351"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a40b5261335b10c62ed1ff301a8f27b3d" kindref="member">RBHelper::GetLocalBoundBox</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/>Box3<sp/>&amp;box)</highlight></codeline>
+<codeline lineno="352"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/>Matrix3<sp/>mat<sp/>=<sp/>Inverse(inode-&gt;GetNodeTM(t));</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sz;</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>t,<sp/>sz);</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/>box.MakeCube(Point3(0,<sp/>0,<sp/>0),<sp/>sz<sp/>*<sp/>2);</highlight></codeline>
+<codeline lineno="358"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"></highlight></codeline>
+<codeline lineno="360"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1af22ac02b65baf2d2d7eb4c92572b5b18" kindref="member">RBHelper::GetWorldBoundBox</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/>Box3<sp/>&amp;box)</highlight></codeline>
+<codeline lineno="361"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="362"><highlight class="normal"><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"><sp/><sp/>Matrix3<sp/>mat<sp/>=<sp/>inode-&gt;GetNodeTM(t);</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/><ref refid="classRBHelper_1a40b5261335b10c62ed1ff301a8f27b3d" kindref="member">GetLocalBoundBox</ref>(t,<sp/>inode,<sp/>vpt,<sp/>box);</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/>box<sp/>=<sp/>box<sp/>*<sp/>mat;</highlight></codeline>
+<codeline lineno="366"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="367"><highlight class="normal"></highlight></codeline>
+<codeline lineno="368"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRBHelper_1a883488607ba14357bf80df6e7013f7c2" kindref="member">RBHelper::GetDeformBBox</ref>(TimeValue<sp/>t,<sp/>Box3<sp/>&amp;box,<sp/>Matrix3<sp/>*tm,<sp/>BOOL<sp/>useSel)</highlight></codeline>
+<codeline lineno="369"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="370"><highlight class="normal"><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="371"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sz;</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="rbDummy_8cpp_1a39fca1837c5ce7715cbf571669660c13a3354672ef7011c083333261558d932fb" kindref="member">PB_SIZE</ref>,<sp/>t,<sp/>sz);</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"><sp/><sp/>box.MakeCube(Point3(0,<sp/>0,<sp/>0),<sp/>sz<sp/>*<sp/>2);</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tm)</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/><sp/><sp/>box<sp/>=<sp/>box<sp/>*<sp/>(*tm);</highlight></codeline>
+<codeline lineno="376"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="rbDummy.cpp"/>
+  </compounddef>
+</doxygen>

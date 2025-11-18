@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderBindingTableOffset" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderBindingTableOffset</compoundname>
+    <derivedcompoundref refid="structraytrace_1_1ShaderBindingTableSubRange" prot="public" virt="non-virtual">raytrace::ShaderBindingTableSubRange</derivedcompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableOffset_1a9b939b93f894003ad70c88962eb61984" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::ShaderBindingTableOffset::bindingTableBuffer</definition>
+        <argsstring></argsstring>
+        <name>bindingTableBuffer</name>
+        <qualifiedname>raytrace::ShaderBindingTableOffset::bindingTableBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Buffer that hold the binding table entry / entries. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="906" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="906" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableOffset_1a6a671f34b7d1f6c1941a01c3084d7dc6" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableOffset::offsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>offsetInBytes</name>
+        <qualifiedname>raytrace::ShaderBindingTableOffset::offsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Offset in the buffer to the first entry. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="908" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="908" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableOffset_1a6d0641b3442b640a24e55183309c2ecc" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableOffset::sizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>sizeInBytes</name>
+        <qualifiedname>raytrace::ShaderBindingTableOffset::sizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Size of each entry, this includes handle size plush shader record size. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="910" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="910" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Shader binding table entry info for groups with one entry. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>raytrace::ShaderBindingTableOffset</label>
+        <link refid="structraytrace_1_1ShaderBindingTableOffset"/>
+      </node>
+      <node id="2">
+        <label>raytrace::ShaderBindingTableSubRange</label>
+        <link refid="structraytrace_1_1ShaderBindingTableSubRange"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::ShaderBindingTableOffset</label>
+        <link refid="structraytrace_1_1ShaderBindingTableOffset"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>bindingTableBuffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="903" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="904" bodyend="911"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderBindingTableOffset_1a9b939b93f894003ad70c88962eb61984" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableOffset</scope><name>bindingTableBuffer</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableOffset_1a6a671f34b7d1f6c1941a01c3084d7dc6" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableOffset</scope><name>offsetInBytes</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableOffset_1a6d0641b3442b640a24e55183309c2ecc" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableOffset</scope><name>sizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,291 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMesh_1_1RElem" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderMesh::RElem</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMesh_1_1RElem_1a70149079ff50f926b36ad4a705cb3ee5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::vdOrderIndex</definition>
+        <argsstring></argsstring>
+        <name>vdOrderIndex</name>
+        <qualifiedname>ShaderMesh::RElem::vdOrderIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="363" column="9" bodyfile="dag_shaderMesh.h" bodystart="363" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMesh_1_1RElem_1a4d6e89ab36da4af7cfba506ca83f0058" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::sv</definition>
+        <argsstring></argsstring>
+        <name>sv</name>
+        <qualifiedname>ShaderMesh::RElem::sv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="365" column="9" bodyfile="dag_shaderMesh.h" bodystart="365" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMesh_1_1RElem_1a81698cc4a2bfac9d873662acfa9e60ec" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::numv</definition>
+        <argsstring></argsstring>
+        <name>numv</name>
+        <qualifiedname>ShaderMesh::RElem::numv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="366" column="9" bodyfile="dag_shaderMesh.h" bodystart="366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMesh_1_1RElem_1ac3ba220a45e772ad0fff10ddbeb97e7b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::si</definition>
+        <argsstring></argsstring>
+        <name>si</name>
+        <qualifiedname>ShaderMesh::RElem::si</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="368" column="9" bodyfile="dag_shaderMesh.h" bodystart="368" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMesh_1_1RElem_1a2c8f951aec69b1cbbd6a8e2f1cea347a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::numf</definition>
+        <argsstring></argsstring>
+        <name>numf</name>
+        <qualifiedname>ShaderMesh::RElem::numf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="369" column="9" bodyfile="dag_shaderMesh.h" bodystart="369" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMesh_1_1RElem_1a351306fe9b736a2d29cfe87ba524c184" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::baseVertex</definition>
+        <argsstring></argsstring>
+        <name>baseVertex</name>
+        <qualifiedname>ShaderMesh::RElem::baseVertex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="370" column="9" bodyfile="dag_shaderMesh.h" bodystart="370" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a37cd8b88eed8780c211def731336b952" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMesh::RElem::PATCHABLE_DATA64</definition>
+        <argsstring>(Ptr&lt; ShaderElement &gt;, e)</argsstring>
+        <name>PATCHABLE_DATA64</name>
+        <qualifiedname>ShaderMesh::RElem::PATCHABLE_DATA64</qualifiedname>
+        <param>
+          <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        </param>
+        <param>
+          <type>e</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="359" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a210afd99b3e70f9295dae0313caf5d63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMesh::RElem::PATCHABLE_DATA64</definition>
+        <argsstring>(Ptr&lt; ShaderMaterial &gt;, mat)</argsstring>
+        <name>PATCHABLE_DATA64</name>
+        <qualifiedname>ShaderMesh::RElem::PATCHABLE_DATA64</qualifiedname>
+        <param>
+          <type>Ptr&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> &gt;</type>
+        </param>
+        <param>
+          <type>mat</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="360" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1ab2437284f18b1113b2138bf8978cbf61" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMesh::RElem::PATCHABLE_DATA64</definition>
+        <argsstring>(GlobalVertexData *, vertexData)</argsstring>
+        <name>PATCHABLE_DATA64</name>
+        <qualifiedname>ShaderMesh::RElem::PATCHABLE_DATA64</qualifiedname>
+        <param>
+          <type><ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref> *</type>
+        </param>
+        <param>
+          <type>vertexData</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="361" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a11b9861ce98d1906046f01bfa9114f53" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::drawIndTriList</definition>
+        <argsstring>() const</argsstring>
+        <name>drawIndTriList</name>
+        <qualifiedname>ShaderMesh::RElem::drawIndTriList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="372" column="9" bodyfile="dag_shaderMesh.h" bodystart="372" bodyend="372"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a6369656ca7fbbd11f02b691022e308d2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMesh::RElem::drawIndTriList</definition>
+        <argsstring>(uint32_t num_inst, uint32_t start_inst=0) const</argsstring>
+        <name>drawIndTriList</name>
+        <qualifiedname>ShaderMesh::RElem::drawIndTriList</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>num_inst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>start_inst</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="373" column="9" bodyfile="dag_shaderMesh.h" bodystart="373" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a12c103e3d0faf0bdfc5eea0c1b9781db" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::RElem::renderWithElem</definition>
+        <argsstring>(const ShaderElement &amp;elem) const</argsstring>
+        <name>renderWithElem</name>
+        <qualifiedname>ShaderMesh::RElem::renderWithElem</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &amp;</type>
+          <declname>elem</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="377" column="10" bodyfile="dag_shaderMesh.h" bodystart="377" bodyend="377"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1ac503de43a3f00d0e81ae6389c327ef3b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMesh::RElem::render</definition>
+        <argsstring>() const</argsstring>
+        <name>render</name>
+        <qualifiedname>ShaderMesh::RElem::render</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="378" column="10" bodyfile="dag_shaderMesh.h" bodystart="378" bodyend="378"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a9201b454b8f1533c5248b84c53189fb3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderMesh::RElem::getPrimitive</definition>
+        <argsstring>() const</argsstring>
+        <name>getPrimitive</name>
+        <qualifiedname>ShaderMesh::RElem::getPrimitive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="380" column="13" bodyfile="dag_shaderMesh.h" bodystart="380" bodyend="380"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a362512f6565d38eb1c7a1f3df9b3c3d5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMesh::RElem::RElem</definition>
+        <argsstring>()=delete</argsstring>
+        <name>RElem</name>
+        <qualifiedname>ShaderMesh::RElem::RElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="382" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMesh_1_1RElem_1a4c73cb43dd3a398c928c70d0e03f2a5c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMesh::RElem::RElem</definition>
+        <argsstring>(const RElem &amp;)=delete</argsstring>
+        <name>RElem</name>
+        <qualifiedname>ShaderMesh::RElem::RElem</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderMesh_1_1RElem" kindref="compound">RElem</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="383" column="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="357" column="3" bodyfile="dag_shaderMesh.h" bodystart="358" bodyend="384"/>
+    <listofallmembers>
+      <member refid="structShaderMesh_1_1RElem_1a351306fe9b736a2d29cfe87ba524c184" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>baseVertex</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a11b9861ce98d1906046f01bfa9114f53" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>drawIndTriList</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a6369656ca7fbbd11f02b691022e308d2" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>drawIndTriList</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a9201b454b8f1533c5248b84c53189fb3" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>getPrimitive</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a2c8f951aec69b1cbbd6a8e2f1cea347a" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>numf</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a81698cc4a2bfac9d873662acfa9e60ec" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>numv</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a37cd8b88eed8780c211def731336b952" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>PATCHABLE_DATA64</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a210afd99b3e70f9295dae0313caf5d63" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>PATCHABLE_DATA64</name></member>
+      <member refid="structShaderMesh_1_1RElem_1ab2437284f18b1113b2138bf8978cbf61" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>PATCHABLE_DATA64</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a362512f6565d38eb1c7a1f3df9b3c3d5" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>RElem</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a4c73cb43dd3a398c928c70d0e03f2a5c" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>RElem</name></member>
+      <member refid="structShaderMesh_1_1RElem_1ac503de43a3f00d0e81ae6389c327ef3b" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>render</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a12c103e3d0faf0bdfc5eea0c1b9781db" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>renderWithElem</name></member>
+      <member refid="structShaderMesh_1_1RElem_1ac3ba220a45e772ad0fff10ddbeb97e7b" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>si</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a4d6e89ab36da4af7cfba506ca83f0058" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>sv</name></member>
+      <member refid="structShaderMesh_1_1RElem_1a70149079ff50f926b36ad4a705cb3ee5" prot="public" virt="non-virtual"><scope>ShaderMesh::RElem</scope><name>vdOrderIndex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

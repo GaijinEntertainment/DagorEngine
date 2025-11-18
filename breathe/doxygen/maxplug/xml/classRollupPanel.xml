@@ -1,0 +1,1039 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRollupPanel" kind="class" language="C++" prot="public">
+    <compoundname>RollupPanel</compoundname>
+    <includes refid="rolluppanel_8h" local="no">rolluppanel.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classRollupPanel_1af1acd5c78c770593d541bf5993a7bf78" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class FillCB</definition>
+        <argsstring></argsstring>
+        <name>FillCB</name>
+        <qualifiedname>RollupPanel::FillCB</qualifiedname>
+        <param>
+          <type><ref refid="classFillCB" kindref="compound">FillCB</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="24" column="16" bodyfile="rolluppanel.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classRollupPanel_1a9fdc255ae5b115eba763da2aa40b9fe8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class SyncMaxParams</definition>
+        <argsstring></argsstring>
+        <name>SyncMaxParams</name>
+        <qualifiedname>RollupPanel::SyncMaxParams</qualifiedname>
+        <param>
+          <type><ref refid="classSyncMaxParams" kindref="compound">SyncMaxParams</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="25" column="16" bodyfile="rolluppanel.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classRollupPanel_1a24fa8bf3a3fcb021ad689bf16b25acde" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class SyncPanelParams</definition>
+        <argsstring></argsstring>
+        <name>SyncPanelParams</name>
+        <qualifiedname>RollupPanel::SyncPanelParams</qualifiedname>
+        <param>
+          <type><ref refid="classSyncPanelParams" kindref="compound">SyncPanelParams</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="26" column="16" bodyfile="rolluppanel.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classRollupPanel_1a5fe48bb797a12f99ee567727a5f27a6b" prot="private" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* RollupPanel::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>RollupPanel::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="28" column="13" bodyfile="rolluppanel.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRollupPanel_1acdbb59ab25d4c9f5e8abe8dbc017f24d" prot="private" static="no" mutable="no">
+        <type>IRollupWindow *</type>
+        <definition>IRollupWindow* RollupPanel::iRoll</definition>
+        <argsstring></argsstring>
+        <name>iRoll</name>
+        <qualifiedname>RollupPanel::iRoll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="30" column="17" bodyfile="rolluppanel.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classRollupPanel_1a59ce639ae295ae14da5723d84db4199d" prot="private" static="yes" mutable="no">
+        <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+        <definition>RollupPanel * RollupPanel::instance</definition>
+        <argsstring></argsstring>
+        <name>instance</name>
+        <qualifiedname>RollupPanel::instance</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="29" column="22" bodyfile="rolluppanel.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRollupPanel_1a670c541bf6e13f095078ee9fd70a91c7" prot="private" static="yes" mutable="no">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * RollupPanel::templateBlk</definition>
+        <argsstring></argsstring>
+        <name>templateBlk</name>
+        <qualifiedname>RollupPanel::templateBlk</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="31" column="20" bodyfile="rolluppanel.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRollupPanel_1a3179caf9a354a5c87cb2766e1ef5e104" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RollupPanel::RollupPanel</definition>
+        <argsstring>(Interface *ip, const HWND dlg_hwnd)</argsstring>
+        <name>RollupPanel</name>
+        <qualifiedname>RollupPanel::RollupPanel</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>const HWND</type>
+          <declname>dlg_hwnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="12" column="3" bodyfile="rolluppanel.cpp" bodystart="739" bodyend="747"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1af167affe4fd38ccd31069914c1f20527" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RollupPanel::~RollupPanel</definition>
+        <argsstring>()</argsstring>
+        <name>~RollupPanel</name>
+        <qualifiedname>RollupPanel::~RollupPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="13" column="3" bodyfile="rolluppanel.cpp" bodystart="1143" bodyend="1152"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a02e09f8367f5587c1b0f12c646b89505" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::onPPChange</definition>
+        <argsstring>(const char *group, const char *type, const char *name)</argsstring>
+        <name>onPPChange</name>
+        <qualifiedname>RollupPanel::onPPChange</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="14" column="8" bodyfile="rolluppanel.cpp" bodystart="1129" bodyend="1133"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1ac2b676eac4198b25981bbb033845a7ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::fillPanel</definition>
+        <argsstring>()</argsstring>
+        <name>fillPanel</name>
+        <qualifiedname>RollupPanel::fillPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="15" column="8" bodyfile="rolluppanel.cpp" bodystart="1135" bodyend="1141"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classRollupPanel_1aa96aaf245bfdb43b7594b8248294be28" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RollupPanel::saveUserPropBufferToBlk</definition>
+        <argsstring>(DataBlock &amp;blk, INode *n, int &amp;blk_param_count)</argsstring>
+        <name>saveUserPropBufferToBlk</name>
+        <qualifiedname>RollupPanel::saveUserPropBufferToBlk</qualifiedname>
+        <param>
+          <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>blk_param_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="17" column="15" bodyfile="rolluppanel.cpp" bodystart="980" bodyend="1000"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1ad20333cd9dce0b8ff93cfdcb3c49c188" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::correctUserProp</definition>
+        <argsstring>(INode *n)</argsstring>
+        <name>correctUserProp</name>
+        <qualifiedname>RollupPanel::correctUserProp</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="18" column="15" bodyfile="rolluppanel.cpp" bodystart="1003" bodyend="1036"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a3f3a1ba6897262afac8d8d8142521ff0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::getBlkFromUserProp</definition>
+        <argsstring>(INode *n, CStr &amp;blk_string, CStr &amp;non_blk_str)</argsstring>
+        <name>getBlkFromUserProp</name>
+        <qualifiedname>RollupPanel::getBlkFromUserProp</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>CStr &amp;</type>
+          <declname>blk_string</declname>
+        </param>
+        <param>
+          <type>CStr &amp;</type>
+          <declname>non_blk_str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="19" column="15" bodyfile="rolluppanel.cpp" bodystart="914" bodyend="977"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a481bd6572307e6e3fe254750a7f205b1" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+        <definition>DataBlock &amp; RollupPanel::getTemplateBlk</definition>
+        <argsstring>()</argsstring>
+        <name>getTemplateBlk</name>
+        <qualifiedname>RollupPanel::getTemplateBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="21" column="20" bodyfile="rolluppanel.cpp" bodystart="749" bodyend="760"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classRollupPanel_1ad52d19f55da2cddbc1757b135d8cbeed" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::addButtons</definition>
+        <argsstring>(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, Tab&lt; String &gt; &amp;items)</argsstring>
+        <name>addButtons</name>
+        <qualifiedname>RollupPanel::addButtons</qualifiedname>
+        <param>
+          <type>const HWND</type>
+          <declname>group_hwnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idc</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>items</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="33" column="8" bodyfile="rolluppanel.cpp" bodystart="1226" bodyend="1253"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1af57a4100327c2bdf0d731fab5d08a9f8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::addComboInput</definition>
+        <argsstring>(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, Tab&lt; String &gt; &amp;items)</argsstring>
+        <name>addComboInput</name>
+        <qualifiedname>RollupPanel::addComboInput</qualifiedname>
+        <param>
+          <type>const HWND</type>
+          <declname>group_hwnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idc</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>items</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="34" column="8" bodyfile="rolluppanel.cpp" bodystart="1256" bodyend="1277"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a28a1dbfbbd1c74f9be52290c69be64eb" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::addIntInput</definition>
+        <argsstring>(const HWND group_hwnd, int idc, const char *name, int val, bool enable)</argsstring>
+        <name>addIntInput</name>
+        <qualifiedname>RollupPanel::addIntInput</qualifiedname>
+        <param>
+          <type>const HWND</type>
+          <declname>group_hwnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idc</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="35" column="8" bodyfile="rolluppanel.cpp" bodystart="1280" bodyend="1311"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a0c40ce685dc4b169a97f40fd3275f6b4" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::addRealInput</definition>
+        <argsstring>(const HWND group_hwnd, int idc, const char *name, real val, bool enable)</argsstring>
+        <name>addRealInput</name>
+        <qualifiedname>RollupPanel::addRealInput</qualifiedname>
+        <param>
+          <type>const HWND</type>
+          <declname>group_hwnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idc</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="36" column="8" bodyfile="rolluppanel.cpp" bodystart="1313" bodyend="1345"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a3a9e6206d01a3a94d0638cc8df7935dd" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::addStrInput</definition>
+        <argsstring>(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable)</argsstring>
+        <name>addStrInput</name>
+        <qualifiedname>RollupPanel::addStrInput</qualifiedname>
+        <param>
+          <type>const HWND</type>
+          <declname>group_hwnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idc</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="37" column="8" bodyfile="rolluppanel.cpp" bodystart="1347" bodyend="1368"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1ac3c6b2bfbb107cedb93020dfcf566202" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::addCheck</definition>
+        <argsstring>(const HWND group_hwnd, int idc, const char *name, bool val, bool enable)</argsstring>
+        <name>addCheck</name>
+        <qualifiedname>RollupPanel::addCheck</qualifiedname>
+        <param>
+          <type>const HWND</type>
+          <declname>group_hwnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idc</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="38" column="8" bodyfile="rolluppanel.cpp" bodystart="1371" bodyend="1386"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a1454f3b0380a2d495dc7c05564fd3ea4" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::setNotCommon</definition>
+        <argsstring>(const char *group, const char *name, bool nc)</argsstring>
+        <name>setNotCommon</name>
+        <qualifiedname>RollupPanel::setNotCommon</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>nc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="39" column="8" bodyfile="rolluppanel.cpp" bodystart="1388" bodyend="1396"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a88cb7f9ec6851c956590fe5e22edecc3" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RollupPanel::getCheck</definition>
+        <argsstring>(const char *group, const char *name)</argsstring>
+        <name>getCheck</name>
+        <qualifiedname>RollupPanel::getCheck</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="40" column="8" bodyfile="rolluppanel.cpp" bodystart="1398" bodyend="1406"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a3207e3fd3549d62f1b90f03d4cc41b41" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::getInput</definition>
+        <argsstring>(const char *group, const char *name, char *val)</argsstring>
+        <name>getInput</name>
+        <qualifiedname>RollupPanel::getInput</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="41" column="8" bodyfile="rolluppanel.cpp" bodystart="1442" bodyend="1456"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a272a98046b1c853ae3f0ad0c644fcd72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::getCombo</definition>
+        <argsstring>(const char *group, const char *name, char *val)</argsstring>
+        <name>getCombo</name>
+        <qualifiedname>RollupPanel::getCombo</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="42" column="8" bodyfile="rolluppanel.cpp" bodystart="1421" bodyend="1440"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1abeb9ae15998c6752d20833bd187b100c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 RollupPanel::getPoint3Input</definition>
+        <argsstring>(const char *group, const char *name)</argsstring>
+        <name>getPoint3Input</name>
+        <qualifiedname>RollupPanel::getPoint3Input</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="43" column="10" bodyfile="rolluppanel.cpp" bodystart="1458" bodyend="1473"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1aaf8b3243d1f95d5a713e3ccff4773ef7" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real RollupPanel::getRealInput</definition>
+        <argsstring>(const char *group, const char *name)</argsstring>
+        <name>getRealInput</name>
+        <qualifiedname>RollupPanel::getRealInput</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="44" column="8" bodyfile="rolluppanel.cpp" bodystart="1408" bodyend="1419"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a8e522330fb65af270259fd9ecd78883a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::bindCommand</definition>
+        <argsstring>(INode *n, const char *name, const DataBlock &amp;blk)</argsstring>
+        <name>bindCommand</name>
+        <qualifiedname>RollupPanel::bindCommand</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="45" column="8" bodyfile="rolluppanel.cpp" bodystart="1475" bodyend="1519"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a5db9a677195f60b926ffd0a359293bee" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::fillFromBlk</definition>
+        <argsstring>(const DataBlock &amp;blk, bool enable)</argsstring>
+        <name>fillFromBlk</name>
+        <qualifiedname>RollupPanel::fillFromBlk</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="47" column="8" bodyfile="rolluppanel.cpp" bodystart="762" bodyend="780"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1aca4cef26a069987081a7000921bea68d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::saveToUserPropBuffer</definition>
+        <argsstring>(INode *n, const char *additional=NULL)</argsstring>
+        <name>saveToUserPropBuffer</name>
+        <qualifiedname>RollupPanel::saveToUserPropBuffer</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>additional</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="53" column="8" bodyfile="rolluppanel.cpp" bodystart="1121" bodyend="1127"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a86222f2378ee3331a67bf4853af085cc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RollupPanel::updateNCFromUserPropBuffer</definition>
+        <argsstring>(INode *n, int &amp;blk_param_count)</argsstring>
+        <name>updateNCFromUserPropBuffer</name>
+        <qualifiedname>RollupPanel::updateNCFromUserPropBuffer</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>blk_param_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="54" column="8" bodyfile="rolluppanel.cpp" bodystart="1093" bodyend="1105"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a34db7d63d235379bfb3e51b7f7c196a5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RollupPanel::updateFromUserPropBuffer</definition>
+        <argsstring>(INode *n, int &amp;blk_param_count)</argsstring>
+        <name>updateFromUserPropBuffer</name>
+        <qualifiedname>RollupPanel::updateFromUserPropBuffer</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>blk_param_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="55" column="8" bodyfile="rolluppanel.cpp" bodystart="1107" bodyend="1119"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a8d05d2b00c04c739170ad8247db72607" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::bindCommands</definition>
+        <argsstring>(INode *n, DataBlock &amp;blk)</argsstring>
+        <name>bindCommands</name>
+        <qualifiedname>RollupPanel::bindCommands</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="57" column="8" bodyfile="rolluppanel.cpp" bodystart="1521" bodyend="1539"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a7ac04c068bf1c6d7e2d23740e8787ac8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>HWND</type>
+        <definition>HWND RollupPanel::addGroup</definition>
+        <argsstring>(IRollupWindow *roll, int count, const char *name)</argsstring>
+        <name>addGroup</name>
+        <qualifiedname>RollupPanel::addGroup</qualifiedname>
+        <param>
+          <type>IRollupWindow *</type>
+          <declname>roll</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="58" column="8" bodyfile="rolluppanel.cpp" bodystart="1217" bodyend="1224"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a9d3f993bf0813f1c6eda1773788128c0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::updateNCFromBlk</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>updateNCFromBlk</name>
+        <qualifiedname>RollupPanel::updateNCFromBlk</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="59" column="8" bodyfile="rolluppanel.cpp" bodystart="789" bodyend="793"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1aadb1223e8ac85641c3b3ba0ab654a76b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::updateFromBlk</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>updateFromBlk</name>
+        <qualifiedname>RollupPanel::updateFromBlk</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="60" column="8" bodyfile="rolluppanel.cpp" bodystart="783" bodyend="787"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classRollupPanel_1ab69390db4569b2c287ddf5b84f800f57" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RollupPanel::saveBlkToUserPropBuffer</definition>
+        <argsstring>(const DataBlock &amp;blk, INode *n, const char *additional=NULL)</argsstring>
+        <name>saveBlkToUserPropBuffer</name>
+        <qualifiedname>RollupPanel::saveBlkToUserPropBuffer</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>additional</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="49" column="15" bodyfile="rolluppanel.cpp" bodystart="1039" bodyend="1052"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1ad323c79aadf67b7cc479455069ab61cc" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::getMaxBlkFileName</definition>
+        <argsstring>(const char *blk, char *file_name)</argsstring>
+        <name>getMaxBlkFileName</name>
+        <qualifiedname>RollupPanel::getMaxBlkFileName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>file_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="50" column="15" bodyfile="rolluppanel.cpp" bodystart="795" bodyend="816"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1ac778e852fb3c74945ccb7d0bbeb7059a" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RollupPanel::getBlkInString</definition>
+        <argsstring>(const DataBlock &amp;blk, CStr &amp;out)</argsstring>
+        <name>getBlkInString</name>
+        <qualifiedname>RollupPanel::getBlkInString</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>CStr &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="51" column="15" bodyfile="rolluppanel.cpp" bodystart="1055" bodyend="1063"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a17af198f0df8b1b17e6af1c610fff0fd" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RollupPanel::analyzeCfg</definition>
+        <argsstring>(DataBlock &amp;blk, CStr &amp;source)</argsstring>
+        <name>analyzeCfg</name>
+        <qualifiedname>RollupPanel::analyzeCfg</qualifiedname>
+        <param>
+          <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>CStr &amp;</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="62" column="15" bodyfile="rolluppanel.cpp" bodystart="819" bodyend="911"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1a726964e41f87adbf73c028b76e63d1a1" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RollupPanel::loadStrFromFile</definition>
+        <argsstring>(const char *fname, CStr &amp;str)</argsstring>
+        <name>loadStrFromFile</name>
+        <qualifiedname>RollupPanel::loadStrFromFile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>CStr &amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="64" column="15" bodyfile="rolluppanel.cpp" bodystart="1066" bodyend="1090"/>
+      </memberdef>
+      <memberdef kind="function" id="classRollupPanel_1ab54759261b5e2b89711a45e172b00d7f" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL CALLBACK</type>
+        <definition>BOOL RollupPanel::generalRollupProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>generalRollupProc</name>
+        <qualifiedname>RollupPanel::generalRollupProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="66" column="24" bodyfile="rolluppanel.cpp" bodystart="1154" bodyend="1214"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rolluppanel.h" line="9" column="1" bodyfile="rolluppanel.h" bodystart="10" bodyend="67"/>
+    <listofallmembers>
+      <member refid="classRollupPanel_1ad52d19f55da2cddbc1757b135d8cbeed" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>addButtons</name></member>
+      <member refid="classRollupPanel_1ac3c6b2bfbb107cedb93020dfcf566202" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>addCheck</name></member>
+      <member refid="classRollupPanel_1af57a4100327c2bdf0d731fab5d08a9f8" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>addComboInput</name></member>
+      <member refid="classRollupPanel_1a7ac04c068bf1c6d7e2d23740e8787ac8" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>addGroup</name></member>
+      <member refid="classRollupPanel_1a28a1dbfbbd1c74f9be52290c69be64eb" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>addIntInput</name></member>
+      <member refid="classRollupPanel_1a0c40ce685dc4b169a97f40fd3275f6b4" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>addRealInput</name></member>
+      <member refid="classRollupPanel_1a3a9e6206d01a3a94d0638cc8df7935dd" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>addStrInput</name></member>
+      <member refid="classRollupPanel_1a17af198f0df8b1b17e6af1c610fff0fd" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>analyzeCfg</name></member>
+      <member refid="classRollupPanel_1a8e522330fb65af270259fd9ecd78883a" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>bindCommand</name></member>
+      <member refid="classRollupPanel_1a8d05d2b00c04c739170ad8247db72607" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>bindCommands</name></member>
+      <member refid="classRollupPanel_1ad20333cd9dce0b8ff93cfdcb3c49c188" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>correctUserProp</name></member>
+      <member refid="classRollupPanel_1af1acd5c78c770593d541bf5993a7bf78" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>FillCB</name></member>
+      <member refid="classRollupPanel_1a5db9a677195f60b926ffd0a359293bee" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>fillFromBlk</name></member>
+      <member refid="classRollupPanel_1ac2b676eac4198b25981bbb033845a7ad" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>fillPanel</name></member>
+      <member refid="classRollupPanel_1ab54759261b5e2b89711a45e172b00d7f" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>generalRollupProc</name></member>
+      <member refid="classRollupPanel_1a3f3a1ba6897262afac8d8d8142521ff0" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>getBlkFromUserProp</name></member>
+      <member refid="classRollupPanel_1ac778e852fb3c74945ccb7d0bbeb7059a" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>getBlkInString</name></member>
+      <member refid="classRollupPanel_1a88cb7f9ec6851c956590fe5e22edecc3" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>getCheck</name></member>
+      <member refid="classRollupPanel_1a272a98046b1c853ae3f0ad0c644fcd72" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>getCombo</name></member>
+      <member refid="classRollupPanel_1a3207e3fd3549d62f1b90f03d4cc41b41" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>getInput</name></member>
+      <member refid="classRollupPanel_1ad323c79aadf67b7cc479455069ab61cc" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>getMaxBlkFileName</name></member>
+      <member refid="classRollupPanel_1abeb9ae15998c6752d20833bd187b100c" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>getPoint3Input</name></member>
+      <member refid="classRollupPanel_1aaf8b3243d1f95d5a713e3ccff4773ef7" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>getRealInput</name></member>
+      <member refid="classRollupPanel_1a481bd6572307e6e3fe254750a7f205b1" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>getTemplateBlk</name></member>
+      <member refid="classRollupPanel_1a59ce639ae295ae14da5723d84db4199d" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>instance</name></member>
+      <member refid="classRollupPanel_1a5fe48bb797a12f99ee567727a5f27a6b" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>ip</name></member>
+      <member refid="classRollupPanel_1acdbb59ab25d4c9f5e8abe8dbc017f24d" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>iRoll</name></member>
+      <member refid="classRollupPanel_1a726964e41f87adbf73c028b76e63d1a1" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>loadStrFromFile</name></member>
+      <member refid="classRollupPanel_1a02e09f8367f5587c1b0f12c646b89505" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>onPPChange</name></member>
+      <member refid="classRollupPanel_1a3179caf9a354a5c87cb2766e1ef5e104" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>RollupPanel</name></member>
+      <member refid="classRollupPanel_1ab69390db4569b2c287ddf5b84f800f57" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>saveBlkToUserPropBuffer</name></member>
+      <member refid="classRollupPanel_1aca4cef26a069987081a7000921bea68d" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>saveToUserPropBuffer</name></member>
+      <member refid="classRollupPanel_1aa96aaf245bfdb43b7594b8248294be28" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>saveUserPropBufferToBlk</name></member>
+      <member refid="classRollupPanel_1a1454f3b0380a2d495dc7c05564fd3ea4" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>setNotCommon</name></member>
+      <member refid="classRollupPanel_1a9fdc255ae5b115eba763da2aa40b9fe8" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>SyncMaxParams</name></member>
+      <member refid="classRollupPanel_1a24fa8bf3a3fcb021ad689bf16b25acde" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>SyncPanelParams</name></member>
+      <member refid="classRollupPanel_1a670c541bf6e13f095078ee9fd70a91c7" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>templateBlk</name></member>
+      <member refid="classRollupPanel_1aadb1223e8ac85641c3b3ba0ab654a76b" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>updateFromBlk</name></member>
+      <member refid="classRollupPanel_1a34db7d63d235379bfb3e51b7f7c196a5" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>updateFromUserPropBuffer</name></member>
+      <member refid="classRollupPanel_1a9d3f993bf0813f1c6eda1773788128c0" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>updateNCFromBlk</name></member>
+      <member refid="classRollupPanel_1a86222f2378ee3331a67bf4853af085cc" prot="private" virt="non-virtual"><scope>RollupPanel</scope><name>updateNCFromUserPropBuffer</name></member>
+      <member refid="classRollupPanel_1af167affe4fd38ccd31069914c1f20527" prot="public" virt="non-virtual"><scope>RollupPanel</scope><name>~RollupPanel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

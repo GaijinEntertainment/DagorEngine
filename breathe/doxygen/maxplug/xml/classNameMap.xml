@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classNameMap" kind="class" language="C++" prot="public">
+    <compoundname>NameMap</compoundname>
+    <basecompoundref refid="classBaseNameMap" prot="public" virt="non-virtual">BaseNameMap</basecompoundref>
+    <includes refid="namemap_8h" local="no">namemap.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classNameMap_1a8560d4570112d839b90be032f2af34e7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>NameMap::NameMap</definition>
+        <argsstring>()</argsstring>
+        <name>NameMap</name>
+        <qualifiedname>NameMap::NameMap</qualifiedname>
+        <briefdescription>
+<para>Constructor. Memory allocator can be specified (defaults to #tmpmem). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="70" column="3" bodyfile="namemap.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1a8218bc8a19c32dff3d67a3376abf2d23" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int NameMap::getNameId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getNameId</name>
+        <qualifiedname>NameMap::getNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Returns -1 if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="73" column="7" bodyfile="namemap.cpp" bodystart="86" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1af81ec08e783e09c8596c8a0ebf2b5328" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int NameMap::addNameId</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addNameId</name>
+        <qualifiedname>NameMap::addNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Returns -1 if NULL. Adds name to the list if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="76" column="7" bodyfile="namemap.cpp" bodystart="98" bodyend="111"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1a928c58af61cfb3b5630a828f34c63202" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void NameMap::copyFrom</definition>
+        <argsstring>(const NameMap &amp;nm)</argsstring>
+        <name>copyFrom</name>
+        <qualifiedname>NameMap::copyFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="classNameMap" kindref="compound">NameMap</ref> &amp;</type>
+          <declname>nm</declname>
+        </param>
+        <briefdescription>
+<para>To be used instead of private copy constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="79" column="8" bodyfile="namemap.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Case-sensitive version of <ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref>. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BaseNameMap</label>
+        <link refid="classBaseNameMap"/>
+      </node>
+      <node id="1">
+        <label>NameMap</label>
+        <link refid="classNameMap"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseNameMap</label>
+        <link refid="classBaseNameMap"/>
+      </node>
+      <node id="1">
+        <label>NameMap</label>
+        <link refid="classNameMap"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="namemap.h" line="64" column="1" bodyfile="namemap.h" bodystart="65" bodyend="80"/>
+    <listofallmembers>
+      <member refid="classNameMap_1af81ec08e783e09c8596c8a0ebf2b5328" prot="public" virt="non-virtual"><scope>NameMap</scope><name>addNameId</name></member>
+      <member refid="classBaseNameMap_1a9f4799aa8bbfb1c2a50c7b3ab581e7fd" prot="public" virt="non-virtual"><scope>NameMap</scope><name>BaseNameMap</name></member>
+      <member refid="classBaseNameMap_1a379dcfcd995d228fb440ba46dff71efa" prot="public" virt="non-virtual"><scope>NameMap</scope><name>clear</name></member>
+      <member refid="classNameMap_1a928c58af61cfb3b5630a828f34c63202" prot="public" virt="non-virtual"><scope>NameMap</scope><name>copyFrom</name></member>
+      <member refid="classBaseNameMap_1aa12d4ba58ab9753e5b30595c9b7e9718" prot="protected" virt="non-virtual" ambiguityscope="BaseNameMap::"><scope>NameMap</scope><name>copyFrom</name></member>
+      <member refid="classBaseNameMap_1ad27291165fe02dcd33077696c0df2a51" prot="public" virt="non-virtual"><scope>NameMap</scope><name>getName</name></member>
+      <member refid="classNameMap_1a8218bc8a19c32dff3d67a3376abf2d23" prot="public" virt="non-virtual"><scope>NameMap</scope><name>getNameId</name></member>
+      <member refid="classBaseNameMap_1a017e5959e9c9e8c7624e34f7fdba9447" prot="public" virt="non-virtual"><scope>NameMap</scope><name>load</name></member>
+      <member refid="classBaseNameMap_1a09fb9cc27dc905135f38e49f5b898637" prot="public" virt="non-virtual"><scope>NameMap</scope><name>nameCount</name></member>
+      <member refid="classNameMap_1a8560d4570112d839b90be032f2af34e7" prot="public" virt="non-virtual"><scope>NameMap</scope><name>NameMap</name></member>
+      <member refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" prot="protected" virt="non-virtual"><scope>NameMap</scope><name>names</name></member>
+      <member refid="classBaseNameMap_1a1d3bd0a327df8efbf135ae5ac552f5a1" prot="public" virt="non-virtual"><scope>NameMap</scope><name>save</name></member>
+      <member refid="classBaseNameMap_1a27f04775f7b188f0eba8472fc608471a" prot="public" virt="non-virtual"><scope>NameMap</scope><name>~BaseNameMap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

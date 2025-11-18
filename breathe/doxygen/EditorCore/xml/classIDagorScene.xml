@@ -1,0 +1,379 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorScene" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorScene</compoundname>
+    <includes refid="ec__IEditorCore_8h" local="no">ec_IEditorCore.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorScene_1a7fc6014977d4a33a9af24ffc16e7946b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorScene::staticSceneRayTracerTraceRay</definition>
+        <argsstring>(StaticSceneRayTracer &amp;rt, const Point3 &amp;p, const Point3 &amp;wdir2, real &amp;mint2, int from_face=-1) const =0</argsstring>
+        <name>staticSceneRayTracerTraceRay</name>
+        <qualifiedname>IDagorScene::staticSceneRayTracerTraceRay</qualifiedname>
+        <param>
+          <type>StaticSceneRayTracer &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>wdir2</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>mint2</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>from_face</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="505" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a15e7dad3655bbd62bfa1938b8a9fae6e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorScene::fastRtDumpTraceRay</definition>
+        <argsstring>(FastRtDump &amp;frt, int custom, const Point3 &amp;p, const Point3 &amp;dir, real &amp;t, int &amp;out_pmid) const =0</argsstring>
+        <name>fastRtDumpTraceRay</name>
+        <qualifiedname>IDagorScene::fastRtDumpTraceRay</qualifiedname>
+        <param>
+          <type>FastRtDump &amp;</type>
+          <declname>frt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>custom</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out_pmid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="509" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a7e4f20f1b385ba21f1089b2cdcab8982" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>BuildableStaticSceneRayTracer *</type>
+        <definition>virtual BuildableStaticSceneRayTracer * IDagorScene::createBuildableStaticmeshsceneRaytracer</definition>
+        <argsstring>(const Point3 &amp;lsz, int lev) const =0</argsstring>
+        <name>createBuildableStaticmeshsceneRaytracer</name>
+        <qualifiedname>IDagorScene::createBuildableStaticmeshsceneRaytracer</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>lsz</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>lev</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="512" column="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a5a0ff2d446ed602dc3a72fdee15e14a1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorScene::buildableStaticSceneRayTracerAddmesh</definition>
+        <argsstring>(BuildableStaticSceneRayTracer &amp;rt, const Point3 *vert, int vcount, const unsigned *face, unsigned stride, int fn, const unsigned *face_flags, bool rebuild=true) const =0</argsstring>
+        <name>buildableStaticSceneRayTracerAddmesh</name>
+        <qualifiedname>IDagorScene::buildableStaticSceneRayTracerAddmesh</qualifiedname>
+        <param>
+          <type>BuildableStaticSceneRayTracer &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <param>
+          <type>const Point3 *</type>
+          <declname>vert</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vcount</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>face</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>stride</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>face_flags</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>rebuild</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="513" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1af43a0e0a788de9ed27e3adae0450b35e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorScene::buildableStaticSceneRayTracerReserve</definition>
+        <argsstring>(BuildableStaticSceneRayTracer &amp;rt, int face_count, int vert_count) const =0</argsstring>
+        <name>buildableStaticSceneRayTracerReserve</name>
+        <qualifiedname>IDagorScene::buildableStaticSceneRayTracerReserve</qualifiedname>
+        <param>
+          <type>BuildableStaticSceneRayTracer &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>face_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vert_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="515" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a30946b91b42ce91948bf8b94ee5a2134" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorScene::buildableStaticSceneRayTracerRebuild</definition>
+        <argsstring>(BuildableStaticSceneRayTracer &amp;rt) const =0</argsstring>
+        <name>buildableStaticSceneRayTracerRebuild</name>
+        <qualifiedname>IDagorScene::buildableStaticSceneRayTracerRebuild</qualifiedname>
+        <param>
+          <type>BuildableStaticSceneRayTracer &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="516" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1ab66cba243984b09ada441ad257bf885a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticSceneBuilder::StdTonemapper *</type>
+        <definition>virtual StaticSceneBuilder::StdTonemapper * IDagorScene::newStdTonemapper</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newStdTonemapper</name>
+        <qualifiedname>IDagorScene::newStdTonemapper</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="519" column="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a9d115fdcd662567fe47c6d0abf55674d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticSceneBuilder::StdTonemapper *</type>
+        <definition>virtual StaticSceneBuilder::StdTonemapper * IDagorScene::newStdTonemapper</definition>
+        <argsstring>(const StaticSceneBuilder::StdTonemapper &amp;from, IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newStdTonemapper</name>
+        <qualifiedname>IDagorScene::newStdTonemapper</qualifiedname>
+        <param>
+          <type>const StaticSceneBuilder::StdTonemapper &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="520" column="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a391b5a0102a7bcb1735ad2ae9b1b4aaf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorScene::deleteStdTonemapper</definition>
+        <argsstring>(StaticSceneBuilder::StdTonemapper *&amp;mapper) const =0</argsstring>
+        <name>deleteStdTonemapper</name>
+        <qualifiedname>IDagorScene::deleteStdTonemapper</qualifiedname>
+        <param>
+          <type>StaticSceneBuilder::StdTonemapper *&amp;</type>
+          <declname>mapper</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="522" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a8d11dedce98cb03ee1403d64cf2aa5ce" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorScene::stdTonemapperRecalc</definition>
+        <argsstring>(StaticSceneBuilder::StdTonemapper &amp;mapper) const =0</argsstring>
+        <name>stdTonemapperRecalc</name>
+        <qualifiedname>IDagorScene::stdTonemapperRecalc</qualifiedname>
+        <param>
+          <type>StaticSceneBuilder::StdTonemapper &amp;</type>
+          <declname>mapper</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="524" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1ac81735f0eae54ec4145f7f51fa3297bc" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorScene::stdTonemapperSave</definition>
+        <argsstring>(StaticSceneBuilder::StdTonemapper &amp;mapper, DataBlock &amp;blk) const =0</argsstring>
+        <name>stdTonemapperSave</name>
+        <qualifiedname>IDagorScene::stdTonemapperSave</qualifiedname>
+        <param>
+          <type>StaticSceneBuilder::StdTonemapper &amp;</type>
+          <declname>mapper</declname>
+        </param>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="525" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a565883a3e00d9f55157a8649c6f6675f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorScene::stdTonemapperLoad</definition>
+        <argsstring>(StaticSceneBuilder::StdTonemapper &amp;mapper, const DataBlock &amp;blk) const =0</argsstring>
+        <name>stdTonemapperLoad</name>
+        <qualifiedname>IDagorScene::stdTonemapperLoad</qualifiedname>
+        <param>
+          <type>StaticSceneBuilder::StdTonemapper &amp;</type>
+          <declname>mapper</declname>
+        </param>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="526" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a184d0125c2ff0d4400a8801872e98973" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>GameResource *</type>
+        <definition>virtual GameResource * IDagorScene::getGameResource</definition>
+        <argsstring>(GameResHandle handle, bool no_factory_fatal=true) const =0</argsstring>
+        <name>getGameResource</name>
+        <qualifiedname>IDagorScene::getGameResource</qualifiedname>
+        <param>
+          <type>GameResHandle</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>no_factory_fatal</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="529" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorScene_1a18db82b4fcfcdae803beea45343e10c3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorScene::releaseGameResource</definition>
+        <argsstring>(GameResource *resource) const =0</argsstring>
+        <name>releaseGameResource</name>
+        <qualifiedname>IDagorScene::releaseGameResource</qualifiedname>
+        <param>
+          <type>GameResource *</type>
+          <declname>resource</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="530" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="501" column="1" bodyfile="ec_IEditorCore.h" bodystart="502" bodyend="531"/>
+    <listofallmembers>
+      <member refid="classIDagorScene_1a5a0ff2d446ed602dc3a72fdee15e14a1" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>buildableStaticSceneRayTracerAddmesh</name></member>
+      <member refid="classIDagorScene_1a30946b91b42ce91948bf8b94ee5a2134" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>buildableStaticSceneRayTracerRebuild</name></member>
+      <member refid="classIDagorScene_1af43a0e0a788de9ed27e3adae0450b35e" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>buildableStaticSceneRayTracerReserve</name></member>
+      <member refid="classIDagorScene_1a7e4f20f1b385ba21f1089b2cdcab8982" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>createBuildableStaticmeshsceneRaytracer</name></member>
+      <member refid="classIDagorScene_1a391b5a0102a7bcb1735ad2ae9b1b4aaf" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>deleteStdTonemapper</name></member>
+      <member refid="classIDagorScene_1a15e7dad3655bbd62bfa1938b8a9fae6e" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>fastRtDumpTraceRay</name></member>
+      <member refid="classIDagorScene_1a184d0125c2ff0d4400a8801872e98973" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>getGameResource</name></member>
+      <member refid="classIDagorScene_1ab66cba243984b09ada441ad257bf885a" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>newStdTonemapper</name></member>
+      <member refid="classIDagorScene_1a9d115fdcd662567fe47c6d0abf55674d" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>newStdTonemapper</name></member>
+      <member refid="classIDagorScene_1a18db82b4fcfcdae803beea45343e10c3" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>releaseGameResource</name></member>
+      <member refid="classIDagorScene_1a7fc6014977d4a33a9af24ffc16e7946b" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>staticSceneRayTracerTraceRay</name></member>
+      <member refid="classIDagorScene_1a565883a3e00d9f55157a8649c6f6675f" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>stdTonemapperLoad</name></member>
+      <member refid="classIDagorScene_1a8d11dedce98cb03ee1403d64cf2aa5ce" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>stdTonemapperRecalc</name></member>
+      <member refid="classIDagorScene_1ac81735f0eae54ec4145f7f51fa3297bc" prot="public" virt="pure-virtual"><scope>IDagorScene</scope><name>stdTonemapperSave</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

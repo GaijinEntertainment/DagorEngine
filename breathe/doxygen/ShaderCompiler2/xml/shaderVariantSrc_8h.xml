@@ -1,0 +1,309 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shaderVariantSrc_8h" kind="file" language="C++">
+    <compoundname>shaderVariantSrc.h</compoundname>
+    <includedby refid="shShaderContext_8h" local="yes">shShaderContext.h</includedby>
+    <includedby refid="shaderVariantSrc_8cpp" local="yes">shaderVariantSrc.cpp</includedby>
+    <invincdepgraph>
+      <node id="16">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="5">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="4">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="7">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="2">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shaderVariantSrc.h</label>
+        <link refid="shaderVariantSrc_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="13">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="14">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="12">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="15">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classShaderVariant_1_1VariantSrc" prot="public">ShaderVariant::VariantSrc</innerclass>
+    <innerclass refid="structShaderVariant_1_1VariantInfo" prot="public">ShaderVariant::VariantInfo</innerclass>
+    <innerclass refid="classShaderVariant_1_1VariantTableSrc" prot="public">ShaderVariant::VariantTableSrc</innerclass>
+    <innernamespace refid="namespaceShaderVariant">ShaderVariant</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shaderVariantSrc_8h_1a792c3a29ce05b562e2f3e610c445a1a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DAG_DECLARE_RELOCATABLE</definition>
+        <argsstring>(ShaderVariant::VariantSrc)</argsstring>
+        <name>DAG_DECLARE_RELOCATABLE</name>
+        <param>
+          <type><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="146" column="1" declfile="shaderVariantSrc.h" declline="146" declcolumn="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>shader<sp/>variants<sp/>for<sp/>compilation</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderVariant_8h" kindref="compound">shaderVariant.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderCommon.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderVariant" kindref="compound">ShaderVariant</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">/*********************************</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/>class<sp/>VariantSrc</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*********************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="classShaderVariant_1_1VariantSrc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1SearchInfo" kindref="compound">SearchInfo</ref>,<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIVariantInfoProvider" kindref="compound">IVariantInfoProvider</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24" refid="classShaderVariant_1_1VariantSrc_1a57f0987e778d4bb6ce915dd99327d26b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderVariant_1_1Variant" kindref="compound">Variant</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DISABLE_EQUALITY(VariantSrc);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="classShaderVariant_1_1VariantSrc_1acc2fb80716e06749676eddb65ae57746" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc_1acc2fb80716e06749676eddb65ae57746" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;v)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="27"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="31" refid="classShaderVariant_1_1VariantSrc_1a6a92f036d3cb4eda9daa2c042f199ace" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc_1a6a92f036d3cb4eda9daa2c042f199ace" kindref="member">operator!=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;v)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="32"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="38" refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" kindref="member">codeId</ref>;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="classShaderVariant_1_1VariantSrc_1a8ba74918ab9c6b5b7661fef997e8bf9b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc_1a8ba74918ab9c6b5b7661fef997e8bf9b" kindref="member">VariantSrc</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref><sp/>&amp;t)<sp/>:<sp/><ref refid="classShaderVariant_1_1SearchInfo" kindref="compound">SearchInfo</ref>(t,<sp/>true),<sp/><ref refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" kindref="member">codeId</ref>(-1)<sp/>{}</highlight></codeline>
+<codeline lineno="41" refid="classShaderVariant_1_1VariantSrc_1a129c03ac1778442381dcfd1fd35df551" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc_1a129c03ac1778442381dcfd1fd35df551" kindref="member">VariantSrc</ref>()<sp/>:<sp/><ref refid="classShaderVariant_1_1SearchInfo" kindref="compound">SearchInfo</ref>(*<ref refid="classShaderVariant_1_1VariantSrc_1affd917db7e885cf32c7255d769800ed6" kindref="member">defCtorTypeTable</ref>,<sp/>true),<sp/><ref refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" kindref="member">codeId</ref>(-1)<sp/>{}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="classShaderVariant_1_1VariantSrc_1a0cf59f6375d270b60d064382c67f0cfb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderVariant_1_1VariantSrc_1a0cf59f6375d270b60d064382c67f0cfb" kindref="member">~VariantSrc</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classShaderVariant_1_1VariantSrc_1a55c9835dc8b8c0ea8bae63347f1ee165" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc_1a55c9835dc8b8c0ea8bae63347f1ee165" kindref="member">fillVariant</ref>(<ref refid="structShaderVariant_1_1Variant" kindref="compound">Variant</ref><sp/>&amp;v)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="46"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>v.<ref refid="structShaderVariant_1_1Variant_1a3ea5741fd601096a3f6df3883b67940a" kindref="member">codeId</ref><sp/>=<sp/><ref refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" kindref="member">codeId</ref>;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>v.<ref refid="structShaderVariant_1_1Variant_1a7f0cacb2bcca03cfa8e3279592e6a9e7" kindref="member">combinedValues</ref><sp/>=<sp/><ref refid="classShaderVariant_1_1SearchInfo_1aaff088ece9ed5833a9eb71fde3e785bc" kindref="member">combinedValues</ref>;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>v.values<sp/>=<sp/>values;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classShaderVariant_1_1VariantSrc_1ab5252d9e228b277885946bc1f726f4c9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc_1ab5252d9e228b277885946bc1f726f4c9" kindref="member">VariantSrc</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;other)<sp/>:<sp/><ref refid="classShaderVariant_1_1SearchInfo" kindref="compound">SearchInfo</ref>(other.<ref refid="classShaderVariant_1_1SearchInfo_1aacbe131c0c89648298bcff4f3b864b21" kindref="member">types</ref>,<sp/>false)<sp/>{<sp/><ref refid="classShaderVariant_1_1VariantSrc_1a842e7a7926fc6938f5da6a19df9c3b95" kindref="member">operator=</ref>(other);<sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classShaderVariant_1_1VariantSrc_1a842e7a7926fc6938f5da6a19df9c3b95" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;<ref refid="classShaderVariant_1_1VariantSrc_1a842e7a7926fc6938f5da6a19df9c3b95" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;other)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" kindref="member">codeId</ref><sp/>=<sp/>other.<ref refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" kindref="member">codeId</ref>;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>values<sp/>=<sp/>other.values;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderVariant_1_1SearchInfo_1aaff088ece9ed5833a9eb71fde3e785bc" kindref="member">combinedValues</ref><sp/>=<sp/>other.<ref refid="classShaderVariant_1_1SearchInfo_1aaff088ece9ed5833a9eb71fde3e785bc" kindref="member">combinedValues</ref>;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderVariant_1_1SearchInfo_1a18a2096d70f943893587586a094b0a4f" kindref="member">getCount</ref>();</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="classShaderVariant_1_1VariantSrc_1ab717a6c7ab6bad3ebd8cfa01f10a7bd2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref><sp/><ref refid="classShaderVariant_1_1VariantSrc_1ab717a6c7ab6bad3ebd8cfa01f10a7bd2" kindref="member">getValue</ref>(<ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref><sp/>init_type,<sp/><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref><sp/>init_exttype,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>can_fail)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="65"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index<sp/>=<sp/><ref refid="classShaderVariant_1_1SearchInfo_1aacbe131c0c89648298bcff4f3b864b21" kindref="member">types</ref>.<ref refid="classShaderVariant_1_1TypeTable_1aa528b15035272c112d1319eeda7bb6f3" kindref="member">findType</ref>(init_type,<sp/>init_exttype);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(index<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>can_fail<sp/>?<sp/>-1<sp/>:<sp/>0;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1SearchInfo_1aa1f92a9c7c4f6e24c9be422636519e8d" kindref="member">getNormalizedValue</ref>(index);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="classShaderVariant_1_1VariantSrc_1a97cf2c45263c5412cbba109df65f61a4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;<ref refid="classShaderVariant_1_1VariantSrc_1a97cf2c45263c5412cbba109df65f61a4" kindref="member">getIntervalList</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="74"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="classShaderVariant_1_1SearchInfo_1aacbe131c0c89648298bcff4f3b864b21" kindref="member">types</ref>.<ref refid="classShaderVariant_1_1TypeTable_1acb83e9ee8718af131424344efc21224a" kindref="member">getIntervals</ref>());</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*<ref refid="classShaderVariant_1_1SearchInfo_1aacbe131c0c89648298bcff4f3b864b21" kindref="member">types</ref>.<ref refid="classShaderVariant_1_1TypeTable_1acb83e9ee8718af131424344efc21224a" kindref="member">getIntervals</ref>();</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>string<sp/>info<sp/>about<sp/>variant</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="classShaderVariant_1_1VariantSrc_1a1f4c0b4fc92f64bbd7171502d9fa0467" kindref="member">getVarStringInfo</ref>()<sp/></highlight><highlight class="keyword">const<sp/>override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="83" refid="classShaderVariant_1_1VariantSrc_1affd917db7e885cf32c7255d769800ed6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref><sp/>*<ref refid="classShaderVariant_1_1VariantSrc_1affd917db7e885cf32c7255d769800ed6" kindref="member">defCtorTypeTable</ref>;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="structShaderVariant_1_1VariantInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderVariant_1_1VariantInfo" kindref="compound">VariantInfo</ref></highlight></codeline>
+<codeline lineno="87"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="88" refid="structShaderVariant_1_1VariantInfo_1aeba13a45242d5103ce06de0d54b64ed7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;<ref refid="structShaderVariant_1_1VariantInfo_1aeba13a45242d5103ce06de0d54b64ed7" kindref="member">stat</ref>;</highlight></codeline>
+<codeline lineno="89" refid="structShaderVariant_1_1VariantInfo_1ad4fccf953d3032b53c1bb675298d4d6e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>*<ref refid="structShaderVariant_1_1VariantInfo_1ad4fccf953d3032b53c1bb675298d4d6e" kindref="member">dyn</ref>;</highlight></codeline>
+<codeline lineno="90" refid="structShaderVariant_1_1VariantInfo_1ab612d70412d1f34ce9ab03b291e99f25" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;<ref refid="structShaderVariant_1_1VariantInfo_1ab612d70412d1f34ce9ab03b291e99f25" kindref="member">intervals</ref>;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="structShaderVariant_1_1VariantInfo_1a005245284eba9a98045a2401c378e9ce" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structShaderVariant_1_1VariantInfo_1a005245284eba9a98045a2401c378e9ce" kindref="member">VariantInfo</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;st,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>*dn)<sp/>:<sp/><ref refid="structShaderVariant_1_1VariantInfo_1aeba13a45242d5103ce06de0d54b64ed7" kindref="member">stat</ref>(st),<sp/><ref refid="structShaderVariant_1_1VariantInfo_1ad4fccf953d3032b53c1bb675298d4d6e" kindref="member">dyn</ref>(dn),<sp/><ref refid="structShaderVariant_1_1VariantInfo_1ab612d70412d1f34ce9ab03b291e99f25" kindref="member">intervals</ref>(st.getIntervalList())<sp/>{}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94" refid="structShaderVariant_1_1VariantInfo_1ae5c4d89c97b2b83074335da58eb41c74" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref><sp/><ref refid="structShaderVariant_1_1VariantInfo_1ae5c4d89c97b2b83074335da58eb41c74" kindref="member">getValue</ref>(<ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref><sp/>init_type,<sp/><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref><sp/>init_exttype)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="95"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref><sp/>v<sp/>=<sp/><ref refid="structShaderVariant_1_1VariantInfo_1aeba13a45242d5103ce06de0d54b64ed7" kindref="member">stat</ref>.<ref refid="classShaderVariant_1_1VariantSrc_1ab717a6c7ab6bad3ebd8cfa01f10a7bd2" kindref="member">getValue</ref>(init_type,<sp/>init_exttype,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>&lt;<sp/>0<sp/>&amp;&amp;<sp/><ref refid="structShaderVariant_1_1VariantInfo_1ad4fccf953d3032b53c1bb675298d4d6e" kindref="member">dyn</ref>)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>v<sp/>=<sp/><ref refid="structShaderVariant_1_1VariantInfo_1ad4fccf953d3032b53c1bb675298d4d6e" kindref="member">dyn</ref>-&gt;<ref refid="classShaderVariant_1_1VariantSrc_1ab717a6c7ab6bad3ebd8cfa01f10a7bd2" kindref="member">getValue</ref>(init_type,<sp/>init_exttype,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>v<sp/>&gt;=<sp/>0<sp/>?<sp/>v<sp/>:<sp/>-1;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="comment">/*********************************</highlight></codeline>
+<codeline lineno="105"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="106"><highlight class="comment"><sp/>*<sp/>class<sp/>VariantTableSrc</highlight></codeline>
+<codeline lineno="107"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="108"><highlight class="comment"><sp/>*********************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109" refid="classShaderVariant_1_1VariantTableSrc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderVariant_1_1VariantTableSrc" kindref="compound">VariantTableSrc</ref></highlight></codeline>
+<codeline lineno="110"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantTableSrc" kindref="compound">VariantTableSrc</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;a_ctx);</highlight></codeline>
+<codeline lineno="113" refid="classShaderVariant_1_1VariantTableSrc_1a3119fe4908fc079766dcce725b573948" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderVariant_1_1VariantTableSrc_1a3119fe4908fc079766dcce725b573948" kindref="member">~VariantTableSrc</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115" refid="classShaderVariant_1_1VariantTableSrc_1a41f6830ad06f1b350bcdacb7724196dc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderVariant_1_1VariantTableSrc_1a41f6830ad06f1b350bcdacb7724196dc" kindref="member">NON_COPYABLE_TYPE</ref>(<ref refid="classShaderVariant_1_1VariantTableSrc" kindref="compound">VariantTableSrc</ref>)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>generate<sp/>all<sp/>variants<sp/>from<sp/>avalible<sp/>types</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118" refid="classShaderVariant_1_1VariantTableSrc_1a7a33f0cf9ee6212b9df440effb9283d1" refkind="member"><highlight class="normal"><sp/><sp/>void<sp/>generateFromTypes(const<sp/><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref><sp/>&amp;type_list,<sp/>const<sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;<ref refid="classShaderVariant_1_1VariantTableSrc_1a7188a6c5f58dfb2ff1f6877dcc668047" kindref="member">i_list</ref>,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantTableSrc_1a7a33f0cf9ee6212b9df440effb9283d1" kindref="member">enable_empty</ref>);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>types</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121" refid="classShaderVariant_1_1VariantTableSrc_1a6a531f755378228201976172f2b1faaa" refkind="member"><highlight class="normal"><sp/><sp/>inline<sp/>const<sp/><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref><sp/>&amp;<ref refid="classShaderVariant_1_1VariantTableSrc_1a6a531f755378228201976172f2b1faaa" kindref="member">getTypes</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>types;<sp/>};</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>intervals</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="classShaderVariant_1_1VariantTableSrc_1a18171e6a7e7422d4e50ea5ab0830f2d2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;<ref refid="classShaderVariant_1_1VariantTableSrc_1a18171e6a7e7422d4e50ea5ab0830f2d2" kindref="member">getIntervals</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>intervals;<sp/>};</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>number<sp/>of<sp/>variants</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="classShaderVariant_1_1VariantTableSrc_1a0fde61b3445a84e1224e0e73c18292e3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantTableSrc_1a0fde61b3445a84e1224e0e73c18292e3" kindref="member">getVarCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>variants.size();<sp/>};</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>variant<sp/>by<sp/>index</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="classShaderVariant_1_1VariantTableSrc_1a6b25592eff75113a483c445376348206" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>*<ref refid="classShaderVariant_1_1VariantTableSrc_1a6b25592eff75113a483c445376348206" kindref="member">getVariant</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;variants[index];<sp/>}</highlight></codeline>
+<codeline lineno="131" refid="classShaderVariant_1_1VariantTableSrc_1a5df82b85c6def62e76fb560b6ef8ed89" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>*<ref refid="classShaderVariant_1_1VariantTableSrc_1a5df82b85c6def62e76fb560b6ef8ed89" kindref="member">getVariant</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;variants[index];<sp/>}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>fill<sp/>shader<sp/>variant<sp/>table</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantTableSrc_1a12f71e20d3075788de6e0799705e73aa" kindref="member">fillVariantTable</ref>(<ref refid="classShaderVariant_1_1VariantTable" kindref="compound">VariantTable</ref><sp/>&amp;tab)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref><sp/>types;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>intervals;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/>Tab&lt;VariantSrc&gt;<sp/>variants;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>process<sp/>flag<sp/>recurse</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>processVariant(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index,<sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref><sp/>&amp;result,<sp/><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref><sp/>*assumed);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderVariant</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="shaderVariantSrc_8h_1a792c3a29ce05b562e2f3e610c445a1a9" refkind="member"><highlight class="normal"><ref refid="shaderVariantSrc_8h_1a792c3a29ce05b562e2f3e610c445a1a9" kindref="member">DAG_DECLARE_RELOCATABLE</ref>(<ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref>);</highlight></codeline>
+    </programlisting>
+    <location file="shaderVariantSrc.h"/>
+  </compounddef>
+</doxygen>

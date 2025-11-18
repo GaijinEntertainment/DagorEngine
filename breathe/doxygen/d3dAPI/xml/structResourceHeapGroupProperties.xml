@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResourceHeapGroupProperties" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceHeapGroupProperties</compoundname>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1a188f2f6b002b1d74a368b08919d8707d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceHeapGroupProperties::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>ResourceHeapGroupProperties::flags</qualifiedname>
+        <briefdescription>
+<para>Flags of the resource heap group represented as a single dword. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="334" column="14" bodyfile="dag_heap.h" bodystart="334" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1a4a19a9d780667c6df1b4412636dcbcbe" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceHeapGroupProperties::isCPUVisible</definition>
+        <argsstring></argsstring>
+        <name>isCPUVisible</name>
+        <qualifiedname>ResourceHeapGroupProperties::isCPUVisible</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>If true, the CPU can access this memory directly. On consoles this is usually true for all heap groups, on PC only for system memory heap groups. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="340" column="12" bodyfile="dag_heap.h" bodystart="340" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1a2a8dfde8145b597d570b2a1cb1d48667" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceHeapGroupProperties::isGPULocal</definition>
+        <argsstring></argsstring>
+        <name>isGPULocal</name>
+        <qualifiedname>ResourceHeapGroupProperties::isGPULocal</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>If true, the GPU can access this memory directly without going over a bus like PCIE. On consoles this is usually true for all heap groups, on PC only for memory dedicated to the GPU. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="345" column="12" bodyfile="dag_heap.h" bodystart="345" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1aa36d9d08cbab51d752e4490e13987493" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceHeapGroupProperties::isDedicatedFastGPULocal</definition>
+        <argsstring></argsstring>
+        <name>isDedicatedFastGPULocal</name>
+        <qualifiedname>ResourceHeapGroupProperties::isDedicatedFastGPULocal</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Same as GPU local but much more limited, like ESRAM of the XB1. User should be allowed to allocate the whole memory of this heap group. It&apos;s a common usecase. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="348" column="12" bodyfile="dag_heap.h" bodystart="348" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1a08ef3b278e9af5395286d6982d280fb5" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structResourceHeapGroupProperties" kindref="compound">ResourceHeapGroupProperties</ref></type>
+        <definition>union ResourceHeapGroupProperties ResourceHeapGroupProperties</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ResourceHeapGroupProperties</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="350" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1a9011fd2273a88332d26679255b308860" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceHeapGroupProperties::maxResourceSize</definition>
+        <argsstring></argsstring>
+        <name>maxResourceSize</name>
+        <qualifiedname>ResourceHeapGroupProperties::maxResourceSize</qualifiedname>
+        <briefdescription>
+<para>The maximum size of a resource that can be placed into a heap of this group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="352" column="12" bodyfile="dag_heap.h" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1a3c6625f815c0e0e39e9f87f48fbf9562" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceHeapGroupProperties::maxHeapSize</definition>
+        <argsstring></argsstring>
+        <name>maxHeapSize</name>
+        <qualifiedname>ResourceHeapGroupProperties::maxHeapSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>the maximum size of a individual heap, this is usually limited by the amount that is installed in the system. Drivers may impose other limitations. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="355" column="12" bodyfile="dag_heap.h" bodystart="355" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceHeapGroupProperties_1af670b82f1185edeb424e091784c59aca" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceHeapGroupProperties::optimalMaxHeapSize</definition>
+        <argsstring></argsstring>
+        <name>optimalMaxHeapSize</name>
+        <qualifiedname>ResourceHeapGroupProperties::optimalMaxHeapSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>This is a hint for the user to try to aim for this heap size for best performance. Larger heaps until maxHeapSize are still possible, but larger heaps than optimalMaxHeapSize may yield worse performance, as the runtime may has to use sub-optimal memory sources to satisfy the allocation request. A value of 0 indicates that there is no optimal size and any size is expected to perform similarly.</para>
+<para>For example on DX12 on Windows the optimal size is 64 MiBytes, suggested by MS representatives, as windows may not be able to provide heaps in the requested memory source. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="366" column="12" bodyfile="dag_heap.h" bodystart="366" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Properties of a resource heap group. A heap group is a type of memory with specific properties. </para>
+    </briefdescription>
+    <detaileddescription>
+<para><simplesect kind="note"><para>Heap groups can <bold>not</bold> be substitutes for different groups with equal properties, as some devices have different memory types with the same public properties, but with purpose bound properties that are identified by a heap group. For example, older NVIDIA hardware can not put render target and non render target textures into the same memory region, they have to be specific for render targets and non render targets, this is exposed as different heap groups, but they have the same public properties, as they are all reside on GPU local memory. </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <location file="dag_heap.h" line="330" column="1" bodyfile="dag_heap.h" bodystart="331" bodyend="367"/>
+    <listofallmembers>
+      <member refid="structResourceHeapGroupProperties_1a188f2f6b002b1d74a368b08919d8707d" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>flags</name></member>
+      <member refid="structResourceHeapGroupProperties_1a4a19a9d780667c6df1b4412636dcbcbe" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>isCPUVisible</name></member>
+      <member refid="structResourceHeapGroupProperties_1aa36d9d08cbab51d752e4490e13987493" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>isDedicatedFastGPULocal</name></member>
+      <member refid="structResourceHeapGroupProperties_1a2a8dfde8145b597d570b2a1cb1d48667" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>isGPULocal</name></member>
+      <member refid="structResourceHeapGroupProperties_1a3c6625f815c0e0e39e9f87f48fbf9562" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>maxHeapSize</name></member>
+      <member refid="structResourceHeapGroupProperties_1a9011fd2273a88332d26679255b308860" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>maxResourceSize</name></member>
+      <member refid="structResourceHeapGroupProperties_1af670b82f1185edeb424e091784c59aca" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>optimalMaxHeapSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

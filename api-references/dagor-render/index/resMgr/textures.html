@@ -1,0 +1,1106 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Texture Management</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Resource Slots" href="../resourceSlot.html" />
+    <link rel="prev" title="General Resource Management" href="general.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../resMgr.html">Managed Resources</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="resid.html">Resource IDs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="general.html">General Resource Management</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Texture Management</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv421first_managed_texturei"><code class="docutils literal notranslate"><span class="pre">first_managed_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420next_managed_texture9TEXTUREIDi"><code class="docutils literal notranslate"><span class="pre">next_managed_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420register_managed_texPKcP11BaseTexture"><code class="docutils literal notranslate"><span class="pre">register_managed_tex()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv426is_managed_tex_factory_set8D3DRESID"><code class="docutils literal notranslate"><span class="pre">is_managed_tex_factory_set()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv424get_managed_texture_name8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_name()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv422get_managed_texture_idPKc"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_id()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv428get_managed_texture_refcount8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_refcount()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv417enable_tex_mgr_mtbi"><code class="docutils literal notranslate"><span class="pre">enable_tex_mgr_mt()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419add_managed_texturePKcP14TextureFactory"><code class="docutils literal notranslate"><span class="pre">add_managed_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv425add_managed_array_texturePKcN3dag9ConstSpanIPKcEE"><code class="docutils literal notranslate"><span class="pre">add_managed_array_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv428update_managed_array_texturePKcN3dag9ConstSpanIPKcEE"><code class="docutils literal notranslate"><span class="pre">update_managed_array_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv447reload_managed_array_textures_for_changed_slicePKc"><code class="docutils literal notranslate"><span class="pre">reload_managed_array_textures_for_changed_slice()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420evict_managed_tex_idR9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">evict_managed_tex_id()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv428check_managed_texture_loaded9TEXTUREIDb"><code class="docutils literal notranslate"><span class="pre">check_managed_texture_loaded()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv433check_all_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEbb"><code class="docutils literal notranslate"><span class="pre">check_all_managed_textures_loaded()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv422change_managed_texture9TEXTUREIDP11BaseTextureP14TextureFactory"><code class="docutils literal notranslate"><span class="pre">change_managed_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv430discard_unused_managed_texture9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">discard_unused_managed_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv431discard_unused_managed_texturesv"><code class="docutils literal notranslate"><span class="pre">discard_unused_managed_textures()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420mark_managed_tex_lfu9TEXTUREIDj"><code class="docutils literal notranslate"><span class="pre">mark_managed_tex_lfu()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv424prefetch_managed_texture9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">prefetch_managed_texture()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv425prefetch_managed_texturesN3dag9ConstSpanI9TEXTUREIDEE"><code class="docutils literal notranslate"><span class="pre">prefetch_managed_textures()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv435prefetch_managed_textures_by_textagi"><code class="docutils literal notranslate"><span class="pre">prefetch_managed_textures_by_textag()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv431mark_managed_textures_importantN3dag9ConstSpanI9TEXTUREIDEEji"><code class="docutils literal notranslate"><span class="pre">mark_managed_textures_important()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv438reset_managed_textures_streaming_statev"><code class="docutils literal notranslate"><span class="pre">reset_managed_textures_streaming_state()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv423set_default_tex_factoryP14TextureFactory"><code class="docutils literal notranslate"><span class="pre">set_default_tex_factory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv423get_default_tex_factoryv"><code class="docutils literal notranslate"><span class="pre">get_default_tex_factory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv424get_symbolic_tex_factoryv"><code class="docutils literal notranslate"><span class="pre">get_symbolic_tex_factory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420get_stub_tex_factoryv"><code class="docutils literal notranslate"><span class="pre">get_stub_tex_factory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv439init_managed_textures_streaming_supporti"><code class="docutils literal notranslate"><span class="pre">init_managed_textures_streaming_support()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv436is_managed_textures_streaming_activev"><code class="docutils literal notranslate"><span class="pre">is_managed_textures_streaming_active()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv444is_managed_textures_streaming_load_on_demandv"><code class="docutils literal notranslate"><span class="pre">is_managed_textures_streaming_load_on_demand()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv435dump_texture_streaming_memory_statev"><code class="docutils literal notranslate"><span class="pre">dump_texture_streaming_memory_state()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv429is_managed_texture_incomplete9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">is_managed_texture_incomplete()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv429load_anisotropy_from_settingsv"><code class="docutils literal notranslate"><span class="pre">load_anisotropy_from_settings()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv424add_anisotropy_exception9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">add_anisotropy_exception()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv416reset_anisotropyPKc"><code class="docutils literal notranslate"><span class="pre">reset_anisotropy()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv441prefetch_and_check_managed_texture_loaded9TEXTUREIDb"><code class="docutils literal notranslate"><span class="pre">prefetch_and_check_managed_texture_loaded()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv442prefetch_and_check_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"><code class="docutils literal notranslate"><span class="pre">prefetch_and_check_managed_textures_loaded()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv441prefetch_and_wait_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"><code class="docutils literal notranslate"><span class="pre">prefetch_and_wait_managed_textures_loaded()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv428iterate_all_managed_textures9TEXTUREIDi"><code class="docutils literal notranslate"><span class="pre">iterate_all_managed_textures()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv426get_max_managed_texture_idv"><code class="docutils literal notranslate"><span class="pre">get_max_managed_texture_id()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv440get_managed_texture_streaming_generation9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_streaming_generation()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv427is_managed_texture_id_valid9TEXTUREIDb"><code class="docutils literal notranslate"><span class="pre">is_managed_texture_id_valid()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv421get_texture_meta_data9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">get_texture_meta_data()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv416get_sampler_infoRK15TextureMetaDatab"><code class="docutils literal notranslate"><span class="pre">get_sampler_info()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv428get_texture_separate_sampler9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">get_texture_separate_sampler()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv428set_texture_separate_sampler9TEXTUREIDRKN3d3d11SamplerInfoE"><code class="docutils literal notranslate"><span class="pre">set_texture_separate_sampler()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv422set_add_lod_bias_batchN3dag4SpanIK11LODBiasRuleEE"><code class="docutils literal notranslate"><span class="pre">set_add_lod_bias_batch()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv415dgs_tex_quality"><code class="docutils literal notranslate"><span class="pre">dgs_tex_quality</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv418dgs_tex_anisotropy"><code class="docutils literal notranslate"><span class="pre">dgs_tex_anisotropy</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv414TextureFactory"><code class="docutils literal notranslate"><span class="pre">TextureFactory</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory14TextureFactoryEv"><code class="docutils literal notranslate"><span class="pre">TextureFactory::TextureFactory()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory14TextureFactoryERR14TextureFactory"><code class="docutils literal notranslate"><span class="pre">TextureFactory::TextureFactory()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactoryaSERR14TextureFactory"><code class="docutils literal notranslate"><span class="pre">TextureFactory::operator=()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactoryD0Ev"><code class="docutils literal notranslate"><span class="pre">TextureFactory::~TextureFactory()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory13createTextureE9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">TextureFactory::createTexture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory14releaseTextureEP11BaseTexture9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">TextureFactory::releaseTexture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory23texFactoryActiveChangedEb"><code class="docutils literal notranslate"><span class="pre">TextureFactory::texFactoryActiveChanged()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory18scheduleTexLoadingE9TEXTUREID5TexQL"><code class="docutils literal notranslate"><span class="pre">TextureFactory::scheduleTexLoading()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory14getTextureDDSxE9TEXTUREIDR3TabIcE"><code class="docutils literal notranslate"><span class="pre">TextureFactory::getTextureDDSx()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory19onUnregisterTextureE9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">TextureFactory::onUnregisterTexture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory19isPersistentTexNameEPKc"><code class="docutils literal notranslate"><span class="pre">TextureFactory::isPersistentTexName()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N14TextureFactory19onTexFactoryDeletedEP14TextureFactory"><code class="docutils literal notranslate"><span class="pre">TextureFactory::onTexFactoryDeleted()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv411LODBiasRule"><code class="docutils literal notranslate"><span class="pre">LODBiasRule</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11LODBiasRule9substringE"><code class="docutils literal notranslate"><span class="pre">LODBiasRule::substring</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11LODBiasRule4biasE"><code class="docutils literal notranslate"><span class="pre">LODBiasRule::bias</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../resMgr.html">Managed Resources</a></li>
+      <li class="breadcrumb-item active">Texture Management</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/resMgr/textures.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="texture-management">
+<h1>Texture Management<a class="headerlink" href="#texture-management" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-helper-wrappers">Helper wrappers</p>
+<p>See <a class="reference internal" href="#dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19"><span class="std std-ref">iterate_all_managed_textures()</span></a>. Use as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">TEXTUREID</span> <span class="nb">id</span> <span class="o">=</span> <span class="n">first_managed_texture</span><span class="p">();</span> <span class="nb">id</span> <span class="o">!=</span> <span class="n">BAD_TEXTUREID</span><span class="p">;</span> <span class="nb">id</span> <span class="o">=</span> <span class="n">next_managed_texture</span><span class="p">(</span><span class="nb">id</span><span class="p">))</span> 
+</pre></div>
+</div>
+<p>Get the first managed texture ID for iteration <dl class="field-list simple">
+<dt class="field-odd">param min_rc<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Minimum reference count filter </p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">return<span class="colon">:</span></dt>
+<dd class="field-odd"><p>First managed texture ID with refCount &gt;= <code class="docutils literal notranslate"><span class="pre">min_rc</span></code></p>
+</dd>
+</dl>
+</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421first_managed_texturei">
+<span id="_CPPv321first_managed_texturei"></span><span id="_CPPv221first_managed_texturei"></span><span id="first_managed_texture__i"></span><span class="target" id="dag__texMgr_8h_1a95ecbb03ea3d1d7410b4f9bdfdee4abe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">first_managed_texture</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_rc</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421first_managed_texturei" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420next_managed_texture9TEXTUREIDi">
+<span id="_CPPv320next_managed_texture9TEXTUREIDi"></span><span id="_CPPv220next_managed_texture9TEXTUREIDi"></span><span id="next_managed_texture__TEXTUREID.i"></span><span class="target" id="dag__texMgr_8h_1ac0538e03a92a3538de029e3ebb80dfdb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">next_managed_texture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">prev_id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_rc</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420next_managed_texture9TEXTUREIDi" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the next managed texture ID for iteration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prev_id</strong> – ID of the previous texture </p></li>
+<li><p><strong>min_rc</strong> – Minimum reference count filter </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Next managed texture ID after <code class="docutils literal notranslate"><span class="pre">prev_id</span></code> with refCount &gt;= <code class="docutils literal notranslate"><span class="pre">min_rc</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420register_managed_texPKcP11BaseTexture">
+<span id="_CPPv320register_managed_texPKcP11BaseTexture"></span><span id="_CPPv220register_managed_texPKcP11BaseTexture"></span><span id="register_managed_tex__cCP.BaseTextureP"></span><span class="target" id="dag__texMgr_8h_1a330118e2ff774cf30e8d7f358164f1b3"></span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_managed_tex</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="../d3dAPI/textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420register_managed_texPKcP11BaseTexture" title="Link to this definition"></a><br /></dt>
+<dd><p>Registers external D3D resource with the specified <code class="docutils literal notranslate"><span class="pre">name</span></code> as managed and returns the D3DRESID for it.   </p>
+<p>Specified resource becomes owned by the manager, no factory is assigned to it. RefCount is set to 1 and when it eventually reaches 0, the resource is automatically destroyed and the name is evicted. Use <a class="reference internal" href="general.html#dag__resMgr_8h_1ab8d423d447df4e5459d92230a91e2609"><span class="std std-ref">release_managed_res()</span></a> or <a class="reference internal" href="general.html#dag__resMgr_8h_1a21ccc1c9589538a79ae900f963820c44"><span class="std std-ref">release_managed_res_verified()</span></a> to del ref and finally destroy. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Resource name is case-insensitive and must be unique. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – the name to register the resource under </p></li>
+<li><p><strong>res</strong> – the resource to register </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the D3DRESID for the registered resource   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426is_managed_tex_factory_set8D3DRESID">
+<span id="_CPPv326is_managed_tex_factory_set8D3DRESID"></span><span id="_CPPv226is_managed_tex_factory_set8D3DRESID"></span><span id="is_managed_tex_factory_set__D3DRESID"></span><span class="target" id="dag__texMgr_8h_1a929f255b55d4a2048438b355b6f63b64"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_managed_tex_factory_set</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426is_managed_tex_factory_set8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks whether creation/release factory is set for D3DRESID.   </p>
+<p>E.g. for an ID that was acquired from <a class="reference internal" href="general.html#dag__resMgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2"><span class="std std-ref">register_managed_res()</span></a>, it will return false. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the D3DRESID to check </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if a factory was specified for the D3DRESID   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424get_managed_texture_name8D3DRESID">
+<span id="_CPPv324get_managed_texture_name8D3DRESID"></span><span id="_CPPv224get_managed_texture_name8D3DRESID"></span><span id="get_managed_texture_name__D3DRESID"></span><span class="target" id="dag__texMgr_8h_1a9908f1cf94c8fcb3f8d0f99e624d0845"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_texture_name</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424get_managed_texture_name8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the name for a managed resource by ID, or nullptr if ID is invalid.   </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the D3DRESID to get the name for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the name of the managed resource with ID <code class="docutils literal notranslate"><span class="pre">id</span></code> or nullptr   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422get_managed_texture_idPKc">
+<span id="_CPPv322get_managed_texture_idPKc"></span><span id="_CPPv222get_managed_texture_idPKc"></span><span id="get_managed_texture_id__cCP"></span><span class="target" id="dag__texMgr_8h_1a19a0cfba901ef57c2dafd0a61e4488bf"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_texture_id</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422get_managed_texture_idPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets managed resource ID by its name, or BAD_D3DRESID if name is invalid.   </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>res_name</strong> – the name of the resource to get the ID for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the managed resource ID that corresponds to <code class="docutils literal notranslate"><span class="pre">res_name</span></code> or BAD_D3DRESID if the name is invalid   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428get_managed_texture_refcount8D3DRESID">
+<span id="_CPPv328get_managed_texture_refcount8D3DRESID"></span><span id="_CPPv228get_managed_texture_refcount8D3DRESID"></span><span id="get_managed_texture_refcount__D3DRESID"></span><span class="target" id="dag__texMgr_8h_1a43681067205198b0f0464d7759345c1b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_texture_refcount</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428get_managed_texture_refcount8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the reference count for a managed resource by ID.   </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the ID to get the reference count for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the reference count for the D3DRESID resource or a negative value if the resource is missing   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv417enable_tex_mgr_mtbi">
+<span id="_CPPv317enable_tex_mgr_mtbi"></span><span id="_CPPv217enable_tex_mgr_mtbi"></span><span id="enable_tex_mgr_mt__b.i"></span><span class="target" id="dag__texMgr_8h_1aa219feda667fa251848b1d845dc266a0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_tex_mgr_mt</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_res_entry_count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv417enable_tex_mgr_mtbi" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables or disables multithreading support for resource manager and preallocates internal structures to handle upto <code class="docutils literal notranslate"><span class="pre">max_res_entry_count</span></code> resource entries without reallocations.   </p>
+<p>enable_res_mgr_mt(false, -1) will disable multithreading support and shrink entries array to used size </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – whether to enable multithreading support </p></li>
+<li><p><strong>max_res_entry_count</strong> – the maximum number of resource entries to preallocate or -1 to shrink to fit   </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419add_managed_texturePKcP14TextureFactory">
+<span id="_CPPv319add_managed_texturePKcP14TextureFactory"></span><span id="_CPPv219add_managed_texturePKcP14TextureFactory"></span><span id="add_managed_texture__cCP.TextureFactoryP"></span><span class="target" id="dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d"></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_managed_texture</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">factory</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419add_managed_texturePKcP14TextureFactory" title="Link to this definition"></a><br /></dt>
+<dd><p>Adds entry for managed texture name and returns TEXTUREID for it. </p>
+<p>When entry for ‘name’ already exists, it just returns TEXTUREID. For new entry ‘factory’ is set as creator, for existing entry ‘factory’ must be nullptr. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Texture name is case-insensitive and must be unique. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name that uniquely identifies the texture </p></li>
+<li><p><strong>factory</strong> – Custom texture creation mechanism, must be nullptr for existing textures </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Managed ID of the texture </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv425add_managed_array_texturePKcN3dag9ConstSpanIPKcEE">
+<span id="_CPPv325add_managed_array_texturePKcN3dag9ConstSpanIPKcEE"></span><span id="_CPPv225add_managed_array_texturePKcN3dag9ConstSpanIPKcEE"></span><span id="add_managed_array_texture__cCP.dag::ConstSpan:cCP:"></span><span class="target" id="dag__texMgr_8h_1aee0bb1833034da3342fb8aa4da6b2673"></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_managed_array_texture</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tex_slice_nm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv425add_managed_array_texturePKcN3dag9ConstSpanIPKcEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Adds or updates entry for managed array texture name, stores creation properties and returns TEXTUREID for it. </p>
+<p>Array texture will be composed of slices with texture names <code class="docutils literal notranslate"><span class="pre">tex_slice_nm</span></code>. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Textures in slices must have the same format and size, and furthermore, some restrictions of DDSx flags apply. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name that uniquely identifies the new array texture </p></li>
+<li><p><strong>tex_slice_nm</strong> – Array of texture names to use as slices </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Managed ID of the texture </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428update_managed_array_texturePKcN3dag9ConstSpanIPKcEE">
+<span id="_CPPv328update_managed_array_texturePKcN3dag9ConstSpanIPKcEE"></span><span id="_CPPv228update_managed_array_texturePKcN3dag9ConstSpanIPKcEE"></span><span id="update_managed_array_texture__cCP.dag::ConstSpan:cCP:"></span><span class="target" id="dag__texMgr_8h_1a9b00ae85619f5137cfabf976c5e8bcbb"></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_managed_array_texture</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tex_slice_nm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428update_managed_array_texturePKcN3dag9ConstSpanIPKcEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Updates an existing array texture entry with new slices. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Simply calls <a class="reference internal" href="#dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d"><span class="std std-ref">add_managed_texture()</span></a> under the hood, this function exists purely for readability purposes. </p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The number of slices must match the original array texture. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the array texture to update </p></li>
+<li><p><strong>tex_slice_nm</strong> – Array of new texture names to use as slices </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Managed ID of the array texture that was updated </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv447reload_managed_array_textures_for_changed_slicePKc">
+<span id="_CPPv347reload_managed_array_textures_for_changed_slicePKc"></span><span id="_CPPv247reload_managed_array_textures_for_changed_slicePKc"></span><span id="reload_managed_array_textures_for_changed_slice__cCP"></span><span class="target" id="dag__texMgr_8h_1a0829b33f955def877a14670103f5b9eb"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reload_managed_array_textures_for_changed_slice</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">slice_tex_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv447reload_managed_array_textures_for_changed_slicePKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks all registered array textures and reloads those referencing specified slice. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>slice_tex_name</strong> – Name of changed texture that can be used as slice in some array texture </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of reloaded array textures (or 0 if no array texture reference that slice) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420evict_managed_tex_idR9TEXTUREID">
+<span id="_CPPv320evict_managed_tex_idR9TEXTUREID"></span><span id="_CPPv220evict_managed_tex_idR9TEXTUREID"></span><span id="evict_managed_tex_id__TEXTUREIDR"></span><span class="target" id="dag__texMgr_8h_1aa748cb1de7974cc6bd4d20d8eeac9f5e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evict_managed_tex_id</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420evict_managed_tex_idR9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Schedules removal of the managed entry for the specified <code class="docutils literal notranslate"><span class="pre">id</span></code> and sets <code class="docutils literal notranslate"><span class="pre">id</span></code> to BAD_TEXTUREID (unconditionally, even if the operation fails or is deferred). </p>
+<p>When refCount = 0, removal is performed immediately, otherwise it is deferred. Can be used to remove entries created with <a class="reference internal" href="#dag__texMgr_8h_1a330118e2ff774cf30e8d7f358164f1b3"><span class="std std-ref">register_managed_tex()</span></a>, <a class="reference internal" href="#dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d"><span class="std std-ref">add_managed_texture()</span></a>, <a class="reference internal" href="#dag__texMgr_8h_1aee0bb1833034da3342fb8aa4da6b2673"><span class="std std-ref">add_managed_array_texture()</span></a> </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to remove </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the texture was removed immediately, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise, including if the operation was invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428check_managed_texture_loaded9TEXTUREIDb">
+<span id="_CPPv328check_managed_texture_loaded9TEXTUREIDb"></span><span id="_CPPv228check_managed_texture_loaded9TEXTUREIDb"></span><span id="check_managed_texture_loaded__TEXTUREID.b"></span><span class="target" id="dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">check_managed_texture_loaded</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fq_loaded</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428check_managed_texture_loaded9TEXTUREIDb" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks whether contents of managed texture was loaded. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – ID of the texture to check </p></li>
+<li><p><strong>fq_loaded</strong> – <code class="docutils literal notranslate"><span class="pre">true</span></code> to check for full quality, <code class="docutils literal notranslate"><span class="pre">false</span></code> for any quality </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the texture is loaded, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv433check_all_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEbb">
+<span id="_CPPv333check_all_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEbb"></span><span id="_CPPv233check_all_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEbb"></span><span id="check_all_managed_textures_loaded__dag::ConstSpan:TEXTUREID:.b.b"></span><span class="target" id="dag__texMgr_8h_1a3b3339e11930913031968cb5bea718c0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">check_all_managed_textures_loaded</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fq_loaded</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ignore_unref_tex</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv433check_all_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEbb" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks whether contents of all managed textures in list was loaded, analogous to calling <a class="reference internal" href="#dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592"><span class="std std-ref">check_managed_texture_loaded()</span></a> multiple times. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Skips checks for textures with refcount=0 by default. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – List of texture IDs to check. </p></li>
+<li><p><strong>fq_loaded</strong> – <code class="docutils literal notranslate"><span class="pre">true</span></code> to check for full quality, <code class="docutils literal notranslate"><span class="pre">false</span></code> for any quality </p></li>
+<li><p><strong>ignore_unref_tex</strong> – <code class="docutils literal notranslate"><span class="pre">true</span></code> to skip textures with refcount=0 </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if all textures (excluding those with refcount=0 if <code class="docutils literal notranslate"><span class="pre">ignore_unref_tex</span></code> is true) are loaded, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422change_managed_texture9TEXTUREIDP11BaseTextureP14TextureFactory">
+<span id="_CPPv322change_managed_texture9TEXTUREIDP11BaseTextureP14TextureFactory"></span><span id="_CPPv222change_managed_texture9TEXTUREIDP11BaseTextureP14TextureFactory"></span><span id="change_managed_texture__TEXTUREID.BaseTextureP.TextureFactoryP"></span><span class="target" id="dag__texMgr_8h_1a65e77b79df17550d7ff4ccf5f8ffab6c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">change_managed_texture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <a class="reference internal" href="../d3dAPI/textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">new_texture</span></span>, <a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">factory</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422change_managed_texture9TEXTUREIDP11BaseTextureP14TextureFactory" title="Link to this definition"></a><br /></dt>
+<dd><p>Replaces the texture for managed id <code class="docutils literal notranslate"><span class="pre">id</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – ID of the texture to replace </p></li>
+<li><p><strong>new_texture</strong> – New driver texture to use for this <code class="docutils literal notranslate"><span class="pre">id</span></code></p></li>
+<li><p><strong>factory</strong> – Custom texture creation mechanism </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the texture was replaced successfully, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv430discard_unused_managed_texture9TEXTUREID">
+<span id="_CPPv330discard_unused_managed_texture9TEXTUREID"></span><span id="_CPPv230discard_unused_managed_texture9TEXTUREID"></span><span id="discard_unused_managed_texture__TEXTUREID"></span><span class="target" id="dag__texMgr_8h_1ae1a61ba348eea968816bcdea95b57135"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">discard_unused_managed_texture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv430discard_unused_managed_texture9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Discards unused texture: unloads texture when refCount=0, does nothing otherwise. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to discard </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv431discard_unused_managed_texturesv">
+<span id="_CPPv331discard_unused_managed_texturesv"></span><span id="_CPPv231discard_unused_managed_texturesv"></span><span id="discard_unused_managed_textures"></span><span class="target" id="dag__texMgr_8h_1ac93ca63f360b15217f24bab008b10e61"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">discard_unused_managed_textures</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv431discard_unused_managed_texturesv" title="Link to this definition"></a><br /></dt>
+<dd><p>Iterate all managed textures and unload those with refCount=0. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420mark_managed_tex_lfu9TEXTUREIDj">
+<span id="_CPPv320mark_managed_tex_lfu9TEXTUREIDj"></span><span id="_CPPv220mark_managed_tex_lfu9TEXTUREIDj"></span><span id="mark_managed_tex_lfu__TEXTUREID.unsigned"></span><span class="target" id="dag__texMgr_8h_1a5e8fee654c9a3f97e448f25980720546"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mark_managed_tex_lfu</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">req_lev</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">15</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420mark_managed_tex_lfu9TEXTUREIDj" title="Link to this definition"></a><br /></dt>
+<dd><p>Set current frame as ‘last frame used’ for texture. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – ID of the texture to mark </p></li>
+<li><p><strong>req_lev</strong> – Quality level that was used on this frame </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424prefetch_managed_texture9TEXTUREID">
+<span id="_CPPv324prefetch_managed_texture9TEXTUREID"></span><span id="_CPPv224prefetch_managed_texture9TEXTUREID"></span><span id="prefetch_managed_texture__TEXTUREID"></span><span class="target" id="dag__texMgr_8h_1abcc9d9a46307732985116d329c400d15"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prefetch_managed_texture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424prefetch_managed_texture9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Request texture content load. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to load </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true when texture already loaded, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv425prefetch_managed_texturesN3dag9ConstSpanI9TEXTUREIDEE">
+<span id="_CPPv325prefetch_managed_texturesN3dag9ConstSpanI9TEXTUREIDEE"></span><span id="_CPPv225prefetch_managed_texturesN3dag9ConstSpanI9TEXTUREIDEE"></span><span id="prefetch_managed_textures__dag::ConstSpan:TEXTUREID:"></span><span class="target" id="dag__texMgr_8h_1abf11ffaec3de1c20ba78014887415835"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prefetch_managed_textures</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv425prefetch_managed_texturesN3dag9ConstSpanI9TEXTUREIDEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Requests texture content load for a list of textures, the same as calling <a class="reference internal" href="#dag__texMgr_8h_1abcc9d9a46307732985116d329c400d15"><span class="std std-ref">prefetch_managed_texture()</span></a> multiple times. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – List of texture IDs to load </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> when all textures are already loaded </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv435prefetch_managed_textures_by_textagi">
+<span id="_CPPv335prefetch_managed_textures_by_textagi"></span><span id="_CPPv235prefetch_managed_textures_by_textagi"></span><span id="prefetch_managed_textures_by_textag__i"></span><span class="target" id="dag__texMgr_8h_1ae7839b10b79d6c70018b8b16cd7569f8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prefetch_managed_textures_by_textag</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">textag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv435prefetch_managed_textures_by_textagi" title="Link to this definition"></a><br /></dt>
+<dd><p>Requests texture content load for list of textures by TEXTAG. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>textag</strong> – The tag to load textures for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> when all textures with the tag are already loaded </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv431mark_managed_textures_importantN3dag9ConstSpanI9TEXTUREIDEEji">
+<span id="_CPPv331mark_managed_textures_importantN3dag9ConstSpanI9TEXTUREIDEEji"></span><span id="_CPPv231mark_managed_textures_importantN3dag9ConstSpanI9TEXTUREIDEEji"></span><span id="mark_managed_textures_important__dag::ConstSpan:TEXTUREID:.unsigned.i"></span><span class="target" id="dag__texMgr_8h_1a2acb20162c92c8cbbd542c643893ba48"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mark_managed_textures_important</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">add_importance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_lev_for_dyn_decrease</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv431mark_managed_textures_importantN3dag9ConstSpanI9TEXTUREIDEEji" title="Link to this definition"></a><br /></dt>
+<dd><p>Marks list of textures as important (to force loading content upto requested quality level as soon as possible) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – List of texture IDs to mark </p></li>
+<li><p><strong>add_importance</strong> – Additional importance to add to the textures </p></li>
+<li><p><strong>min_lev_for_dyn_decrease</strong> – important textures with more levels min can be downgraded 1 mip when dyn decrease used </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv438reset_managed_textures_streaming_statev">
+<span id="_CPPv338reset_managed_textures_streaming_statev"></span><span id="_CPPv238reset_managed_textures_streaming_statev"></span><span id="reset_managed_textures_streaming_state"></span><span class="target" id="dag__texMgr_8h_1a97119628076528951d0a1f485e8785b7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_managed_textures_streaming_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv438reset_managed_textures_streaming_statev" title="Link to this definition"></a><br /></dt>
+<dd><p>Resets streaming state of textures so that they can be reloaded respecting the global tex quality settings changes. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv423set_default_tex_factoryP14TextureFactory">
+<span id="_CPPv323set_default_tex_factoryP14TextureFactory"></span><span id="_CPPv223set_default_tex_factoryP14TextureFactory"></span><span id="set_default_tex_factory__TextureFactoryP"></span><span class="target" id="dag__texMgr_8h_1aaa1f138f4a6ba9e9522ed2f56386cdc0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_default_tex_factory</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tf</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv423set_default_tex_factoryP14TextureFactory" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the default texture factory to use for managed textures. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv423get_default_tex_factoryv">
+<span id="_CPPv323get_default_tex_factoryv"></span><span id="_CPPv223get_default_tex_factoryv"></span><span id="get_default_tex_factory"></span><span class="target" id="dag__texMgr_8h_1ae49c26351c0282c2997d912554e42b05"></span><a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_default_tex_factory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv423get_default_tex_factoryv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the default texture factory. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424get_symbolic_tex_factoryv">
+<span id="_CPPv324get_symbolic_tex_factoryv"></span><span id="_CPPv224get_symbolic_tex_factoryv"></span><span id="get_symbolic_tex_factory"></span><span class="target" id="dag__texMgr_8h_1a495f0ca137fb6d568f0a1dfa8dc64784"></span><a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_symbolic_tex_factory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424get_symbolic_tex_factoryv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the symbolic texture factory which always produces nulls for texture creation. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420get_stub_tex_factoryv">
+<span id="_CPPv320get_stub_tex_factoryv"></span><span id="_CPPv220get_stub_tex_factoryv"></span><span id="get_stub_tex_factory"></span><span class="target" id="dag__texMgr_8h_1a7c3a7b04775ca28775c45664a0f607e9"></span><a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_stub_tex_factory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420get_stub_tex_factoryv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the stub texture factory which always produces stub 1x1 textures. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv439init_managed_textures_streaming_supporti">
+<span id="_CPPv339init_managed_textures_streaming_supporti"></span><span id="_CPPv239init_managed_textures_streaming_supporti"></span><span id="init_managed_textures_streaming_support__i"></span><span class="target" id="dag__texMgr_8h_1a683e84903e54dc7315f3f9b67417dadf"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init_managed_textures_streaming_support</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reload_jobmgr_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">2</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv439init_managed_textures_streaming_supporti" title="Link to this definition"></a><br /></dt>
+<dd><p>Init data and callbacks to support streaming. </p>
+<p>Settings are taken from dgs_get_settings()-&gt;getBlockByName(“texStreaming”). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>reload_jobmgr_id=-2 means auto creation of jobmanager, reload_jobmgr_id=-1 means no jobmanager </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rload_jobmgr_id</strong> – Either -1 or -2, controls whether to create a job manager for texture streaming </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv436is_managed_textures_streaming_activev">
+<span id="_CPPv336is_managed_textures_streaming_activev"></span><span id="_CPPv236is_managed_textures_streaming_activev"></span><span id="is_managed_textures_streaming_active"></span><span class="target" id="dag__texMgr_8h_1a096f66638e2dc26021525fc86342eed2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_managed_textures_streaming_active</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv436is_managed_textures_streaming_activev" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks whether texture streaming is inited and active. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if texture streaming is active, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv444is_managed_textures_streaming_load_on_demandv">
+<span id="_CPPv344is_managed_textures_streaming_load_on_demandv"></span><span id="_CPPv244is_managed_textures_streaming_load_on_demandv"></span><span id="is_managed_textures_streaming_load_on_demand"></span><span class="target" id="dag__texMgr_8h_1a1423644b5f3047b6f83f0dec18b479a8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_managed_textures_streaming_load_on_demand</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv444is_managed_textures_streaming_load_on_demandv" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks whether texture streaming loads textures only when used. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if texture streaming is load-on-demand, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv435dump_texture_streaming_memory_statev">
+<span id="_CPPv335dump_texture_streaming_memory_statev"></span><span id="_CPPv235dump_texture_streaming_memory_statev"></span><span id="dump_texture_streaming_memory_state"></span><span class="target" id="dag__texMgr_8h_1a9dc2eabd570197367513958be6df09a4"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dump_texture_streaming_memory_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv435dump_texture_streaming_memory_statev" title="Link to this definition"></a><br /></dt>
+<dd><p>Dumps current memory usage (Sys/Gpu) state of texture streaming. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429is_managed_texture_incomplete9TEXTUREID">
+<span id="_CPPv329is_managed_texture_incomplete9TEXTUREID"></span><span id="_CPPv229is_managed_texture_incomplete9TEXTUREID"></span><span id="is_managed_texture_incomplete__TEXTUREID"></span><span class="target" id="dag__texMgr_8h_1ab69ccc33b0b889a6fa192ffa5805fdf7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_managed_texture_incomplete</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429is_managed_texture_incomplete9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks whether the specified texture is split BQ/HQ with missing HQ part. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to check </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the texture is missing HQ part, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429load_anisotropy_from_settingsv">
+<span id="_CPPv329load_anisotropy_from_settingsv"></span><span id="_CPPv229load_anisotropy_from_settingsv"></span><span id="load_anisotropy_from_settings"></span><span class="target" id="dag__texMgr_8h_1acfcd91bd72cdf0422a8bd29d97b5c04d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load_anisotropy_from_settings</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429load_anisotropy_from_settingsv" title="Link to this definition"></a><br /></dt>
+<dd><p>Re-loads anisotropy config from settings. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424add_anisotropy_exception9TEXTUREID">
+<span id="_CPPv324add_anisotropy_exception9TEXTUREID"></span><span id="_CPPv224add_anisotropy_exception9TEXTUREID"></span><span id="add_anisotropy_exception__TEXTUREID"></span><span class="target" id="dag__texMgr_8h_1a258007979db02946c29a87c5703ca5c5"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_anisotropy_exception</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424add_anisotropy_exception9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Marks that a texture’s anisotropy should not be changed automatically. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to mark </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv416reset_anisotropyPKc">
+<span id="_CPPv316reset_anisotropyPKc"></span><span id="_CPPv216reset_anisotropyPKc"></span><span id="reset_anisotropy__cCP"></span><span class="target" id="dag__texMgr_8h_1a7ccd087454be46df74b63ed70f8ad1ab"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_anisotropy</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex_name_filter</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv416reset_anisotropyPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Resets anisotropy for all textures whose name contains <code class="docutils literal notranslate"><span class="pre">tex_name_filter</span></code> as a substring. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tex_name_filter</strong> – Substring filter to match texture names </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv441prefetch_and_check_managed_texture_loaded9TEXTUREIDb">
+<span id="_CPPv341prefetch_and_check_managed_texture_loaded9TEXTUREIDb"></span><span id="_CPPv241prefetch_and_check_managed_texture_loaded9TEXTUREIDb"></span><span id="prefetch_and_check_managed_texture_loaded__TEXTUREID.b"></span><span class="target" id="dag__texMgr_8h_1a14789e775e6e63f0a8a63a72c8c73f8f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prefetch_and_check_managed_texture_loaded</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fq_loaded</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv441prefetch_and_check_managed_texture_loaded9TEXTUREIDb" title="Link to this definition"></a><br /></dt>
+<dd><p>Attempts to load the texture for usage on the current frame and simply checks for immediate success. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – ID of the texture to load and check </p></li>
+<li><p><strong>fq_loaded</strong> – <code class="docutils literal notranslate"><span class="pre">true</span></code> to check for full quality, <code class="docutils literal notranslate"><span class="pre">false</span></code> for any quality </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the texture is loaded, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv442prefetch_and_check_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb">
+<span id="_CPPv342prefetch_and_check_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"></span><span id="_CPPv242prefetch_and_check_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"></span><span id="prefetch_and_check_managed_textures_loaded__dag::ConstSpan:TEXTUREID:.b"></span><span class="target" id="dag__texMgr_8h_1aaf2198403a15f5c207b4ae3ade24e753"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prefetch_and_check_managed_textures_loaded</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tex_list</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fq_loaded</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv442prefetch_and_check_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb" title="Link to this definition"></a><br /></dt>
+<dd><p>Attempts to load multiple textures for usage on the current frame and check for immediate success. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex_list</strong> – List of texture IDs to load and check </p></li>
+<li><p><strong>fq_loaded</strong> – <code class="docutils literal notranslate"><span class="pre">true</span></code> to check for full quality, <code class="docutils literal notranslate"><span class="pre">false</span></code> for any quality </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if all textures are loaded, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv441prefetch_and_wait_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb">
+<span id="_CPPv341prefetch_and_wait_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"></span><span id="_CPPv241prefetch_and_wait_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"></span><span id="prefetch_and_wait_managed_textures_loaded__dag::ConstSpan:TEXTUREID:.b"></span><span class="target" id="dag__texMgr_8h_1a65a211a88b66af68df09d2c69b02644a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prefetch_and_wait_managed_textures_loaded</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tex_list</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fq_loaded</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv441prefetch_and_wait_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb" title="Link to this definition"></a><br /></dt>
+<dd><p>Synchronously loads a list of textures, blocking the current thread until all textures are loaded. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex_list</strong> – List of texture IDs to load </p></li>
+<li><p><strong>fq_loaded</strong> – <code class="docutils literal notranslate"><span class="pre">true</span></code> to wait for full quality, <code class="docutils literal notranslate"><span class="pre">false</span></code> for any quality </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428iterate_all_managed_textures9TEXTUREIDi">
+<span id="_CPPv328iterate_all_managed_textures9TEXTUREIDi"></span><span id="_CPPv228iterate_all_managed_textures9TEXTUREIDi"></span><span id="iterate_all_managed_textures__TEXTUREID.i"></span><span class="target" id="dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19"></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">iterate_all_managed_textures</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">after_tid</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_ref_count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428iterate_all_managed_textures9TEXTUREIDi" title="Link to this definition"></a><br /></dt>
+<dd><p>Utility for iterating all managed textures. </p>
+<p>Managed textures form a linked list, so for an arbitrary ID, this function returns the “next” ID in the list. Hence one is supposed to call this function in a loop until it returns BAD_TEXTUREID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>after_tid</strong> – ID of the texture to get the next texture for. Use BAD_TEXTUREID to start iteration. </p></li>
+<li><p><strong>min_ref_count</strong> – Minimum reference count filter </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Some ID that follows <code class="docutils literal notranslate"><span class="pre">after_tid</span></code> and has refCount &gt;= <code class="docutils literal notranslate"><span class="pre">min_ref_count</span></code> OR BAD_TEXTUREID if the iteration is done. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426get_max_managed_texture_idv">
+<span id="_CPPv326get_max_managed_texture_idv"></span><span id="_CPPv226get_max_managed_texture_idv"></span><span id="get_max_managed_texture_id"></span><span class="target" id="dag__texMgr_8h_1a814ec29bfa6374bc3f6c0f5747ce4203"></span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_max_managed_texture_id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426get_max_managed_texture_idv" title="Link to this definition"></a><br /></dt>
+<dd><p>Access to the highest valid texture ID for storing properties of managed textures in arrays. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Highest valid texture ID </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv440get_managed_texture_streaming_generation9TEXTUREID">
+<span id="_CPPv340get_managed_texture_streaming_generation9TEXTUREID"></span><span id="_CPPv240get_managed_texture_streaming_generation9TEXTUREID"></span><span id="get_managed_texture_streaming_generation__TEXTUREID"></span><span class="target" id="dag__texMgr_8h_1ac9889fa8c4d94cb0aa7b66f9b99c8162"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_texture_streaming_generation</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tid</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv440get_managed_texture_streaming_generation9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Get generation of managed texture content, which changes during streaming. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tid</strong> – valid ID of texture </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Generation of streaming data </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv427is_managed_texture_id_valid9TEXTUREIDb">
+<span id="_CPPv327is_managed_texture_id_valid9TEXTUREIDb"></span><span id="_CPPv227is_managed_texture_id_valid9TEXTUREIDb"></span><span id="is_managed_texture_id_valid__TEXTUREID.b"></span><span class="target" id="dag__texMgr_8h_1aba5db10640f5e378f0cd517a8ccf3c0e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_managed_texture_id_valid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tid</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">validate_value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv427is_managed_texture_id_valid9TEXTUREIDb" title="Link to this definition"></a><br /></dt>
+<dd><p>returns true when tid resembles texture ID and (optionally checked) contains valid value (non-BAD and has proper generation) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421get_texture_meta_data9TEXTUREID">
+<span id="_CPPv321get_texture_meta_data9TEXTUREID"></span><span id="_CPPv221get_texture_meta_data9TEXTUREID"></span><span id="get_texture_meta_data__TEXTUREID"></span><span class="target" id="dag__texMgr_8h_1af923347e7641cf299572a7c36dd0e5e6"></span><span class="n"><span class="pre">TextureMetaData</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_texture_meta_data</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421get_texture_meta_data9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Get texture meta data. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to get the meta data for </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv416get_sampler_infoRK15TextureMetaDatab">
+<span id="_CPPv316get_sampler_infoRK15TextureMetaDatab"></span><span id="_CPPv216get_sampler_infoRK15TextureMetaDatab"></span><span id="get_sampler_info__TextureMetaDataCR.b"></span><span class="target" id="dag__texMgr_8h_1a725d6655c2fe6154e3387b698420290c"></span><a class="reference internal" href="../d3dAPI/Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../d3dAPI/Sampler.html#_CPPv4N3d3d11SamplerInfoE" title="d3d::SamplerInfo"><span class="n"><span class="pre">SamplerInfo</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_sampler_info</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TextureMetaData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">texture_meta_data</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">force_addr_from_tmd</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv416get_sampler_infoRK15TextureMetaDatab" title="Link to this definition"></a><br /></dt>
+<dd><p>Get a sampler info structure from texture meta data. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428get_texture_separate_sampler9TEXTUREID">
+<span id="_CPPv328get_texture_separate_sampler9TEXTUREID"></span><span id="_CPPv228get_texture_separate_sampler9TEXTUREID"></span><span id="get_texture_separate_sampler__TEXTUREID"></span><span class="target" id="dag__texMgr_8h_1ad587d87ea78813000789b9a8837dc333"></span><a class="reference internal" href="../d3dAPI/Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SamplerHandle</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_texture_separate_sampler</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428get_texture_separate_sampler9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns separate sampler for the texture ID. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Returned sampler must not be destroyed </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The function is not thread-safe, and the caller must ensure that there are no concurrent setters for this texture ID </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to get the sampler for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sampler handle for the texture. If no separate sampler is set, returns invalid handle </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428set_texture_separate_sampler9TEXTUREIDRKN3d3d11SamplerInfoE">
+<span id="_CPPv328set_texture_separate_sampler9TEXTUREIDRKN3d3d11SamplerInfoE"></span><span id="_CPPv228set_texture_separate_sampler9TEXTUREIDRKN3d3d11SamplerInfoE"></span><span id="set_texture_separate_sampler__TEXTUREID.d3d::SamplerInfoCR"></span><span class="target" id="dag__texMgr_8h_1accbedd67115d72eedce1b8c370cae944"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_texture_separate_sampler</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../d3dAPI/Sampler.html#_CPPv4N3d3d11SamplerInfoE" title="d3d::SamplerInfo"><span class="n"><span class="pre">SamplerInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">sampler_info</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428set_texture_separate_sampler9TEXTUREIDRKN3d3d11SamplerInfoE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets separate sampler for the texture ID. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Calling a function for the same texture ID is not thread-safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Calling a function for different texture IDs is thread-safe </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – ID of the texture to set the sampler for </p></li>
+<li><p><strong>sampler_info</strong> – Sampler info for sampler to set </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the sampler was set successfully, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422set_add_lod_bias_batchN3dag4SpanIK11LODBiasRuleEE">
+<span id="_CPPv322set_add_lod_bias_batchN3dag4SpanIK11LODBiasRuleEE"></span><span id="_CPPv222set_add_lod_bias_batchN3dag4SpanIK11LODBiasRuleEE"></span><span id="set_add_lod_bias_batch__dag::Span:LODBiasRuleC:"></span><span class="target" id="dag__texMgr_8h_1acb049d298c8d0b2c1aeeea8e905e9b01"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_add_lod_bias_batch</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv411LODBiasRule" title="LODBiasRule"><span class="n"><span class="pre">LODBiasRule</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rules</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422set_add_lod_bias_batchN3dag4SpanIK11LODBiasRuleEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the LOD bias for a batch of substring-bias pairs. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rules</strong> – A span of <a class="reference internal" href="#structLODBiasRule"><span class="std std-ref">LODBiasRule</span></a> objects containing substring and LOD bias pairs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-variables">Variables</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv415dgs_tex_quality">
+<span id="_CPPv315dgs_tex_quality"></span><span id="_CPPv215dgs_tex_quality"></span><span id="dgs_tex_quality__i"></span><span class="target" id="dag__texMgr_8h_1aafc40eb17cdae4ab37108bb7f468db00"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dgs_tex_quality</span></span></span><a class="headerlink" href="#_CPPv415dgs_tex_quality" title="Link to this definition"></a><br /></dt>
+<dd><p>Read-only access to the current texture quality level. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is READ-ONLY, do not modify this value </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv418dgs_tex_anisotropy">
+<span id="_CPPv318dgs_tex_anisotropy"></span><span id="_CPPv218dgs_tex_anisotropy"></span><span id="dgs_tex_anisotropy__i"></span><span class="target" id="dag__texMgr_8h_1abbbeb59eb49ea77e3f246b093b8121b7"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dgs_tex_anisotropy</span></span></span><a class="headerlink" href="#_CPPv418dgs_tex_anisotropy" title="Link to this definition"></a><br /></dt>
+<dd><p>Read-only access to the current texture anisotropy. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is READ-ONLY, do not modify this value </p>
+</div>
+</dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv414TextureFactory">
+<span id="_CPPv314TextureFactory"></span><span id="_CPPv214TextureFactory"></span><span id="TextureFactory"></span><span class="target" id="classTextureFactory"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TextureFactory</span></span></span><a class="headerlink" href="#_CPPv414TextureFactory" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_texMgr.h&gt;</em></div>
+<p>Texture factory provides custom creation mechanism. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory14TextureFactoryEv">
+<span id="_CPPv3N14TextureFactory14TextureFactoryEv"></span><span id="_CPPv2N14TextureFactory14TextureFactoryEv"></span><span id="TextureFactory::TextureFactory"></span><span class="target" id="classTextureFactory_1a26fdd8185a07623c2900fe60b8dac1ce"></span><span class="sig-name descname"><span class="n"><span class="pre">TextureFactory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N14TextureFactory14TextureFactoryEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory14TextureFactoryERR14TextureFactory">
+<span id="_CPPv3N14TextureFactory14TextureFactoryERR14TextureFactory"></span><span id="_CPPv2N14TextureFactory14TextureFactoryERR14TextureFactory"></span><span id="TextureFactory::TextureFactory__TextureFactoryRR"></span><span class="target" id="classTextureFactory_1a84e350ac4634c29602de12b644385e89"></span><span class="sig-name descname"><span class="n"><span class="pre">TextureFactory</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N14TextureFactory14TextureFactoryERR14TextureFactory" title="TextureFactory::TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N14TextureFactory14TextureFactoryERR14TextureFactory" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactoryaSERR14TextureFactory">
+<span id="_CPPv3N14TextureFactoryaSERR14TextureFactory"></span><span id="_CPPv2N14TextureFactoryaSERR14TextureFactory"></span><span id="TextureFactory::assign-operator__TextureFactoryRR"></span><span class="target" id="classTextureFactory_1ac0106175a8099265143ed66be78bf245"></span><a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N14TextureFactoryaSERR14TextureFactory" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactoryD0Ev">
+<span id="_CPPv3N14TextureFactoryD0Ev"></span><span id="_CPPv2N14TextureFactoryD0Ev"></span><span id="TextureFactory::~TextureFactory"></span><span class="target" id="classTextureFactory_1a1af95fcbad091cab0c7b4d1d94ed5ead"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~TextureFactory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N14TextureFactoryD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory13createTextureE9TEXTUREID">
+<span id="_CPPv3N14TextureFactory13createTextureE9TEXTUREID"></span><span id="_CPPv2N14TextureFactory13createTextureE9TEXTUREID"></span><span id="TextureFactory::createTexture__TEXTUREID"></span><span class="target" id="classTextureFactory_1a4b00696900c0f29eabf22a273736f004"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">createTexture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N14TextureFactory13createTextureE9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Create texture a with the specified ID. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Make sure to store the result to release it in <a class="reference internal" href="#classTextureFactory_1aae54b99b3f39bfd9db4ac6db413b2ba5"><span class="std std-ref">releaseTexture()</span></a></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture to create </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory14releaseTextureEP11BaseTexture9TEXTUREID">
+<span id="_CPPv3N14TextureFactory14releaseTextureEP11BaseTexture9TEXTUREID"></span><span id="_CPPv2N14TextureFactory14releaseTextureEP11BaseTexture9TEXTUREID"></span><span id="TextureFactory::releaseTexture__BaseTextureP.TEXTUREID"></span><span class="target" id="classTextureFactory_1aae54b99b3f39bfd9db4ac6db413b2ba5"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">releaseTexture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../d3dAPI/textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">texture</span></span>, <a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N14TextureFactory14releaseTextureEP11BaseTexture9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Release a texture that was created using createTexture. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>texture</strong> – Texture to release </p></li>
+<li><p><strong>id</strong> – ID of the texture to release </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory23texFactoryActiveChangedEb">
+<span id="_CPPv3N14TextureFactory23texFactoryActiveChangedEb"></span><span id="_CPPv2N14TextureFactory23texFactoryActiveChangedEb"></span><span id="TextureFactory::texFactoryActiveChanged__b"></span><span class="target" id="classTextureFactory_1a35553694ce8e200f6e184dca44fa548f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texFactoryActiveChanged</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N14TextureFactory23texFactoryActiveChangedEb" title="Link to this definition"></a><br /></dt>
+<dd><p>A callback that is called on install/uninstall. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory18scheduleTexLoadingE9TEXTUREID5TexQL">
+<span id="_CPPv3N14TextureFactory18scheduleTexLoadingE9TEXTUREID5TexQL"></span><span id="_CPPv2N14TextureFactory18scheduleTexLoadingE9TEXTUREID5TexQL"></span><span id="TextureFactory::scheduleTexLoading__TEXTUREID.TexQL"></span><span class="target" id="classTextureFactory_1a9a87bde42bc3fa4396e3d7edb5408484"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scheduleTexLoading</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a>, <a class="reference internal" href="general.html#_CPPv45TexQL" title="TexQL"><span class="n"><span class="pre">TexQL</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N14TextureFactory18scheduleTexLoadingE9TEXTUREID5TexQL" title="Link to this definition"></a><br /></dt>
+<dd><p>Schedules loading of specified texture (if applicable) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Thread-safe </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – ID of the texture to load </p></li>
+<li><p><strong>req_ql</strong> – Required quality level </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> when loading scheduled successfully </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory14getTextureDDSxE9TEXTUREIDR3TabIcE">
+<span id="_CPPv3N14TextureFactory14getTextureDDSxE9TEXTUREIDR3TabIcE"></span><span id="_CPPv2N14TextureFactory14getTextureDDSxE9TEXTUREIDR3TabIcE"></span><span id="TextureFactory::getTextureDDSx__TEXTUREID.Tab:c:R"></span><span class="target" id="classTextureFactory_1a1e9079ab0224c130a5c3826521be9560"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getTextureDDSx</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a>, <span class="n"><span class="pre">Tab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N14TextureFactory14getTextureDDSxE9TEXTUREIDR3TabIcE" title="Link to this definition"></a><br /></dt>
+<dd><p>Loads and returns contents of texture as DDSx data. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This function is synchronous and should be used with caution </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – ID of the texture to load </p></li>
+<li><p><strong>out_ddsx</strong> – Output buffer for DDSx data </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> when texture was loaded successfully </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory19onUnregisterTextureE9TEXTUREID">
+<span id="_CPPv3N14TextureFactory19onUnregisterTextureE9TEXTUREID"></span><span id="_CPPv2N14TextureFactory19onUnregisterTextureE9TEXTUREID"></span><span id="TextureFactory::onUnregisterTexture__TEXTUREID"></span><span class="target" id="classTextureFactory_1acaecb96963eca51a5c0706eeb195492c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onUnregisterTexture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N14TextureFactory19onUnregisterTextureE9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Callback for notification of texture being unregistered from the manager. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the texture that was unregistered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory19isPersistentTexNameEPKc">
+<span id="_CPPv3N14TextureFactory19isPersistentTexNameEPKc"></span><span id="_CPPv2N14TextureFactory19isPersistentTexNameEPKc"></span><span id="TextureFactory::isPersistentTexName__cCP"></span><span class="target" id="classTextureFactory_1a2add0cedfa660000e44b1ea0e0f6e513"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isPersistentTexName</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N14TextureFactory19isPersistentTexNameEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Determines whether the string <code class="docutils literal notranslate"><span class="pre">nm</span></code> has static lifetime and can be referenced at any time without copying. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nm</strong> – String to check </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the string is persistent </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N14TextureFactory19onTexFactoryDeletedEP14TextureFactory">
+<span id="_CPPv3N14TextureFactory19onTexFactoryDeletedEP14TextureFactory"></span><span id="_CPPv2N14TextureFactory19onTexFactoryDeletedEP14TextureFactory"></span><span id="TextureFactory::onTexFactoryDeleted__TextureFactoryP"></span><span class="target" id="classTextureFactory_1a2c4ab41edbc450fb91093cf54dc5bb6f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onTexFactoryDeleted</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv414TextureFactory" title="TextureFactory"><span class="n"><span class="pre">TextureFactory</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N14TextureFactory19onTexFactoryDeletedEP14TextureFactory" title="Link to this definition"></a><br /></dt>
+<dd><p>When a texture factory instance is destroyed at runtime, this function <strong>must</strong> be called to notify the manager about it. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This should not be called from factories which are static singletons or are destroyed after the manager was already de-initialized. </p>
+</div>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv411LODBiasRule">
+<span id="_CPPv311LODBiasRule"></span><span id="_CPPv211LODBiasRule"></span><span id="LODBiasRule"></span><span class="target" id="structLODBiasRule"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LODBiasRule</span></span></span><a class="headerlink" href="#_CPPv411LODBiasRule" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_texMgr.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11LODBiasRule9substringE">
+<span id="_CPPv3N11LODBiasRule9substringE"></span><span id="_CPPv2N11LODBiasRule9substringE"></span><span id="LODBiasRule::substring__cCP"></span><span class="target" id="structLODBiasRule_1a6fd433a89871a617c3c863acbdc81e50"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">substring</span></span></span><a class="headerlink" href="#_CPPv4N11LODBiasRule9substringE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11LODBiasRule4biasE">
+<span id="_CPPv3N11LODBiasRule4biasE"></span><span id="_CPPv2N11LODBiasRule4biasE"></span><span id="LODBiasRule::bias__float"></span><span class="target" id="structLODBiasRule_1ad4afcb8e93933e46901d539fd945f988"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bias</span></span></span><a class="headerlink" href="#_CPPv4N11LODBiasRule4biasE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="general.html" class="btn btn-neutral float-left" title="General Resource Management" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../resourceSlot.html" class="btn btn-neutral float-right" title="Resource Slots" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

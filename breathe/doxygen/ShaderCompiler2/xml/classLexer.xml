@@ -1,0 +1,782 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLexer" kind="class" language="C++" prot="public">
+    <compoundname>Lexer</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">GeneratedLexer</basecompoundref>
+    <includes refid="shlexterm_8h" local="no">shlexterm.h</includes>
+    <innerclass refid="structLexer_1_1SymbolLocation" prot="private">Lexer::SymbolLocation</innerclass>
+      <sectiondef kind="private-type">
+      <memberdef kind="enum" id="classLexer_1acd08ae5d239fb369424d5285b607b560" prot="private" static="no" strong="yes">
+        <type></type>
+        <name>LexedEntityType</name>
+        <qualifiedname>Lexer::LexedEntityType</qualifiedname>
+        <enumvalue id="classLexer_1acd08ae5d239fb369424d5285b607b560a6eecfba72d12922ee1dead07a0ef3334" prot="private">
+          <name>GLOBAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classLexer_1acd08ae5d239fb369424d5285b607b560aa05d35337eb28027e70aef2ea40ff1df" prot="private">
+          <name>SHADER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classLexer_1acd08ae5d239fb369424d5285b607b560a4d34f53389ed7f28ca91fc31ea360a66" prot="private">
+          <name>BLOCK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="54" column="3" bodyfile="shlexterm.h" bodystart="55" bodyend="59"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classLexer_1abfcb80c921f8520d09affc942bc60b22" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderMacroManager" kindref="compound">ShaderMacroManager</ref> &amp;</type>
+        <definition>ShaderMacroManager&amp; Lexer::macroMgr</definition>
+        <argsstring></argsstring>
+        <name>macroMgr</name>
+        <qualifiedname>Lexer::macroMgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="65" column="22" bodyfile="shlexterm.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLexer_1a4cbf9465a54de50c0e12ac81900bcaa9" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; uint64_t, SymbolLocation &gt;</type>
+        <definition>ska::flat_hash_map&lt;uint64_t, SymbolLocation&gt; Lexer::mSymbols</definition>
+        <argsstring></argsstring>
+        <name>mSymbols</name>
+        <qualifiedname>Lexer::mSymbols</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="67" column="22" bodyfile="shlexterm.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLexer_1acecd7c4b289082906748fb95e3446e0f" prot="private" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t Lexer::mCountShaders</definition>
+        <argsstring></argsstring>
+        <name>mCountShaders</name>
+        <qualifiedname>Lexer::mCountShaders</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="68" column="12" bodyfile="shlexterm.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLexer_1a3875e7e249d6a605944251b60806803e" prot="private" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t Lexer::mCountBlocks</definition>
+        <argsstring></argsstring>
+        <name>mCountBlocks</name>
+        <qualifiedname>Lexer::mCountBlocks</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="69" column="12" bodyfile="shlexterm.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLexer_1a7d409ef765d7d469d041c71c292558a2" prot="private" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t Lexer::mLexedEntityId</definition>
+        <argsstring></argsstring>
+        <name>mLexedEntityId</name>
+        <qualifiedname>Lexer::mLexedEntityId</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="70" column="12" bodyfile="shlexterm.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLexer_1ab4effbeb110a9b198396cade56da6190" prot="private" static="no" mutable="no">
+        <type>LexedEntityType</type>
+        <definition>LexedEntityType Lexer::mContextType</definition>
+        <argsstring></argsstring>
+        <name>mContextType</name>
+        <qualifiedname>Lexer::mContextType</qualifiedname>
+        <initializer>= LexedEntityType::GLOBAL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="71" column="19" bodyfile="shlexterm.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLexer_1a5882e46bc5c80633bd6b0f599df9ffa7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Lexer::Lexer</definition>
+        <argsstring>(InputStream *s, ShaderMacroManager &amp;macro_mgr)</argsstring>
+        <name>Lexer</name>
+        <qualifiedname>Lexer::Lexer</qualifiedname>
+        <param>
+          <type>InputStream *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMacroManager" kindref="compound">ShaderMacroManager</ref> &amp;</type>
+          <declname>macro_mgr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="17" column="3" bodyfile="shlexterm.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a78e473f344455389160c7eb4ad86c57a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::diag_message</definition>
+        <argsstring>(int type, int file, int ln, int col, const char *, int code=-1)</argsstring>
+        <name>diag_message</name>
+        <qualifiedname>Lexer::diag_message</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>file</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ln</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>code</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="19" column="8" bodyfile="shlexterm.cpp" bodystart="300" bodyend="324"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a20236d75da9f2428373b34e967adf73e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::diag_text</definition>
+        <argsstring>(int type, const char *, int code)</argsstring>
+        <name>diag_text</name>
+        <qualifiedname>Lexer::diag_text</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>code</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="21" column="8" bodyfile="shlexterm.cpp" bodystart="326" bodyend="339"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a7cef21af8f93a063e5ad782f0b70243f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * Lexer::get_diag_name</definition>
+        <argsstring>(int type)</argsstring>
+        <name>get_diag_name</name>
+        <qualifiedname>Lexer::get_diag_name</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="22" column="14" bodyfile="shlexterm.cpp" bodystart="287" bodyend="298"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a7dee3a13188fbcb621f3100297e89ea1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::error</definition>
+        <argsstring>(const char *msg=NULL) override</argsstring>
+        <name>error</name>
+        <qualifiedname>Lexer::error</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>msg</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="23" column="8" bodyfile="shlexterm.cpp" bodystart="342" bodyend="345"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a352734c3b4002a046a4bfa03709774b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::warning</definition>
+        <argsstring>(const char *) override</argsstring>
+        <name>warning</name>
+        <qualifiedname>Lexer::warning</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="24" column="8" bodyfile="shlexterm.cpp" bodystart="347" bodyend="350"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1adc619dccad28e83143bfc66045070efb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::message</definition>
+        <argsstring>(const char *) override</argsstring>
+        <name>message</name>
+        <qualifiedname>Lexer::message</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="25" column="8" bodyfile="shlexterm.cpp" bodystart="352" bodyend="355"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a809aa88fa7f77bd197c04b37a870c9c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::debug_message</definition>
+        <argsstring>(const char *) override</argsstring>
+        <name>debug_message</name>
+        <qualifiedname>Lexer::debug_message</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="26" column="8" bodyfile="shlexterm.cpp" bodystart="357" bodyend="360"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a15173ff3748bd39e52a74ddae376a785" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_error</definition>
+        <argsstring>(const char *) override</argsstring>
+        <name>set_error</name>
+        <qualifiedname>Lexer::set_error</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="27" column="8" bodyfile="shlexterm.cpp" bodystart="277" bodyend="277"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1aece436f3b550130daef7d9cf9bd1b407" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_error</definition>
+        <argsstring>(int file, int ln, int col, const char *) override</argsstring>
+        <name>set_error</name>
+        <qualifiedname>Lexer::set_error</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>file</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ln</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="28" column="8" bodyfile="shlexterm.cpp" bodystart="278" bodyend="278"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a81f0bc82f294c9b3d4b8965c52afede6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_warning</definition>
+        <argsstring>(const char *text) override</argsstring>
+        <name>set_warning</name>
+        <qualifiedname>Lexer::set_warning</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="29" column="8" bodyfile="shlexterm.cpp" bodystart="279" bodyend="279"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a3d8413feac8d7c92c92b8d6bc002c7eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_warning</definition>
+        <argsstring>(int file, int ln, int col, const char *) override</argsstring>
+        <name>set_warning</name>
+        <qualifiedname>Lexer::set_warning</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>file</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ln</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <defname>txt</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="30" column="8" bodyfile="shlexterm.cpp" bodystart="280" bodyend="280"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a4554405a6a30dbe08209d0e2687dfdba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_message</definition>
+        <argsstring>(const char *text) override</argsstring>
+        <name>set_message</name>
+        <qualifiedname>Lexer::set_message</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="31" column="8" bodyfile="shlexterm.cpp" bodystart="281" bodyend="281"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a09249b188535cd219ea01f49bceab575" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_message</definition>
+        <argsstring>(int file, int line, int col, const char *text) override</argsstring>
+        <name>set_message</name>
+        <qualifiedname>Lexer::set_message</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>file</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="32" column="8" bodyfile="shlexterm.cpp" bodystart="282" bodyend="282"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1af117bcd3e4273181cc336216d68d81d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_debug_message</definition>
+        <argsstring>(const char *text) override</argsstring>
+        <name>set_debug_message</name>
+        <qualifiedname>Lexer::set_debug_message</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="33" column="8" bodyfile="shlexterm.cpp" bodystart="283" bodyend="283"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a6e33b443fb3cc39dcb3f431c43936f47" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::set_debug_message</definition>
+        <argsstring>(int file, int line, int col, const char *text) override</argsstring>
+        <name>set_debug_message</name>
+        <qualifiedname>Lexer::set_debug_message</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>file</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="34" column="8" bodyfile="shlexterm.cpp" bodystart="284" bodyend="284"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1ab844a140350220e5e04a80336dca9ae8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::register_symbol</definition>
+        <argsstring>(int name_id, SymbolType type, Terminal *symbol)</argsstring>
+        <name>register_symbol</name>
+        <qualifiedname>Lexer::register_symbol</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>SymbolType</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>symbol</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="35" column="8" bodyfile="shlexterm.cpp" bodystart="373" bodyend="390"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1ae065a46a94e418ea39223d730939ce3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string Lexer::get_symbol_location</definition>
+        <argsstring>(int name_id, SymbolType type)</argsstring>
+        <name>get_symbol_location</name>
+        <qualifiedname>Lexer::get_symbol_location</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>SymbolType</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="36" column="17" bodyfile="shlexterm.cpp" bodystart="392" bodyend="404"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a6995e86b55fa74bb82e81a90c4e8c407" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::begin_shader</definition>
+        <argsstring>()</argsstring>
+        <name>begin_shader</name>
+        <qualifiedname>Lexer::begin_shader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="37" column="8" bodyfile="shlexterm.cpp" bodystart="406" bodyend="410"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1aba6de1ce7cc7f59bea340d75f67345b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::begin_block</definition>
+        <argsstring>()</argsstring>
+        <name>begin_block</name>
+        <qualifiedname>Lexer::begin_block</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="38" column="8" bodyfile="shlexterm.cpp" bodystart="412" bodyend="416"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1ae4681cb946cc2cad2f9d8f4054fe4a0b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::end_shader</definition>
+        <argsstring>()</argsstring>
+        <name>end_shader</name>
+        <qualifiedname>Lexer::end_shader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="39" column="8" bodyfile="shlexterm.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a80289e58c6d3cb3ee3ac7d04f612254a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::end_block</definition>
+        <argsstring>()</argsstring>
+        <name>end_block</name>
+        <qualifiedname>Lexer::end_block</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="40" column="8" bodyfile="shlexterm.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1ab26ad89867e01b9d9aecd26d1c74776c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * Lexer::get_filename</definition>
+        <argsstring>(int f) override</argsstring>
+        <name>get_filename</name>
+        <qualifiedname>Lexer::get_filename</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="41" column="14" bodyfile="shlexterm.cpp" bodystart="425" bodyend="425"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a38f3cfca6d22627aa9136da7ee2633f5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String Lexer::build_current_include_stack</definition>
+        <argsstring>() const</argsstring>
+        <name>build_current_include_stack</name>
+        <qualifiedname>Lexer::build_current_include_stack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="42" column="10" bodyfile="shlexterm.cpp" bodystart="427" bodyend="435"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1abc02e705d814875676d7e4de0026d455" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderMacroManager" kindref="compound">ShaderMacroManager</ref> &amp;</type>
+        <definition>ShaderMacroManager &amp; Lexer::get_macro_mgr</definition>
+        <argsstring>()</argsstring>
+        <name>get_macro_mgr</name>
+        <qualifiedname>Lexer::get_macro_mgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="44" column="22" bodyfile="shlexterm.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classLexer_1a0f1945ef180a1150d870fe8a5b7e4916" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderMacroManager" kindref="compound">ShaderMacroManager</ref> &amp;</type>
+        <definition>const ShaderMacroManager &amp; Lexer::get_macro_mgr</definition>
+        <argsstring>() const</argsstring>
+        <name>get_macro_mgr</name>
+        <qualifiedname>Lexer::get_macro_mgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="45" column="28" bodyfile="shlexterm.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classLexer_1ac600cf6009d4714b591a953ac5b4ab6d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Lexer::end_lexed_entity</definition>
+        <argsstring>()</argsstring>
+        <name>end_lexed_entity</name>
+        <qualifiedname>Lexer::end_lexed_entity</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="61" column="8" bodyfile="shlexterm.cpp" bodystart="418" bodyend="423"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classLexer_1a9f66e4566eb666798c300b8f1b316bca" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>uint64_t Lexer::makeSymbolId</definition>
+        <argsstring>(uint64_t name_id, SymbolType type, uint64_t entity_id, LexedEntityType entity_type)</argsstring>
+        <name>makeSymbolId</name>
+        <qualifiedname>Lexer::makeSymbolId</qualifiedname>
+        <param>
+          <type>uint64_t</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>SymbolType</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>entity_id</declname>
+        </param>
+        <param>
+          <type>LexedEntityType</type>
+          <declname>entity_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="63" column="19" bodyfile="shlexterm.cpp" bodystart="362" bodyend="371"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>GeneratedLexer</label>
+      </node>
+      <node id="1">
+        <label>Lexer</label>
+        <link refid="classLexer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>GeneratedLexer</label>
+      </node>
+      <node id="1">
+        <label>Lexer</label>
+        <link refid="classLexer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shlexterm.h" line="14" column="1" bodyfile="shlexterm.h" bodystart="15" bodyend="72"/>
+    <listofallmembers>
+      <member refid="classLexer_1aba6de1ce7cc7f59bea340d75f67345b6" prot="public" virt="non-virtual"><scope>Lexer</scope><name>begin_block</name></member>
+      <member refid="classLexer_1a6995e86b55fa74bb82e81a90c4e8c407" prot="public" virt="non-virtual"><scope>Lexer</scope><name>begin_shader</name></member>
+      <member refid="classLexer_1a38f3cfca6d22627aa9136da7ee2633f5" prot="public" virt="non-virtual"><scope>Lexer</scope><name>build_current_include_stack</name></member>
+      <member refid="classLexer_1a809aa88fa7f77bd197c04b37a870c9c2" prot="public" virt="non-virtual"><scope>Lexer</scope><name>debug_message</name></member>
+      <member refid="classLexer_1a78e473f344455389160c7eb4ad86c57a" prot="public" virt="non-virtual"><scope>Lexer</scope><name>diag_message</name></member>
+      <member refid="classLexer_1a20236d75da9f2428373b34e967adf73e" prot="public" virt="non-virtual"><scope>Lexer</scope><name>diag_text</name></member>
+      <member refid="classLexer_1a80289e58c6d3cb3ee3ac7d04f612254a" prot="public" virt="non-virtual"><scope>Lexer</scope><name>end_block</name></member>
+      <member refid="classLexer_1ac600cf6009d4714b591a953ac5b4ab6d" prot="private" virt="non-virtual"><scope>Lexer</scope><name>end_lexed_entity</name></member>
+      <member refid="classLexer_1ae4681cb946cc2cad2f9d8f4054fe4a0b" prot="public" virt="non-virtual"><scope>Lexer</scope><name>end_shader</name></member>
+      <member refid="classLexer_1a7dee3a13188fbcb621f3100297e89ea1" prot="public" virt="non-virtual"><scope>Lexer</scope><name>error</name></member>
+      <member refid="classLexer_1a7cef21af8f93a063e5ad782f0b70243f" prot="public" virt="non-virtual"><scope>Lexer</scope><name>get_diag_name</name></member>
+      <member refid="classLexer_1ab26ad89867e01b9d9aecd26d1c74776c" prot="public" virt="non-virtual"><scope>Lexer</scope><name>get_filename</name></member>
+      <member refid="classLexer_1abc02e705d814875676d7e4de0026d455" prot="public" virt="non-virtual"><scope>Lexer</scope><name>get_macro_mgr</name></member>
+      <member refid="classLexer_1a0f1945ef180a1150d870fe8a5b7e4916" prot="public" virt="non-virtual"><scope>Lexer</scope><name>get_macro_mgr</name></member>
+      <member refid="classLexer_1ae065a46a94e418ea39223d730939ce3c" prot="public" virt="non-virtual"><scope>Lexer</scope><name>get_symbol_location</name></member>
+      <member refid="classLexer_1acd08ae5d239fb369424d5285b607b560" prot="private" virt="non-virtual"><scope>Lexer</scope><name>LexedEntityType</name></member>
+      <member refid="classLexer_1a5882e46bc5c80633bd6b0f599df9ffa7" prot="public" virt="non-virtual"><scope>Lexer</scope><name>Lexer</name></member>
+      <member refid="classLexer_1abfcb80c921f8520d09affc942bc60b22" prot="private" virt="non-virtual"><scope>Lexer</scope><name>macroMgr</name></member>
+      <member refid="classLexer_1a9f66e4566eb666798c300b8f1b316bca" prot="private" virt="non-virtual"><scope>Lexer</scope><name>makeSymbolId</name></member>
+      <member refid="classLexer_1ab4effbeb110a9b198396cade56da6190" prot="private" virt="non-virtual"><scope>Lexer</scope><name>mContextType</name></member>
+      <member refid="classLexer_1a3875e7e249d6a605944251b60806803e" prot="private" virt="non-virtual"><scope>Lexer</scope><name>mCountBlocks</name></member>
+      <member refid="classLexer_1acecd7c4b289082906748fb95e3446e0f" prot="private" virt="non-virtual"><scope>Lexer</scope><name>mCountShaders</name></member>
+      <member refid="classLexer_1adc619dccad28e83143bfc66045070efb" prot="public" virt="non-virtual"><scope>Lexer</scope><name>message</name></member>
+      <member refid="classLexer_1a7d409ef765d7d469d041c71c292558a2" prot="private" virt="non-virtual"><scope>Lexer</scope><name>mLexedEntityId</name></member>
+      <member refid="classLexer_1a4cbf9465a54de50c0e12ac81900bcaa9" prot="private" virt="non-virtual"><scope>Lexer</scope><name>mSymbols</name></member>
+      <member refid="classLexer_1ab844a140350220e5e04a80336dca9ae8" prot="public" virt="non-virtual"><scope>Lexer</scope><name>register_symbol</name></member>
+      <member refid="classLexer_1af117bcd3e4273181cc336216d68d81d8" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_debug_message</name></member>
+      <member refid="classLexer_1a6e33b443fb3cc39dcb3f431c43936f47" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_debug_message</name></member>
+      <member refid="classLexer_1a15173ff3748bd39e52a74ddae376a785" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_error</name></member>
+      <member refid="classLexer_1aece436f3b550130daef7d9cf9bd1b407" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_error</name></member>
+      <member refid="classLexer_1a4554405a6a30dbe08209d0e2687dfdba" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_message</name></member>
+      <member refid="classLexer_1a09249b188535cd219ea01f49bceab575" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_message</name></member>
+      <member refid="classLexer_1a81f0bc82f294c9b3d4b8965c52afede6" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_warning</name></member>
+      <member refid="classLexer_1a3d8413feac8d7c92c92b8d6bc002c7eb" prot="public" virt="non-virtual"><scope>Lexer</scope><name>set_warning</name></member>
+      <member refid="classLexer_1a352734c3b4002a046a4bfa03709774b1" prot="public" virt="non-virtual"><scope>Lexer</scope><name>warning</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

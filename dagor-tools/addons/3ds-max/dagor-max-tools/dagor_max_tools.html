@@ -1,0 +1,667 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Max Tools</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor MaxScript Toolbox" href="../dagor-maxscript-toolbox/index.html" />
+    <link rel="prev" title="Dagor Max Tools" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor Max Tools</a><ul class="current">
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor Max Tools</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#connecting-tools">Connecting Tools</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#enabling-utilities-in-ui">Enabling Utilities in UI</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#importing-files">Importing Files</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#file-import">File &gt; Import</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#drag-drop">Drag &amp; Drop</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#dagor-scene-import">Dagor Scene Import</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#legacy">Legacy</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#standard">Standard</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#wildcard">Wildcard</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#regex">Regex</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#dagor-scene-export">Dagor Scene Export</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#data-types">Data Types</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#processing">Processing</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#export-mode">Export Mode</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#id1">Standard</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#objects-as-dags">Objects as DAGs</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#layers-as-dags">Layers as DAGs</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#vertex-normals-and-optimization">Vertex Normals and Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#export-log">Export Log</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#dagor-utility">Dagor Utility</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagor-maxscript-toolbox/index.html">Dagor MaxScript Toolbox</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor Max Tools</a></li>
+      <li class="breadcrumb-item active">Dagor Max Tools</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-max-tools/dagor_max_tools.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-max-tools">
+<h1>Dagor Max Tools<a class="headerlink" href="#dagor-max-tools" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>3ds Max includes several Dagor tools that are particularly useful for our
+workflow.</p>
+<ul>
+<li><p><strong>Dagor Scene Import:</strong> a tool for importing several models at once.</p></li>
+<li><p><strong>Dagor Scene Export:</strong> a tool for exporting assets, animations, and more.</p></li>
+<li><p><strong>Dagor Utility:</strong> a tool for procedural model adjustments.</p>
+<img alt="Overview" class="align-center" src="../../../../_images/dagor_max_tools_01.jpg" />
+</li>
+</ul>
+</section>
+<section id="connecting-tools">
+<h2>Connecting Tools<a class="headerlink" href="#connecting-tools" title="Link to this heading"></a></h2>
+<p>The tools are located here: <code class="docutils literal notranslate"><span class="pre">.../tools/dagor_cdk/windows-x86_64/plugins-3dsMax</span></code>.</p>
+<p>The process of connecting them is similar to other third-party plugins in 3ds
+Max:</p>
+<ol class="arabic">
+<li><p>Go to <strong>Customize &gt; Configure User and System Paths</strong>.</p>
+<img alt="Connecting the tools" class="align-center" src="../../../../_images/dagor_max_tools_02.jpg" />
+</li>
+<li><p>Select the <strong>3rd Party Plugins</strong> tab and use the <strong>Add</strong> button to add the
+path to the tools.</p>
+<img alt="Connecting the tools" class="align-center" src="../../../../_images/dagor_max_tools_03.jpg" />
+</li>
+</ol>
+</section>
+<section id="enabling-utilities-in-ui">
+<h2>Enabling Utilities in UI<a class="headerlink" href="#enabling-utilities-in-ui" title="Link to this heading"></a></h2>
+<p>Tools won’t appear in UI right after installation, you have to add them to
+Utilities manually.</p>
+<a class="reference internal image-reference" href="../../../../_images/dagor_max_tools_04.png"><img alt="Enabling utilities" class="align-center" src="../../../../_images/dagor_max_tools_04.png" style="width: 50em;" />
+</a>
+<p>It’s quite easy to do:</p>
+<ol class="arabic simple">
+<li><p>In the utilities press the <strong>Configure Button Sets</strong> button (one with a gear
+icon).</p></li>
+<li><p>Drag&amp;Drop necessary utilities to the buttons.</p></li>
+<li><p>Optionally, you can enter a new name to <strong>Sets:</strong> and press <strong>Save</strong> to add
+this set to dropdown.</p></li>
+</ol>
+<p>Let’s take a closer look at these tools.</p>
+</section>
+<section id="importing-files">
+<h2>Importing Files<a class="headerlink" href="#importing-files" title="Link to this heading"></a></h2>
+<p>This toolset has several ways to import <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files.</p>
+<section id="file-import">
+<h3>File &gt; Import<a class="headerlink" href="#file-import" title="Link to this heading"></a></h3>
+<p>A basic way to import assets. Works well for a single asset or a small group of
+related assets. It places nodes into layers named after the filename (minus the
+extension): for example, <code class="docutils literal notranslate"><span class="pre">base_name.lod00.dag</span></code> will be imported into the
+<code class="docutils literal notranslate"><span class="pre">base_name.lod00</span></code> layer.</p>
+<p>When you choose a file path, the following dialog should appear:</p>
+<img alt="Importing dag file" class="align-center" src="../../../../_images/dagor_max_tools_05.png" />
+<p>It has several parameters:</p>
+<ul>
+<li><p><strong>Use legacy import:</strong> ignore all the parameters and use the old way of
+importing files instead. Wipe out all layers in scene, pile up existing nodes
+in root layer. Put new asset parts to new layers with hardcoded names: LOD00,
+LOD01 and so on, no matter how asset itself is named. It’s quite destructive
+and can’t work for several assets at once. It still exists only for
+compatibility reasons: some old scripts used this mode.</p></li>
+<li><p><strong>Use legacy import:</strong> ignores all other parameters and uses the old import
+method instead. This mode clears all layers in the scene, moves existing nodes
+into the root layer, and places new asset parts into new layers with hardcoded
+names: <code class="docutils literal notranslate"><span class="pre">LOD00</span></code>, <code class="docutils literal notranslate"><span class="pre">LOD01</span></code>, and so on, regardless of the asset’s actual name.</p>
+<p>This method is quite destructive and does not support importing multiple
+assets at once. It remains available only for compatibility reasons, as some
+old scripts still rely on it.</p>
+</li>
+</ul>
+<p>Every <strong>Import…</strong> parameter uses <strong>base_name</strong> of selected file to search for
+variations. To get a <strong>base_name</strong>, importer gets a filename and cuts it on the
+first dot: <code class="docutils literal notranslate"><span class="pre">base_name.lod00.dag</span></code> to <code class="docutils literal notranslate"><span class="pre">base_name</span></code>.</p>
+<ul>
+<li><p><strong>Import LOD:</strong> when active, searches for all <code class="docutils literal notranslate"><span class="pre">*.lod??.dag</span></code>. When disabled,
+imports only the current LOD.</p></li>
+<li><p><strong>Import DP:</strong> searches for Damage Parts: <code class="docutils literal notranslate"><span class="pre">base_name_dp_??.lod??.dag</span></code>. DPs are
+also affected by the <strong>Import LOD</strong> parameter.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the user selects a DP as the base file, <strong>base_name</strong> will be set to
+<code class="docutils literal notranslate"><span class="pre">asset_name_dp_01</span></code>, for example. In this case, other DPs won’t be imported
+because <code class="docutils literal notranslate"><span class="pre">asset_name_dp_01_dp??</span></code> does not exist.</p>
+</div>
+</li>
+<li><p><strong>Import DMG:</strong> controls the import of <code class="docutils literal notranslate"><span class="pre">*_dmg</span></code> variations. Affects both the
+base asset and DP if imported. Affected by the <strong>Import LOD</strong> parameter.</p></li>
+<li><p><strong>Import DESTR:</strong> controls the import of the <code class="docutils literal notranslate"><span class="pre">*destr.lod00</span></code> variation of the
+base asset and DP. This is a dynamic asset with no LODs, so the <strong>Import LOD</strong>
+parameter does not affect it. It is always <code class="docutils literal notranslate"><span class="pre">lod00</span></code>.</p></li>
+<li><p><strong>Resolve layer name collision:</strong> this parameter defines how to handle naming
+conflicts if the asset already exists in the scene:</p>
+<ul class="simple">
+<li><p><strong>Rename new layer</strong> will import <code class="docutils literal notranslate"><span class="pre">base_name.lod00.dag</span></code> into a new layer with
+a different index, such as <code class="docutils literal notranslate"><span class="pre">base_name_001.lod00</span></code>. The existing
+<code class="docutils literal notranslate"><span class="pre">base_name.lod00</span></code> will remain unchanged.</p></li>
+<li><p><strong>Replace existing layer</strong> will clear the existing <code class="docutils literal notranslate"><span class="pre">base_name.lod00</span></code> layer
+and import the new nodes into it.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="drag-drop">
+<h3>Drag &amp; Drop<a class="headerlink" href="#drag-drop" title="Link to this heading"></a></h3>
+<p>This alternative way to trigger the importer uses standard 3ds Max behavior.
+When a file is dragged from Explorer into the viewport, the importer dialog will
+appear.</p>
+<p>After confirmation, all imported nodes will follow the mouse cursor. Clicking
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">LMB</span> will place them in the scene. If you click
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">RMB</span> instead, while the nodes are still moving, the import will
+be canceled.</p>
+<p>However, any new layer(s) created for the asset(s) will remain in the scene,
+just empty. Neither of these outcomes is useful in our case.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>To import nodes via drag &amp; drop, hold the <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">Ctrl</span> key while
+dragging the file into the viewport. This undocumented modifier key disables
+the offset applied after import.</p>
+</div>
+</section>
+<section id="dagor-scene-import">
+<h3>Dagor Scene Import<a class="headerlink" href="#dagor-scene-import" title="Link to this heading"></a></h3>
+<p>This utility can do more than basic import. It is based on the <strong>Batch Import</strong>
+panel of <a class="reference internal" href="../../blender/dag4blend/dag4blend.html#batch-import"><span class="std std-ref">dag4blend</span></a>.</p>
+<p>It offers four modes: <a class="reference internal" href="#legacy">Legacy</a>, <a class="reference internal" href="#standard">Standard</a>,
+<a class="reference internal" href="#wildcard">Wildcard</a>, and <a class="reference internal" href="#regex">Regex</a>.</p>
+<section id="legacy">
+<h4>Legacy<a class="headerlink" href="#legacy" title="Link to this heading"></a></h4>
+<a class="reference internal image-reference" href="../../../../_images/dagor_max_tools_06.png"><img alt="Legacy Import" class="align-center" src="../../../../_images/dagor_max_tools_06.png" style="width: 20em;" />
+</a>
+<p>Matches the legacy mode of <strong>File &gt; Import</strong>.</p>
+</section>
+<section id="standard">
+<h4>Standard<a class="headerlink" href="#standard" title="Link to this heading"></a></h4>
+<a class="reference internal image-reference" href="../../../../_images/dagor_max_tools_07.png"><img alt="Standard Import" class="align-center" src="../../../../_images/dagor_max_tools_07.png" style="width: 20em;" />
+</a>
+<p>Mostly matches <strong>File &gt; Import</strong>, but can also check for related files in
+subfolders of the base asset’s directory.</p>
+</section>
+<section id="wildcard">
+<h4>Wildcard<a class="headerlink" href="#wildcard" title="Link to this heading"></a></h4>
+<a class="reference internal image-reference" href="../../../../_images/dagor_max_tools_08.png"><img alt="Connecting the tools" class="align-center" src="../../../../_images/dagor_max_tools_08.png" style="width: 20em;" />
+</a>
+<p>Instead of a single file path, this mode uses a directory path (<strong>Dir path</strong>)
+and a set of rules for processing files. It uses syntax similar to the
+<a class="reference external" href="https://docs.python.org/3/library/fnmatch.html">fnmatch</a> Python library.</p>
+<table class="docutils align-center">
+<thead>
+<tr class="row-odd"><th class="head"><p>Pattern</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">*</span></code></p></td>
+<td><p>matches everything</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">?</span></code></p></td>
+<td><p>matches any single character</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">[seq]</span></code></p></td>
+<td><p>matches any character in <em>seq</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">[!seq]</span></code></p></td>
+<td><p>matches any character not in <em>seq</em></p></td>
+</tr>
+</tbody>
+</table>
+<p>Every other symbol is processed as is.</p>
+<ul class="simple">
+<li><p><strong>Includes</strong>: a set of masks for selecting <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files. If a filename matches
+at least one of the include patterns, it will be imported. If a filter
+contains no characters, it will be highlighted in red and ignored during
+import.</p></li>
+<li><p><strong>Excludes:</strong> uses the same syntax as <strong>Includes</strong>, but excludes matching
+files from import.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This mode uses exact matching, so even if a filename contains the include
+pattern, it might still be skipped. Use <code class="docutils literal notranslate"><span class="pre">*</span></code> to indicate where additional
+characters are allowed.</p>
+<p>The only exception is the file extension: each filter is matched against both
+<code class="docutils literal notranslate"><span class="pre">filename.dag</span></code> and <code class="docutils literal notranslate"><span class="pre">filename</span></code>, so you don’t need to specify the extension every
+time.</p>
+</div>
+<p><strong>Example:</strong></p>
+<ul class="simple">
+<li><p><strong>Includes:</strong> <code class="docutils literal notranslate"><span class="pre">&quot;asset_a.lod0[0,2]&quot;,</span> <span class="pre">&quot;asset_b_dp*&quot;</span></code></p></li>
+<li><p><strong>Excludes:</strong> <code class="docutils literal notranslate"><span class="pre">&quot;*_dmg*&quot;</span></code></p></li>
+</ul>
+<p>This will import <code class="docutils literal notranslate"><span class="pre">asset_a.lod00.dag</span></code>, <code class="docutils literal notranslate"><span class="pre">asset_a.lod02.dag</span></code>, and all LODs of all
+<code class="docutils literal notranslate"><span class="pre">asset_b_dp</span></code> files, except their <code class="docutils literal notranslate"><span class="pre">_dmg</span></code> variations. The file
+<code class="docutils literal notranslate"><span class="pre">other_asset_a.lod00.dag</span></code> will be skipped because the <strong>Includes</strong> pattern does
+not start with <code class="docutils literal notranslate"><span class="pre">*</span></code>, so extra characters at the beginning are not allowed.</p>
+</section>
+<section id="regex">
+<h4>Regex<a class="headerlink" href="#regex" title="Link to this heading"></a></h4>
+<p>This mode is quite similar to previous one, but uses full power of <a class="reference external" href="https://docs.python.org/3/library/re.html#regular-expression-syntax">regular expressions</a>.</p>
+<p>It exist for rare cases, when previous mode is not enough for some comlex processing.
+If you’re not familliar with regex synthax, just stick to <strong>Wildcard</strong> mode.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When you paste a filepath from Explorer into the <strong>File Path</strong> field of the
+<strong>Simple</strong> mode, quotation marks (<code class="docutils literal notranslate"><span class="pre">&quot;</span></code>) are removed automatically.</p>
+<p>When you paste a filepath into the <strong>Dir path</strong> field of the <strong>Wildcard</strong> or
+<strong>Regex</strong> modes, it’s trimmed down to the directory path, while the filename is
+moved to the includes section (with corrected syntax).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>3DS Max will be unresponsive until the import is complete.
+Currently there is no way to monitor importing process, so just wait.</p>
+</div>
+</section>
+</section>
+</section>
+<section id="dagor-scene-export">
+<h2>Dagor Scene Export<a class="headerlink" href="#dagor-scene-export" title="Link to this heading"></a></h2>
+<p>Dagor Max Tools do not support exporting files directly via <strong>File &gt; Export</strong>.
+Instead, the Dagor Scene Export utility is used for exporting assets,
+specifically for saving scenes into <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files. This is the primary function
+of interest. We’ll skip the <strong>Animation</strong> and <strong>Other</strong> panels for now.</p>
+<a class="reference internal image-reference" href="../../../../_images/dagor_max_tools_09.png"><img alt="Dagor scene export" class="align-center" src="../../../../_images/dagor_max_tools_09.png" style="width: 20em;" />
+</a>
+<p>The DAG exporter is divided into several sections. It’s easier to describe them
+in a different order.</p>
+<section id="data-types">
+<h3>Data Types<a class="headerlink" href="#data-types" title="Link to this heading"></a></h3>
+<p>This block controls which data types would be exported. Most of the names are self-explanatory:</p>
+<ul class="simple">
+<li><p><strong>Mesh:</strong> exports of geometry. In almost every case, this should remain
+enabled.</p></li>
+<li><p><strong>Helper</strong></p></li>
+<li><p><strong>Light</strong></p></li>
+<li><p><strong>Materials:</strong> exports of materials. When disabled, materials are replaced
+with placeholders.</p></li>
+<li><p><strong>Camera</strong></p></li>
+<li><p><strong>Splines</strong></p></li>
+<li><p><strong>Vertex normals:</strong> custom vertex normals, if they exist. This option has some
+quirks, which are described later.</p></li>
+</ul>
+</section>
+<section id="processing">
+<h3>Processing<a class="headerlink" href="#processing" title="Link to this heading"></a></h3>
+<p>Contains parameters that modify exported date before writing it to a file.</p>
+<ul class="simple">
+<li><p><strong>Optimize materials:</strong> removes unused materials and joins material slots that
+use the same material into one. This should generally remain enabled.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These parameters now have tooltips that provide additional explanations.</p>
+</div>
+</section>
+<section id="export-mode">
+<h3>Export Mode<a class="headerlink" href="#export-mode" title="Link to this heading"></a></h3>
+<p>Mostly self-explanatory. The <strong>Selected</strong> and <strong>Hidden</strong> parameters have a
+significant impact on how some export modes behave, so they are placed in the
+same block.</p>
+<section id="id1">
+<h4>Standard<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<p>The oldest export mode, designed to work with the hierarchy produced by the
+<a class="reference internal" href="#legacy">Legacy</a> import. It takes a single file path as a parameter but can
+split the output into variations if layers with hardcoded names like <code class="docutils literal notranslate"><span class="pre">LOD??</span></code>,
+<code class="docutils literal notranslate"><span class="pre">DMG_LOD??</span></code>, or <code class="docutils literal notranslate"><span class="pre">DESTR</span></code> are found.</p>
+</section>
+<section id="objects-as-dags">
+<h4>Objects as DAGs<a class="headerlink" href="#objects-as-dags" title="Link to this heading"></a></h4>
+<p>This mode takes a directory path as a parameter. As the name suggests, it
+exports each object as a separate <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file. The filename is based on the
+object’s name, and the pivot is local, taken from the object itself, not from
+the scene center. This means that even if the object is offset, rotated, or
+scaled in the scene, it will be exported in its original state, as if
+<code class="docutils literal notranslate"><span class="pre">rotation=location=[0,0,0]</span></code> and <code class="docutils literal notranslate"><span class="pre">scale=[1,1,1]</span></code>.</p>
+<p>To export multiple objects into a single <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file in this mode, group them.
+The group will be treated as a single object.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>When creating a group, 3ds Max automatically sets its pivot to the center of the
+group’s bounding box. This can result in an unintended offset, even if all
+components originally had correctly aligned pivots.</p>
+<p>To avoid this, you should manually adjust the pivot position after grouping and
+before exporting:</p>
+<img alt="Export mode" class="align-center" src="../../../../_images/dagor_max_tools_10.png" />
+</div>
+</section>
+<section id="layers-as-dags">
+<h4>Layers as DAGs<a class="headerlink" href="#layers-as-dags" title="Link to this heading"></a></h4>
+<p>This mode also takes a directory path as a parameter. It works with the
+hierarchy created by non-legacy import. The <strong>Hidden</strong> and <strong>Selected</strong>
+parameters behave differently in this mode.</p>
+<p><strong>Export Rules:</strong></p>
+<ul>
+<li><p>Only layers at the bottom of the hierarchy (those without nested layers) will
+be exported. If a layer contains no objects that match the export parameters,
+no <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file will be created.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">default</span></code> layer is never exported, since it’s unlikely you’d need a
+<code class="docutils literal notranslate"><span class="pre">default.dag</span></code>. However, its nested layers will still be checked and exported
+if they meet the criteria.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">Selected=True</span></code>, only the currently selected layer (indicated by a
+different icon color in the Scene Explorer) and its nested layers will be
+processed.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">Selected=False</span></code>, all layers in the scene will be checked.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">Hidden=True</span></code>, hidden objects and layers will be exported.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">Hidden=False</span></code>, hidden layers will be skipped, and hidden objects will not
+be included.</p>
+<img alt="Layers as dags mode" class="align-center" src="../../../../_images/dagor_max_tools_11.png" />
+</li>
+</ul>
+<p>For example, in the image above, the current layer is <code class="docutils literal notranslate"><span class="pre">asset_a.lods</span></code>. If
+<code class="docutils literal notranslate"><span class="pre">Selected=True</span></code>, only this layer and its child layers will be processed. Other
+top-level layers, such as <code class="docutils literal notranslate"><span class="pre">asset_b.lods</span></code> and <code class="docutils literal notranslate"><span class="pre">asset_c.lods</span></code>, along with their
+contents, will be ignored.</p>
+<ul class="simple">
+<li><p>The current layer contains child layers, so it will not be exported.</p></li>
+<li><p>The child layer <code class="docutils literal notranslate"><span class="pre">asset_a.lod00</span></code> has no further nested layers but contains two
+visible nodes. It will be exported as <code class="docutils literal notranslate"><span class="pre">asset_a.lod00.dag</span></code> regardless of the
+<strong>Hidden</strong> setting.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">asset_a.lod01</span></code> layer has no nested layers, but one node is hidden. If
+<code class="docutils literal notranslate"><span class="pre">Hidden=True</span></code>, <code class="docutils literal notranslate"><span class="pre">asset_a.lod01.dag</span></code> will be exported with both nodes included;
+if <code class="docutils literal notranslate"><span class="pre">Hidden=False</span></code>, only the visible <code class="docutils literal notranslate"><span class="pre">axis.lod01</span></code> node will be exported.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">asset_a.lod02</span></code> layer will be exported as <code class="docutils literal notranslate"><span class="pre">asset_a.lod02.dag</span></code> only if
+<code class="docutils literal notranslate"><span class="pre">Hidden=True</span></code>, since it is hidden.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">asset_a.lod03</span></code> layer will never be exported, as it contains no nodes,
+making visibility irrelevant.</p></li>
+</ul>
+<p>This method is especially useful when working with a pack of assets rather than
+a single one. For example, by grouping the layers <code class="docutils literal notranslate"><span class="pre">asset_[a,b,c].lods</span></code> into a
+general layer called <code class="docutils literal notranslate"><span class="pre">assets</span></code> and making it active (or simply activating the
+<code class="docutils literal notranslate"><span class="pre">default</span></code> layer as shown above, or setting <code class="docutils literal notranslate"><span class="pre">Selected=False</span></code>), you can re-export
+the entire pack with all LODs (levels of detail) in a single click.</p>
+</section>
+<section id="vertex-normals-and-optimization">
+<h4>Vertex Normals and Optimization<a class="headerlink" href="#vertex-normals-and-optimization" title="Link to this heading"></a></h4>
+<p>When exporting objects, if custom normals are not assigned, the object will be
+exported without them, even if the <strong>Vertex normals</strong> option is enabled.</p>
+<p>However, unlike <code class="docutils literal notranslate"><span class="pre">.max</span></code> files, <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files cannot store custom normals for only
+a portion of an object’s vertices while calculating the rest based on smoothing
+groups. If even one vertex in an object has a custom normal, the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file
+will store normals for all vertices.</p>
+<p><strong>Example 1:</strong> the character model and the beveled cube with weighted normals,
+where the cube is a separate object.</p>
+<img alt="Vertex normals and optimization" class="align-center" src="../../../../_images/dagor_max_tools_12.png" />
+<ul class="simple">
+<li><p>Upon export, custom normals were preserved only for the cube, since the
+character model had no custom normals assigned.</p></li>
+<li><p>After re-importing, we can see that the character model lacks custom normals
+(normals are shown in blue in the <strong>Edit Normals</strong> modifier).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file size is 75 KB.</p></li>
+</ul>
+<p><strong>Example 2:</strong> the character model and cube were combined into a single object
+before export.</p>
+<img alt="Vertex normals and optimization" class="align-center" src="../../../../_images/dagor_max_tools_13.png" />
+<ul class="simple">
+<li><p>During export, custom normals were saved for every vertex, not just those
+belonging to the cube.</p></li>
+<li><p>After re-importing, all the vectors on the character model appear “greened
+out”, even though they originally looked like the previous image before
+export.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file size is 166 KB.</p></li>
+</ul>
+<p>Therefore, if you need to adjust shading using custom normals, it’s advisable to
+<strong>detach</strong> the editable part of the model <strong>before</strong> applying custom normals.
+This way, the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file size won’t increase unnecessarily after export. Be
+sure to verify by re-importing the file to check if any unwanted normals have
+appeared.</p>
+<p>Once custom normals are assigned, even resetting them through the <strong>Edit
+Normals</strong> modifier or attaching the object to a new one won’t completely remove
+them. The only reliable workaround is to export the objects to a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file
+with vertex normals disabled, delete the original, and then re-import the
+cleaned file. This ensures all references to custom normals are removed, and
+export behavior will return to normal.</p>
+<p>After such a re-import, apply <strong>Dagor Utilities &gt; Materials &gt; Collapse
+Materials</strong> to prevent materials from being split into two copies with the same
+names.</p>
+</section>
+</section>
+<section id="export-log">
+<h3>Export Log<a class="headerlink" href="#export-log" title="Link to this heading"></a></h3>
+<p>The <strong>Export Log</strong> records the results of each export operation.</p>
+<img alt="Export log" class="align-center" src="../../../../_images/dagor_max_tools_14.png" />
+<p>If you encounter any export errors, do not ignore them. Check the log to
+identify which objects in the scene are causing problems. Common errors include:</p>
+<ul class="simple">
+<li><p>Degenerate triangles.</p></li>
+<li><p>Unsmoothed triangles.</p></li>
+<li><p>Geometry that is too large.</p></li>
+<li><p>Non-Dagor materials assigned.</p></li>
+</ul>
+<p>The log is now displayed in a separate, resizable window and will automatically
+open during export only if errors are detected. If there are no warnings, the
+export information is recorded, but the log window won’t pop up. So, if the log
+opens after export, carefully read it and address any issues. To view
+information about the most recent export, you can manually open the log by
+clicking the <strong>(Re)open Log</strong> button. If the log window was already open,
+clicking the button will reset its size and position to default, which is useful
+if the log was accidentally resized beyond the screen or moved off-screen.</p>
+</section>
+</section>
+<section id="dagor-utility">
+<h2>Dagor Utility<a class="headerlink" href="#dagor-utility" title="Link to this heading"></a></h2>
+<p>The Dagor Utility tool is designed for the automatic correction and refinement
+of models. Below are the primary functions you’ll likely use:</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All these functions only work in <em>Editable Mesh</em> mode.</p>
+</div>
+<ul>
+<li><p><strong>Remove degenerates</strong>: this function removes degenerate triangles, which are
+triangles with edges that lie on the same plane. If you encounter an error
+during export indicating the presence of degenerate triangles, use this tool.</p>
+<img alt="Dagor utility" class="align-center" src="../../../../_images/dagor_max_tools_15.png" />
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Sometimes, this function can disrupt the shading of the model. If that
+happens, converting everything back to <em>Editable Poly</em> should resolve the
+issue.</p>
+</div>
+<img alt="Dagor utility" class="align-center" src="../../../../_images/dagor_max_tools_16.jpg" />
+</li>
+<li><p><strong>Dagor -&gt; Dagor New</strong>: converts the material assigned to a model from
+DagorMat1 to DagorMat2.</p></li>
+<li><p><strong>Collapse materials</strong>: merges materials with the same name and identical
+parameters into a single material. This is useful when importing multiple LODs
+of the same object into 3ds Max. By default, these LODs have duplicated
+materials, so modifying the material on one LOD won’t affect the others. This
+function combines the duplicated materials into one. It’s crucial to use this
+function before making any modifications to the imported materials.</p></li>
+<li><p><strong>Show maps on s.o. (selected objects)</strong>: forces textures to display on
+objects with Dagor materials. There may be instances where textures don’t
+display correctly due to glitches – this button helps resolve that.</p></li>
+<li><p><strong>Hide</strong>: forces textures to hide.</p></li>
+<li><p><strong>StdMat -&gt; DagorMat</strong>: converts a standard 3ds Max material to a DagorMat.
+The conversion is not perfect – it only transfers the diffuse texture.
+However, it can still be useful in some situations.</p></li>
+<li><p><strong>DagorMat -&gt; StdMat</strong>: the reverse procedure, converting DagorMat back to a
+standard material. This process is also imperfect, but it might come in handy.</p>
+<img alt="Dagor utility" class="align-center" src="../../../../_images/dagor_max_tools_17.png" />
+</li>
+<li><p><strong>UV Utils</strong>: provides tools for modifying UV mapping:</p>
+<ul class="simple">
+<li><p><strong>Copy</strong>: copies UV mapping to another channel.</p></li>
+<li><p><strong>Swap</strong>: swaps UV mapping between channels.</p></li>
+<li><p><strong>Move</strong>: transfers UV mapping to another channel.</p></li>
+<li><p><strong>Kill</strong>: deletes UV mapping on a specific channel (i.e., specifying the
+same channel in both channels).</p></li>
+<li><p><strong>CopyBuffer / PasteBuffer</strong>: these theoretically allow copying UV mapping
+from one model to another. This functionality has not been thoroughly
+tested.</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information on additional optional tools that are installed separately,
+see <a class="reference internal" href="../dagor-maxscript-toolbox/index.html"><span class="std std-doc">Dagor MaxScript Toolbox</span></a>.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Dagor Max Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dagor-maxscript-toolbox/index.html" class="btn btn-neutral float-right" title="Dagor MaxScript Toolbox" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

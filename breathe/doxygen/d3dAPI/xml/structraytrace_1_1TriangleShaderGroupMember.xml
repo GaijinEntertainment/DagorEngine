@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1TriangleShaderGroupMember" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::TriangleShaderGroupMember</compoundname>
+    <derivedcompoundref refid="structraytrace_1_1ProceduralShaderGroupMember" prot="public" virt="non-virtual">raytrace::ProceduralShaderGroupMember</derivedcompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1TriangleShaderGroupMember_1a12800061b6ef780dc96cd45b118249d1" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref></type>
+        <definition>ShaderInLibraryReference raytrace::TriangleShaderGroupMember::anyHit</definition>
+        <argsstring></argsstring>
+        <name>anyHit</name>
+        <qualifiedname>raytrace::TriangleShaderGroupMember::anyHit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reference of a any hit shader Can be a valid or a null reference. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="483" column="28" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="483" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TriangleShaderGroupMember_1aabceaf23c6e4ad358246879109fbd1ab" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref></type>
+        <definition>ShaderInLibraryReference raytrace::TriangleShaderGroupMember::closestHit</definition>
+        <argsstring></argsstring>
+        <name>closestHit</name>
+        <qualifiedname>raytrace::TriangleShaderGroupMember::closestHit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reference of a closest git shader Can be a valid or a null reference. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="486" column="28" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="486" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Shader group describing a triangle hit group At least one of &apos;anyHit&apos; and &apos;closestHit&apos; members has to be a valid reference. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>raytrace::ProceduralShaderGroupMember</label>
+        <link refid="structraytrace_1_1ProceduralShaderGroupMember"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::TriangleShaderGroupMember</label>
+        <link refid="structraytrace_1_1TriangleShaderGroupMember"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderInLibraryReference</label>
+        <link refid="structShaderInLibraryReference"/>
+      </node>
+      <node id="1">
+        <label>raytrace::TriangleShaderGroupMember</label>
+        <link refid="structraytrace_1_1TriangleShaderGroupMember"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>anyHit</edgelabel>
+          <edgelabel>closestHit</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="479" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="480" bodyend="487"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1TriangleShaderGroupMember_1a12800061b6ef780dc96cd45b118249d1" prot="public" virt="non-virtual"><scope>raytrace::TriangleShaderGroupMember</scope><name>anyHit</name></member>
+      <member refid="structraytrace_1_1TriangleShaderGroupMember_1aabceaf23c6e4ad358246879109fbd1ab" prot="public" virt="non-virtual"><scope>raytrace::TriangleShaderGroupMember</scope><name>closestHit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

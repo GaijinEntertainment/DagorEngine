@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacestcode" kind="namespace" language="C++">
+    <compoundname>stcode</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacestcode_1acee5dd1d45e20011c37e1c8eef76dde7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ShaderVarType</type>
+        <definition>ShaderVarType stcode::shexpr_value_to_shadervar_type</definition>
+        <argsstring>(shexpr::ValueType shvt, bool is_integer)</argsstring>
+        <name>shexpr_value_to_shadervar_type</name>
+        <qualifiedname>stcode::shexpr_value_to_shadervar_type</qualifiedname>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>shvt</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeUtils.h" line="13" column="22" bodyfile="cppStcodeUtils.h" bodystart="13" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacestcode_1a286b6353e9940ecc3c5bd2fe4e520d3a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * stcode::shadervar_type_to_stcode_type</definition>
+        <argsstring>(ShaderVarType shvt)</argsstring>
+        <name>shadervar_type_to_stcode_type</name>
+        <qualifiedname>stcode::shadervar_type_to_stcode_type</qualifiedname>
+        <param>
+          <type>ShaderVarType</type>
+          <declname>shvt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeUtils.h" line="25" column="19" bodyfile="cppStcodeUtils.h" bodystart="25" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacestcode_1a66c79ce9b06d190ef06f3c157175496d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * stcode::value_type_to_stcode_type</definition>
+        <argsstring>(shexpr::ValueType vt, bool is_integer)</argsstring>
+        <name>value_type_to_stcode_type</name>
+        <qualifiedname>stcode::value_type_to_stcode_type</qualifiedname>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeUtils.h" line="45" column="19" bodyfile="cppStcodeUtils.h" bodystart="45" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacestcode_1ac9b0dde961cded9c04d0dbbeb0f50e28" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int stcode::shader_stage_to_idx</definition>
+        <argsstring>(ShaderStage stage)</argsstring>
+        <name>shader_stage_to_idx</name>
+        <qualifiedname>stcode::shader_stage_to_idx</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeUtils.h" line="50" column="12" bodyfile="cppStcodeUtils.h" bodystart="50" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacestcode_1a7f2720f98f20ceffbea919ac76eae7e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string stcode::extract_shader_name_from_path</definition>
+        <argsstring>(const char *fn)</argsstring>
+        <name>extract_shader_name_from_path</name>
+        <qualifiedname>stcode::extract_shader_name_from_path</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeUtils.h" line="61" column="22" bodyfile="cppStcodeUtils.h" bodystart="61" bodyend="72"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeUtils.h" line="10" column="1"/>
+  </compounddef>
+</doxygen>

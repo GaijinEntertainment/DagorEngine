@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="unionproc_1_1internal_1_1Pipe" kind="struct" language="C++" prot="public">
+    <compoundname>proc::internal::Pipe</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionproc_1_1internal_1_1Pipe_1a347808c7a78f43503f659a7bdd272327" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int proc::internal::Pipe::read_fd</definition>
+        <argsstring></argsstring>
+        <name>read_fd</name>
+        <qualifiedname>proc::internal::Pipe::read_fd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="32" column="9" bodyfile="processes_unix.cpp" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionproc_1_1internal_1_1Pipe_1abe16b7b728f859a07b618074b8117e98" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int proc::internal::Pipe::write_fd</definition>
+        <argsstring></argsstring>
+        <name>write_fd</name>
+        <qualifiedname>proc::internal::Pipe::write_fd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="32" column="17" bodyfile="processes_unix.cpp" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionproc_1_1internal_1_1Pipe_1a7e0bae6c1b0d6b5bef04222bc2a68d81" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="unionproc_1_1internal_1_1Pipe" kindref="compound">proc::internal::Pipe</ref></type>
+        <definition>struct proc::internal::Pipe proc::internal::Pipe</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>proc::internal::Pipe</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="33" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionproc_1_1internal_1_1Pipe_1a7b4b0660b8fe365060252474198c468c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int proc::internal::Pipe::fds[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>fds</name>
+        <qualifiedname>proc::internal::Pipe::fds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="34" column="7" bodyfile="processes_unix.cpp" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionproc_1_1internal_1_1Pipe_1adf2e8717c2f9628815e4678c13caa25c" prot="public" static="no" mutable="no">
+        <type>HANDLE</type>
+        <definition>HANDLE proc::internal::Pipe::read</definition>
+        <argsstring></argsstring>
+        <name>read</name>
+        <qualifiedname>proc::internal::Pipe::read</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_win.cpp" line="23" column="10" bodyfile="processes_win.cpp" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionproc_1_1internal_1_1Pipe_1a1532e331a855d7aa662f7048341abbe3" prot="public" static="no" mutable="no">
+        <type>HANDLE</type>
+        <definition>HANDLE proc::internal::Pipe::write</definition>
+        <argsstring></argsstring>
+        <name>write</name>
+        <qualifiedname>proc::internal::Pipe::write</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_win.cpp" line="23" column="15" bodyfile="processes_win.cpp" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="unionproc_1_1internal_1_1Pipe_1af69abd5c87e2c6f94e3900111d3a620c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>proc::internal::Pipe::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>proc::internal::Pipe::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_win.cpp" line="25" column="3" bodyfile="processes_win.cpp" bodystart="25" bodyend="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="processes_unix.cpp" line="28" column="1" bodyfile="processes_unix.cpp" bodystart="29" bodyend="35"/>
+    <listofallmembers>
+      <member refid="unionproc_1_1internal_1_1Pipe_1a7b4b0660b8fe365060252474198c468c" prot="public" virt="non-virtual"><scope>proc::internal::Pipe</scope><name>fds</name></member>
+      <member refid="unionproc_1_1internal_1_1Pipe_1af69abd5c87e2c6f94e3900111d3a620c" prot="public" virt="non-virtual"><scope>proc::internal::Pipe</scope><name>operator bool</name></member>
+      <member refid="unionproc_1_1internal_1_1Pipe_1adf2e8717c2f9628815e4678c13caa25c" prot="public" virt="non-virtual"><scope>proc::internal::Pipe</scope><name>read</name></member>
+      <member refid="unionproc_1_1internal_1_1Pipe_1a347808c7a78f43503f659a7bdd272327" prot="public" virt="non-virtual"><scope>proc::internal::Pipe</scope><name>read_fd</name></member>
+      <member refid="unionproc_1_1internal_1_1Pipe_1a1532e331a855d7aa662f7048341abbe3" prot="public" virt="non-virtual"><scope>proc::internal::Pipe</scope><name>write</name></member>
+      <member refid="unionproc_1_1internal_1_1Pipe_1abe16b7b728f859a07b618074b8117e98" prot="public" virt="non-virtual"><scope>proc::internal::Pipe</scope><name>write_fd</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1429 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMaskedOcclusionCulling" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>MaskedOcclusionCulling</compoundname>
+    <includes refid="dag__maskedOcclusionCulling_8h" local="no">dag_maskedOcclusionCulling.h</includes>
+    <innerclass refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics" prot="public">MaskedOcclusionCulling::OcclusionCullingStatistics</innerclass>
+    <innerclass refid="structMaskedOcclusionCulling_1_1ScissorRect" prot="public">MaskedOcclusionCulling::ScissorRect</innerclass>
+    <innerclass refid="structMaskedOcclusionCulling_1_1TriList" prot="public">MaskedOcclusionCulling::TriList</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bd" prot="public" static="no" strong="no">
+        <type></type>
+        <name>Implementation</name>
+        <qualifiedname>MaskedOcclusionCulling::Implementation</qualifiedname>
+        <enumvalue id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bda40565de3ad3893f8035409e691fe45fc" prot="public">
+          <name>SSE2</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bda9ad913a8de92904505d38c8b47169218" prot="public">
+          <name>SSE41</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bdaa651a0e3a301e7ad08020589ba3c567d" prot="public">
+          <name>AVX2</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bdab55e8050d08b3f398902185b2e28419f" prot="public">
+          <name>NEON</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="131" column="3" bodyfile="dag_maskedOcclusionCulling.h" bodystart="132" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="enum" id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488" prot="public" static="no" strong="no">
+        <type></type>
+        <name>BackfaceWinding</name>
+        <qualifiedname>MaskedOcclusionCulling::BackfaceWinding</qualifiedname>
+        <enumvalue id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488af8a4798752ce31a9570d45e1798d6bed" prot="public">
+          <name>BACKFACE_NONE</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488a958730433e95c5c19c41cdfbd595cfa7" prot="public">
+          <name>BACKFACE_CW</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488aa5a85f4d4af2fefb0e4499b231fbcb80" prot="public">
+          <name>BACKFACE_CCW</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="140" column="3" bodyfile="dag_maskedOcclusionCulling.h" bodystart="141" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="enum" id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3" prot="public" static="no" strong="no">
+        <type></type>
+        <name>CullingResult</name>
+        <qualifiedname>MaskedOcclusionCulling::CullingResult</qualifiedname>
+        <enumvalue id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3a16fc888a5f76b24d91f8584f8661bebd" prot="public">
+          <name>VISIBLE</name>
+          <initializer>= 0x0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3ac51a6eccddc67661e9102074b7d7efff" prot="public">
+          <name>OCCLUDED</name>
+          <initializer>= 0x1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3abba9cdc903628d5d31dded5688c9f78f" prot="public">
+          <name>VIEW_CULLED</name>
+          <initializer>= 0x3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="147" column="3" bodyfile="dag_maskedOcclusionCulling.h" bodystart="148" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="enum" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ClipPlanes</name>
+        <qualifiedname>MaskedOcclusionCulling::ClipPlanes</qualifiedname>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9af8b536644b5ceafb4c0f5bfacdb0262d" prot="public">
+          <name>CLIP_PLANE_NONE</name>
+          <initializer>= 0x00</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9af38beadd46c5045e5307521efd50f94e" prot="public">
+          <name>CLIP_PLANE_NEAR</name>
+          <initializer>= 0x01</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9aaeebfdcc769d111509367f7486f5c04f" prot="public">
+          <name>CLIP_PLANE_LEFT</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a2e545476b2ab87bbf7e8c1bd88c3dca3" prot="public">
+          <name>CLIP_PLANE_RIGHT</name>
+          <initializer>= 0x04</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a1ecdee75d2d222b3f3b3913c58d1ee73" prot="public">
+          <name>CLIP_PLANE_BOTTOM</name>
+          <initializer>= 0x08</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a65c229787e3315384fa18f9d2efff4dc" prot="public">
+          <name>CLIP_PLANE_TOP</name>
+          <initializer>= 0x10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a0a8cf25b502e5e26b030443cb44fdb67" prot="public">
+          <name>CLIP_PLANE_SIDES</name>
+          <initializer>= (CLIP_PLANE_LEFT | CLIP_PLANE_RIGHT | CLIP_PLANE_BOTTOM | CLIP_PLANE_TOP)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a12991e46fc63247f747098aa80980feb" prot="public">
+          <name>CLIP_PLANE_ALL</name>
+          <initializer>= (CLIP_PLANE_LEFT | CLIP_PLANE_RIGHT | CLIP_PLANE_BOTTOM | CLIP_PLANE_TOP | CLIP_PLANE_NEAR)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="154" column="3" bodyfile="dag_maskedOcclusionCulling.h" bodystart="155" bodyend="164"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classMaskedOcclusionCulling_1a8fe12f626eecace52c67844295423450" prot="public" static="no">
+        <type>void *(*</type>
+        <definition>typedef void *(* MaskedOcclusionCulling::pfnAlignedAlloc) (size_t alignment, size_t size)</definition>
+        <argsstring>)(size_t alignment, size_t size)</argsstring>
+        <name>pfnAlignedAlloc</name>
+        <qualifiedname>MaskedOcclusionCulling::pfnAlignedAlloc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="124" column="11" bodyfile="dag_maskedOcclusionCulling.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classMaskedOcclusionCulling_1adecb44fd14619ed0ebc8f547a21b11df" prot="public" static="no">
+        <type>void(*</type>
+        <definition>typedef void(* MaskedOcclusionCulling::pfnAlignedFree) (void *ptr)</definition>
+        <argsstring>)(void *ptr)</argsstring>
+        <name>pfnAlignedFree</name>
+        <qualifiedname>MaskedOcclusionCulling::pfnAlignedFree</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="125" column="11" bodyfile="dag_maskedOcclusionCulling.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classMaskedOcclusionCulling_1a42e0b9f44bc170702f1d04dd319c1707" prot="protected" static="no" mutable="no">
+        <type><ref refid="classMaskedOcclusionCulling_1a8fe12f626eecace52c67844295423450" kindref="member">pfnAlignedAlloc</ref></type>
+        <definition>pfnAlignedAlloc MaskedOcclusionCulling::mAlignedAllocCallback</definition>
+        <argsstring></argsstring>
+        <name>mAlignedAllocCallback</name>
+        <qualifiedname>MaskedOcclusionCulling::mAlignedAllocCallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="526" column="19" bodyfile="dag_maskedOcclusionCulling.h" bodystart="526" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaskedOcclusionCulling_1a754a3d68084b5d7833ccecde6b9881be" prot="protected" static="no" mutable="no">
+        <type><ref refid="classMaskedOcclusionCulling_1adecb44fd14619ed0ebc8f547a21b11df" kindref="member">pfnAlignedFree</ref></type>
+        <definition>pfnAlignedFree MaskedOcclusionCulling::mAlignedFreeCallback</definition>
+        <argsstring></argsstring>
+        <name>mAlignedFreeCallback</name>
+        <qualifiedname>MaskedOcclusionCulling::mAlignedFreeCallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="527" column="18" bodyfile="dag_maskedOcclusionCulling.h" bodystart="527" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaskedOcclusionCulling_1a55c70a3e8f3b764d5237eecdabccc8d6" prot="protected" static="no" mutable="yes">
+        <type><ref refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics" kindref="compound">OcclusionCullingStatistics</ref></type>
+        <definition>OcclusionCullingStatistics MaskedOcclusionCulling::mStats</definition>
+        <argsstring></argsstring>
+        <name>mStats</name>
+        <qualifiedname>MaskedOcclusionCulling::mStats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="529" column="38" bodyfile="dag_maskedOcclusionCulling.h" bodystart="529" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1ae7b4b044fc74ac7858294e62b17b8823" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref> *</type>
+        <definition>static MaskedOcclusionCulling * MaskedOcclusionCulling::Create</definition>
+        <argsstring>()</argsstring>
+        <name>Create</name>
+        <qualifiedname>MaskedOcclusionCulling::Create</qualifiedname>
+        <briefdescription>
+<para>Creates a new object with default state, no z buffer attached/allocated. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="237" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a70ca004a05adf4dd6b6f1c73a2eb76a3" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref> *</type>
+        <definition>static MaskedOcclusionCulling * MaskedOcclusionCulling::Create</definition>
+        <argsstring>(Implementation RequestedSIMD, pfnAlignedAlloc alignedAlloc, pfnAlignedFree alignedFree)</argsstring>
+        <name>Create</name>
+        <qualifiedname>MaskedOcclusionCulling::Create</qualifiedname>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bd" kindref="member">Implementation</ref></type>
+          <declname>RequestedSIMD</declname>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1a8fe12f626eecace52c67844295423450" kindref="member">pfnAlignedAlloc</ref></type>
+          <declname>alignedAlloc</declname>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1adecb44fd14619ed0ebc8f547a21b11df" kindref="member">pfnAlignedFree</ref></type>
+          <declname>alignedFree</declname>
+        </param>
+        <briefdescription>
+<para>Creates a new object with default state, no z buffer attached/allocated. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>alignedAlloc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a callback function used when allocating memory </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alignedFree</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a callback function used when freeing memory </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="244" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a6b58c7c50559afb190ea7b212164962c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void MaskedOcclusionCulling::Destroy</definition>
+        <argsstring>(MaskedOcclusionCulling *moc)</argsstring>
+        <name>Destroy</name>
+        <qualifiedname>MaskedOcclusionCulling::Destroy</qualifiedname>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref> *</type>
+          <declname>moc</declname>
+        </param>
+        <briefdescription>
+<para>Destroys an object and frees the z buffer memory. Note that you cannot use the delete operator, and should rather use this function to free up memory. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="250" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1adaccd2d2109fd8b401a482224054fb1c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void MaskedOcclusionCulling::TransformVertices</definition>
+        <argsstring>(const float *mtx, const float *inVtx, float *xfVtx, unsigned int nVtx)</argsstring>
+        <name>TransformVertices</name>
+        <qualifiedname>MaskedOcclusionCulling::TransformVertices</qualifiedname>
+        <param>
+          <type>const float *</type>
+          <declname>mtx</declname>
+        </param>
+        <param>
+          <type>const float *</type>
+          <declname>inVtx</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>xfVtx</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>nVtx</declname>
+        </param>
+        <briefdescription>
+<para>Utility function for transforming vertices and outputting them to an (x,y,z,w) format suitable for the occluder rasterization and occludee testing functions. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>mtx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to matrix data. The matrix should column major for post multiplication (OGL) and row major for pre-multiplication (DX). This is consistent with OpenGL / DirectX behavior. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>inVtx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of input vertices. The input vertices are given as (x,y,z) coordinates. The memory layout can be changed using vtxLayout. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xfVtx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array to store transformed vertices. The transformed vertices are always stored as array of structs (AoS) (x,y,z,w) packed in memory. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nVtx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of vertices to transform. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vtxLayout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. Note that for this function, the w-component is assumed to be 1.0. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="497" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a31dc21213cfe983afc64856a574e72e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::SetResolution</definition>
+        <argsstring>(unsigned int width, unsigned int height)=0</argsstring>
+        <name>SetResolution</name>
+        <qualifiedname>MaskedOcclusionCulling::SetResolution</qualifiedname>
+        <param>
+          <type>unsigned int</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>height</declname>
+        </param>
+        <briefdescription>
+<para>Sets the resolution of the hierarchical depth buffer. This function will re-allocate the current depth buffer (if present). The contents of the buffer is undefined until <ref refid="classMaskedOcclusionCulling_1a8ca38e929880fefba257f96a87212288" kindref="member">ClearBuffer()</ref> is called. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>witdh</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The width of the buffer in pixels, must be a multiple of 8 </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>height</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The height of the buffer in pixels, must be a multiple of 4 </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="260" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a66073be3b909a4c9d6b057c984b5ab0b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::GetResolution</definition>
+        <argsstring>(unsigned int &amp;width, unsigned int &amp;height) const =0</argsstring>
+        <name>GetResolution</name>
+        <qualifiedname>MaskedOcclusionCulling::GetResolution</qualifiedname>
+        <param>
+          <type>unsigned int &amp;</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>unsigned int &amp;</type>
+          <declname>height</declname>
+        </param>
+        <briefdescription>
+<para>Gets the resolution of the hierarchical depth buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>witdh</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output: The width of the buffer in pixels </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>height</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output: The height of the buffer in pixels </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="268" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a5605061cd58ee62cf71d18fe84229aff" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::ComputeBinWidthHeight</definition>
+        <argsstring>(unsigned int nBinsW, unsigned int nBinsH, unsigned int &amp;outBinWidth, unsigned int &amp;outBinHeight)=0</argsstring>
+        <name>ComputeBinWidthHeight</name>
+        <qualifiedname>MaskedOcclusionCulling::ComputeBinWidthHeight</qualifiedname>
+        <param>
+          <type>unsigned int</type>
+          <declname>nBinsW</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>nBinsH</declname>
+        </param>
+        <param>
+          <type>unsigned int &amp;</type>
+          <declname>outBinWidth</declname>
+        </param>
+        <param>
+          <type>unsigned int &amp;</type>
+          <declname>outBinHeight</declname>
+        </param>
+        <briefdescription>
+<para>Returns the tile size for the current implementation. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>nBinsW</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of vertical bins, the screen is divided into nBinsW x nBinsH rectangular bins. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nBinsH</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of horizontal bins, the screen is divided into nBinsW x nBinsH rectangular bins. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>outBinWidth</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output: The width of the single bin in pixels (except for the rightmost bin width, which is extended to resolution width) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>outBinHeight</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output: The height of the single bin in pixels (except for the bottommost bin height, which is extended to resolution height) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="282" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a4aff6b2f29f019d64cc6f8c0acc00ad8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::SetNearClipPlane</definition>
+        <argsstring>(float nearDist)=0</argsstring>
+        <name>SetNearClipPlane</name>
+        <qualifiedname>MaskedOcclusionCulling::SetNearClipPlane</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>nearDist</declname>
+        </param>
+        <briefdescription>
+<para>Sets the distance for the near clipping plane. Default is nearDist = 0. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>nearDist</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The distance to the near clipping plane, given as clip space w </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="290" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a4a3fde45cfd7c3044a3b1157d9654f2d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>float</type>
+        <definition>virtual float MaskedOcclusionCulling::GetNearClipPlane</definition>
+        <argsstring>() const =0</argsstring>
+        <name>GetNearClipPlane</name>
+        <qualifiedname>MaskedOcclusionCulling::GetNearClipPlane</qualifiedname>
+        <briefdescription>
+<para>Gets the distance for the near clipping plane. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="295" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a8ca38e929880fefba257f96a87212288" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::ClearBuffer</definition>
+        <argsstring>()=0</argsstring>
+        <name>ClearBuffer</name>
+        <qualifiedname>MaskedOcclusionCulling::ClearBuffer</qualifiedname>
+        <briefdescription>
+<para>Clears the hierarchical depth buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="300" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1ac485575dc75d718699cefb0b8a182ea8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::MergeBuffer</definition>
+        <argsstring>(MaskedOcclusionCulling *BufferB)=0</argsstring>
+        <name>MergeBuffer</name>
+        <qualifiedname>MaskedOcclusionCulling::MergeBuffer</qualifiedname>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref> *</type>
+          <declname>BufferB</declname>
+        </param>
+        <briefdescription>
+<para>Merge a second hierarchical depth buffer into the main buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="305" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a025bcb2e422c77840dabbceaa5722a99" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3" kindref="member">CullingResult</ref></type>
+        <definition>virtual CullingResult MaskedOcclusionCulling::RenderTriangles</definition>
+        <argsstring>(const float *inVtx, const unsigned short *inTris, int nTris, const float *modelToClipMatrix=nullptr, BackfaceWinding bfWinding=BACKFACE_CW, ClipPlanes clipPlaneMask=CLIP_PLANE_ALL)=0</argsstring>
+        <name>RenderTriangles</name>
+        <qualifiedname>MaskedOcclusionCulling::RenderTriangles</qualifiedname>
+        <param>
+          <type>const float *</type>
+          <declname>inVtx</declname>
+        </param>
+        <param>
+          <type>const unsigned short *</type>
+          <declname>inTris</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nTris</declname>
+        </param>
+        <param>
+          <type>const float *</type>
+          <declname>modelToClipMatrix</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488" kindref="member">BackfaceWinding</ref></type>
+          <declname>bfWinding</declname>
+          <defval><ref refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488a958730433e95c5c19c41cdfbd595cfa7" kindref="member">BACKFACE_CW</ref></defval>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9" kindref="member">ClipPlanes</ref></type>
+          <declname>clipPlaneMask</declname>
+          <defval><ref refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a12991e46fc63247f747098aa80980feb" kindref="member">CLIP_PLANE_ALL</ref></defval>
+        </param>
+        <briefdescription>
+<para>Renders a mesh of occluder triangles and updates the hierarchical z buffer with conservative depth values. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function is optimized for vertex layouts with stride 16 and y and w offsets of 4 and 12 bytes, respectively.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>inVtx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of input vertices, should point to the x component of the first vertex. The input vertices are given as (x,y,w) coordinates in clip space. The memory layout can be changed using vtxLayout. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>inTris</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of vertex indices. Each triangle is created from three indices consecutively fetched from the array. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nTris</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of triangles to render (inTris must contain atleast 3*nTris entries) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>modelToClipMatrix</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>all vertices will be transformed by this matrix before performing projection. If nullptr is passed the transform step will be skipped </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bfWinding</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Sets triangle winding order to consider backfacing, must be one one of (BACKFACE_NONE, BACKFACE_CW and BACKFACE_CCW). Back-facing triangles are culled and will not be rasterized. You may use BACKFACE_NONE to disable culling for double sided geometry </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>clipPlaneMask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A mask indicating which clip planes should be considered by the triangle clipper. Can be used as an optimization if your application can determine (for example during culling) that a group of triangles does not intersect a certain frustum plane. However, setting an incorrect mask may cause out of bounds memory accesses. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vtxLayout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Will return VIEW_CULLED if all triangles are either outside the frustum or backface culled, returns VISIBLE otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="338" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1afaac101042e8262a81d19ac3064a8d17" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3" kindref="member">CullingResult</ref></type>
+        <definition>virtual CullingResult MaskedOcclusionCulling::TestRect</definition>
+        <argsstring>(float xmin, float ymin, float xmax, float ymax, float wmin) const =0</argsstring>
+        <name>TestRect</name>
+        <qualifiedname>MaskedOcclusionCulling::TestRect</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>xmin</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>ymin</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>xmax</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>ymax</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>wmin</declname>
+        </param>
+        <briefdescription>
+<para>Occlusion query for a rectangle with a given depth. The rectangle is given in normalized device coordinates where (x,y) coordinates between [-1,1] map to the visible screen area. The query uses a GREATER_EQUAL (reversed) depth test meaning that depth values equal to the contents of the depth buffer are counted as visible. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>xmin</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>NDC coordinate of the left side of the rectangle. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ymin</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>NDC coordinate of the bottom side of the rectangle. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xmax</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>NDC coordinate of the right side of the rectangle. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ymax</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>NDC coordinate of the top side of the rectangle. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ymax</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>NDC coordinate of the top side of the rectangle. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wmin</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Clip space W coordinate for the rectangle. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The query will return VISIBLE if the rectangle may be visible, OCCLUDED if the rectangle is occluded by a previously rendered object, or VIEW_CULLED if the rectangle is outside the view frustum. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="359" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a33295dcfc3bc3c2e57e09d3099a7e8ca" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3" kindref="member">CullingResult</ref></type>
+        <definition>virtual CullingResult MaskedOcclusionCulling::TestTriangles</definition>
+        <argsstring>(const float *inVtx, const unsigned short *inTris, int nTris, const float *modelToClipMatrix=nullptr, BackfaceWinding bfWinding=BACKFACE_CW, ClipPlanes clipPlaneMask=CLIP_PLANE_ALL)=0</argsstring>
+        <name>TestTriangles</name>
+        <qualifiedname>MaskedOcclusionCulling::TestTriangles</qualifiedname>
+        <param>
+          <type>const float *</type>
+          <declname>inVtx</declname>
+        </param>
+        <param>
+          <type>const unsigned short *</type>
+          <declname>inTris</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nTris</declname>
+        </param>
+        <param>
+          <type>const float *</type>
+          <declname>modelToClipMatrix</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488" kindref="member">BackfaceWinding</ref></type>
+          <declname>bfWinding</declname>
+          <defval><ref refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488a958730433e95c5c19c41cdfbd595cfa7" kindref="member">BACKFACE_CW</ref></defval>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9" kindref="member">ClipPlanes</ref></type>
+          <declname>clipPlaneMask</declname>
+          <defval><ref refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a12991e46fc63247f747098aa80980feb" kindref="member">CLIP_PLANE_ALL</ref></defval>
+        </param>
+        <briefdescription>
+<para>This function is similar to <ref refid="classMaskedOcclusionCulling_1a025bcb2e422c77840dabbceaa5722a99" kindref="member">RenderTriangles()</ref>, but performs an occlusion query instead and does not update the hierarchical z buffer. The query uses a GREATER_EQUAL (reversed) depth test meaning that depth values equal to the contents of the depth buffer are counted as visible. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function is optimized for vertex layouts with stride 16 and y and w offsets of 4 and 12 bytes, respectively.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>inVtx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of input vertices, should point to the x component of the first vertex. The input vertices are given as (x,y,w) coordinates in clip space. The memory layout can be changed using vtxLayout. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>inTris</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of triangle indices. Each triangle is created from three indices consecutively fetched from the array. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nTris</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of triangles to render (inTris must contain atleast 3*nTris entries) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>modelToClipMatrix</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>all vertices will be transformed by this matrix before performing projection. If nullptr is passed the transform step will be skipped </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bfWinding</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Sets triangle winding order to consider backfacing, must be one one of (BACKFACE_NONE, BACKFACE_CW and BACKFACE_CCW). Back-facing triangles are culled and will not be occlusion tested. You may use BACKFACE_NONE to disable culling for double sided geometry </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>clipPlaneMask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A mask indicating which clip planes should be considered by the triangle clipper. Can be used as an optimization if your application can determine (for example during culling) that a group of triangles does not intersect a certain frustum plane. However, setting an incorrect mask may cause out of bounds memory accesses. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vtxLayout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The query will return VISIBLE if the triangle mesh may be visible, OCCLUDED if the mesh is occluded by a previously rendered object, or VIEW_CULLED if all triangles are entirely outside the view frustum or backface culled. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="395" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a8c5a3dc3ece64807e0141bb93a62474b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::BinTriangles</definition>
+        <argsstring>(const float *inVtx, const unsigned short *inTris, int nTris, TriList *triLists, unsigned int nBinsW, unsigned int nBinsH, const float *modelToClipMatrix=nullptr, BackfaceWinding bfWinding=BACKFACE_CW, ClipPlanes clipPlaneMask=CLIP_PLANE_ALL)=0</argsstring>
+        <name>BinTriangles</name>
+        <qualifiedname>MaskedOcclusionCulling::BinTriangles</qualifiedname>
+        <param>
+          <type>const float *</type>
+          <declname>inVtx</declname>
+        </param>
+        <param>
+          <type>const unsigned short *</type>
+          <declname>inTris</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nTris</declname>
+        </param>
+        <param>
+          <type><ref refid="structMaskedOcclusionCulling_1_1TriList" kindref="compound">TriList</ref> *</type>
+          <declname>triLists</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>nBinsW</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>nBinsH</declname>
+        </param>
+        <param>
+          <type>const float *</type>
+          <declname>modelToClipMatrix</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488" kindref="member">BackfaceWinding</ref></type>
+          <declname>bfWinding</declname>
+          <defval><ref refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488a958730433e95c5c19c41cdfbd595cfa7" kindref="member">BACKFACE_CW</ref></defval>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9" kindref="member">ClipPlanes</ref></type>
+          <declname>clipPlaneMask</declname>
+          <defval><ref refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a12991e46fc63247f747098aa80980feb" kindref="member">CLIP_PLANE_ALL</ref></defval>
+        </param>
+        <briefdescription>
+<para>Perform input assembly, clipping , projection, triangle setup, and write triangles to the screen space bins they overlap. This function can be used to distribute work for threading (See the CullingThreadpool class for an example) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>inVtx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of input vertices, should point to the x component of the first vertex. The input vertices are given as (x,y,w) coordinates in clip space. The memory layout can be changed using vtxLayout. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>inTris</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of vertex indices. Each triangle is created from three indices consecutively fetched from the array. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nTris</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of triangles to render (inTris must contain atleast 3*nTris entries) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>triLists</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an array of <ref refid="structMaskedOcclusionCulling_1_1TriList" kindref="compound">TriList</ref> objects with one <ref refid="structMaskedOcclusionCulling_1_1TriList" kindref="compound">TriList</ref> object per bin. If a triangle overlaps a bin, it will be written to the corresponding trilist. Note that this method appends the triangles to the current list, to start writing from the beginning of the list, set triList.mTriIdx = 0 </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nBinsW</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of vertical bins, the screen is divided into nBinsW x nBinsH rectangular bins. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nBinsH</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of horizontal bins, the screen is divided into nBinsW x nBinsH rectangular bins. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>modelToClipMatrix</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>all vertices will be transformed by this matrix before performing projection. If nullptr is passed the transform step will be skipped </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>clipPlaneMask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A mask indicating which clip planes should be considered by the triangle clipper. Can be used as an optimization if your application can determine (for example during culling) that a group of triangles does not intersect a certain frustum plane. However, setting an incorrect mask may cause out of bounds memory accesses. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vtxLayout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bfWinding</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Sets triangle winding order to consider backfacing, must be one one of (BACKFACE_NONE, BACKFACE_CW and BACKFACE_CCW). Back-facing triangles are culled and will not be binned / rasterized. You may use BACKFACE_NONE to disable culling for double sided geometry </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="434" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a976bed9467e6022bed44af7e240cba5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::RenderTrilist</definition>
+        <argsstring>(const TriList &amp;triList, const ScissorRect *scissor)=0</argsstring>
+        <name>RenderTrilist</name>
+        <qualifiedname>MaskedOcclusionCulling::RenderTrilist</qualifiedname>
+        <param>
+          <type>const <ref refid="structMaskedOcclusionCulling_1_1TriList" kindref="compound">TriList</ref> &amp;</type>
+          <declname>triList</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structMaskedOcclusionCulling_1_1ScissorRect" kindref="compound">ScissorRect</ref> *</type>
+          <declname>scissor</declname>
+        </param>
+        <briefdescription>
+<para>Renders all occluder triangles in a trilist. This function can be used in combination with <ref refid="classMaskedOcclusionCulling_1a8c5a3dc3ece64807e0141bb93a62474b" kindref="member">BinTriangles()</ref> to create a threded (binning) rasterizer. The bins can be processed independently by different threads without risking writing to overlapping memory regions. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>triLists</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A triangle list, filled using the <ref refid="classMaskedOcclusionCulling_1a8c5a3dc3ece64807e0141bb93a62474b" kindref="member">BinTriangles()</ref> function that is to be rendered. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>scissor</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A scissor box limiting the rendering region to the bin. The size of each bin must be a multiple of 32x8 pixels due to implementation constraints. For a render target with (width, height) resolution and (nBinsW, nBinsH) bins, the size of a bin is: binWidth = (width / nBinsW) - (width / nBinsW) % 32; binHeight = (height / nBinsH) - (height / nBinsH) % 8; The last row and column of tiles have a different size: lastColBinWidth = width - (nBinsW-1)*binWidth; lastRowBinHeight = height - (nBinsH-1)*binHeight; </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="456" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a4b6ed10a1f5eeab63769ca015443b5e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::ComputePixelDepthBuffer</definition>
+        <argsstring>(float *depthData, bool flipY)=0</argsstring>
+        <name>ComputePixelDepthBuffer</name>
+        <qualifiedname>MaskedOcclusionCulling::ComputePixelDepthBuffer</qualifiedname>
+        <param>
+          <type>float *</type>
+          <declname>depthData</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>flipY</declname>
+        </param>
+        <briefdescription>
+<para>Creates a per-pixel depth buffer from the hierarchical z buffer representation. Intended for visualizing the hierarchical depth buffer for debugging. The buffer is written in scanline order, from the top to bottom (D3D) or bottom to top (OGL) of the surface. See the USE_D3D define. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>depthData</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory where the per-pixel depth data is written. Must hold storage for atleast width*height elements as set by setResolution. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="467" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1aa14ab2651b1246cc3add7371bded7121" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics" kindref="compound">OcclusionCullingStatistics</ref></type>
+        <definition>virtual OcclusionCullingStatistics MaskedOcclusionCulling::GetStatistics</definition>
+        <argsstring>()=0</argsstring>
+        <name>GetStatistics</name>
+        <qualifiedname>MaskedOcclusionCulling::GetStatistics</qualifiedname>
+        <briefdescription>
+<para>Fetch occlusion culling statistics, returns zeroes if ENABLE_STATS define is not defined. The statistics can be used for profiling or debugging. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="473" column="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a82f3d406fcaf82ac4e80a196a9556cd1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bd" kindref="member">Implementation</ref></type>
+        <definition>virtual Implementation MaskedOcclusionCulling::GetImplementation</definition>
+        <argsstring>()=0</argsstring>
+        <name>GetImplementation</name>
+        <qualifiedname>MaskedOcclusionCulling::GetImplementation</qualifiedname>
+        <briefdescription>
+<para>Returns the implementation (CPU instruction set) version of this object. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="478" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1af51f2ec3444351a3576da99ccf157213" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaskedOcclusionCulling::GetAllocFreeCallback</definition>
+        <argsstring>(pfnAlignedAlloc &amp;allocCallback, pfnAlignedFree &amp;freeCallback)</argsstring>
+        <name>GetAllocFreeCallback</name>
+        <qualifiedname>MaskedOcclusionCulling::GetAllocFreeCallback</qualifiedname>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1a8fe12f626eecace52c67844295423450" kindref="member">pfnAlignedAlloc</ref> &amp;</type>
+          <declname>allocCallback</declname>
+        </param>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling_1adecb44fd14619ed0ebc8f547a21b11df" kindref="member">pfnAlignedFree</ref> &amp;</type>
+          <declname>freeCallback</declname>
+        </param>
+        <briefdescription>
+<para>Get used memory alloc/free callbacks. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="502" column="8" bodyfile="dag_maskedOcclusionCulling.h" bodystart="502" bodyend="505"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a8072b6d6cd41da7301bc27c4fdd605d2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::CombinePixelDepthBuffer2W</definition>
+        <argsstring>(float *depthData, int w, int h)=0</argsstring>
+        <name>CombinePixelDepthBuffer2W</name>
+        <qualifiedname>MaskedOcclusionCulling::CombinePixelDepthBuffer2W</qualifiedname>
+        <param>
+          <type>float *</type>
+          <declname>depthData</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="508" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1aefded8eb2cd069363191f96374139ff1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::DecodePixelDepthBuffer2W</definition>
+        <argsstring>(float *depthData, int w, int h)=0</argsstring>
+        <name>DecodePixelDepthBuffer2W</name>
+        <qualifiedname>MaskedOcclusionCulling::DecodePixelDepthBuffer2W</qualifiedname>
+        <param>
+          <type>float *</type>
+          <declname>depthData</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="509" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a1f17e371ed25845168e79aa7f788bec9" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::mergeOcclusions</definition>
+        <argsstring>(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile)=0</argsstring>
+        <name>mergeOcclusions</name>
+        <qualifiedname>MaskedOcclusionCulling::mergeOcclusions</qualifiedname>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref> **</type>
+          <declname>another_occl</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>occl_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_tile</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>last_tile</declname>
+        </param>
+        <briefdescription>
+<para>Fetch occlusion culling statistics, returns zeroes if ENABLE_STATS define is not defined. The statistics can be used for profiling or debugging. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="519" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1ab9c28036ab2d5934076c273d8907db7b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void MaskedOcclusionCulling::mergeOcclusionsZmin</definition>
+        <argsstring>(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile)=0</argsstring>
+        <name>mergeOcclusionsZmin</name>
+        <qualifiedname>MaskedOcclusionCulling::mergeOcclusionsZmin</qualifiedname>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref> **</type>
+          <declname>another_occl</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>occl_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_tile</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>last_tile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="521" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a2ace027bb75ff88b39355de12b7490d2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>uint32_t</type>
+        <definition>virtual uint32_t MaskedOcclusionCulling::getTilesCount</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getTilesCount</name>
+        <qualifiedname>MaskedOcclusionCulling::getTilesCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="523" column="20"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classMaskedOcclusionCulling_1a9cae88e2a4a27ed4c410abc73c2fb721" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual MaskedOcclusionCulling::~MaskedOcclusionCulling</definition>
+        <argsstring>()</argsstring>
+        <name>~MaskedOcclusionCulling</name>
+        <qualifiedname>MaskedOcclusionCulling::~MaskedOcclusionCulling</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="531" column="11" bodyfile="dag_maskedOcclusionCulling.h" bodystart="531" bodyend="531"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>MaskedOcclusionCulling</label>
+        <link refid="classMaskedOcclusionCulling"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>mStats</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>MaskedOcclusionCulling::OcclusionCullingStatistics</label>
+        <link refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_maskedOcclusionCulling.h" line="117" column="1" bodyfile="dag_maskedOcclusionCulling.h" bodystart="118" bodyend="532"/>
+    <listofallmembers>
+      <member refid="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bdaa651a0e3a301e7ad08020589ba3c567d" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>AVX2</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488aa5a85f4d4af2fefb0e4499b231fbcb80" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>BACKFACE_CCW</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488a958730433e95c5c19c41cdfbd595cfa7" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>BACKFACE_CW</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488af8a4798752ce31a9570d45e1798d6bed" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>BACKFACE_NONE</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>BackfaceWinding</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8c5a3dc3ece64807e0141bb93a62474b" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>BinTriangles</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8ca38e929880fefba257f96a87212288" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>ClearBuffer</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a12991e46fc63247f747098aa80980feb" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_ALL</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a1ecdee75d2d222b3f3b3913c58d1ee73" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_BOTTOM</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9aaeebfdcc769d111509367f7486f5c04f" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_LEFT</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9af38beadd46c5045e5307521efd50f94e" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_NEAR</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9af8b536644b5ceafb4c0f5bfacdb0262d" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_NONE</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a2e545476b2ab87bbf7e8c1bd88c3dca3" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_RIGHT</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a0a8cf25b502e5e26b030443cb44fdb67" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_SIDES</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a65c229787e3315384fa18f9d2efff4dc" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CLIP_PLANE_TOP</name></member>
+      <member refid="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>ClipPlanes</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8072b6d6cd41da7301bc27c4fdd605d2" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>CombinePixelDepthBuffer2W</name></member>
+      <member refid="classMaskedOcclusionCulling_1a5605061cd58ee62cf71d18fe84229aff" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>ComputeBinWidthHeight</name></member>
+      <member refid="classMaskedOcclusionCulling_1a4b6ed10a1f5eeab63769ca015443b5e7" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>ComputePixelDepthBuffer</name></member>
+      <member refid="classMaskedOcclusionCulling_1ae7b4b044fc74ac7858294e62b17b8823" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>Create</name></member>
+      <member refid="classMaskedOcclusionCulling_1a70ca004a05adf4dd6b6f1c73a2eb76a3" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>Create</name></member>
+      <member refid="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>CullingResult</name></member>
+      <member refid="classMaskedOcclusionCulling_1aefded8eb2cd069363191f96374139ff1" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>DecodePixelDepthBuffer2W</name></member>
+      <member refid="classMaskedOcclusionCulling_1a6b58c7c50559afb190ea7b212164962c" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>Destroy</name></member>
+      <member refid="classMaskedOcclusionCulling_1af51f2ec3444351a3576da99ccf157213" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>GetAllocFreeCallback</name></member>
+      <member refid="classMaskedOcclusionCulling_1a82f3d406fcaf82ac4e80a196a9556cd1" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>GetImplementation</name></member>
+      <member refid="classMaskedOcclusionCulling_1a4a3fde45cfd7c3044a3b1157d9654f2d" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>GetNearClipPlane</name></member>
+      <member refid="classMaskedOcclusionCulling_1a66073be3b909a4c9d6b057c984b5ab0b" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>GetResolution</name></member>
+      <member refid="classMaskedOcclusionCulling_1aa14ab2651b1246cc3add7371bded7121" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>GetStatistics</name></member>
+      <member refid="classMaskedOcclusionCulling_1a2ace027bb75ff88b39355de12b7490d2" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>getTilesCount</name></member>
+      <member refid="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bd" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>Implementation</name></member>
+      <member refid="classMaskedOcclusionCulling_1a42e0b9f44bc170702f1d04dd319c1707" prot="protected" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>mAlignedAllocCallback</name></member>
+      <member refid="classMaskedOcclusionCulling_1a754a3d68084b5d7833ccecde6b9881be" prot="protected" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>mAlignedFreeCallback</name></member>
+      <member refid="classMaskedOcclusionCulling_1ac485575dc75d718699cefb0b8a182ea8" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>MergeBuffer</name></member>
+      <member refid="classMaskedOcclusionCulling_1a1f17e371ed25845168e79aa7f788bec9" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>mergeOcclusions</name></member>
+      <member refid="classMaskedOcclusionCulling_1ab9c28036ab2d5934076c273d8907db7b" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>mergeOcclusionsZmin</name></member>
+      <member refid="classMaskedOcclusionCulling_1a55c70a3e8f3b764d5237eecdabccc8d6" prot="protected" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>mStats</name></member>
+      <member refid="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bdab55e8050d08b3f398902185b2e28419f" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>NEON</name></member>
+      <member refid="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3ac51a6eccddc67661e9102074b7d7efff" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>OCCLUDED</name></member>
+      <member refid="classMaskedOcclusionCulling_1a8fe12f626eecace52c67844295423450" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>pfnAlignedAlloc</name></member>
+      <member refid="classMaskedOcclusionCulling_1adecb44fd14619ed0ebc8f547a21b11df" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>pfnAlignedFree</name></member>
+      <member refid="classMaskedOcclusionCulling_1a025bcb2e422c77840dabbceaa5722a99" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>RenderTriangles</name></member>
+      <member refid="classMaskedOcclusionCulling_1a976bed9467e6022bed44af7e240cba5e" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>RenderTrilist</name></member>
+      <member refid="classMaskedOcclusionCulling_1a4aff6b2f29f019d64cc6f8c0acc00ad8" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>SetNearClipPlane</name></member>
+      <member refid="classMaskedOcclusionCulling_1a31dc21213cfe983afc64856a574e72e6" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>SetResolution</name></member>
+      <member refid="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bda40565de3ad3893f8035409e691fe45fc" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>SSE2</name></member>
+      <member refid="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bda9ad913a8de92904505d38c8b47169218" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>SSE41</name></member>
+      <member refid="classMaskedOcclusionCulling_1afaac101042e8262a81d19ac3064a8d17" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>TestRect</name></member>
+      <member refid="classMaskedOcclusionCulling_1a33295dcfc3bc3c2e57e09d3099a7e8ca" prot="public" virt="pure-virtual"><scope>MaskedOcclusionCulling</scope><name>TestTriangles</name></member>
+      <member refid="classMaskedOcclusionCulling_1adaccd2d2109fd8b401a482224054fb1c" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>TransformVertices</name></member>
+      <member refid="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3abba9cdc903628d5d31dded5688c9f78f" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>VIEW_CULLED</name></member>
+      <member refid="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3a16fc888a5f76b24d91f8584f8661bebd" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling</scope><name>VISIBLE</name></member>
+      <member refid="classMaskedOcclusionCulling_1a9cae88e2a4a27ed4c410abc73c2fb721" prot="protected" virt="virtual"><scope>MaskedOcclusionCulling</scope><name>~MaskedOcclusionCulling</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

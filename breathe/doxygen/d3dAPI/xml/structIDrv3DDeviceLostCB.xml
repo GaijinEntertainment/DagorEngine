@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIDrv3DDeviceLostCB" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>IDrv3DDeviceLostCB</compoundname>
+    <includes refid="dag__resetDevice_8h" local="no">dag_resetDevice.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structIDrv3DDeviceLostCB_1a8afd5c142375de51cef1a5eddff20ec2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDrv3DDeviceLostCB::onDeviceLost</definition>
+        <argsstring>()=0</argsstring>
+        <name>onDeviceLost</name>
+        <qualifiedname>IDrv3DDeviceLostCB::onDeviceLost</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="20" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resetDevice.h" line="18" column="1" bodyfile="dag_resetDevice.h" bodystart="19" bodyend="21"/>
+    <listofallmembers>
+      <member refid="structIDrv3DDeviceLostCB_1a8afd5c142375de51cef1a5eddff20ec2" prot="public" virt="pure-virtual"><scope>IDrv3DDeviceLostCB</scope><name>onDeviceLost</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

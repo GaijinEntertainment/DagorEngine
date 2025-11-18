@@ -1,0 +1,357 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classUndoSystem" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>UndoSystem</compoundname>
+    <includes refid="undo_8h" local="no">undo.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classUndoSystem_1aa355d47aab1ca4d186cfc13b87896521" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>UndoSystem::UndoSystem</definition>
+        <argsstring>()=default</argsstring>
+        <name>UndoSystem</name>
+        <qualifiedname>UndoSystem::UndoSystem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="41" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a6c7d630216788cc30a9d1955a7f7471d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>UndoSystem::UndoSystem</definition>
+        <argsstring>(UndoSystem &amp;&amp;)=default</argsstring>
+        <name>UndoSystem</name>
+        <qualifiedname>UndoSystem::UndoSystem</qualifiedname>
+        <param>
+          <type><ref refid="classUndoSystem" kindref="compound">UndoSystem</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a583dd0b74ecd8d0b0a7386d07149cd51" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual UndoSystem::~UndoSystem</definition>
+        <argsstring>()</argsstring>
+        <name>~UndoSystem</name>
+        <qualifiedname>UndoSystem::~UndoSystem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="43" column="11" bodyfile="undo.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1ae533c2b1157df00b816181b1d6ade6fc" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::begin</definition>
+        <argsstring>()=0</argsstring>
+        <name>begin</name>
+        <qualifiedname>UndoSystem::begin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="48" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a7e44451e1825dd88e406b8b29fc5e842" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::put</definition>
+        <argsstring>(UndoRedoObject *)=0</argsstring>
+        <name>put</name>
+        <qualifiedname>UndoSystem::put</qualifiedname>
+        <param>
+          <type><ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref> *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="53" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a0762402b582f4da4648e86934935ace6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::accept</definition>
+        <argsstring>(const char *operation_name)=0</argsstring>
+        <name>accept</name>
+        <qualifiedname>UndoSystem::accept</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>operation_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="57" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a2baa7566f968bfd0437d56e9f8e78a0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::cancel</definition>
+        <argsstring>()=0</argsstring>
+        <name>cancel</name>
+        <qualifiedname>UndoSystem::cancel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="62" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1afccb57eee38dff1b8c0bf395e7376fdc" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool UndoSystem::is_holding</definition>
+        <argsstring>()=0</argsstring>
+        <name>is_holding</name>
+        <qualifiedname>UndoSystem::is_holding</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="66" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a2db8cab3cbe55272fd6fb518dd4f6ef3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool UndoSystem::can_undo</definition>
+        <argsstring>()=0</argsstring>
+        <name>can_undo</name>
+        <qualifiedname>UndoSystem::can_undo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="70" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1abb2ef9e143e8c3151c7aa5ce73132ee7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool UndoSystem::can_redo</definition>
+        <argsstring>()=0</argsstring>
+        <name>can_redo</name>
+        <qualifiedname>UndoSystem::can_redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="73" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1ae15eff0f385489b3404328e183f58ca0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::undo</definition>
+        <argsstring>()=0</argsstring>
+        <name>undo</name>
+        <qualifiedname>UndoSystem::undo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="76" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1ac2606c3ed1a86c1c680ed6d971e7b955" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::redo</definition>
+        <argsstring>()=0</argsstring>
+        <name>redo</name>
+        <qualifiedname>UndoSystem::redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="79" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a1b80225299a4e2f005370dbec1e5aed1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int UndoSystem::undo_level</definition>
+        <argsstring>()=0</argsstring>
+        <name>undo_level</name>
+        <qualifiedname>UndoSystem::undo_level</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="82" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a96ded1fee2e2c3a7ee76bfdd14d0b106" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * UndoSystem::get_undo_name</definition>
+        <argsstring>(int i)=0</argsstring>
+        <name>get_undo_name</name>
+        <qualifiedname>UndoSystem::get_undo_name</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="86" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a63fee00f550a68cfaeb975512a59b774" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int UndoSystem::redo_level</definition>
+        <argsstring>()=0</argsstring>
+        <name>redo_level</name>
+        <qualifiedname>UndoSystem::redo_level</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="89" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a5f0b12b9bdbd7a30fb815b524733896b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * UndoSystem::get_redo_name</definition>
+        <argsstring>(int i)=0</argsstring>
+        <name>get_redo_name</name>
+        <qualifiedname>UndoSystem::get_redo_name</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="93" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1ad72f6d4a1b781bae099c549d602e7565" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::set_max_size</definition>
+        <argsstring>(int)=0</argsstring>
+        <name>set_max_size</name>
+        <qualifiedname>UndoSystem::set_max_size</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="96" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a753df80b31af7c63cd073e8611b25d17" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int UndoSystem::get_max_size</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_max_size</name>
+        <qualifiedname>UndoSystem::get_max_size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="99" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a6c7889b3ac0567cafd074d551fb24960" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::clear</definition>
+        <argsstring>()=0</argsstring>
+        <name>clear</name>
+        <qualifiedname>UndoSystem::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="102" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1a55d2e00de550ee89a9b63833a86cd661" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool UndoSystem::isDirty</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isDirty</name>
+        <qualifiedname>UndoSystem::isDirty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="105" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoSystem_1ae551219952c254b976fe1c7b4e383bad" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoSystem::setDirty</definition>
+        <argsstring>(bool dirty=true)=0</argsstring>
+        <name>setDirty</name>
+        <qualifiedname>UndoSystem::setDirty</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>dirty</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="107" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="undo.h" line="38" column="1" bodyfile="undo.h" bodystart="39" bodyend="108"/>
+    <listofallmembers>
+      <member refid="classUndoSystem_1a0762402b582f4da4648e86934935ace6" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>accept</name></member>
+      <member refid="classUndoSystem_1ae533c2b1157df00b816181b1d6ade6fc" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>begin</name></member>
+      <member refid="classUndoSystem_1abb2ef9e143e8c3151c7aa5ce73132ee7" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>can_redo</name></member>
+      <member refid="classUndoSystem_1a2db8cab3cbe55272fd6fb518dd4f6ef3" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>can_undo</name></member>
+      <member refid="classUndoSystem_1a2baa7566f968bfd0437d56e9f8e78a0b" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>cancel</name></member>
+      <member refid="classUndoSystem_1a6c7889b3ac0567cafd074d551fb24960" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>clear</name></member>
+      <member refid="classUndoSystem_1a753df80b31af7c63cd073e8611b25d17" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>get_max_size</name></member>
+      <member refid="classUndoSystem_1a5f0b12b9bdbd7a30fb815b524733896b" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>get_redo_name</name></member>
+      <member refid="classUndoSystem_1a96ded1fee2e2c3a7ee76bfdd14d0b106" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>get_undo_name</name></member>
+      <member refid="classUndoSystem_1afccb57eee38dff1b8c0bf395e7376fdc" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>is_holding</name></member>
+      <member refid="classUndoSystem_1a55d2e00de550ee89a9b63833a86cd661" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>isDirty</name></member>
+      <member refid="classUndoSystem_1a7e44451e1825dd88e406b8b29fc5e842" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>put</name></member>
+      <member refid="classUndoSystem_1ac2606c3ed1a86c1c680ed6d971e7b955" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>redo</name></member>
+      <member refid="classUndoSystem_1a63fee00f550a68cfaeb975512a59b774" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>redo_level</name></member>
+      <member refid="classUndoSystem_1ad72f6d4a1b781bae099c549d602e7565" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>set_max_size</name></member>
+      <member refid="classUndoSystem_1ae551219952c254b976fe1c7b4e383bad" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>setDirty</name></member>
+      <member refid="classUndoSystem_1ae15eff0f385489b3404328e183f58ca0" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>undo</name></member>
+      <member refid="classUndoSystem_1a1b80225299a4e2f005370dbec1e5aed1" prot="public" virt="pure-virtual"><scope>UndoSystem</scope><name>undo_level</name></member>
+      <member refid="classUndoSystem_1aa355d47aab1ca4d186cfc13b87896521" prot="public" virt="non-virtual"><scope>UndoSystem</scope><name>UndoSystem</name></member>
+      <member refid="classUndoSystem_1a6c7d630216788cc30a9d1955a7f7471d" prot="public" virt="non-virtual"><scope>UndoSystem</scope><name>UndoSystem</name></member>
+      <member refid="classUndoSystem_1a583dd0b74ecd8d0b0a7386d07149cd51" prot="public" virt="virtual"><scope>UndoSystem</scope><name>~UndoSystem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

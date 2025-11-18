@@ -1,0 +1,325 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rendinst_parallax_ice</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="rendinst_perlin_layered" href="rendinst_perlin_layered.html" />
+    <link rel="prev" title="rendinst_layered_lightmap" href="rendinst_layered_lightmap.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#required-textures">Required Textures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#optional-textures">Optional Textures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameters">Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dng-shaders/index.html">daNetGame-based Shaders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/shaders/rendinst_parallax_ice.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="rendinst-parallax-ice">
+<h1><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code><a class="headerlink" href="#rendinst-parallax-ice" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>As the name suggests, this shader is designed to simulate translucent ice using
+parallax effects. It can be applied to both tiled textures, such as the surface
+of a frozen lake, and unique assets, like a sculpted iceberg.</p>
+<p>This shader blends two detail layers in a manner similar to the
+<a class="reference internal" href="rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a> shader, but without
+height-based gradients. A third detail layer is blended differently, using only
+its diffuse texture, which is offset “into” the surface and refracted by the
+normals of the mixed detail layers.</p>
+<p>This shader uses a single UV channel, as
+<a class="reference internal" href="dng-shaders/rendinst_mask_layered.html"><span class="std std-doc">rendinst_mask_layered</span></a> does, and is
+intended for relatively flat surfaces. Using it on organic shapes may cause
+visual glitches, so it’s recommended to make such areas opaque.</p>
+</section>
+<section id="required-textures">
+<h2>Required Textures<a class="headerlink" href="#required-textures" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tex0</span></code>: D1 Diffuse (RGB) + HeightMap (Alpha)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex1</span></code>: Diffuse of the internal layer (RGB)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex2</span></code>: D1 Normal (RG) + Glossiness (A)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex3</span></code>: D2 Diffuse (RGB) + HeightMap (Alpha)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex4</span></code>: D2 Normal (RG) + Glossiness (A)</p></li>
+</ul>
+</section>
+<section id="optional-textures">
+<h2>Optional Textures<a class="headerlink" href="#optional-textures" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tex5</span></code>: D1 transparency mask. If present, this mask is used for blending
+with the internal layer instead of the diffuse alpha. If a detail needs to be
+completely transparent or opaque, a black or white placeholder can be used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex6</span></code>: D2 transparency mask. Used similarly to <code class="docutils literal notranslate"><span class="pre">tex5</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex7</span></code>: Detail blending mask.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All masks in <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> must have <code class="docutils literal notranslate"><span class="pre">gamma=1</span></code> for correct operation.</p>
+</div>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">VertexColor</span></code>: If available, this is used to force the internal layer to
+become opaque in black areas, while white areas remain unchanged. This is
+useful for handling the edges of ice chunks to avoid artifacts at corners.
+<strong>Only the red channel is checked</strong>, but for simplicity, it is shown as black
+and white in the example.</p>
+<a class="image-center reference internal image-reference" href="../../_images/rendinst_parallax_ice_01.jpg"><img alt="../../_images/rendinst_parallax_ice_01.jpg" class="image-center" src="../../_images/rendinst_parallax_ice_01.jpg" style="width: 33em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<p><strong>Color:</strong></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">inner_layer_depth</span></code>: Distance between the surface and the internal layer.
+<code class="docutils literal notranslate"><span class="pre">min=0.0</span></code> (no effect). Default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code></p>
+<a class="image-center reference internal image-reference" href="../../_images/rendinst_parallax_ice_02.gif"><img alt="../../_images/rendinst_parallax_ice_02.gif" class="image-center" src="../../_images/rendinst_parallax_ice_02.gif" style="width: 33em;" />
+</a>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inner_layer_mul</span></code>: Multiplier for the internal layer’s diffuse color,
+controlling brightness. Default: <code class="docutils literal notranslate"><span class="pre">1.0</span></code></p>
+<a class="image-center reference internal image-reference" href="../../_images/rendinst_parallax_ice_03.gif"><img alt="../../_images/rendinst_parallax_ice_03.gif" class="image-center" src="../../_images/rendinst_parallax_ice_03.gif" style="width: 33em;" />
+</a>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inner_layer_power</span></code>: Exponent that applied to the internal layer’s color after
+multiplication, used to adjust contrast. Default: <code class="docutils literal notranslate"><span class="pre">1.0</span></code></p>
+<a class="image-center reference internal image-reference" href="../../_images/rendinst_parallax_ice_04.gif"><img alt="../../_images/rendinst_parallax_ice_04.gif" class="image-center" src="../../_images/rendinst_parallax_ice_04.gif" style="width: 33em;" />
+</a>
+<p>Increasing both <code class="docutils literal notranslate"><span class="pre">power</span></code> and <code class="docutils literal notranslate"><span class="pre">mul</span></code> values can produce non-realistic but
+artistic effects, such as enhanced contrast and color saturation that give a
+glowing appearance. Use these settings sparingly. Here’s an extreme example
+with <code class="docutils literal notranslate"><span class="pre">power=3</span></code> and <code class="docutils literal notranslate"><span class="pre">mul=3</span></code>:</p>
+<a class="image-center reference internal image-reference" href="../../_images/rendinst_parallax_ice_05.jpg"><img alt="../../_images/rendinst_parallax_ice_05.jpg" class="image-center" src="../../_images/rendinst_parallax_ice_05.jpg" style="width: 33em;" />
+</a>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vcol_masked_mul</span></code>: Brightness multiplier for blended detail layers in areas
+marked white in VertexColor.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vcol_masked_power</span></code>: Contrast exponent for the same blended detail layers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ior</span></code>: Index of refraction, controlling how much the normals of the detail
+layers distort the internal layer’s diffuse. <code class="docutils literal notranslate"><span class="pre">min=1.0</span></code> (no effect), Default:
+<code class="docutils literal notranslate"><span class="pre">1.31</span></code>.</p>
+<p>Left to right: <code class="docutils literal notranslate"><span class="pre">ior=1.0</span></code> (no refraction), <code class="docutils literal notranslate"><span class="pre">1.31</span></code> (physically accurate for
+ice), and an exaggerated <code class="docutils literal notranslate"><span class="pre">4.0</span></code>. Other parameters, including <code class="docutils literal notranslate"><span class="pre">depth</span></code>, are
+identical.</p>
+<a class="image-center reference internal image-reference" href="../../_images/rendinst_parallax_ice_06.jpg"><img alt="../../_images/rendinst_parallax_ice_06.jpg" class="image-center" src="../../_images/rendinst_parallax_ice_06.jpg" style="width: 50em;" />
+</a>
+<p>By default, the shader uses a physically accurate value for ice, but you can
+adjust the <code class="docutils literal notranslate"><span class="pre">ior</span></code> to weaken or exaggerate the effect for visual purposes.
+Adjusting <code class="docutils literal notranslate"><span class="pre">depth</span></code> is also necessary, as increasing <code class="docutils literal notranslate"><span class="pre">ior</span></code> not only intensifies
+the internal layer’s distortion by detail normals but also brings it visually
+closer to the surface.</p>
+<p>On the left: <code class="docutils literal notranslate"><span class="pre">ior=1.31</span></code> (default) and <code class="docutils literal notranslate"><span class="pre">depth=0.1</span></code>. On the right: <code class="docutils literal notranslate"><span class="pre">ior=4.0</span></code> and
+<code class="docutils literal notranslate"><span class="pre">depth=1</span></code>. These are not physically accurate, but they can be used for
+artistic effect. The internal layer becomes less distinct, which can sometimes
+be desirable.</p>
+</li>
+</ul>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>ior=1.31 and depth=0.1</strong></p>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>ior=4.0 and depth=1</strong></p>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../_images/rendinst_parallax_ice_07.gif"><img alt="../../_images/rendinst_parallax_ice_07.gif" class="align-center" src="../../_images/rendinst_parallax_ice_07.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../_images/rendinst_parallax_ice_08.gif"><img alt="../../_images/rendinst_parallax_ice_08.gif" class="align-center" src="../../_images/rendinst_parallax_ice_08.gif" style="height: 300px;" />
+</a>
+</div>
+</div>
+</div>
+<p><strong>Texture Coordinates:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">inner_layer_tile_uv</span></code>: Tiling of the internal layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inner_layer_u_offset</span></code>: Horizontal offset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inner_layer_v_offset</span></code>: Vertical offset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail1_tile_uv</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail1_u_offset</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail1_v_offset</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">modify_detail1_mask_uv</span></code>: Controls whether the transparency mask UVs for this
+detail are adjusted by the three parameters above. Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>. This is
+useful if the mask was specifically painted for the asset, so tiling/offset
+adjustments don’t break the mask.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail2_tile_uv</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail2_u_offset</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail2_v_offset</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">modify_detail2_mask_uv</span></code></p></li>
+</ul>
+<p><strong>Micro Details:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer1</span></code>: Index of the first micro detail layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer1_uv_scale</span></code>: Tiling of the first micro detail layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer2</span></code>: Index of the second micro detail layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer2_uv_scale</span></code>: Tiling of the second micro detail layer.</p></li>
+</ul>
+<p><strong>Masks:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_gamma</span></code>: works the same way as in
+<a class="reference internal" href="rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a>. The first two values
+control the gamma of the detail masks, the third does nothing (since there is
+no third detail), and the fourth sets the tiling for the Perlin noise.
+Default: <code class="docutils literal notranslate"><span class="pre">1.0,</span> <span class="pre">1.0,</span> <span class="pre">0.0,</span> <span class="pre">0.1</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">heightmaps_invert</span></code>: The first two values control the inversion of the detail
+blending masks, and the second pair controls the inversion of the transparency
+masks for those details. Default: <code class="docutils literal notranslate"><span class="pre">0,0,</span> <span class="pre">0,0</span></code>.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_layered_lightmap.html" class="btn btn-neutral float-left" title="rendinst_layered_lightmap" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rendinst_perlin_layered.html" class="btn btn-neutral float-right" title="rendinst_perlin_layered" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

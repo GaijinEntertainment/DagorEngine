@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGenEditorPluginBase" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGenEditorPluginBase</compoundname>
+    <includes refid="ec__interface_8h" local="no">ec_interface.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIGenEditorPluginBase_1afb8f8982d665258b43419bc53fdf213e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual IGenEditorPluginBase::~IGenEditorPluginBase</definition>
+        <argsstring>()</argsstring>
+        <name>~IGenEditorPluginBase</name>
+        <qualifiedname>IGenEditorPluginBase::~IGenEditorPluginBase</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="926" column="11" bodyfile="ec_interface.h" bodystart="926" bodyend="926"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEditorPluginBase_1a94655256881649efdad34d84a1e42bf9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEditorPluginBase::getVisible</definition>
+        <argsstring>() const</argsstring>
+        <name>getVisible</name>
+        <qualifiedname>IGenEditorPluginBase::getVisible</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="928" column="16" bodyfile="ec_interface.h" bodystart="928" bodyend="928"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEditorPluginBase_1ac48cf496601efc92b1137702a39920f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void *</type>
+        <definition>virtual void * IGenEditorPluginBase::queryInterfacePtr</definition>
+        <argsstring>(unsigned huid)=0</argsstring>
+        <name>queryInterfacePtr</name>
+        <qualifiedname>IGenEditorPluginBase::queryInterfacePtr</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>huid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="931" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEditorPluginBase_1a38bd2bc0ca182842341723c39b793fba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>T *</type>
+        <definition>T * IGenEditorPluginBase::queryInterface</definition>
+        <argsstring>()</argsstring>
+        <name>queryInterface</name>
+        <qualifiedname>IGenEditorPluginBase::queryInterface</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="933" column="12" bodyfile="ec_interface.h" bodystart="933" bodyend="936"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_interface.h" line="923" column="1" bodyfile="ec_interface.h" bodystart="924" bodyend="937"/>
+    <listofallmembers>
+      <member refid="classIGenEditorPluginBase_1a94655256881649efdad34d84a1e42bf9" prot="public" virt="virtual"><scope>IGenEditorPluginBase</scope><name>getVisible</name></member>
+      <member refid="classIGenEditorPluginBase_1a38bd2bc0ca182842341723c39b793fba" prot="public" virt="non-virtual"><scope>IGenEditorPluginBase</scope><name>queryInterface</name></member>
+      <member refid="classIGenEditorPluginBase_1ac48cf496601efc92b1137702a39920f0" prot="public" virt="pure-virtual"><scope>IGenEditorPluginBase</scope><name>queryInterfacePtr</name></member>
+      <member refid="classIGenEditorPluginBase_1afb8f8982d665258b43419bc53fdf213e" prot="public" virt="virtual"><scope>IGenEditorPluginBase</scope><name>~IGenEditorPluginBase</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dagor.memtrace</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="dagor.perf" href="dagor.perf.html" />
+    <link rel="prev" title="dagor.math" href="dagor.math.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Quirrel Modules Docs</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Quirrel Gamelibs Native Modules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="DataBlock.html">DataBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="base64.html">base64</a></li>
+<li class="toctree-l4"><a class="reference internal" href="browser.html">browser</a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvasAPI.html">canvasAPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="console.html">console</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daEditorEmbedded.html">daEditorEmbedded</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.html">daRg</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.behaviors.html">daRg.behaviors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dacoll.trace.html">dacoll.trace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.clipboard.html">dagor.clipboard</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.debug.html">dagor.debug</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.folders.html">dagor.folders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.fs.html">dagor.fs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.fs.vrom.html">dagor.fs.vrom</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.http.html">dagor.http</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.iso8601.html">dagor.iso8601</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.localize.html">dagor.localize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.math.html">dagor.math</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">dagor.memtrace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.perf.html">dagor.perf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.profiler.html">dagor.profiler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.random.html">dagor.random</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.shell.html">dagor.shell</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.system.html">dagor.system</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.system.file_handlers.html">dagor.system.file_handlers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.time.html">dagor.time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.workcycle.html">dagor.workcycle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dainput2.html">dainput2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dasevents.html">dasevents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="datacache.html">datacache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecs.html">ecs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecs.netevent.html">ecs.netevent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entity_editor.html">entity_editor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eventbus.html">eventbus</a></li>
+<li class="toctree-l4"><a class="reference internal" href="executable.html">executable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="frp.html">frp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hash.html">hash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="json.html">json</a></li>
+<li class="toctree-l4"><a class="reference internal" href="jwt.html">jwt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="lastInputMonitor.html">lastInputMonitor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nestdb.html">nestdb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="net.html">net</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pathfinder.html">pathfinder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="platform.html">platform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="regexp2.html">regexp2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sound.html">sound</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statsd.html">statsd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sysinfo.html">sysinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utf8.html">utf8</a></li>
+<li class="toctree-l4"><a class="reference internal" href="win.registry.html">win.registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="yupfile_parse.html">yupfile_parse</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../quirrel_daECS/index.html">Quirrel ECS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../darg_framework/index.html">daRG Framework</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../tools/dargbox/index.html">dargbox Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGameLibs/index.html">daNetGameLibs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGame/index.html">daNetGame</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../soundSystem/index.html">soundSystem</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Quirrel Modules Docs</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Quirrel Gamelibs Native Modules</a></li>
+      <li class="breadcrumb-item active">dagor.memtrace</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/quirrel-modules/quirrel-modules/quirrel_gamelibs/dagor.memtrace.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dagor-memtrace">
+<h1>dagor.memtrace<a class="headerlink" href="#dagor-memtrace" title="Link to this heading"></a></h1>
+<p>module ‘dagor.memtrace’</p>
+<p><em>Source files:</em></p>
+<p><em>prog/gameLibs/quirrel/bindQuirrelEx/sqratDagorDebug.cpp</em></p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">let</span> <span class="p">{</span> <span class="n">get_quirrel_object_size</span><span class="p">,</span> <span class="n">get_quirrel_object_size_as_string</span><span class="p">,</span> <span class="n">is_quirrel_object_larger_than</span><span class="p">,</span> <span class="n">reset_all</span><span class="p">,</span> <span class="n">set_huge_alloc_threshold</span><span class="p">,</span> <span class="n">dump_all</span><span class="p">,</span> <span class="n">get_memory_allocated_kb</span> <span class="p">}</span> <span class="o">=</span> <span class="n">require</span><span class="p">(</span><span class="s2">&quot;dagor.memtrace&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="s2">&quot;dagor.memtrace&quot;</span> <span class="kn">import</span><span class="w"> </span><span class="o">*</span>
+</pre></div>
+</div>
+<div class="highlight-sq notranslate"><div class="highlight"><pre><span></span><span class="c1">//&#39;dagor.memtrace&#39; exports:</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_quirrel_object_size</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_quirrel_object_size_as_string</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">is_quirrel_object_larger_than</span><span class="p">(</span><span class="nx">arg0</span><span class="p">,</span><span class="w"> </span><span class="nx">arg1</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">any_type</span><span class="p">,</span><span class="w"> </span><span class="nx">integer</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">reset_all</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">set_huge_alloc_threshold</span><span class="p">()</span><span class="o">:</span><span class="w">  </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">previously</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">dump_all</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_memory_allocated_kb</span><span class="p">()</span><span class="o">:</span><span class="w">  </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">integer</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_quirrel_object_size">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_quirrel_object_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function get_quirrel_object_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_quirrel_object_size_as_string">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_quirrel_object_size_as_string</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function get_quirrel_object_size_as_string" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function is_quirrel_object_larger_than">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">is_quirrel_object_larger_than</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function is_quirrel_object_larger_than" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arg0</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+<li><p><strong>arg1</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>) – autodoc from typemask/paramscheck</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:3</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">any_type,</span> <span class="pre">integer</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function reset_all">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">reset_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function reset_all" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function set_huge_alloc_threshold">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">set_huge_alloc_threshold</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function set_huge_alloc_threshold" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>previously</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function dump_all">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">dump_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function dump_all" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_memory_allocated_kb">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_memory_allocated_kb</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function get_memory_allocated_kb" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>integer</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dagor.math.html" class="btn btn-neutral float-left" title="dagor.math" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dagor.perf.html" class="btn btn-neutral float-right" title="dagor.perf" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

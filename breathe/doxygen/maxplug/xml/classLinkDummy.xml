@@ -1,0 +1,641 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLinkDummy" kind="class" language="C++" prot="public">
+    <compoundname>LinkDummy</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">SimpleObject</basecompoundref>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classLinkDummy_1a1ddc3d2322ad4a58f2e8c15f5b152825" prot="public" static="yes" mutable="no">
+        <type><ref refid="classLinkDummy" kindref="compound">LinkDummy</ref> *</type>
+        <definition>LinkDummy * LinkDummy::editOb</definition>
+        <argsstring></argsstring>
+        <name>editOb</name>
+        <qualifiedname>LinkDummy::editOb</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="14" column="20" bodyfile="dummy.cpp" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLinkDummy_1a2887542770c782c391e77b6a6aeec594" prot="public" static="yes" mutable="no">
+        <type>IParamMap *</type>
+        <definition>IParamMap * LinkDummy::pmapParam</definition>
+        <argsstring></argsstring>
+        <name>pmapParam</name>
+        <qualifiedname>LinkDummy::pmapParam</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="15" column="20" bodyfile="dummy.cpp" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLinkDummy_1ad96494307d6145321fcbd7fa74af1cca" prot="public" static="yes" mutable="no">
+        <type>IObjParam *</type>
+        <definition>IObjParam * LinkDummy::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>LinkDummy::ip</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="16" column="20" bodyfile="dummy.cpp" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLinkDummy_1a930a12cf6e1b45094322b6c38af6adb1" prot="public" static="yes" mutable="no">
+        <type>float</type>
+        <definition>float LinkDummy::crtSize</definition>
+        <argsstring></argsstring>
+        <name>crtSize</name>
+        <qualifiedname>LinkDummy::crtSize</qualifiedname>
+        <initializer>= 20.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="17" column="16" bodyfile="dummy.cpp" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLinkDummy_1af693212d09a2fc9ab1d5664030f5406d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LinkDummy::LinkDummy</definition>
+        <argsstring>()</argsstring>
+        <name>LinkDummy</name>
+        <qualifiedname>LinkDummy::LinkDummy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="19" column="3" bodyfile="dummy.cpp" bodystart="170" bodyend="175"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a0eaf86187cfb2a0d2b4020a5926f52a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::InvalidateUI</definition>
+        <argsstring>() override</argsstring>
+        <name>InvalidateUI</name>
+        <qualifiedname>LinkDummy::InvalidateUI</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="21" column="8" bodyfile="dummy.cpp" bodystart="75" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a9d0a4a8d61a31a746600d5de95292fff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::set_axis_color</definition>
+        <argsstring>(GraphicsWindow *gw, INode *, int axis)</argsstring>
+        <name>set_axis_color</name>
+        <qualifiedname>LinkDummy::set_axis_color</qualifiedname>
+        <param>
+          <type>GraphicsWindow *</type>
+          <declname>gw</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <defname>n</defname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>axis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="23" column="8" bodyfile="dummy.cpp" bodystart="81" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a63d57f685fc6c2fa0161de6279b951dc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int LinkDummy::Display</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, int flags) override</argsstring>
+        <name>Display</name>
+        <qualifiedname>LinkDummy::Display</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="24" column="7" bodyfile="dummy.cpp" bodystart="117" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1ae6aa69c4e8cdd664167d7b19217e296c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int LinkDummy::HitTest</definition>
+        <argsstring>(TimeValue t, INode *inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override</argsstring>
+        <name>HitTest</name>
+        <qualifiedname>LinkDummy::HitTest</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>crossing</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IPoint2 *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="25" column="7" bodyfile="dummy.cpp" bodystart="96" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a0333f6957f036b1d0d220cac2d13a552" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>LinkDummy::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="27" column="8" bodyfile="dummy.cpp" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a46d4601a6cb778057e6b9d038475785f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID LinkDummy::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>LinkDummy::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="28" column="13" bodyfile="dummy.cpp" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1ac1e734f2e57f7fbeae0cddd617fdc7db" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int LinkDummy::IsRenderable</definition>
+        <argsstring>() override</argsstring>
+        <name>IsRenderable</name>
+        <qualifiedname>LinkDummy::IsRenderable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="29" column="7" bodyfile="dummy.cpp" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1aaf2f38fc0652f4474377f342d6f59b31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int LinkDummy::UsesWireColor</definition>
+        <argsstring>() override</argsstring>
+        <name>UsesWireColor</name>
+        <qualifiedname>LinkDummy::UsesWireColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="30" column="7" bodyfile="dummy.cpp" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1aafe7c8b4d870bc3e239e5e3355d041de" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int LinkDummy::DoOwnSelectHilite</definition>
+        <argsstring>() override</argsstring>
+        <name>DoOwnSelectHilite</name>
+        <qualifiedname>LinkDummy::DoOwnSelectHilite</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="31" column="7" bodyfile="dummy.cpp" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a76f78bda4a584ac9cfdc3ac171eb3b1d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>CreateMouseCallBack *</type>
+        <definition>CreateMouseCallBack * LinkDummy::GetCreateMouseCallBack</definition>
+        <argsstring>() override</argsstring>
+        <name>GetCreateMouseCallBack</name>
+        <qualifiedname>LinkDummy::GetCreateMouseCallBack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="33" column="23" bodyfile="dummy.cpp" bodystart="291" bodyend="295"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1ac091706b3edcee848b48abc7abf3c4a0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>MCHAR * LinkDummy::GetObjectName</definition>
+        <argsstring>()</argsstring>
+        <name>GetObjectName</name>
+        <qualifiedname>LinkDummy::GetObjectName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="41" column="5" bodyfile="dummy.cpp" bodystart="41" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a2e38a3f266e96f161941fd9b3ac58448" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RefTargetHandle</type>
+        <definition>RefTargetHandle LinkDummy::Clone</definition>
+        <argsstring>(RemapDir &amp;remap) override</argsstring>
+        <name>Clone</name>
+        <qualifiedname>LinkDummy::Clone</qualifiedname>
+        <param>
+          <type>RemapDir &amp;</type>
+          <declname>remap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="46" column="19" bodyfile="dummy.cpp" bodystart="316" bodyend="325"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1af68c6d91e9e7e56f3102a4a7611a5151" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL LinkDummy::OKtoDisplay</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>OKtoDisplay</name>
+        <qualifiedname>LinkDummy::OKtoDisplay</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="51" column="8" bodyfile="dummy.cpp" bodystart="297" bodyend="305"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1aa42a69c17c748944f9e39687d3ec776f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ParamDimension *</type>
+        <definition>ParamDimension * LinkDummy::GetParameterDim</definition>
+        <argsstring>(int pbIndex) override</argsstring>
+        <name>GetParameterDim</name>
+        <qualifiedname>LinkDummy::GetParameterDim</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pbIndex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="52" column="18" bodyfile="dummy.cpp" bodystart="307" bodyend="314"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a3ef22427db022a78816da1bb29b4629d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR LinkDummy::GetParameterName</definition>
+        <argsstring>(int pbIndex)</argsstring>
+        <name>GetParameterName</name>
+        <qualifiedname>LinkDummy::GetParameterName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pbIndex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="56" column="8" bodyfile="dummy.cpp" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a686e78d13d94f57be3d6615f6de05c06" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::BeginEditParams</definition>
+        <argsstring>(IObjParam *ip, ULONG flags, Animatable *prev) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>LinkDummy::BeginEditParams</qualifiedname>
+        <param>
+          <type>IObjParam *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>ULONG</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>Animatable *</type>
+          <declname>prev</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="59" column="8" bodyfile="dummy.cpp" bodystart="208" bodyend="223"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a9065744d449d97d616a2fbcc93eb7abd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::EndEditParams</definition>
+        <argsstring>(IObjParam *ip, ULONG flags, Animatable *next) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>LinkDummy::EndEditParams</qualifiedname>
+        <param>
+          <type>IObjParam *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>ULONG</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>Animatable *</type>
+          <declname>next</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="60" column="8" bodyfile="dummy.cpp" bodystart="225" bodyend="238"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a315d7f038f59531889c1e3af50ba19b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::BuildMesh</definition>
+        <argsstring>(TimeValue) override</argsstring>
+        <name>BuildMesh</name>
+        <qualifiedname>LinkDummy::BuildMesh</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <defname>tm</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="62" column="8" bodyfile="dummy.cpp" bodystart="327" bodyend="334"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a49238d1e5909d8ec32302ede3142d0ca" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::DrawIt</definition>
+        <argsstring>(GraphicsWindow *gw, TimeValue t, INode *inode, int sel, int flags, ViewExp *vpt)</argsstring>
+        <name>DrawIt</name>
+        <qualifiedname>LinkDummy::DrawIt</qualifiedname>
+        <param>
+          <type>GraphicsWindow *</type>
+          <declname>gw</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="63" column="8" bodyfile="dummy.cpp" bodystart="336" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1af242ea69f671886693e168232219648e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::GetLocalBoundBox</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, Box3 &amp;box) override</argsstring>
+        <name>GetLocalBoundBox</name>
+        <qualifiedname>LinkDummy::GetLocalBoundBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="64" column="8" bodyfile="dummy.cpp" bodystart="385" bodyend="392"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1af2e829db932f91c74850b07c777d2b73" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::GetWorldBoundBox</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, Box3 &amp;box) override</argsstring>
+        <name>GetWorldBoundBox</name>
+        <qualifiedname>LinkDummy::GetWorldBoundBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="65" column="8" bodyfile="dummy.cpp" bodystart="394" bodyend="400"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1a938b2891905e498a6f506976656f3d65" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummy::GetDeformBBox</definition>
+        <argsstring>(TimeValue t, Box3 &amp;box, Matrix3 *tm=NULL, BOOL useSel=FALSE) override</argsstring>
+        <name>GetDeformBBox</name>
+        <qualifiedname>LinkDummy::GetDeformBBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>Matrix3 *</type>
+          <declname>tm</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>useSel</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="66" column="8" bodyfile="dummy.cpp" bodystart="402" bodyend="410"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummy_1aaea2ff52e4b7fed083d1a6810b895db1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID LinkDummy::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>LinkDummy::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="68" column="12" bodyfile="dummy.cpp" bodystart="68" bodyend="68"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>LinkDummy</label>
+        <link refid="classLinkDummy"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SimpleObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>LinkDummy</label>
+        <link refid="classLinkDummy"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>editOb</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SimpleObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="dummy.cpp" line="11" column="1" bodyfile="dummy.cpp" bodystart="12" bodyend="69"/>
+    <listofallmembers>
+      <member refid="classLinkDummy_1a686e78d13d94f57be3d6615f6de05c06" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>BeginEditParams</name></member>
+      <member refid="classLinkDummy_1a315d7f038f59531889c1e3af50ba19b3" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>BuildMesh</name></member>
+      <member refid="classLinkDummy_1aaea2ff52e4b7fed083d1a6810b895db1" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>ClassID</name></member>
+      <member refid="classLinkDummy_1a2e38a3f266e96f161941fd9b3ac58448" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>Clone</name></member>
+      <member refid="classLinkDummy_1a930a12cf6e1b45094322b6c38af6adb1" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>crtSize</name></member>
+      <member refid="classLinkDummy_1a0333f6957f036b1d0d220cac2d13a552" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>DeleteThis</name></member>
+      <member refid="classLinkDummy_1a63d57f685fc6c2fa0161de6279b951dc" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>Display</name></member>
+      <member refid="classLinkDummy_1aafe7c8b4d870bc3e239e5e3355d041de" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>DoOwnSelectHilite</name></member>
+      <member refid="classLinkDummy_1a49238d1e5909d8ec32302ede3142d0ca" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>DrawIt</name></member>
+      <member refid="classLinkDummy_1a1ddc3d2322ad4a58f2e8c15f5b152825" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>editOb</name></member>
+      <member refid="classLinkDummy_1a9065744d449d97d616a2fbcc93eb7abd" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>EndEditParams</name></member>
+      <member refid="classLinkDummy_1a76f78bda4a584ac9cfdc3ac171eb3b1d" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>GetCreateMouseCallBack</name></member>
+      <member refid="classLinkDummy_1a938b2891905e498a6f506976656f3d65" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>GetDeformBBox</name></member>
+      <member refid="classLinkDummy_1af242ea69f671886693e168232219648e" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>GetLocalBoundBox</name></member>
+      <member refid="classLinkDummy_1ac091706b3edcee848b48abc7abf3c4a0" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>GetObjectName</name></member>
+      <member refid="classLinkDummy_1aa42a69c17c748944f9e39687d3ec776f" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>GetParameterDim</name></member>
+      <member refid="classLinkDummy_1a3ef22427db022a78816da1bb29b4629d" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>GetParameterName</name></member>
+      <member refid="classLinkDummy_1af2e829db932f91c74850b07c777d2b73" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>GetWorldBoundBox</name></member>
+      <member refid="classLinkDummy_1ae6aa69c4e8cdd664167d7b19217e296c" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>HitTest</name></member>
+      <member refid="classLinkDummy_1a0eaf86187cfb2a0d2b4020a5926f52a3" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>InvalidateUI</name></member>
+      <member refid="classLinkDummy_1ad96494307d6145321fcbd7fa74af1cca" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>ip</name></member>
+      <member refid="classLinkDummy_1ac1e734f2e57f7fbeae0cddd617fdc7db" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>IsRenderable</name></member>
+      <member refid="classLinkDummy_1af693212d09a2fc9ab1d5664030f5406d" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>LinkDummy</name></member>
+      <member refid="classLinkDummy_1af68c6d91e9e7e56f3102a4a7611a5151" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>OKtoDisplay</name></member>
+      <member refid="classLinkDummy_1a2887542770c782c391e77b6a6aeec594" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>pmapParam</name></member>
+      <member refid="classLinkDummy_1a9d0a4a8d61a31a746600d5de95292fff" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>set_axis_color</name></member>
+      <member refid="classLinkDummy_1a46d4601a6cb778057e6b9d038475785f" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>SuperClassID</name></member>
+      <member refid="classLinkDummy_1aaf2f38fc0652f4474377f342d6f59b31" prot="public" virt="non-virtual"><scope>LinkDummy</scope><name>UsesWireColor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

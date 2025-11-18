@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1AccelerationStructurePoolCreateInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::AccelerationStructurePoolCreateInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a82a6e9374bb0c402bdf7729dda8fd9f7" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* raytrace::AccelerationStructurePoolCreateInfo::debugName</definition>
+        <argsstring></argsstring>
+        <name>debugName</name>
+        <qualifiedname>raytrace::AccelerationStructurePoolCreateInfo::debugName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Debug name for the pool, will be the name shown on buffers in tools like PIX on DX12. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="273" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="273" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a53980de1dea19cecb28ece6d685f3596" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::AccelerationStructurePoolCreateInfo::sizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>sizeInBytes</name>
+        <qualifiedname>raytrace::AccelerationStructurePoolCreateInfo::sizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Total pool size for any kind of structure, must be aligned to the platforms pool size alignment <ref refid="structDeviceDriverRaytraceProperties_1ab296e3776bdcdbd804021099346900d9" kindref="member">DeviceDriverRaytraceProperties::accelerationStructurePoolSizeAlignment</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="276" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="276" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a7773d04a9b949b3b2849d693310945f7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::AccelerationStructurePoolCreateInfo::topLevelStructureCountHint</definition>
+        <argsstring></argsstring>
+        <name>topLevelStructureCountHint</name>
+        <qualifiedname>raytrace::AccelerationStructurePoolCreateInfo::topLevelStructureCountHint</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>A hint on how many TLAS are going to be allocated from this pool. Drivers can use this hint to pre allocate some TLAS specific data, like on DX12 a small descriptor heap for TLAS descriptors can be allocated. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="280" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="280" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a06d5c59c6a27706bc02f33dc14e7653d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::AccelerationStructurePoolCreateInfo::bottomLevelStructureCountHint</definition>
+        <argsstring></argsstring>
+        <name>bottomLevelStructureCountHint</name>
+        <qualifiedname>raytrace::AccelerationStructurePoolCreateInfo::bottomLevelStructureCountHint</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>A hint on how many BLAS are going to be allocated from the pool. Drivers can use this hint to pre allocate some BLAS specific data. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="283" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="283" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Properties of a acceleration structure pool should be created. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="270" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="271" bodyend="284"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a06d5c59c6a27706bc02f33dc14e7653d" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructurePoolCreateInfo</scope><name>bottomLevelStructureCountHint</name></member>
+      <member refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a82a6e9374bb0c402bdf7729dda8fd9f7" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructurePoolCreateInfo</scope><name>debugName</name></member>
+      <member refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a53980de1dea19cecb28ece6d685f3596" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructurePoolCreateInfo</scope><name>sizeInBytes</name></member>
+      <member refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a7773d04a9b949b3b2849d693310945f7" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructurePoolCreateInfo</scope><name>topLevelStructureCountHint</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

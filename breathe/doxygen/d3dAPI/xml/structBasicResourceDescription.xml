@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBasicResourceDescription" kind="struct" language="C++" prot="public">
+    <compoundname>BasicResourceDescription</compoundname>
+    <derivedcompoundref refid="structBasicTextureResourceDescription" prot="public" virt="non-virtual">BasicTextureResourceDescription</derivedcompoundref>
+    <derivedcompoundref refid="structBufferResourceDescription" prot="public" virt="non-virtual">BufferResourceDescription</derivedcompoundref>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBasicResourceDescription_1ac416c65293ae56fc2adf988de4821bf4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t BasicResourceDescription::cFlags</definition>
+        <argsstring></argsstring>
+        <name>cFlags</name>
+        <qualifiedname>BasicResourceDescription::cFlags</qualifiedname>
+        <briefdescription>
+<para>The resource creation flags. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="42" column="12" bodyfile="dag_heap.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBasicResourceDescription_1a460a3547f57649aab846fc67831faa57" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4e" kindref="member">ResourceActivationAction</ref></type>
+        <definition>ResourceActivationAction BasicResourceDescription::activation</definition>
+        <argsstring></argsstring>
+        <name>activation</name>
+        <qualifiedname>BasicResourceDescription::activation</qualifiedname>
+        <briefdescription>
+<para>The resource activation action. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="43" column="28" bodyfile="dag_heap.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBasicResourceDescription_1a1c14be0b1256d4dbd82e5ce464419c35" prot="public" static="no" mutable="no">
+        <type><ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref></type>
+        <definition>ResourceClearValue BasicResourceDescription::clearValue</definition>
+        <argsstring></argsstring>
+        <name>clearValue</name>
+        <qualifiedname>BasicResourceDescription::clearValue</qualifiedname>
+        <briefdescription>
+<para>The clear value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="44" column="22" bodyfile="dag_heap.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Basic resource description that contains common fields for all GPU resource types. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="4">
+        <label>ArrayCubeTextureResourceDescription</label>
+        <link refid="structArrayCubeTextureResourceDescription"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ArrayTextureResourceDescription</label>
+        <link refid="structArrayTextureResourceDescription"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>BasicResourceDescription</label>
+        <link refid="structBasicResourceDescription"/>
+      </node>
+      <node id="2">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="structBasicTextureResourceDescription"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>BufferResourceDescription</label>
+        <link refid="structBufferResourceDescription"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>CubeTextureResourceDescription</label>
+        <link refid="structCubeTextureResourceDescription"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>TextureResourceDescription</label>
+        <link refid="structTextureResourceDescription"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>VolTextureResourceDescription</label>
+        <link refid="structVolTextureResourceDescription"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>BasicResourceDescription</label>
+        <link refid="structBasicResourceDescription"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ResourceClearValue</label>
+        <link refid="unionResourceClearValue"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_heap.h" line="40" column="1" bodyfile="dag_heap.h" bodystart="41" bodyend="45"/>
+    <listofallmembers>
+      <member refid="structBasicResourceDescription_1a460a3547f57649aab846fc67831faa57" prot="public" virt="non-virtual"><scope>BasicResourceDescription</scope><name>activation</name></member>
+      <member refid="structBasicResourceDescription_1ac416c65293ae56fc2adf988de4821bf4" prot="public" virt="non-virtual"><scope>BasicResourceDescription</scope><name>cFlags</name></member>
+      <member refid="structBasicResourceDescription_1a1c14be0b1256d4dbd82e5ce464419c35" prot="public" virt="non-virtual"><scope>BasicResourceDescription</scope><name>clearValue</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

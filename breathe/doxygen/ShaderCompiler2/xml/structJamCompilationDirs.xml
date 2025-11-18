@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structJamCompilationDirs" kind="struct" language="C++" prot="public">
+    <compoundname>JamCompilationDirs</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structJamCompilationDirs_1a17b4455dd0a38d86dbdb8ca0ff578bb1" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string JamCompilationDirs::root</definition>
+        <argsstring></argsstring>
+        <name>root</name>
+        <qualifiedname>JamCompilationDirs::root</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcode.cpp" line="652" column="17" bodyfile="cppStcode.cpp" bodystart="652" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structJamCompilationDirs_1ab1029d3b47ef4e2272bdb3f9cecdbe0d" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string JamCompilationDirs::location</definition>
+        <argsstring></argsstring>
+        <name>location</name>
+        <qualifiedname>JamCompilationDirs::location</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcode.cpp" line="653" column="17" bodyfile="cppStcode.cpp" bodystart="653" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structJamCompilationDirs_1a09804a6a1959b814d4c4709171849295" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string JamCompilationDirs::cache</definition>
+        <argsstring></argsstring>
+        <name>cache</name>
+        <qualifiedname>JamCompilationDirs::cache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcode.cpp" line="654" column="17" bodyfile="cppStcode.cpp" bodystart="654" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structJamCompilationDirs_1a3378120d09def865288256fe6c6b28f5" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string JamCompilationDirs::outDir</definition>
+        <argsstring></argsstring>
+        <name>outDir</name>
+        <qualifiedname>JamCompilationDirs::outDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcode.cpp" line="655" column="17" bodyfile="cppStcode.cpp" bodystart="655" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcode.cpp" line="650" column="1" bodyfile="cppStcode.cpp" bodystart="651" bodyend="656"/>
+    <listofallmembers>
+      <member refid="structJamCompilationDirs_1a09804a6a1959b814d4c4709171849295" prot="public" virt="non-virtual"><scope>JamCompilationDirs</scope><name>cache</name></member>
+      <member refid="structJamCompilationDirs_1ab1029d3b47ef4e2272bdb3f9cecdbe0d" prot="public" virt="non-virtual"><scope>JamCompilationDirs</scope><name>location</name></member>
+      <member refid="structJamCompilationDirs_1a3378120d09def865288256fe6c6b28f5" prot="public" virt="non-virtual"><scope>JamCompilationDirs</scope><name>outDir</name></member>
+      <member refid="structJamCompilationDirs_1a17b4455dd0a38d86dbdb8ca0ff578bb1" prot="public" virt="non-virtual"><scope>JamCompilationDirs</scope><name>root</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

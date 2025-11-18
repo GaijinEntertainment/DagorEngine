@@ -1,0 +1,415 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Collision Generation for Assets in Asset Viewer</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="BLK File Format" href="../../blk/index.html" />
+    <link rel="prev" title="Collision Generation for Assets in Asset Viewer" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Asset Viewer</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../asset-viewer-comp-editor/index.html">Asset Viewer Composite Editor</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Collision Generation for Assets in Asset Viewer</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Collision Generation for Assets in Asset Viewer</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters-in-asset-viewer">Parameters in Asset Viewer</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#collision-nodes-panel">Collision Nodes Panel</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#create-new-node-panel">Create New Node Panel</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#viewport-display-option">Viewport Display Option</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#k-dop-node-generation-parameters">k-dop Node Generation Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#convex-computer-node-generation-parameters">Convex Computer Node Generation Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#convex-v-hacd-node-generation-parameters">Convex v-hacd Node Generation Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters-in-blk">Parameters in <code class="docutils literal notranslate"><span class="pre">.blk</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#common-parameters">Common Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#k-dop-parameters">k-dop Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#convex-computer-parameters">Convex Computer Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#convex-v-hacd-parameters">Convex v-hacd Parameters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Asset Viewer</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Collision Generation for Assets in Asset Viewer</a></li>
+      <li class="breadcrumb-item active">Collision Generation for Assets in Asset Viewer</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/asset-viewer/collision-generation/collision_generation_for_assets.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="collision-generation-for-assets-in-asset-viewer">
+<h1>Collision Generation for Assets in Asset Viewer<a class="headerlink" href="#collision-generation-for-assets-in-asset-viewer" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="../asset-viewer/asset_viewer.html"><span class="std std-doc">Asset Viewer</span></a> now supports the ability
+to generate new collision nodes from a combination of original nodes. These
+nodes can be built for assets through the daBuild process.</p>
+<p>A new node can be of one of the following six types:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">mesh</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>, <code class="docutils literal notranslate"><span class="pre">sphere</span></code>: merges the selected nodes into the corresponding
+primitive.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">k-dop</span></code> (discrete oriented polytope): a bounding volume for a specific
+geometry. The generation algorithm wraps the original mesh using predefined
+directions. After export, the collision type becomes <code class="docutils literal notranslate"><span class="pre">convex</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">k</span></code> in <code class="docutils literal notranslate"><span class="pre">k-dop</span></code> represents the number of initial directions used for
+generation.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">convex</span> <span class="pre">computer</span></code>: creates a convex shape around the selected nodes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">convex</span> <span class="pre">v-hacd</span></code>: decomposes the mesh of the selected nodes, breaking the
+geometry into multiple convex nodes.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information on the algorithm, refer
+to the original repository: <a class="reference external" href="https://github.com/kmammou/v-hacd">https://github.com/kmammou/v-hacd</a>.</p>
+</div>
+</li>
+</ul>
+</section>
+<section id="parameters-in-asset-viewer">
+<h2>Parameters in Asset Viewer<a class="headerlink" href="#parameters-in-asset-viewer" title="Link to this heading"></a></h2>
+<p>In the properties panel for collision assets, a tree of nodes available for
+merging is now displayed.</p>
+<section id="collision-nodes-panel">
+<h3>Collision Nodes Panel<a class="headerlink" href="#collision-nodes-panel" title="Link to this heading"></a></h3>
+<a class="reference internal image-reference" href="../../../_images/collision_generation_for_assets_01.jpg"><img alt="Collision node panel" class="align-center" src="../../../_images/collision_generation_for_assets_01.jpg" style="width: 20em;" />
+</a>
+<p>This panel shows the collision node tree. The node prefixes indicate their
+flags. If a node is merged from multiple nodes, its original child nodes will be
+displayed. Merged nodes can be edited or deleted.</p>
+</section>
+<section id="create-new-node-panel">
+<h3>Create New Node Panel<a class="headerlink" href="#create-new-node-panel" title="Link to this heading"></a></h3>
+<a class="reference internal image-reference" href="../../../_images/collision_generation_for_assets_02.jpg"><img alt="Create new node panel" class="align-center" src="../../../_images/collision_generation_for_assets_02.jpg" style="width: 20em;" />
+</a>
+<p>When creating a new node or editing an existing one, you can:</p>
+<ul class="simple">
+<li><p>Select nodes to include in the new node during generation.</p></li>
+<li><p>In the <strong>New node name</strong> field, assign a unique name to the node, even if it
+replaces child nodes in the process.</p></li>
+<li><p>Enable the <strong>Replace selected nodes</strong> checkbox for whether the selected nodes
+will be replaced. If nodes are replaced, they will not be exported.</p></li>
+<li><p>Enable the <strong>Phys Collidable</strong> and <strong>Traceable</strong> checkboxes.</p></li>
+<li><p>Choose a <strong>Collision type</strong> for the new node from the six types described
+earlier.</p></li>
+</ul>
+</section>
+<section id="viewport-display-option">
+<h3>Viewport Display Option<a class="headerlink" href="#viewport-display-option" title="Link to this heading"></a></h3>
+<ul>
+<li><p>For <code class="docutils literal notranslate"><span class="pre">mesh</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>, and <code class="docutils literal notranslate"><span class="pre">sphere</span></code> types, the result will be displayed in the
+viewport and can be saved.</p></li>
+<li><p>For <code class="docutils literal notranslate"><span class="pre">k-dop</span></code>, <code class="docutils literal notranslate"><span class="pre">convex</span> <span class="pre">computer</span></code>, and <code class="docutils literal notranslate"><span class="pre">convex</span> <span class="pre">v-hacd</span></code> types, the next step
+involves generating based on the selected parameters.</p>
+<img alt="Viewport display options" class="align-center" src="../../../_images/collision_generation_for_assets_03.jpg" />
+</li>
+</ul>
+<p>Clicking on a node in the viewport will highlight it in the list of selected
+nodes. Holding <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> allows for multiple node selection.</p>
+</section>
+<section id="k-dop-node-generation-parameters">
+<h3>k-dop Node Generation Parameters<a class="headerlink" href="#k-dop-node-generation-parameters" title="Link to this heading"></a></h3>
+<p><strong>Selected Preset</strong></p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../../_images/collision_generation_for_assets_04.jpg"><img alt="../../../_images/collision_generation_for_assets_04.jpg" class="image-gap" src="../../../_images/collision_generation_for_assets_04.jpg" style="height: 10em;" />
+</a>
+<a class="reference internal image-reference" href="../../../_images/collision_generation_for_assets_05.jpg"><img alt="../../../_images/collision_generation_for_assets_05.jpg" src="../../../_images/collision_generation_for_assets_05.jpg" style="height: 10em;" />
+</a>
+</div>
+</div>
+</div>
+<p>Select a preset for the chosen nodes. The following presets are available for
+<code class="docutils literal notranslate"><span class="pre">k-dop</span></code> generation:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">6-dop</span></code>: regular box.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">14-dop</span></code>: basic 6 directions + 8 corner directions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">18-dop</span></code>: basic 6 directions + 12 face directions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">26-dop</span></code>: combines face and corner directions from <code class="docutils literal notranslate"><span class="pre">14-dop</span></code> and <code class="docutils literal notranslate"><span class="pre">18-dop</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">k-dop</span> <span class="pre">with</span> <span class="pre">fixed</span> <span class="pre">X-axis</span></code>: generates <code class="docutils literal notranslate"><span class="pre">k-dop</span></code> with a fixed number of segments
+around the X-axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">k-dop</span> <span class="pre">with</span> <span class="pre">fixed</span> <span class="pre">Y-axis</span></code>: generates <code class="docutils literal notranslate"><span class="pre">k-dop</span></code> with a fixed number of segments
+around the Y-axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">k-dop</span> <span class="pre">with</span> <span class="pre">fixed</span> <span class="pre">Z-axis</span></code>: generates <code class="docutils literal notranslate"><span class="pre">k-dop</span></code> with a fixed number of segments
+around the Z-axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Custom</span> <span class="pre">k-dop</span></code>: generates <code class="docutils literal notranslate"><span class="pre">k-dop</span></code> with a custom number of segments around the
+X and Y axes.</p></li>
+</ul>
+<p>The number of segments can vary from 4 to 20 with an increment of 1.</p>
+<p><strong>k-dop Rotations</strong></p>
+<img alt="k-dop rotations" class="align-center" src="../../../_images/collision_generation_for_assets_06.jpg" />
+<p>Rotate the <code class="docutils literal notranslate"><span class="pre">k-dop</span></code> around 3 axes to better match the original mesh.</p>
+<p><strong>k-dop Cut Off Planes</strong></p>
+<img alt="k-dop cut off planes" class="align-center" src="../../../_images/collision_generation_for_assets_07.jpg" />
+<p>For optimization, small-area planes can be trimmed relative to the plane with
+the largest area. The maximum trim value is 40%.</p>
+<p><strong>Show k-dop</strong></p>
+<img alt="Show k-dop" class="align-center" src="../../../_images/collision_generation_for_assets_08.jpg" />
+<p>The <code class="docutils literal notranslate"><span class="pre">k-dop</span></code> can be displayed in several ways:</p>
+<ul class="simple">
+<li><p>Drawing planes.</p></li>
+<li><p>Drawing triangles.</p></li>
+<li><p>Drawing directions from the center, with a distance to the corresponding
+plane.</p></li>
+</ul>
+<p><strong>Example:</strong> Generating an <code class="docutils literal notranslate"><span class="pre">18-dop</span></code>.</p>
+<a class="reference internal image-reference" href="../../../_images/collision_generation_for_assets_09.jpg"><img alt="Show k-dop" class="align-center" src="../../../_images/collision_generation_for_assets_09.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="convex-computer-node-generation-parameters">
+<h3>Convex Computer Node Generation Parameters<a class="headerlink" href="#convex-computer-node-generation-parameters" title="Link to this heading"></a></h3>
+<img alt="Convex computer node generation parameters" class="align-center" src="../../../_images/collision_generation_for_assets_10.jpg" />
+<p>A <code class="docutils literal notranslate"><span class="pre">convex</span></code> will be generated around the selected nodes. Using the <code class="docutils literal notranslate"><span class="pre">Shrink</span></code>
+parameter, the shell can be “shrunk” inward toward the selected mesh.</p>
+<p><strong>Example:</strong> Generating a <code class="docutils literal notranslate"><span class="pre">convex</span> <span class="pre">computer</span></code>.</p>
+<a class="reference internal image-reference" href="../../../_images/collision_generation_for_assets_11.jpg"><img alt="Convex computer node generation parameter" class="align-center" src="../../../_images/collision_generation_for_assets_11.jpg" style="width: 33em;" />
+</a>
+</section>
+<section id="convex-v-hacd-node-generation-parameters">
+<h3>Convex v-hacd Node Generation Parameters<a class="headerlink" href="#convex-v-hacd-node-generation-parameters" title="Link to this heading"></a></h3>
+<img alt="Convex v-hacd node generation parameters" class="align-center" src="../../../_images/collision_generation_for_assets_12.jpg" />
+<p>This generation method is governed by four parameters:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Convex</span> <span class="pre">depth</span></code>: recursion depth of the algorithm. Lower values lead to earlier
+exits from the algorithm, resulting in rougher convex shapes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">convex</span> <span class="pre">hulls</span></code>: the number of convex nodes generated by the algorithm. If
+the value is <code class="docutils literal notranslate"><span class="pre">1</span></code>, it is more efficient to use <code class="docutils literal notranslate"><span class="pre">convex</span> <span class="pre">computer</span></code> to reduce
+asset export time.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">verts</span></code>: the maximum number of vertices for a single convex node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Resolution</span></code>: voxelization resolution. Higher values produce more accurate
+results, but also increase export time.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some parameter combinations may result in invalid geometry. In such cases, the
+result cannot be saved, and it is recommended to adjust the parameters, for
+example, by incrementing or decrementing the <code class="docutils literal notranslate"><span class="pre">Resolution</span></code> by one step.</p>
+</div>
+</li>
+</ul>
+<p><strong>Example:</strong> Generating a <code class="docutils literal notranslate"><span class="pre">convex</span> <span class="pre">v-hacd</span></code>.</p>
+<a class="reference internal image-reference" href="../../../_images/collision_generation_for_assets_13.jpg"><img alt="Convex v-hacd node generation parameters" class="align-center" src="../../../_images/collision_generation_for_assets_13.jpg" style="width: 50em;" />
+</a>
+<p>To save all changes, press <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code>+<code class="docutils literal notranslate"><span class="pre">S</span></code>. If this is the first time saving changes
+for the asset, a <code class="docutils literal notranslate"><span class="pre">.collision.blk</span></code> file will be created alongside the <code class="docutils literal notranslate"><span class="pre">.dag</span></code>
+file. The exported result will only be visible after restarting the <a class="reference internal" href="../asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>. When editing, the exported result is
+displayed immediately after saving.</p>
+<p>If a node previously exported is selected, it will revert to its original
+geometry for editing. If no changes are made, switching to a different asset
+will restore the <code class="docutils literal notranslate"><span class="pre">.collision.blk</span></code> file.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a crash occurs during collision-related tasks, data loss might result.</p>
+</div>
+</section>
+</section>
+<section id="parameters-in-blk">
+<h2>Parameters in <code class="docutils literal notranslate"><span class="pre">.blk</span></code><a class="headerlink" href="#parameters-in-blk" title="Link to this heading"></a></h2>
+<p>Generation parameters are stored in the <code class="docutils literal notranslate"><span class="pre">.collision.blk</span></code> file within the
+<code class="docutils literal notranslate"><span class="pre">nodes{}</span></code> block. This block lists all nodes and their generation parameters.</p>
+<section id="common-parameters">
+<h3>Common Parameters<a class="headerlink" href="#common-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">collision:t</span></code>: type of collision for node generation. Possible values:</p>
+<ul>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">mesh</span></code></strong></p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">box</span></code></strong></p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">sphere</span></code></strong></p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">kdop</span></code></strong></p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">convexComputer</span></code></strong></p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">convexVhacd</span></code></strong></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replaceNodes:b</span></code>: indicates whether the original nodes are replaced during
+generation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">isPhysCollidable:b</span></code>, <code class="docutils literal notranslate"><span class="pre">isTraceable:b</span></code>: flags set for the node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">refNodes{}</span></code>: block with the names of the nodes used as a reference for
+generation.</p></li>
+</ul>
+</section>
+<section id="k-dop-parameters">
+<h3>k-dop Parameters<a class="headerlink" href="#k-dop-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">kdopPreset:i</span></code>: preset index. Possible values:</p>
+<ul>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">0</span></code></strong>: 6-dop</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">1</span></code></strong>: 14-dop</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">2</span></code></strong>: 18-dop</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">3</span></code></strong>: 26-dop</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">4</span></code></strong>: k-dop with fixed X-axis</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">5</span></code></strong>: k-dop with fixed Y-axis</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">6</span></code></strong>: k-dop with fixed Z-axis</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">7</span></code></strong>: Custom k-dop</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kdopSegmentsX:i</span></code>, <code class="docutils literal notranslate"><span class="pre">kdopSegmentsY:i</span></code>: number of segments.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kdopRotX:i</span></code>, <code class="docutils literal notranslate"><span class="pre">kdopRotY:i</span></code>, <code class="docutils literal notranslate"><span class="pre">kdopRotZ:i</span></code>: rotation around axes in degrees.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cutOffThreshold:r</span></code>: trim percentage of the maximum plane area.</p></li>
+</ul>
+</section>
+<section id="convex-computer-parameters">
+<h3>Convex Computer Parameters<a class="headerlink" href="#convex-computer-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">shrink:r</span></code>: amount to shrink the shell inward toward the selected mesh.</p></li>
+</ul>
+</section>
+<section id="convex-v-hacd-parameters">
+<h3>Convex v-hacd Parameters<a class="headerlink" href="#convex-v-hacd-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">convexDepth:i</span></code>: recursion depth of the algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxConvexHulls:i</span></code>: number of convex nodes generated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxConvexVerts:i</span></code>: maximum number of vertices for a single convex node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">convexResolution:i</span></code>: voxelization resolution used by the algorithm.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Collision Generation for Assets in Asset Viewer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../blk/index.html" class="btn btn-neutral float-right" title="BLK File Format" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

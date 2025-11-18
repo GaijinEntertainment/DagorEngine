@@ -1,0 +1,108 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::VariablesMerger::MergedVarInfo</compoundname>
+    <includes refid="variablesMerger_8h" local="no">variablesMerger.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a1f8ff78ca38911f1e28338643c8a4359" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string ShaderParser::VariablesMerger::MergedVarInfo::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarInfo::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="41" column="19" bodyfile="variablesMerger.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a5ebdf20befa4d36d0249077c96d2f072" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::VariablesMerger::MergedVarInfo::offset</definition>
+        <argsstring></argsstring>
+        <name>offset</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarInfo::offset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="42" column="9" bodyfile="variablesMerger.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1ae5c63082885d09ea6bb605ff2b138564" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::VariablesMerger::MergedVarInfo::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarInfo::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="43" column="9" bodyfile="variablesMerger.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::VariablesMerger::MergedVarInfo::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarInfo::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="44" column="9" bodyfile="variablesMerger.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1adc262e443b98e2ec1fab1cd6f6c35530" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string ShaderParser::VariablesMerger::MergedVarInfo::getSwizzle</definition>
+        <argsstring>() const</argsstring>
+        <name>getSwizzle</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarInfo::getSwizzle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="46" column="19" bodyfile="variablesMerger.h" bodystart="46" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a58fb49fa9660bab10e053a392f17bf9d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderParser::VariablesMerger::MergedVarInfo::getType</definition>
+        <argsstring>() const</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::VariablesMerger::MergedVarInfo::getType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="52" column="16" bodyfile="variablesMerger.h" bodystart="52" bodyend="62"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variablesMerger.h" line="39" column="3" bodyfile="variablesMerger.h" bodystart="40" bodyend="63"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1adc262e443b98e2ec1fab1cd6f6c35530" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::MergedVarInfo</scope><name>getSwizzle</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a58fb49fa9660bab10e053a392f17bf9d" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::MergedVarInfo</scope><name>getType</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a1f8ff78ca38911f1e28338643c8a4359" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::MergedVarInfo</scope><name>name</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a5ebdf20befa4d36d0249077c96d2f072" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::MergedVarInfo</scope><name>offset</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1ae5c63082885d09ea6bb605ff2b138564" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::MergedVarInfo</scope><name>size</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::MergedVarInfo</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

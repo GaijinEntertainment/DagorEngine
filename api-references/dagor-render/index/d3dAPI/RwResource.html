@@ -1,0 +1,294 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Read/Write (UAV) Resources</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Sampler" href="Sampler.html" />
+    <link rel="prev" title="Resources" href="Resource.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Read/Write (UAV) Resources</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9set_rwtexE8uint32_t8uint32_tP11BaseTexture8uint32_t8uint32_tb"><code class="docutils literal notranslate"><span class="pre">d3d::set_rwtex()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12clear_rwtexiEP11BaseTextureAL4E_K8uint32_t8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::clear_rwtexi()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12clear_rwtexfEP11BaseTextureAL4E_Kf8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::clear_rwtexf()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d11zero_rwbufiEP7Sbuffer"><code class="docutils literal notranslate"><span class="pre">d3d::zero_rwbufi()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Read/Write (UAV) Resources</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/RwResource.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="read-write-uav-resources">
+<h1>Read/Write (UAV) Resources<a class="headerlink" href="#read-write-uav-resources" title="Link to this heading"></a></h1>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9set_rwtexE8uint32_t8uint32_tP11BaseTexture8uint32_t8uint32_tb">
+<span id="_CPPv3N3d3d9set_rwtexE8uint32_t8uint32_tP11BaseTexture8uint32_t8uint32_tb"></span><span id="_CPPv2N3d3d9set_rwtexE8uint32_t8uint32_tP11BaseTexture8uint32_t8uint32_tb"></span><span id="d3d::set_rwtex__uint32_t.uint32_t.BaseTextureP.uint32_t.uint32_t.b"></span><span class="target" id="namespaced3d_1ac20a0e2ce947c0b611010d4c9ee4e745"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rwtex</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shader_stage</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">face</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mip_level</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">as_uint</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9set_rwtexE8uint32_t8uint32_tP11BaseTexture8uint32_t8uint32_tb" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the read/write (UAV) texture to slot. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shader_stage</strong> – shader stage (VS, PS, CS) </p></li>
+<li><p><strong>slot</strong> – slot index </p></li>
+<li><p><strong>tex</strong> – texture to set as UAV resoruce </p></li>
+<li><p><strong>face</strong> – face index for cubemaps, 3D textures and texture arrays </p></li>
+<li><p><strong>mip_level</strong> – mip level </p></li>
+<li><p><strong>as_uint</strong> – if true then texture will be viewed as uint in UAV. The texture type should be 32-bit format. <a class="reference external" href="https://msdn.microsoft.com/en-us/library/windows/desktop/ff728749(v=vs.85).aspx">https://msdn.microsoft.com/en-us/library/windows/desktop/ff728749(v=vs.85).aspx</a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if success, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12clear_rwtexiEP11BaseTextureAL4E_K8uint32_t8uint32_t8uint32_t">
+<span id="_CPPv3N3d3d12clear_rwtexiEP11BaseTextureAL4E_K8uint32_t8uint32_t8uint32_t"></span><span id="_CPPv2N3d3d12clear_rwtexiEP11BaseTextureA4_K8uint32_t8uint32_t8uint32_t"></span><span id="d3d::clear_rwtexi__BaseTextureP.uint32_tCA.uint32_t.uint32_t"></span><span class="target" id="namespaced3d_1a1e47e5469c7963e139f711e2c79e7763"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_rwtexi</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">val</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">face</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mip_level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12clear_rwtexiEP11BaseTextureAL4E_K8uint32_t8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear UAV texture with integer values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex</strong> – texture to clear </p></li>
+<li><p><strong>val</strong> – clear value </p></li>
+<li><p><strong>face</strong> – face index for cubemaps, 3D textures and texture arrays </p></li>
+<li><p><strong>mip_level</strong> – mip level </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if success, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12clear_rwtexfEP11BaseTextureAL4E_Kf8uint32_t8uint32_t">
+<span id="_CPPv3N3d3d12clear_rwtexfEP11BaseTextureAL4E_Kf8uint32_t8uint32_t"></span><span id="_CPPv2N3d3d12clear_rwtexfEP11BaseTextureA4_Kf8uint32_t8uint32_t"></span><span id="d3d::clear_rwtexf__BaseTextureP.floatCA.uint32_t.uint32_t"></span><span class="target" id="namespaced3d_1ab25156cb3df471de6a32afadc7228491"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_rwtexf</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">val</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">face</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mip_level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12clear_rwtexfEP11BaseTextureAL4E_Kf8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear UAV texture with float values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex</strong> – texture to clear </p></li>
+<li><p><strong>val</strong> – clear value </p></li>
+<li><p><strong>face</strong> – face index for cubemaps, 3D textures and texture arrays </p></li>
+<li><p><strong>mip_level</strong> – mip level </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if success, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11zero_rwbufiEP7Sbuffer">
+<span id="_CPPv3N3d3d11zero_rwbufiEP7Sbuffer"></span><span id="_CPPv2N3d3d11zero_rwbufiEP7Sbuffer"></span><span id="d3d::zero_rwbufi__SbufferP"></span><span class="target" id="namespaced3d_1a2de89240b87ee2f564e8d7f85c8e15fc"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">zero_rwbufi</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buf</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d11zero_rwbufiEP7Sbuffer" title="Link to this definition"></a><br /></dt>
+<dd><p>Zero out UAV buffer as uint. Distinction between types is needed for DX. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>buf</strong> – buffer to clear </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if success, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Resource.html" class="btn btn-neutral float-left" title="Resources" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Sampler.html" class="btn btn-neutral float-right" title="Sampler" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

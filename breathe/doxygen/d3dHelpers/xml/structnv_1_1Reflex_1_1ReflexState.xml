@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1Reflex_1_1ReflexState" kind="struct" language="C++" prot="public">
+    <compoundname>nv::Reflex::ReflexState</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexState_1a43d8b207eef9307dd44926ad131ec70b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::Reflex::ReflexState::lowLatencyAvailable</definition>
+        <argsstring></argsstring>
+        <name>lowLatencyAvailable</name>
+        <qualifiedname>nv::Reflex::ReflexState::lowLatencyAvailable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="208" column="10" bodyfile="dag_nvFeatures.h" bodystart="208" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexState_1a1e2153e0bbd85b0fd4358bb3fa9b3d8f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::Reflex::ReflexState::latencyReportAvailable</definition>
+        <argsstring></argsstring>
+        <name>latencyReportAvailable</name>
+        <qualifiedname>nv::Reflex::ReflexState::latencyReportAvailable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="209" column="10" bodyfile="dag_nvFeatures.h" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexState_1aa15bbd5b2a5abaaa43196db652ac7d57" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::Reflex::ReflexState::flashIndicatorDriverControlled</definition>
+        <argsstring></argsstring>
+        <name>flashIndicatorDriverControlled</name>
+        <qualifiedname>nv::Reflex::ReflexState::flashIndicatorDriverControlled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="210" column="10" bodyfile="dag_nvFeatures.h" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexState_1a92943efd8f1b0f51cf082692e812d85a" prot="public" static="no" mutable="no">
+        <type><ref refid="structnv_1_1Reflex_1_1ReflexStats" kindref="compound">ReflexStats</ref></type>
+        <definition>ReflexStats nv::Reflex::ReflexState::stats[FRAME_COUNT]</definition>
+        <argsstring>[FRAME_COUNT]</argsstring>
+        <name>stats</name>
+        <qualifiedname>nv::Reflex::ReflexState::stats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="212" column="17" bodyfile="dag_nvFeatures.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexState_1af086791ae27e5675de1617d337ae2bc3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr size_t</type>
+        <definition>constexpr size_t nv::Reflex::ReflexState::FRAME_COUNT</definition>
+        <argsstring></argsstring>
+        <name>FRAME_COUNT</name>
+        <qualifiedname>nv::Reflex::ReflexState::FRAME_COUNT</qualifiedname>
+        <initializer>= 64</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="211" column="29" bodyfile="dag_nvFeatures.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>nv::Reflex::ReflexState</label>
+        <link refid="structnv_1_1Reflex_1_1ReflexState"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>stats</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>nv::Reflex::ReflexStats</label>
+        <link refid="structnv_1_1Reflex_1_1ReflexStats"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_nvFeatures.h" line="206" column="3" bodyfile="dag_nvFeatures.h" bodystart="207" bodyend="213"/>
+    <listofallmembers>
+      <member refid="structnv_1_1Reflex_1_1ReflexState_1aa15bbd5b2a5abaaa43196db652ac7d57" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexState</scope><name>flashIndicatorDriverControlled</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexState_1af086791ae27e5675de1617d337ae2bc3" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexState</scope><name>FRAME_COUNT</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexState_1a1e2153e0bbd85b0fd4358bb3fa9b3d8f" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexState</scope><name>latencyReportAvailable</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexState_1a43d8b207eef9307dd44926ad131ec70b" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexState</scope><name>lowLatencyAvailable</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexState_1a92943efd8f1b0f51cf082692e812d85a" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexState</scope><name>stats</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

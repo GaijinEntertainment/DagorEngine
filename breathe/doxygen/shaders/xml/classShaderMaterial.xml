@@ -1,0 +1,749 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderMaterial" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ShaderMaterial</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+    <includes refid="dag__shaders_8h" local="no">dag_shaders.h</includes>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classShaderMaterial_1a7854eebc0488ceeadaf13bc154b2f5e2" prot="private" static="yes" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderMaterial::loadingStirngInfo</definition>
+        <argsstring></argsstring>
+        <name>loadingStirngInfo</name>
+        <qualifiedname>ShaderMaterial::loadingStirngInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="141" column="21" bodyfile="dag_shaders.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderMaterial_1a38ab307243ff9a75f836d8a8d6e200a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ScriptedShaderMaterial &amp;</type>
+        <definition>ScriptedShaderMaterial &amp; ShaderMaterial::native</definition>
+        <argsstring>()</argsstring>
+        <name>native</name>
+        <qualifiedname>ShaderMaterial::native</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="74" column="33" bodyfile="dag_shaders.h" bodystart="74" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1ac8d62acef4ba9f47db5b3c56c4131a8d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const ScriptedShaderMaterial &amp;</type>
+        <definition>const ScriptedShaderMaterial &amp; ShaderMaterial::native</definition>
+        <argsstring>() const</argsstring>
+        <name>native</name>
+        <qualifiedname>ShaderMaterial::native</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="75" column="39" bodyfile="dag_shaders.h" bodystart="75" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1affe9b54c6b4b531fefa98193234a787f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>virtual ShaderMaterial * ShaderMaterial::clone</definition>
+        <argsstring>() const =0</argsstring>
+        <name>clone</name>
+        <qualifiedname>ShaderMaterial::clone</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="77" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1aa81bdcbd9bf27cabb63dc28637f74870" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ShaderMaterial::get_flags</definition>
+        <argsstring>() const =0</argsstring>
+        <name>get_flags</name>
+        <qualifiedname>ShaderMaterial::get_flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="79" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a13e50a91455161903d2b6780886328d5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMaterial::set_flags</definition>
+        <argsstring>(int value, int mask)=0</argsstring>
+        <name>set_flags</name>
+        <qualifiedname>ShaderMaterial::set_flags</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="80" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a80732b7514fd20f5cb5582fb14ba84a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::set_int_param</definition>
+        <argsstring>(const int variable_id, const int v)=0</argsstring>
+        <name>set_int_param</name>
+        <qualifiedname>ShaderMaterial::set_int_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="82" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a706607e3f7c6d357067d5fdceba21c9f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::set_real_param</definition>
+        <argsstring>(const int variable_id, const real v)=0</argsstring>
+        <name>set_real_param</name>
+        <qualifiedname>ShaderMaterial::set_real_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const real</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="83" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a509a4aaa5ca5fe51dd1a9c955cff52ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::set_color4_param</definition>
+        <argsstring>(const int variable_id, const struct Color4 &amp;)=0</argsstring>
+        <name>set_color4_param</name>
+        <qualifiedname>ShaderMaterial::set_color4_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const struct Color4 &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="84" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1ad644afc67f7237a039cdaf00f29b0028" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::set_texture_param</definition>
+        <argsstring>(const int variable_id, const TEXTUREID v)=0</argsstring>
+        <name>set_texture_param</name>
+        <qualifiedname>ShaderMaterial::set_texture_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const TEXTUREID</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="85" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a22a007b0b3b4ff577e1aaf109df9f1f9" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::set_sampler_param</definition>
+        <argsstring>(const int variable_id, d3d::SamplerHandle v)=0</argsstring>
+        <name>set_sampler_param</name>
+        <qualifiedname>ShaderMaterial::set_sampler_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="86" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1acd83a6b4b03154e2b5ea786dde26813b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::hasVariable</definition>
+        <argsstring>(const int variable_id) const =0</argsstring>
+        <name>hasVariable</name>
+        <qualifiedname>ShaderMaterial::hasVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="88" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a7a1296ae7c0b9c1cc4de75c19eaf879a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::getColor4Variable</definition>
+        <argsstring>(const int variable_id, Color4 &amp;value) const =0</argsstring>
+        <name>getColor4Variable</name>
+        <qualifiedname>ShaderMaterial::getColor4Variable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="89" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a111c2facd0b0393f72abd1c410a367f3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::getRealVariable</definition>
+        <argsstring>(const int variable_id, real &amp;value) const =0</argsstring>
+        <name>getRealVariable</name>
+        <qualifiedname>ShaderMaterial::getRealVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="90" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a6025fc625f759bf4dc9a10b8ffffcdaf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::getIntVariable</definition>
+        <argsstring>(const int variable_id, int &amp;value) const =0</argsstring>
+        <name>getIntVariable</name>
+        <qualifiedname>ShaderMaterial::getIntVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="91" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a71d5463bafd0f0592a42a051f79c08b2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::getTextureVariable</definition>
+        <argsstring>(const int variable_id, TEXTUREID &amp;value) const =0</argsstring>
+        <name>getTextureVariable</name>
+        <qualifiedname>ShaderMaterial::getTextureVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="92" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1ac14f24b0f5ae25079b28796ef4072ab6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::getSamplerVariable</definition>
+        <argsstring>(const int variable_id, d3d::SamplerHandle &amp;value) const =0</argsstring>
+        <name>getSamplerVariable</name>
+        <qualifiedname>ShaderMaterial::getSamplerVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="93" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a9c6a982e12507adef6a7b33a837e12c3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>ShaderVarType</type>
+        <definition>virtual ShaderVarType ShaderMaterial::getVariableType</definition>
+        <argsstring>(const int variable_id) const =0</argsstring>
+        <name>getVariableType</name>
+        <qualifiedname>ShaderMaterial::getVariableType</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="95" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a8386a17e5dada743ac12f135cc44d1b0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::enum_channels</definition>
+        <argsstring>(ShaderChannelsEnumCB &amp;, int &amp;ret_code_flags) const =0</argsstring>
+        <name>enum_channels</name>
+        <qualifiedname>ShaderMaterial::enum_channels</qualifiedname>
+        <param>
+          <type><ref refid="classShaderChannelsEnumCB" kindref="compound">ShaderChannelsEnumCB</ref> &amp;</type>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>ret_code_flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>false if shader is not renderable in specified mode (if pi==NULL - default rm). </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="98" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a696e6ee2a938906ac9cbcc904d4b2845" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>virtual ShaderElement * ShaderMaterial::make_elem</definition>
+        <argsstring>(bool acquire_tex_refs, const char *info)=0</argsstring>
+        <name>make_elem</name>
+        <qualifiedname>ShaderMaterial::make_elem</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>acquire_tex_refs</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="99" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a98392c0897238477114dc7d6c8797047" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>ShaderElement * ShaderMaterial::make_elem</definition>
+        <argsstring>(const char *info=NULL)</argsstring>
+        <name>make_elem</name>
+        <qualifiedname>ShaderMaterial::make_elem</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>info</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="100" column="24" bodyfile="dag_shaders.h" bodystart="100" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a1a97563059ac73cf4a2778e971af8c0b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::isPositionPacked</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isPositionPacked</name>
+        <qualifiedname>ShaderMaterial::isPositionPacked</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="102" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a9d9b712da2804cc1bc5d14ac037d359c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::checkChannels</definition>
+        <argsstring>(CompiledShaderChannelId *ch, int ch_count) const =0</argsstring>
+        <name>checkChannels</name>
+        <qualifiedname>ShaderMaterial::checkChannels</qualifiedname>
+        <param>
+          <type><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> *</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ch_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>true, if channels are valid for this material &amp; specified render mode (if pi==NULL - default rm). </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="105" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a4bc3c432d99ba6600f3bbfea20d8ac1f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ShaderMaterial::get_num_textures</definition>
+        <argsstring>() const =0</argsstring>
+        <name>get_num_textures</name>
+        <qualifiedname>ShaderMaterial::get_num_textures</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="107" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1af41556164192495b06adc5c3f04e179b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>TEXTUREID</type>
+        <definition>virtual TEXTUREID ShaderMaterial::get_texture</definition>
+        <argsstring>(int) const =0</argsstring>
+        <name>get_texture</name>
+        <qualifiedname>ShaderMaterial::get_texture</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="108" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a893a7414ae1e8c4b23206150ae2bcb1e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMaterial::set_texture</definition>
+        <argsstring>(int, TEXTUREID)=0</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>ShaderMaterial::set_texture</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="109" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a37ddf1fdeeb7de769bed7d63be57d77b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMaterial::gatherUsedTex</definition>
+        <argsstring>(TextureIdSet &amp;tex_id_list) const =0</argsstring>
+        <name>gatherUsedTex</name>
+        <qualifiedname>ShaderMaterial::gatherUsedTex</qualifiedname>
+        <param>
+          <type>TextureIdSet &amp;</type>
+          <declname>tex_id_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="111" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1aaca4269a2ec03e62b258539bce2a5942" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::replaceTexture</definition>
+        <argsstring>(TEXTUREID tex_id_old, TEXTUREID tex_id_new)=0</argsstring>
+        <name>replaceTexture</name>
+        <qualifiedname>ShaderMaterial::replaceTexture</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_old</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id_new</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="113" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a3327f5209f0ff2f0a49ff267056c114a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMaterial::getMatData</definition>
+        <argsstring>(ShaderMatData &amp;out_data) const =0</argsstring>
+        <name>getMatData</name>
+        <qualifiedname>ShaderMaterial::getMatData</qualifiedname>
+        <param>
+          <type><ref refid="structShaderMatData" kindref="compound">ShaderMatData</ref> &amp;</type>
+          <declname>out_data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="115" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1ad9e3f37235693326b06f3d897b802d32" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMaterial::buildMaterialData</definition>
+        <argsstring>(MaterialData &amp;out_data, const char *orig_mat_script=nullptr)=0</argsstring>
+        <name>buildMaterialData</name>
+        <qualifiedname>ShaderMaterial::buildMaterialData</qualifiedname>
+        <param>
+          <type>MaterialData &amp;</type>
+          <declname>out_data</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>orig_mat_script</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Build material data from shader material (if orig_mat_script is passed then it is used to filter out default values). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="121" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a495a281f4ec25016b4cea124b76a9dc6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * ShaderMaterial::getShaderClassName</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getShaderClassName</name>
+        <qualifiedname>ShaderMaterial::getShaderClassName</qualifiedname>
+        <briefdescription>
+<para>Get shader script name. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="124" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a84cbed30e1d5bf801ddc87754592e4da" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ShaderMaterial::isSelectedForDebug</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isSelectedForDebug</name>
+        <qualifiedname>ShaderMaterial::isSelectedForDebug</qualifiedname>
+        <briefdescription>
+<para>Disable some shaders for debug. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="127" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1a23da8b6e0f85c239bdaf1d46b2ce8faa" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const String</type>
+        <definition>virtual const String ShaderMaterial::getInfo</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getInfo</name>
+        <qualifiedname>ShaderMaterial::getInfo</qualifiedname>
+        <briefdescription>
+<para>Get material info for debug. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="130" column="24"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classShaderMaterial_1a64ca4b657980328270ed3d0530c96cd9" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderMaterial::setLoadingString</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>setLoadingString</name>
+        <qualifiedname>ShaderMaterial::setLoadingString</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+<para>Set sting for error info while loading material. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Don&apos;t forget to clear it after loading! </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="134" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMaterial_1adb155747a39e578b338443f3a539c3ae" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * ShaderMaterial::getLoadingString</definition>
+        <argsstring>()</argsstring>
+        <name>getLoadingString</name>
+        <qualifiedname>ShaderMaterial::getLoadingString</qualifiedname>
+        <briefdescription>
+<para>Get string for error info. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>NULL, if no error string set. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaders.h" line="138" column="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Abstract base class for all shader materials. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Provides an interface to manage shader parameters, flags, cloning, and binding behavior. Can be extended by scripting systems (e.g., ScriptedShaderMaterial). </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>ShaderMaterial</label>
+        <link refid="classShaderMaterial"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>ShaderMaterial</label>
+        <link refid="classShaderMaterial"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shaders.h" line="66" column="1" bodyfile="dag_shaders.h" bodystart="67" bodyend="142"/>
+    <listofallmembers>
+      <member refid="classShaderMaterial_1ad9e3f37235693326b06f3d897b802d32" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>buildMaterialData</name></member>
+      <member refid="classShaderMaterial_1a9d9b712da2804cc1bc5d14ac037d359c" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>checkChannels</name></member>
+      <member refid="classShaderMaterial_1affe9b54c6b4b531fefa98193234a787f" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>clone</name></member>
+      <member refid="classShaderMaterial_1a8386a17e5dada743ac12f135cc44d1b0" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>enum_channels</name></member>
+      <member refid="classShaderMaterial_1a37ddf1fdeeb7de769bed7d63be57d77b" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>gatherUsedTex</name></member>
+      <member refid="classShaderMaterial_1aa81bdcbd9bf27cabb63dc28637f74870" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>get_flags</name></member>
+      <member refid="classShaderMaterial_1a4bc3c432d99ba6600f3bbfea20d8ac1f" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>get_num_textures</name></member>
+      <member refid="classShaderMaterial_1af41556164192495b06adc5c3f04e179b" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>get_texture</name></member>
+      <member refid="classShaderMaterial_1a7a1296ae7c0b9c1cc4de75c19eaf879a" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getColor4Variable</name></member>
+      <member refid="classShaderMaterial_1a23da8b6e0f85c239bdaf1d46b2ce8faa" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getInfo</name></member>
+      <member refid="classShaderMaterial_1a6025fc625f759bf4dc9a10b8ffffcdaf" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getIntVariable</name></member>
+      <member refid="classShaderMaterial_1adb155747a39e578b338443f3a539c3ae" prot="public" virt="non-virtual"><scope>ShaderMaterial</scope><name>getLoadingString</name></member>
+      <member refid="classShaderMaterial_1a3327f5209f0ff2f0a49ff267056c114a" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getMatData</name></member>
+      <member refid="classShaderMaterial_1a111c2facd0b0393f72abd1c410a367f3" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getRealVariable</name></member>
+      <member refid="classShaderMaterial_1ac14f24b0f5ae25079b28796ef4072ab6" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getSamplerVariable</name></member>
+      <member refid="classShaderMaterial_1a495a281f4ec25016b4cea124b76a9dc6" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getShaderClassName</name></member>
+      <member refid="classShaderMaterial_1a71d5463bafd0f0592a42a051f79c08b2" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getTextureVariable</name></member>
+      <member refid="classShaderMaterial_1a9c6a982e12507adef6a7b33a837e12c3" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>getVariableType</name></member>
+      <member refid="classShaderMaterial_1acd83a6b4b03154e2b5ea786dde26813b" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>hasVariable</name></member>
+      <member refid="classShaderMaterial_1a1a97563059ac73cf4a2778e971af8c0b" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>isPositionPacked</name></member>
+      <member refid="classShaderMaterial_1a84cbed30e1d5bf801ddc87754592e4da" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>isSelectedForDebug</name></member>
+      <member refid="classShaderMaterial_1a7854eebc0488ceeadaf13bc154b2f5e2" prot="private" virt="non-virtual"><scope>ShaderMaterial</scope><name>loadingStirngInfo</name></member>
+      <member refid="classShaderMaterial_1a696e6ee2a938906ac9cbcc904d4b2845" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>make_elem</name></member>
+      <member refid="classShaderMaterial_1a98392c0897238477114dc7d6c8797047" prot="public" virt="non-virtual"><scope>ShaderMaterial</scope><name>make_elem</name></member>
+      <member refid="classShaderMaterial_1a38ab307243ff9a75f836d8a8d6e200a5" prot="public" virt="non-virtual"><scope>ShaderMaterial</scope><name>native</name></member>
+      <member refid="classShaderMaterial_1ac8d62acef4ba9f47db5b3c56c4131a8d" prot="public" virt="non-virtual"><scope>ShaderMaterial</scope><name>native</name></member>
+      <member refid="classShaderMaterial_1aaca4269a2ec03e62b258539bce2a5942" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>replaceTexture</name></member>
+      <member refid="classShaderMaterial_1a509a4aaa5ca5fe51dd1a9c955cff52ff" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>set_color4_param</name></member>
+      <member refid="classShaderMaterial_1a13e50a91455161903d2b6780886328d5" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>set_flags</name></member>
+      <member refid="classShaderMaterial_1a80732b7514fd20f5cb5582fb14ba84a3" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>set_int_param</name></member>
+      <member refid="classShaderMaterial_1a706607e3f7c6d357067d5fdceba21c9f" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>set_real_param</name></member>
+      <member refid="classShaderMaterial_1a22a007b0b3b4ff577e1aaf109df9f1f9" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>set_sampler_param</name></member>
+      <member refid="classShaderMaterial_1a893a7414ae1e8c4b23206150ae2bcb1e" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>set_texture</name></member>
+      <member refid="classShaderMaterial_1ad644afc67f7237a039cdaf00f29b0028" prot="public" virt="pure-virtual"><scope>ShaderMaterial</scope><name>set_texture_param</name></member>
+      <member refid="classShaderMaterial_1a64ca4b657980328270ed3d0530c96cd9" prot="public" virt="non-virtual"><scope>ShaderMaterial</scope><name>setLoadingString</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

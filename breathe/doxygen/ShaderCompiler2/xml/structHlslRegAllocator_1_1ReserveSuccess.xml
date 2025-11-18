@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structHlslRegAllocator_1_1ReserveSuccess" kind="struct" language="C++" prot="public">
+    <compoundname>HlslRegAllocator::ReserveSuccess</compoundname>
+    <includes refid="hlslRegisters_8h" local="no">hlslRegisters.h</includes>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hlslRegisters.h" line="178" column="3" bodyfile="hlslRegisters.h" bodystart="179" bodyend="179"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

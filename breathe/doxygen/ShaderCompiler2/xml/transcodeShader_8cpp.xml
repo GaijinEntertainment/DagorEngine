@@ -1,0 +1,300 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="transcodeShader_8cpp" kind="file" language="C++">
+    <compoundname>transcodeShader.cpp</compoundname>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">3d/parseShaders.h</includes>
+    <includes local="no">libTools/util/makeBindump.h</includes>
+    <includes local="no">shaders/shUtils.h</includes>
+    <includes local="no">shaders/shOpcodeFormat.h</includes>
+    <includes local="no">shaders/shOpcode.h</includes>
+    <includes local="no">debug/dag_debug.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includes refid="transcodeShader_8h" local="yes">transcodeShader.h</includes>
+    <includes local="no">util/dag_hierBitArray.h</includes>
+    <incdepgraph>
+      <node id="12">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="1">
+        <label>transcodeShader.cpp</label>
+        <link refid="transcodeShader_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>transcodeShader.h</label>
+        <link refid="transcodeShader_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>3d/parseShaders.h</label>
+      </node>
+      <node id="8">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="11">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="2">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="4">
+        <label>libTools/util/makeBindump.h</label>
+      </node>
+      <node id="7">
+        <label>shaders/shOpcode.h</label>
+      </node>
+      <node id="6">
+        <label>shaders/shOpcodeFormat.h</label>
+      </node>
+      <node id="5">
+        <label>shaders/shUtils.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_hierBitArray.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="transcodeShader_8cpp_1a9ac3fb74a20f910c49c481260f200e40" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+        <definition>dag::ConstSpan&lt; uint32_t &gt; transcode_vertex_shader</definition>
+        <argsstring>(dag::ConstSpan&lt; uint32_t &gt; vpr)</argsstring>
+        <name>transcode_vertex_shader</name>
+        <param>
+          <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+          <declname>vpr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeShader.cpp" line="22" column="16" bodyfile="transcodeShader.cpp" bodystart="22" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="transcodeShader_8cpp_1a0973956bfd1c50e1264f57992fc58a81" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+        <definition>dag::ConstSpan&lt; uint32_t &gt; transcode_pixel_shader</definition>
+        <argsstring>(dag::ConstSpan&lt; uint32_t &gt; fsh)</argsstring>
+        <name>transcode_pixel_shader</name>
+        <param>
+          <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+          <declname>fsh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeShader.cpp" line="34" column="16" bodyfile="transcodeShader.cpp" bodystart="34" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="transcodeShader_8cpp_1aaeaa2e6dbedebab40b3cad05b8a1dada" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt; int &gt; transcode_stcode</definition>
+        <argsstring>(dag::ConstSpan&lt; int &gt; stcode)</argsstring>
+        <name>transcode_stcode</name>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>stcode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeShader.cpp" line="47" column="16" bodyfile="transcodeShader.cpp" bodystart="47" bodyend="150"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/parseShaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;libTools/util/makeBindump.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shOpcodeFormat.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shOpcode.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="transcodeShader_8h" kindref="compound">transcodeShader.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_hierBitArray.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_C1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_CROSS_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_CROSS_TARGET_DX11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;hlsl11transcode/asmShaders11.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">dag::ConstSpan&lt;uint32_t&gt;<sp/><ref refid="transcodeShader_8cpp_1a9ac3fb74a20f910c49c481260f200e40" kindref="member">transcode_vertex_shader</ref>(dag::ConstSpan&lt;uint32_t&gt;<sp/>vpr)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!vpr.size())</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>G_ASSERT(vpr.size()<sp/>&gt;<sp/>1);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(vpr[0]<sp/>==<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;DX9v&apos;</highlight><highlight class="normal">)<sp/>||<sp/>vpr[0]<sp/>==<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;DX11&apos;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_span_const((</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>*)&amp;vpr[1],<sp/>vpr.size()<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>G_ASSERTF(0,<sp/></highlight><highlight class="stringliteral">&quot;obsolete/corrupt<sp/>vertex<sp/>shader?<sp/>%c%c%c%c&quot;</highlight><highlight class="normal">,<sp/>DUMP4C(vpr[0]));</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">dag::ConstSpan&lt;uint32_t&gt;<sp/><ref refid="transcodeShader_8cpp_1a0973956bfd1c50e1264f57992fc58a81" kindref="member">transcode_pixel_shader</ref>(dag::ConstSpan&lt;uint32_t&gt;<sp/>fsh)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!fsh.size())</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{};</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>G_ASSERT(fsh.size()<sp/>&gt;<sp/>1);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fsh[0]<sp/>==<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;DX9p&apos;</highlight><highlight class="normal">)<sp/>||<sp/>fsh[0]<sp/>==<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;D11c&apos;</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dag::ConstSpan&lt;uint32_t&gt;((</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>*)&amp;fsh[1],<sp/>fsh.size()<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>G_ASSERT(0<sp/>&amp;&amp;<sp/></highlight><highlight class="stringliteral">&quot;obsolete/corrupt<sp/>pixel<sp/>shader?&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{};</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">dag::ConstSpan&lt;int&gt;<sp/><ref refid="transcodeShader_8cpp_1aaeaa2e6dbedebab40b3cad05b8a1dada" kindref="member">transcode_stcode</ref>(dag::ConstSpan&lt;int&gt;<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>BINDUMP_TARGET_BE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>Tab&lt;int&gt;<sp/>st(tmpmem);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>st.resize(<ref refid="namespacestcode" kindref="compound">stcode</ref>.size());</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>transcode<sp/>all<sp/>stcode</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>op<sp/>=<sp/>shaderopcode::getOp(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(op)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_INVERSE:</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_LVIEW:</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TMWORLD:</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_G_TM:</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_FSH_CONST:</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_VPR_CONST:</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_CS_CONST:</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GLOB_SAMPLER:</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_SAMPLER:</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TEXTURE:</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TEXTURE_VS:</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_REG_BINDLESS:</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_RWTEX:</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_RWBUF:</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_BUFFER:</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_CONST_BUFFER:</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_TLAS:</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GBUF:</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GTLAS:</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GINT:</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GREAL:</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GTEX:</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GVEC:</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_ADD_REAL:</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_SUB_REAL:</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_MUL_REAL:</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_DIV_REAL:</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_ADD_VEC:</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_SUB_VEC:</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_MUL_VEC:</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_DIV_VEC:</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_CHANNEL:</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GINT_TOREAL:</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_GIVEC_TOREAL:</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_TEX:</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_INT:</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_REAL:</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_VEC:</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_INT_TOREAL:</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_GET_IVEC_TOREAL:</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_REAL1:</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_SVEC1:</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_INT_TOREAL:</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IVEC_TOREAL:</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_COPY_REAL:</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_COPY_VEC:<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_REAL:</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_IMM_VEC:</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_MAKE_VEC:</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_STATIC_BLOCK:</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHCOD_CALL_FUNCTION:</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pnum<sp/>=<sp/>shaderopcode::getOp3p3(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(pnum<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>st[i]<sp/>=<sp/>mkbindump::le2be32(<ref refid="namespacestcode" kindref="compound">stcode</ref>[i]);</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pnum--;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>debug(</highlight><highlight class="stringliteral">&quot;stcode:<sp/>%d<sp/>&apos;%s&apos;<sp/>not<sp/>processed!&quot;</highlight><highlight class="normal">,<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>[i],<sp/>ShUtils::shcod_tokname(op));<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>st;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="transcodeShader.cpp"/>
+  </compounddef>
+</doxygen>

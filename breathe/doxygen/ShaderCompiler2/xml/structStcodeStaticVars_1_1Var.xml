@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeStaticVars_1_1Var" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeStaticVars::Var</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeStaticVars_1_1Var_1a63f969a965d3b6fee7eae0855d41908b" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeStaticVars::Var::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>StcodeStaticVars::Var::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="111" column="19" bodyfile="cppStcodeAssembly.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeStaticVars_1_1Var_1ac5d7d3151c762d75b53074103692cd98" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeStaticVars::Var::initId</definition>
+        <argsstring></argsstring>
+        <name>initId</name>
+        <qualifiedname>StcodeStaticVars::Var::initId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="112" column="9" bodyfile="cppStcodeAssembly.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeStaticVars_1_1Var_1a6c7b192f37123239b46d59f118033318" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeStaticVars::Var::patchedId</definition>
+        <argsstring></argsstring>
+        <name>patchedId</name>
+        <qualifiedname>StcodeStaticVars::Var::patchedId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="113" column="9" bodyfile="cppStcodeAssembly.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeStaticVars_1_1Var_1aa3c520a0fc14920449ef13b1da3376e2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int StcodeStaticVars::Var::getId</definition>
+        <argsstring>() const</argsstring>
+        <name>getId</name>
+        <qualifiedname>StcodeStaticVars::Var::getId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="115" column="9" bodyfile="cppStcodeAssembly.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="109" column="3" bodyfile="cppStcodeAssembly.h" bodystart="110" bodyend="116"/>
+    <listofallmembers>
+      <member refid="structStcodeStaticVars_1_1Var_1aa3c520a0fc14920449ef13b1da3376e2" prot="public" virt="non-virtual"><scope>StcodeStaticVars::Var</scope><name>getId</name></member>
+      <member refid="structStcodeStaticVars_1_1Var_1ac5d7d3151c762d75b53074103692cd98" prot="public" virt="non-virtual"><scope>StcodeStaticVars::Var</scope><name>initId</name></member>
+      <member refid="structStcodeStaticVars_1_1Var_1a63f969a965d3b6fee7eae0855d41908b" prot="public" virt="non-virtual"><scope>StcodeStaticVars::Var</scope><name>name</name></member>
+      <member refid="structStcodeStaticVars_1_1Var_1a6c7b192f37123239b46d59f118033318" prot="public" virt="non-virtual"><scope>StcodeStaticVars::Var</scope><name>patchedId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

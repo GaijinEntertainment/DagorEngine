@@ -1,0 +1,314 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderStateBlock" kind="class" language="C++" prot="public">
+    <compoundname>ShaderStateBlock</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+    <innerclass refid="structShaderStateBlock_1_1BuildTimeData" prot="public">ShaderStateBlock::BuildTimeData</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderStateBlock_1ae5f9acfd14a6cfe151e09ca904f4805c" prot="public" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref></type>
+        <definition>NamedConstBlock ShaderStateBlock::shConst</definition>
+        <argsstring></argsstring>
+        <name>shConst</name>
+        <qualifiedname>ShaderStateBlock::shConst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="195" column="19" bodyfile="namedConst.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderStateBlock_1ad24cbadd146d234944b96fd320d43aad" prot="public" static="no" mutable="no">
+        <type>bindump::string</type>
+        <definition>bindump::string ShaderStateBlock::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderStateBlock::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="196" column="19" bodyfile="namedConst.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderStateBlock_1a48a921b68aac65a16fdd0a33e9465069" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderStateBlock::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <qualifiedname>ShaderStateBlock::nameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="197" column="7" bodyfile="namedConst.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderStateBlock_1ad840fa4cfc4c554037e143bb93fd056b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderStateBlock::stcodeId</definition>
+        <argsstring></argsstring>
+        <name>stcodeId</name>
+        <qualifiedname>ShaderStateBlock::stcodeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="198" column="7" bodyfile="namedConst.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderStateBlock_1a472973772e4378f4edbdad74be74cac2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderStateBlock::regSize</definition>
+        <argsstring></argsstring>
+        <name>regSize</name>
+        <qualifiedname>ShaderStateBlock::regSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="198" column="16" bodyfile="namedConst.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderStateBlock_1a1ba5283efd19f83cb3c8ee1211b0197f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderStateBlock::cppStcodeId</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeId</name>
+        <qualifiedname>ShaderStateBlock::cppStcodeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="199" column="7" bodyfile="namedConst.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderStateBlock_1a73af07c28d4a043e224c03b4dfe891cf" prot="public" static="no" mutable="no">
+        <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+        <definition>ShaderBlockLevel ShaderStateBlock::layerLevel</definition>
+        <argsstring></argsstring>
+        <name>layerLevel</name>
+        <qualifiedname>ShaderStateBlock::layerLevel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="200" column="20" bodyfile="namedConst.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderStateBlock_1ae97b8e1bfea9a4ade357f6eb9ecd3019" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderStateBlock::ShaderStateBlock</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderStateBlock</name>
+        <qualifiedname>ShaderStateBlock::ShaderStateBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="180" column="3" bodyfile="namedConst.h" bodystart="180" bodyend="180"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderStateBlock_1aff3fac97f1ab2f8b9328e8eba105b020" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderStateBlock::ShaderStateBlock</definition>
+        <argsstring>(const char *name, ShaderBlockLevel lev, NamedConstBlock &amp;&amp;ncb, dag::Span&lt; int &gt; stcode, DynamicStcodeRoutine *cpp_stcode, int maxregsize, shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>ShaderStateBlock</name>
+        <qualifiedname>ShaderStateBlock::ShaderStateBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+          <declname>lev</declname>
+        </param>
+        <param>
+          <type><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref> &amp;&amp;</type>
+          <declname>ncb</declname>
+        </param>
+        <param>
+          <type>dag::Span&lt; int &gt;</type>
+          <declname>stcode</declname>
+        </param>
+        <param>
+          <type><ref refid="structDynamicStcodeRoutine" kindref="compound">DynamicStcodeRoutine</ref> *</type>
+          <declname>cpp_stcode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>maxregsize</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="181" column="3" bodyfile="namedConst.cpp" bodystart="562" bodyend="582"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderStateBlock_1ad2b6797f32084d28c04e1c6be57cd17f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderStateBlock::canBeSupportedBy</definition>
+        <argsstring>(ShaderBlockLevel lev) const</argsstring>
+        <name>canBeSupportedBy</name>
+        <qualifiedname>ShaderStateBlock::canBeSupportedBy</qualifiedname>
+        <param>
+          <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+          <declname>lev</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="184" column="8" bodyfile="namedConst.h" bodystart="184" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderStateBlock_1a49d5e1246b26d34702756b9dc392d77f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderStateBlock::getVsNameId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getVsNameId</name>
+        <qualifiedname>ShaderStateBlock::getVsNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="185" column="7" bodyfile="namedConst.cpp" bodystart="584" bodyend="596"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderStateBlock_1a1c5766a763d6416ed5cc381401683b37" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderStateBlock::getPsNameId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getPsNameId</name>
+        <qualifiedname>ShaderStateBlock::getPsNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="186" column="7" bodyfile="namedConst.cpp" bodystart="597" bodyend="609"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderStateBlock_1af07a94ac2c8be57a3e2eba5ad4724f7d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderStateBlock::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(BuildTimeData btd;)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>ShaderStateBlock::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type><ref refid="structShaderStateBlock_1_1BuildTimeData" kindref="compound">BuildTimeData</ref> btd;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="202" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="2">
+        <label>NamedConstBlock</label>
+        <link refid="structNamedConstBlock"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>bufferedConstProps</edgelabel>
+          <edgelabel>pixelProps</edgelabel>
+          <edgelabel>vertexProps</edgelabel>
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>globConstBlk</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>bufferedConstsRegAllocator</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>slotTextureSuballocators</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>NamedConstBlock::RegisterProperties</label>
+        <link refid="structNamedConstBlock_1_1RegisterProperties"/>
+      </node>
+      <node id="5">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderStateBlock</label>
+        <link refid="classShaderStateBlock"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>shConst</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="namedConst.h" line="177" column="1" bodyfile="namedConst.h" bodystart="178" bodyend="205"/>
+    <listofallmembers>
+      <member refid="classShaderStateBlock_1af07a94ac2c8be57a3e2eba5ad4724f7d" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classShaderStateBlock_1ad2b6797f32084d28c04e1c6be57cd17f" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>canBeSupportedBy</name></member>
+      <member refid="classShaderStateBlock_1a1ba5283efd19f83cb3c8ee1211b0197f" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>cppStcodeId</name></member>
+      <member refid="classShaderStateBlock_1a1c5766a763d6416ed5cc381401683b37" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>getPsNameId</name></member>
+      <member refid="classShaderStateBlock_1a49d5e1246b26d34702756b9dc392d77f" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>getVsNameId</name></member>
+      <member refid="classShaderStateBlock_1a73af07c28d4a043e224c03b4dfe891cf" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>layerLevel</name></member>
+      <member refid="classShaderStateBlock_1ad24cbadd146d234944b96fd320d43aad" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>name</name></member>
+      <member refid="classShaderStateBlock_1a48a921b68aac65a16fdd0a33e9465069" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>nameId</name></member>
+      <member refid="classShaderStateBlock_1a472973772e4378f4edbdad74be74cac2" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>regSize</name></member>
+      <member refid="classShaderStateBlock_1ae97b8e1bfea9a4ade357f6eb9ecd3019" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>ShaderStateBlock</name></member>
+      <member refid="classShaderStateBlock_1aff3fac97f1ab2f8b9328e8eba105b020" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>ShaderStateBlock</name></member>
+      <member refid="classShaderStateBlock_1ae5f9acfd14a6cfe151e09ca904f4805c" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>shConst</name></member>
+      <member refid="classShaderStateBlock_1ad840fa4cfc4c554037e143bb93fd056b" prot="public" virt="non-virtual"><scope>ShaderStateBlock</scope><name>stcodeId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

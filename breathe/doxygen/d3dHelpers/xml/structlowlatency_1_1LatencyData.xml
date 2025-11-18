@@ -1,0 +1,296 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structlowlatency_1_1LatencyData" kind="struct" language="C++" prot="public">
+    <compoundname>lowlatency::LatencyData</compoundname>
+    <includes refid="dag__latencyTypes_8h" local="no">dag_latencyTypes.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a5e8e131ba9d498c99d2a73bb1bb627ad" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t lowlatency::LatencyData::frameCount</definition>
+        <argsstring></argsstring>
+        <name>frameCount</name>
+        <qualifiedname>lowlatency::LatencyData::frameCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="46" column="12" bodyfile="dag_latencyTypes.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a1d55fe9adc3626eff2cf76659a66b9f4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t lowlatency::LatencyData::latestFrameId</definition>
+        <argsstring></argsstring>
+        <name>latestFrameId</name>
+        <qualifiedname>lowlatency::LatencyData::latestFrameId</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="47" column="12" bodyfile="dag_latencyTypes.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a1bba364d1386ad9749e55ee0aab1552c" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::gameLatency</definition>
+        <argsstring></argsstring>
+        <name>gameLatency</name>
+        <qualifiedname>lowlatency::LatencyData::gameLatency</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="52" column="14" bodyfile="dag_latencyTypes.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a0804559a0179a182568c5be968628674" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::inputSampleTime</definition>
+        <argsstring></argsstring>
+        <name>inputSampleTime</name>
+        <qualifiedname>lowlatency::LatencyData::inputSampleTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="53" column="14" bodyfile="dag_latencyTypes.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a82f48e0f8a4fca479c1cdcbbd2651065" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::simEndTime</definition>
+        <argsstring></argsstring>
+        <name>simEndTime</name>
+        <qualifiedname>lowlatency::LatencyData::simEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="54" column="14" bodyfile="dag_latencyTypes.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a686d04226e38c6d5ae8ae456371f67e5" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::renderSubmitStartTime</definition>
+        <argsstring></argsstring>
+        <name>renderSubmitStartTime</name>
+        <qualifiedname>lowlatency::LatencyData::renderSubmitStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="55" column="14" bodyfile="dag_latencyTypes.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1acf4f5effe744f11fb6214f1239642c6f" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::renderSubmitEndTime</definition>
+        <argsstring></argsstring>
+        <name>renderSubmitEndTime</name>
+        <qualifiedname>lowlatency::LatencyData::renderSubmitEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="56" column="14" bodyfile="dag_latencyTypes.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a331ed6d103bf5878fc6dedded6e162c1" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::presentStartTime</definition>
+        <argsstring></argsstring>
+        <name>presentStartTime</name>
+        <qualifiedname>lowlatency::LatencyData::presentStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="57" column="14" bodyfile="dag_latencyTypes.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a23334e4a8ca2695dfbb1cd06aeb64d13" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::presentEndTime</definition>
+        <argsstring></argsstring>
+        <name>presentEndTime</name>
+        <qualifiedname>lowlatency::LatencyData::presentEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="58" column="14" bodyfile="dag_latencyTypes.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a4dcfc3e7577be4fee22962b420c45d64" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::gameToRenderLatency</definition>
+        <argsstring></argsstring>
+        <name>gameToRenderLatency</name>
+        <qualifiedname>lowlatency::LatencyData::gameToRenderLatency</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="61" column="14" bodyfile="dag_latencyTypes.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1ac4d94489e33b13b859b9bbd63cee4e30" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::renderLatency</definition>
+        <argsstring></argsstring>
+        <name>renderLatency</name>
+        <qualifiedname>lowlatency::LatencyData::renderLatency</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="62" column="14" bodyfile="dag_latencyTypes.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a58ed9ada96844366baea2eb8217053ae" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::driverStartTime</definition>
+        <argsstring></argsstring>
+        <name>driverStartTime</name>
+        <qualifiedname>lowlatency::LatencyData::driverStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="63" column="14" bodyfile="dag_latencyTypes.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a05d43e0379bd4422efe57b1d85028ec0" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::driverEndTime</definition>
+        <argsstring></argsstring>
+        <name>driverEndTime</name>
+        <qualifiedname>lowlatency::LatencyData::driverEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="64" column="14" bodyfile="dag_latencyTypes.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a9bafc767079004e04abb698ec046143f" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::osRenderQueueStartTime</definition>
+        <argsstring></argsstring>
+        <name>osRenderQueueStartTime</name>
+        <qualifiedname>lowlatency::LatencyData::osRenderQueueStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="65" column="14" bodyfile="dag_latencyTypes.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a92ccbcf2a5792bc3b37aa90b44eadd82" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::osRenderQueueEndTime</definition>
+        <argsstring></argsstring>
+        <name>osRenderQueueEndTime</name>
+        <qualifiedname>lowlatency::LatencyData::osRenderQueueEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="66" column="14" bodyfile="dag_latencyTypes.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a9221870f351574081d068566eb60383c" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::gpuRenderStartTime</definition>
+        <argsstring></argsstring>
+        <name>gpuRenderStartTime</name>
+        <qualifiedname>lowlatency::LatencyData::gpuRenderStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="67" column="14" bodyfile="dag_latencyTypes.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlowlatency_1_1LatencyData_1a19c21e14fdf13665e2c2db5e13f026a2" prot="public" static="no" mutable="no">
+        <type><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></type>
+        <definition>Statistics lowlatency::LatencyData::gpuRenderEndTime</definition>
+        <argsstring></argsstring>
+        <name>gpuRenderEndTime</name>
+        <qualifiedname>lowlatency::LatencyData::gpuRenderEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="68" column="14" bodyfile="dag_latencyTypes.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>lowlatency::LatencyData</label>
+        <link refid="structlowlatency_1_1LatencyData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>driverEndTime</edgelabel>
+          <edgelabel>driverStartTime</edgelabel>
+          <edgelabel>gameLatency</edgelabel>
+          <edgelabel>gameToRenderLatency</edgelabel>
+          <edgelabel>gpuRenderEndTime</edgelabel>
+          <edgelabel>gpuRenderStartTime</edgelabel>
+          <edgelabel>inputSampleTime</edgelabel>
+          <edgelabel>osRenderQueueEndTime</edgelabel>
+          <edgelabel>osRenderQueueStartTime</edgelabel>
+          <edgelabel>presentEndTime</edgelabel>
+          <edgelabel>...</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>lowlatency::Statistics</label>
+        <link refid="structlowlatency_1_1Statistics"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_latencyTypes.h" line="42" column="1" bodyfile="dag_latencyTypes.h" bodystart="43" bodyend="69"/>
+    <listofallmembers>
+      <member refid="structlowlatency_1_1LatencyData_1a05d43e0379bd4422efe57b1d85028ec0" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>driverEndTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a58ed9ada96844366baea2eb8217053ae" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>driverStartTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a5e8e131ba9d498c99d2a73bb1bb627ad" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>frameCount</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a1bba364d1386ad9749e55ee0aab1552c" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>gameLatency</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a4dcfc3e7577be4fee22962b420c45d64" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>gameToRenderLatency</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a19c21e14fdf13665e2c2db5e13f026a2" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>gpuRenderEndTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a9221870f351574081d068566eb60383c" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>gpuRenderStartTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a0804559a0179a182568c5be968628674" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>inputSampleTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a1d55fe9adc3626eff2cf76659a66b9f4" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>latestFrameId</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a92ccbcf2a5792bc3b37aa90b44eadd82" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>osRenderQueueEndTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a9bafc767079004e04abb698ec046143f" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>osRenderQueueStartTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a23334e4a8ca2695dfbb1cd06aeb64d13" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>presentEndTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a331ed6d103bf5878fc6dedded6e162c1" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>presentStartTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1ac4d94489e33b13b859b9bbd63cee4e30" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>renderLatency</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1acf4f5effe744f11fb6214f1239642c6f" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>renderSubmitEndTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a686d04226e38c6d5ae8ae456371f67e5" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>renderSubmitStartTime</name></member>
+      <member refid="structlowlatency_1_1LatencyData_1a82f48e0f8a4fca479c1cdcbbd2651065" prot="public" virt="non-virtual"><scope>lowlatency::LatencyData</scope><name>simEndTime</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

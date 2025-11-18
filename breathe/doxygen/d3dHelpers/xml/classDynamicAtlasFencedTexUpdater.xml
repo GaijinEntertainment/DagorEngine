@@ -1,0 +1,373 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynamicAtlasFencedTexUpdater" kind="class" language="C++" prot="public">
+    <compoundname>DynamicAtlasFencedTexUpdater</compoundname>
+    <includes refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includes>
+    <innerclass refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec" prot="public">DynamicAtlasFencedTexUpdater::CopyRec</innerclass>
+    <innerclass refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource" prot="public">DynamicAtlasFencedTexUpdater::FencedGPUResource</innerclass>
+    <innerclass refid="structDynamicAtlasFencedTexUpdater_1_1UnlockedTexInfo" prot="public">DynamicAtlasFencedTexUpdater::UnlockedTexInfo</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1ab001a4308d8bc89bd775e3f517259b1b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int DynamicAtlasFencedTexUpdater::MAX_FRAME_QUEUE</definition>
+        <argsstring></argsstring>
+        <name>MAX_FRAME_QUEUE</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::MAX_FRAME_QUEUE</qualifiedname>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="543" column="24" bodyfile="dag_dynAtlas.h" bodystart="543" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1a58ab7b571334737e54de40b21b7449db" prot="protected" static="no" mutable="no">
+        <type>StaticTab&lt; <ref refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource" kindref="compound">FencedGPUResource</ref>, <ref refid="classDynamicAtlasFencedTexUpdater_1ab001a4308d8bc89bd775e3f517259b1b" kindref="member">MAX_FRAME_QUEUE</ref> &gt;</type>
+        <definition>StaticTab&lt;FencedGPUResource, MAX_FRAME_QUEUE&gt; DynamicAtlasFencedTexUpdater::sysTextures</definition>
+        <argsstring></argsstring>
+        <name>sysTextures</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::sysTextures</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="705" column="13" bodyfile="dag_dynAtlas.h" bodystart="705" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1a3672d4f94cf2694ead0799fb7ef45ebb" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasFencedTexUpdater::currentLockedTex</definition>
+        <argsstring></argsstring>
+        <name>currentLockedTex</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::currentLockedTex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="706" column="7" bodyfile="dag_dynAtlas.h" bodystart="706" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1ac72a41df9b956dacdba6e7ded7b096af" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasFencedTexUpdater::nextTexture</definition>
+        <argsstring></argsstring>
+        <name>nextTexture</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::nextTexture</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="707" column="7" bodyfile="dag_dynAtlas.h" bodystart="707" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1a9548b3c51fc55edababc15d5fb58c448" prot="protected" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 DynamicAtlasFencedTexUpdater::sysTexSz</definition>
+        <argsstring></argsstring>
+        <name>sysTexSz</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::sysTexSz</qualifiedname>
+        <initializer>= IPoint2(1, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="709" column="11" bodyfile="dag_dynAtlas.h" bodystart="709" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1a8dd85452a592591fe2063d6b2da4c087" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasFencedTexUpdater::texFmt</definition>
+        <argsstring></argsstring>
+        <name>texFmt</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::texFmt</qualifiedname>
+        <initializer>= TEXFMT_R8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="710" column="7" bodyfile="dag_dynAtlas.h" bodystart="710" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1a289073185714aaf5202c6c70351e8cb6" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasFencedTexUpdater::bpp</definition>
+        <argsstring></argsstring>
+        <name>bpp</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::bpp</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="711" column="7" bodyfile="dag_dynAtlas.h" bodystart="711" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasFencedTexUpdater_1ab6fd1dff2480a1525551b0980a36836f" prot="protected" static="no" mutable="no">
+        <type>rbp::SkylineBinPack</type>
+        <definition>rbp::SkylineBinPack DynamicAtlasFencedTexUpdater::pack</definition>
+        <argsstring></argsstring>
+        <name>pack</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::pack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="713" column="23" bodyfile="dag_dynAtlas.h" bodystart="713" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1a5ed5f485f42b417e78153942983c94f4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::init</definition>
+        <argsstring>(const IPoint2 &amp;sz, int tex_fmt=TEXFMT_R8)</argsstring>
+        <name>init</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::init</qualifiedname>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>sz</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tex_fmt</declname>
+          <defval>TEXFMT_R8</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="606" column="8" bodyfile="dag_dynAtlas.h" bodystart="606" bodyend="620"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1a7587bd83d3e61a1ec93315f3d56c3846" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::term</definition>
+        <argsstring>()</argsstring>
+        <name>term</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::term</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="622" column="8" bodyfile="dag_dynAtlas.h" bodystart="622" bodyend="628"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1aa48fe4836afc781165a695bad07dcfbe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::afterDeviceReset</definition>
+        <argsstring>()</argsstring>
+        <name>afterDeviceReset</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::afterDeviceReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="630" column="8" bodyfile="dag_dynAtlas.h" bodystart="630" bodyend="630"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1ad2d6a8b074ac1d0a058a39703a37155b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicAtlasFencedTexUpdater::isLocked</definition>
+        <argsstring>()</argsstring>
+        <name>isLocked</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::isLocked</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="633" column="8" bodyfile="dag_dynAtlas.h" bodystart="633" bodyend="633"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1a526964e209fd9514d5f78341df76ce16" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structDynamicAtlasFencedTexUpdater_1_1UnlockedTexInfo" kindref="compound">UnlockedTexInfo</ref></type>
+        <definition>UnlockedTexInfo DynamicAtlasFencedTexUpdater::unlockCurrent</definition>
+        <argsstring>()</argsstring>
+        <name>unlockCurrent</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::unlockCurrent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="636" column="19" bodyfile="dag_dynAtlas.h" bodystart="636" bodyend="645"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1ae21c3177cf67deebb7c28375996d52f7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicAtlasFencedTexUpdater::tryLock</definition>
+        <argsstring>()</argsstring>
+        <name>tryLock</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::tryLock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="648" column="8" bodyfile="dag_dynAtlas.h" bodystart="648" bodyend="661"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1ad8ed1e85882011e192c55058e539d3e2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint8_t *</type>
+        <definition>uint8_t * DynamicAtlasFencedTexUpdater::getDataPtr</definition>
+        <argsstring>(int x0, int y0)</argsstring>
+        <name>getDataPtr</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::getDataPtr</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>x0</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y0</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="663" column="11" bodyfile="dag_dynAtlas.h" bodystart="663" bodyend="666"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1a327706fbc1edde4ec0a42486109a6a96" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::fillData</definition>
+        <argsstring>(const uint8_t *src_data, int w, int h, int x0, int y0)</argsstring>
+        <name>fillData</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::fillData</qualifiedname>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>src_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x0</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y0</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="668" column="8" bodyfile="dag_dynAtlas.h" bodystart="668" bodyend="682"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1afff982b1df5125d49b45a4aa2474aa87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicAtlasFencedTexUpdater::add</definition>
+        <argsstring>(int w, int h, CopyRec &amp;out_rec)</argsstring>
+        <name>add</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::add</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type><ref refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec" kindref="compound">CopyRec</ref> &amp;</type>
+          <declname>out_rec</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="690" column="8" bodyfile="dag_dynAtlas.h" bodystart="690" bodyend="700"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1a8a88ab3c6762a2d0aa4eadf7dc84525d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const IPoint2 &amp;</type>
+        <definition>const IPoint2 &amp; DynamicAtlasFencedTexUpdater::getSz</definition>
+        <argsstring>() const</argsstring>
+        <name>getSz</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::getSz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="702" column="17" bodyfile="dag_dynAtlas.h" bodystart="702" bodyend="702"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classDynamicAtlasFencedTexUpdater_1a57a471f38bef19919fe71c8057dd5853" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::fillOutRec</definition>
+        <argsstring>(CopyRec &amp;out_rec, const rbp::Rect &amp;r)</argsstring>
+        <name>fillOutRec</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::fillOutRec</qualifiedname>
+        <param>
+          <type><ref refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec" kindref="compound">CopyRec</ref> &amp;</type>
+          <declname>out_rec</declname>
+        </param>
+        <param>
+          <type>const rbp::Rect &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="715" column="8" bodyfile="dag_dynAtlas.h" bodystart="715" bodyend="721"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynAtlas.h" line="540" column="1" bodyfile="dag_dynAtlas.h" bodystart="541" bodyend="722"/>
+    <listofallmembers>
+      <member refid="classDynamicAtlasFencedTexUpdater_1afff982b1df5125d49b45a4aa2474aa87" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>add</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1aa48fe4836afc781165a695bad07dcfbe" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>afterDeviceReset</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a289073185714aaf5202c6c70351e8cb6" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>bpp</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a3672d4f94cf2694ead0799fb7ef45ebb" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>currentLockedTex</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a327706fbc1edde4ec0a42486109a6a96" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>fillData</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a57a471f38bef19919fe71c8057dd5853" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>fillOutRec</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1ad8ed1e85882011e192c55058e539d3e2" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>getDataPtr</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a8a88ab3c6762a2d0aa4eadf7dc84525d" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>getSz</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a5ed5f485f42b417e78153942983c94f4" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>init</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1ad2d6a8b074ac1d0a058a39703a37155b" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>isLocked</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1ab001a4308d8bc89bd775e3f517259b1b" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>MAX_FRAME_QUEUE</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1ac72a41df9b956dacdba6e7ded7b096af" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>nextTexture</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1ab6fd1dff2480a1525551b0980a36836f" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>pack</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a9548b3c51fc55edababc15d5fb58c448" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>sysTexSz</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a58ab7b571334737e54de40b21b7449db" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>sysTextures</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a7587bd83d3e61a1ec93315f3d56c3846" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>term</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a8dd85452a592591fe2063d6b2da4c087" prot="protected" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>texFmt</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1ae21c3177cf67deebb7c28375996d52f7" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>tryLock</name></member>
+      <member refid="classDynamicAtlasFencedTexUpdater_1a526964e209fd9514d5f78341df76ce16" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater</scope><name>unlockCurrent</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

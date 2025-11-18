@@ -1,0 +1,253 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverCapabilitiesPS5" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesPS5</compoundname>
+    <basecompoundref refid="structDeviceDriverCapabilitiesPS4" prot="public" virt="non-virtual">DeviceDriverCapabilitiesPS4</basecompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1a843ad8b2e11f8374960a0f78e5d1b94c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasStereoExpansion</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1366" column="25" bodyfile="dag_consts.h" bodystart="1366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1a30e2a0e0726dafd276baff5984448931" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasRayAccelerationStructure</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" kindref="member">DeviceDriverCapabilitiesBase::hasRayAccelerationStructure</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1368" column="25" bodyfile="dag_consts.h" bodystart="1368" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1a20de6b6a2462a77a6268b729b74a721e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasRayQuery</definition>
+        <argsstring></argsstring>
+        <name>hasRayQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasRayQuery</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae925b799a026c8c5845bf5e5b10cc3c7" kindref="member">DeviceDriverCapabilitiesBase::hasRayQuery</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1370" column="25" bodyfile="dag_consts.h" bodystart="1370" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1a430b4bd7c2a0eef6565ca38020966cf8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a8897412ad54b5e792d30b5b13df45e48" kindref="member">DeviceDriverCapabilitiesBase::hasRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1372" column="25" bodyfile="dag_consts.h" bodystart="1372" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1afedd081a0606ba23a1e714f7bb1352d6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasIndirectRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasIndirectRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a63c165f96d513681e2fe122901b9b29c" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1374" column="25" bodyfile="dag_consts.h" bodystart="1374" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1a1d9947cd9588864441b9e366f208ae2f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasEmulatedRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasEmulatedRaytracing</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasEmulatedRaytracing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a10ea248bb571bbd8677237f662877f79" kindref="member">DeviceDriverCapabilitiesBase::hasEmulatedRaytracing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1376" column="25" bodyfile="dag_consts.h" bodystart="1376" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1a7114b839c1484672e55c19afce91e597" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasGeometryIndexInRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasGeometryIndexInRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasGeometryIndexInRayAccelerationStructure</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a466ed11695907ffdb48bbede3b80cc38" kindref="member">DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1378" column="25" bodyfile="dag_consts.h" bodystart="1378" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesPS5_1a37918c9141878d0ab3e889eda3bbfded" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS5::hasSkipPrimitiveTypeInRayTracingShaders</definition>
+        <argsstring></argsstring>
+        <name>hasSkipPrimitiveTypeInRayTracingShaders</name>
+        <qualifiedname>DeviceDriverCapabilitiesPS5::hasSkipPrimitiveTypeInRayTracingShaders</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a16cd5a96afd2c679e04d854619cdd189" kindref="member">DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1380" column="25" bodyfile="dag_consts.h" bodystart="1380" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \ps5. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Uses \ps4 optimized values and overrides only differences. <simplesect kind="see"><para><ref refid="structDeviceDriverCapabilitiesPS4" kindref="compound">DeviceDriverCapabilitiesPS4</ref> </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesPS4</label>
+        <link refid="structDeviceDriverCapabilitiesPS4"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesPS5</label>
+        <link refid="structDeviceDriverCapabilitiesPS5"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesPS4</label>
+        <link refid="structDeviceDriverCapabilitiesPS4"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesPS5</label>
+        <link refid="structDeviceDriverCapabilitiesPS5"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="1363" column="1" bodyfile="dag_consts.h" bodystart="1364" bodyend="1381"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a9fbfa422c816bc6d3b80c64d6d0a2063" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>castingFullyTypedFormatsSupported</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a0bcae62814a425663c7fb3650ad73e01" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ae68d9dd5180d2b80d6e5d0e6f4242880" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAliasedTextures</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a7fd54152680618c70886305aa551d907" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAlphaCoverage</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a4674236ffdb840049ae70999fd857e3c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ae421f36c3e5e3382c12c9189b6ebc0b0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAsyncCompute</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a0210852996a58ff65c087e88ff6237d5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasAsyncCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a0c5b752117119e2e4845ebfed626f1db" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasATIApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a3056e207e4531c73392d18812c6e6d4c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBaseVertexSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1aadbdbff7d15825aff2748c039a0a7b4d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1aa218c22109e1b5247d26623e1a9c62f4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBindless</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ab674178b61c1e774fb492dde535e4025" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ab38cef0542667cc561a24e8ca0e60d1d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a4b05c0afe729043a40d046b229514b76" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasCompareSampler</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1abb692518a4faa0127eae563b89e952bb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasConditionalRender</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a2d35fdf8f9937fe7a3661ae2dbca327b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasConservativeRassterization</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1adc8dd9131e3c1d19f6407cf9d7463a45" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasConstBufferOffset</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1adadba44e1e64f113bec60133cf26c8c0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a1070edb832bc097a159ca91574e52981" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDepthReadOnly</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ada94a6f2a6293f56c4b0b10ff3aeee06" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDLSS</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1aa4ac205303ad5bfbbf7d85861cb8701e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDrawID</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ae122a252f887e18f3ef92ecaaeaf474c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasDualSourceBlending</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1a1d9947cd9588864441b9e366f208ae2f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasEmulatedRaytracing</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1aa5fa3b064ee2248cef62525de3bfad6d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ac5bd05642d65e301dc4e34cfa3d0fede" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasGather4</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1a7114b839c1484672e55c19afce91e597" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasGeometryIndexInRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1afedd081a0606ba23a1e714f7bb1352d6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasIndirectRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a534907bb1d093fcb0dbe32f98ca4f288" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasIndirectSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1add62d30de8cc4c995d6072c3a492b071" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasInstanceID</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1adb60798ee71218919afc6ce3e5595973" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasLazyMemory</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a133f227e1f355bbbc544667cf0b5969a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasMeshShader</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a7de68a38851534e37a7b26d309a19b4c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasNativeRayTracePipelineExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ab161d0c3117f96078cb7f5f3e477425e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a1d0cbb70a9c5e3fe77c72465cd5e4174" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a06ae3b80b7b29309f5978dd45837c73f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasNVApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1abad2e39863c0db33fd3993086c83ad8b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasOcclusionQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a1068ec8914f496d2a409cd24890c47cc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a16c1c43d3a152e642f82f4c64cda19b0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasPersistentShaderHandles</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a2ff63833ace337beae8f701697707c57" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasQuadTessellation</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1a30e2a0e0726dafd276baff5984448931" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1a430b4bd7c2a0eef6565ca38020966cf8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1a20de6b6a2462a77a6268b729b74a721e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasRayQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1afdc778bb90dfcd42ebf6ca2bc3fe9895" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ad90b982edc6d06c3cf27954f17fa4734" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a98b9ca25fe714387119b4636bb9f413d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a43f7898db5a17c29a9acb8767d66353c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasResourceHeaps</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a97c960eefd9141cd6a661506552f541f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a3e6dc57b31308f099fadc2bb4135652e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1a37918c9141878d0ab3e889eda3bbfded" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasSkipPrimitiveTypeInRayTracingShaders</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS5_1a843ad8b2e11f8374960a0f78e5d1b94c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasStereoExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a6fe366009f8a82a42872848d1fb501c7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasStreamOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a44196b849ac85246cd50928d9b64572f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasStructuredBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1afc80eb0d6a6394b7abfdb4f9305dee72" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a4f29a551bb8686f7fbf224d382f6d591" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiled2DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ac0d9de56c5ed00808134a009486fb75a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiled3DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ab1085a3d606d2b2c5a39e8cb0eea7032" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a817f27b38b01e2e58c4a757cfb74ed81" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a510fe0ae2896601b4ceecf57565918c9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasUAVOnEveryStage</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1adc1344863b6db84867114639869ef352" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ac291a985e22c8f5d0aad144100dc4c5d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShading</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a0ef8819f6c03789337616b77b09a7d3f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1af9177eeed750ea64a90d29124a07c911" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1ac2a7792d5279a8d57201fad57b9b5a44" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a4f7d827305f0c18dda14aafa1dcaf441" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a27ff2ff40ca0493e24112d6416743f15" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasVolMipMap</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a7454be975e373e1a8e1c1100374e1020" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasWaveOps</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a1ae734392e834bec22f31bb5b5cc1f94" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="structDeviceDriverCapabilitiesPS4_1a394e5b75e0a66a76d7a14ea0e6fc267b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS5</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

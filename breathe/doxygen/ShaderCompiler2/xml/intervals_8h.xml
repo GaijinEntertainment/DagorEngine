@@ -1,0 +1,686 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="intervals_8h" kind="file" language="C++">
+    <compoundname>intervals.h</compoundname>
+    <includedby refid="globVar_8h" local="yes">globVar.h</includedby>
+    <includedby refid="intervals_8cpp" local="yes">intervals.cpp</includedby>
+    <includedby refid="linkShaders_8h" local="yes">linkShaders.h</includedby>
+    <includedby refid="shAssumes_8h" local="yes">shAssumes.h</includedby>
+    <includedby refid="shaderVariant_8h" local="yes">shaderVariant.h</includedby>
+    <includedby refid="shaderVariantSrc_8cpp" local="yes">shaderVariantSrc.cpp</includedby>
+    <invincdepgraph>
+      <node id="18">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="17">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="19">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="37">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="32">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="26">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>globvar.cpp</label>
+        <link refid="globvar_8cpp"/>
+      </node>
+      <node id="28">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="1">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="4">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="14">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="7">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="12">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="13">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>shAssumes.cpp</label>
+        <link refid="shAssumes_8cpp"/>
+      </node>
+      <node id="48">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="30">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="31">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="29">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="23">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="21">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="45">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="25">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="34">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="36">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classIntervalValue" prot="public">IntervalValue</innerclass>
+    <innerclass refid="structIntervalValue_1_1Adapter" prot="public">IntervalValue::Adapter</innerclass>
+    <innerclass refid="classInterval" prot="public">Interval</innerclass>
+    <innerclass refid="classIntervalList" prot="public">IntervalList</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="intervals_8h_1aeab0906da24b432454f0cbb287972c24" prot="public" static="no">
+        <type>Range&lt; real &gt;</type>
+        <definition>typedef Range&lt;real&gt; RealValueRange</definition>
+        <argsstring></argsstring>
+        <name>RealValueRange</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="16" column="15" bodyfile="intervals.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="intervals_8h_1aadba5cb8f5f04d0596dae7f2b3129a46" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_interval_value_name</definition>
+        <argsstring>(const IntervalValue &amp;value, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_interval_value_name</name>
+        <param>
+          <type>const <ref refid="classIntervalValue" kindref="compound">IntervalValue</ref> &amp;</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="170" column="12" bodyfile="intervals.cpp" bodystart="147" bodyend="150" declfile="intervals.h" declline="170" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="intervals_8h_1a4fdab97629e0109bb152764c4982b245" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_interval_value_name</definition>
+        <argsstring>(const Interval &amp;ival, int value_idx, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_interval_value_name</name>
+        <param>
+          <type>const <ref refid="classInterval" kindref="compound">Interval</ref> &amp;</type>
+          <declname>ival</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>value_idx</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="171" column="12" bodyfile="intervals.cpp" bodystart="151" bodyend="154" declfile="intervals.h" declline="171" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="intervals_8h_1aef12bc53dd9c642c4a8f7fa17dd50e0a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_interval_name</definition>
+        <argsstring>(const Interval &amp;ival, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_interval_name</name>
+        <param>
+          <type>const <ref refid="classInterval" kindref="compound">Interval</ref> &amp;</type>
+          <declname>ival</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="172" column="12" bodyfile="intervals.cpp" bodystart="155" bodyend="158" declfile="intervals.h" declline="172" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>intervals<sp/>support<sp/>for<sp/>shaders</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__INTERVALS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__INTERVALS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="varTypes_8h" kindref="compound">varTypes.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderSave_8h" kindref="compound">shaderSave.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>Range&lt;real&gt;<sp/><ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TargetContext;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classIntervalValue" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="26" refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" kindref="member">VALUE_NEG_INFINITY</ref>;</highlight></codeline>
+<codeline lineno="27" refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" kindref="member">VALUE_INFINITY</ref>;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classIntervalValue_1a91f13140072340bccf0c4c0207d21852" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIntervalValue_1a91f13140072340bccf0c4c0207d21852" kindref="member">IntervalValue</ref>()<sp/>:<sp/>bounds(<ref refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" kindref="member">VALUE_NEG_INFINITY</ref>,<sp/><ref refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" kindref="member">VALUE_INFINITY</ref>)<sp/>{}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="classIntervalValue_1a8b70128089e41ae54bed715202235812" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue_1a8b70128089e41ae54bed715202235812" kindref="member">IntervalValue</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>init_name_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref><sp/>&amp;init_bounds)<sp/>:<sp/>bounds(init_bounds)<sp/>{<sp/>nameId<sp/>=<sp/>init_name_id;<sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classIntervalValue_1afbb1e4a73db7cf3ac116c572e4af63cd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue_1afbb1e4a73db7cf3ac116c572e4af63cd" kindref="member">valueIsEqual</ref>(real<sp/>other_value)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>other_value<sp/>&gt;=<sp/>bounds.getMin()<sp/>&amp;&amp;<sp/>other_value<sp/>&lt;<sp/>bounds.getMax();<sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" kindref="member">getNameId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>nameId;<sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classIntervalValue_1a046ff5db1dfb2593d0ea592d1a9ecf4d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref><sp/>&amp;<ref refid="classIntervalValue_1a046ff5db1dfb2593d0ea592d1a9ecf4d" kindref="member">getBounds</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>bounds;<sp/>};</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structIntervalValue_1_1Adapter" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structIntervalValue_1_1Adapter" kindref="compound">Adapter</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structIntervalValue_1_1Adapter_1acbecfd698a1ddd7c4a41cc2bf4bbf2bd" kindref="member">getName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structIntervalValue_1_1Adapter_1a79304a766a1395cb96fe792507fd1317" kindref="member">addName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><ref refid="classNameId" kindref="compound">NameId&lt;Adapter&gt;</ref><sp/>nameId;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref><sp/>bounds;<sp/></highlight><highlight class="comment">//<sp/>value&apos;s<sp/>bounds</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="classInterval" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classInterval" kindref="compound">Interval</ref></highlight></codeline>
+<codeline lineno="51"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="comment"><sp/><sp/>/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">/*<sp/>boolean<sp/>expressions<sp/>for<sp/>this<sp/>class</highlight></codeline>
+<codeline lineno="55"><highlight class="comment"></highlight><highlight class="comment"><sp/><sp/>/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classInterval_1a53c464380c323171203ac354d1e5d010" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010" kindref="member">BooleanExpr</ref></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="58" refid="classInterval_1a53c464380c323171203ac354d1e5d010aad8bdddaa11d62c8b7b24431bfc1a202" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010aad8bdddaa11d62c8b7b24431bfc1a202" kindref="member">EXPR_NOTINIT</ref>,</highlight></codeline>
+<codeline lineno="59" refid="classInterval_1a53c464380c323171203ac354d1e5d010a253bb907801ba70fe66248b5dc8252d2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010a253bb907801ba70fe66248b5dc8252d2" kindref="member">EXPR_EQ</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>==</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="classInterval_1a53c464380c323171203ac354d1e5d010a32f9d4bcd17a2e04c7f5e52db06fc571" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010a32f9d4bcd17a2e04c7f5e52db06fc571" kindref="member">EXPR_GREATER</ref>,<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="classInterval_1a53c464380c323171203ac354d1e5d010a1a7ebae6e5f4c3922b23dbaee7893305" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010a1a7ebae6e5f4c3922b23dbaee7893305" kindref="member">EXPR_GREATER_EQ</ref>,<sp/></highlight><highlight class="comment">//<sp/>&gt;=</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="classInterval_1a53c464380c323171203ac354d1e5d010a1679d981116dfcb2811aef8a4eb98f7f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010a1679d981116dfcb2811aef8a4eb98f7f" kindref="member">EXPR_SMALLER</ref>,<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>&lt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="classInterval_1a53c464380c323171203ac354d1e5d010add09b88e878a21790b0de3b85ac485e9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010add09b88e878a21790b0de3b85ac485e9" kindref="member">EXPR_SMALLER_EQ</ref>,<sp/></highlight><highlight class="comment">//<sp/>&lt;=</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="classInterval_1a53c464380c323171203ac354d1e5d010a2510fff4d417ea82c5cd124e3370c848" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010a2510fff4d417ea82c5cd124e3370c848" kindref="member">EXPR_NOT_EQ</ref>,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>!=</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="classInterval_1a06615c33bc0830d42d7de7ff811b8c67" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classInterval_1a06615c33bc0830d42d7de7ff811b8c67" kindref="member">Interval</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id,<sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref><sp/>interval_type,<sp/>eastl::string<sp/>file_name<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">)<sp/>:</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>intervalType{interval_type},<sp/>fileName{file_name}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>nameId<sp/>=<sp/>name_id;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72" refid="classInterval_1ae48b9a9e9f672f81977627b609e32429" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classInterval_1ae48b9a9e9f672f81977627b609e32429" kindref="member">Interval</ref>()<sp/>:<sp/>valueList(midmem)<sp/>{}</highlight></codeline>
+<codeline lineno="73" refid="classInterval_1a923e1717a3dedfe1ba90f81fcb26d5c5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classInterval_1a923e1717a3dedfe1ba90f81fcb26d5c5" kindref="member">~Interval</ref>()<sp/>{<sp/><ref refid="classInterval_1a5114ae6276004308118113609da195ab" kindref="member">clear</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="classInterval_1a5114ae6276004308118113609da195ab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a5114ae6276004308118113609da195ab" kindref="member">clear</ref>()<sp/>{<sp/>clear_and_shrink(valueList);<sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>different<sp/>value<sp/>index<sp/>range<sp/>for<sp/>this<sp/>interval</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="classInterval_1aaf7ee3fa0b3dff04f86021b56fef19a6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a30542012bafd43dafa933051e8c289c3" kindref="member">ShaderVariant::ValueRange</ref><sp/><ref refid="classInterval_1aaf7ee3fa0b3dff04f86021b56fef19a6" kindref="member">getIndexRange</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a30542012bafd43dafa933051e8c289c3" kindref="member">ShaderVariant::ValueRange</ref>(0,<sp/>valueList.size()<sp/>-<sp/>1);<sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>interval&apos;s<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classInterval_1a748b0a4c7b26f10ca5edfafd46cdb5a5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a748b0a4c7b26f10ca5edfafd46cdb5a5" kindref="member">getNameId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>nameId;<sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>add<sp/>interval<sp/>value<sp/>to<sp/>a<sp/>list<sp/><sp/>(return<sp/>false,<sp/>if<sp/>value<sp/>already<sp/>exists)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a6cdad1bb5b4d467af09f6b774ac427d6" kindref="member">addValue</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/>smaller_than);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>true,<sp/>if<sp/>interval<sp/>value<sp/>already<sp/>exists</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="classInterval_1adca020867e2232132d6a2bfe24c54c01" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classInterval_1adca020867e2232132d6a2bfe24c54c01" kindref="member">valueExists</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value_name_id)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a5956e30eabfc1cecec92f5d20f8df50e" kindref="member">getValueByNameId</ref>(value_name_id)<sp/>!=<sp/>NULL;<sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>*<ref refid="classInterval_1a5956e30eabfc1cecec92f5d20f8df50e" kindref="member">getValueByNameId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value_name_id);</highlight></codeline>
+<codeline lineno="90" refid="classInterval_1a65fa9045d2202af15b6f6a4830aa49ea" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>*<ref refid="classInterval_1a65fa9045d2202af15b6f6a4830aa49ea" kindref="member">getValueByNameId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value_name_id)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="91"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const_cast&lt;</highlight><highlight class="normal"><ref refid="classInterval" kindref="compound">Interval</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">this</highlight><highlight class="normal">)-&gt;<ref refid="classInterval_1a5956e30eabfc1cecec92f5d20f8df50e" kindref="member">getValueByNameId</ref>(value_name_id);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>the<sp/>number<sp/>of<sp/>values.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="classInterval_1a4b9c166bf48189838a81fdbb16e0d168" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a4b9c166bf48189838a81fdbb16e0d168" kindref="member">getValueCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>valueList.size();<sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="classInterval_1a220f0ead30e4a5cce8fcdef2e7cc3911" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>&amp;<ref refid="classInterval_1a220f0ead30e4a5cce8fcdef2e7cc3911" kindref="member">getValue</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>valueList[index];<sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>value<sp/>name<sp/>by<sp/>index.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101" refid="classInterval_1ab9da4b64321a7e5e26613e4d7e65a5a7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref><sp/><ref refid="classInterval_1ab9da4b64321a7e5e26613e4d7e65a5a7" kindref="member">getValueRange</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>valueList[index].getBounds();<sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>normalize<sp/>value<sp/>for<sp/>this<sp/>interval<sp/>-<sp/>retrun<sp/>internal<sp/>value<sp/>index</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104" refid="classInterval_1a4cd43145fa32ed203df1fb0e521c9b25" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a4cd43145fa32ed203df1fb0e521c9b25" kindref="member">normalizeValue</ref>(real<sp/>value)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="105"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>valueList.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(valueList[i].valueIsEqual(value))</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>check<sp/>boolean<sp/>expression</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a8b941226253191579cf19e6166017b49" kindref="member">checkExpression</ref>(<ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ShaderVariant::ValueType</ref><sp/>left_op_normalized,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010" kindref="member">Interval::BooleanExpr</ref><sp/>expr,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*right_op,</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/>&amp;error_msg,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>true,<sp/>if<sp/>intervals<sp/>are<sp/>identical</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118" refid="classInterval_1abc0ddd748c8e5f1f09db46d965f399b0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classInterval_1abc0ddd748c8e5f1f09db46d965f399b0" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;other)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="119"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(nameId<sp/>!=<sp/>other.nameId<sp/>||<sp/>valueList.size()<sp/>!=<sp/>other.valueList.size())</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mem_eq(valueList,<sp/>other.valueList.data());</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>true,<sp/>if<sp/>intervals<sp/>are<sp/>not<sp/>identically</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="classInterval_1a21d812383fe725bbcea4da5759c1be77" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a21d812383fe725bbcea4da5759c1be77" kindref="member">operator!=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;other)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!<ref refid="classInterval_1abc0ddd748c8e5f1f09db46d965f399b0" kindref="member">operator==</ref>(other);<sp/>}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get/set<sp/>variable<sp/>index<sp/>for<sp/>this<sp/>interval</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="classInterval_1a0a5a4dbb7d0228e7e891a0fad7e8b4ef" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a0a5a4dbb7d0228e7e891a0fad7e8b4ef" kindref="member">setVarType</ref>(<ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref><sp/>v)<sp/>{<sp/>intervalType<sp/>=<sp/>v;<sp/>}</highlight></codeline>
+<codeline lineno="131" refid="classInterval_1a3b99beb415b1139228913988b01b8f98" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref><sp/><ref refid="classInterval_1a3b99beb415b1139228913988b01b8f98" kindref="member">getVarType</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>intervalType;<sp/>}</highlight></codeline>
+<codeline lineno="132" refid="classInterval_1a063becea3dcf3b68f53e18daf43ddc1d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>&amp;<ref refid="classInterval_1a063becea3dcf3b68f53e18daf43ddc1d" kindref="member">getFileName</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>fileName;<sp/>}</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><ref refid="classNameId" kindref="compound">NameId&lt;IntervalValue::Adapter&gt;</ref><sp/>nameId;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref><sp/>intervalType;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;IntervalValue&gt;</ref><sp/>valueList;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/>bindump::string<sp/>fileName;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="classIntervalList" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIntervalList" kindref="compound">IntervalList</ref></highlight></codeline>
+<codeline lineno="142"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIntervalList_1a616c852d6b16b37ce7381465b0fcb102" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>add<sp/>new<sp/>interval<sp/>(return<sp/>false,<sp/>if<sp/>interval<sp/>exists)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIntervalList_1aa6fa1dcc75581680d25e7dcaad970cd0" kindref="member">addInterval</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;interval);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>true,<sp/>if<sp/>interval<sp/>exists</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIntervalList_1ae080729097c3ea1fb615ae97984fba16" kindref="member">intervalExists</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>number<sp/>of<sp/>intervals<sp/>in<sp/>the<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="classIntervalList_1a181a3d94256ce9316d66cf0a55a43fb7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classIntervalList_1a181a3d94256ce9316d66cf0a55a43fb7" kindref="member">getCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>intervals.size();<sp/>};</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>interval<sp/>by<sp/>index</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156" refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>*<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="157"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((index<sp/>&gt;=<sp/>0)<sp/>&amp;&amp;<sp/>(index<sp/>&lt;<sp/>intervals.size()))<sp/>?<sp/>intervals[index].get()<sp/>:<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ShaderVariant::ExtType</ref><sp/><ref refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" kindref="member">getIntervalIndex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="classIntervalList_1a3ab56d339876fef6b8ce8c228e213bbe" kindref="member">getStringInfo</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;bindump::Ptr&lt;Interval&gt;</ref>&gt;<sp/>intervals;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>*getIntervalByNameId(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="intervals_8h_1aadba5cb8f5f04d0596dae7f2b3129a46" kindref="member">get_interval_value_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>&amp;value,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="intervals_8h_1aadba5cb8f5f04d0596dae7f2b3129a46" kindref="member">get_interval_value_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;ival,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value_idx,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="intervals_8h_1aef12bc53dd9c642c4a8f7fa17dd50e0a" kindref="member">get_interval_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;ival,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">//__INTERVALS_H</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="intervals.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,179 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIntervalList" kind="class" language="C++" prot="public">
+    <compoundname>IntervalList</compoundname>
+    <includes refid="intervals_8h" local="no">intervals.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classIntervalList_1a27c0f489901fea2bc1455a529ec50dea" prot="private" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; bindump::Ptr&lt; <ref refid="classInterval" kindref="compound">Interval</ref> &gt; &gt;</type>
+        <definition>SerializableTab&lt;bindump::Ptr&lt;Interval&gt; &gt; IntervalList::intervals</definition>
+        <argsstring></argsstring>
+        <name>intervals</name>
+        <qualifiedname>IntervalList::intervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="165" column="19" bodyfile="intervals.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIntervalList_1a616c852d6b16b37ce7381465b0fcb102" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void IntervalList::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>IntervalList::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="144" column="8" bodyfile="intervals.cpp" bodystart="145" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalList_1aa6fa1dcc75581680d25e7dcaad970cd0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IntervalList::addInterval</definition>
+        <argsstring>(const Interval &amp;interval)</argsstring>
+        <name>addInterval</name>
+        <qualifiedname>IntervalList::addInterval</qualifiedname>
+        <param>
+          <type>const <ref refid="classInterval" kindref="compound">Interval</ref> &amp;</type>
+          <declname>interval</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="147" column="8" bodyfile="intervals.cpp" bodystart="94" bodyend="109"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalList_1ae080729097c3ea1fb615ae97984fba16" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IntervalList::intervalExists</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>intervalExists</name>
+        <qualifiedname>IntervalList::intervalExists</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="150" column="8" bodyfile="intervals.cpp" bodystart="112" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalList_1a181a3d94256ce9316d66cf0a55a43fb7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int IntervalList::getCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getCount</name>
+        <qualifiedname>IntervalList::getCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="153" column="14" bodyfile="intervals.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classInterval" kindref="compound">Interval</ref> *</type>
+        <definition>const Interval * IntervalList::getInterval</definition>
+        <argsstring>(const int index) const</argsstring>
+        <name>getInterval</name>
+        <qualifiedname>IntervalList::getInterval</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="156" column="25" bodyfile="intervals.h" bodystart="156" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ShaderVariant::ExtType</ref></type>
+        <definition>ShaderVariant::ExtType IntervalList::getIntervalIndex</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>getIntervalIndex</name>
+        <qualifiedname>IntervalList::getIntervalIndex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="161" column="26" bodyfile="intervals.cpp" bodystart="122" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalList_1a3ab56d339876fef6b8ce8c228e213bbe" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String IntervalList::getStringInfo</definition>
+        <argsstring>(const shc::TargetContext &amp;ctx) const</argsstring>
+        <name>getStringInfo</name>
+        <qualifiedname>IntervalList::getStringInfo</qualifiedname>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="162" column="10" bodyfile="intervals.cpp" bodystart="130" bodyend="143"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classIntervalList_1a116aca078a86125154142320ddd92d2d" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="classInterval" kindref="compound">Interval</ref> *</type>
+        <definition>const Interval * IntervalList::getIntervalByNameId</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>getIntervalByNameId</name>
+        <qualifiedname>IntervalList::getIntervalByNameId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="167" column="18" bodyfile="intervals.cpp" bodystart="114" bodyend="120"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="intervals.h" line="141" column="1" bodyfile="intervals.h" bodystart="142" bodyend="168"/>
+    <listofallmembers>
+      <member refid="classIntervalList_1aa6fa1dcc75581680d25e7dcaad970cd0" prot="public" virt="non-virtual"><scope>IntervalList</scope><name>addInterval</name></member>
+      <member refid="classIntervalList_1a616c852d6b16b37ce7381465b0fcb102" prot="public" virt="non-virtual"><scope>IntervalList</scope><name>clear</name></member>
+      <member refid="classIntervalList_1a181a3d94256ce9316d66cf0a55a43fb7" prot="public" virt="non-virtual"><scope>IntervalList</scope><name>getCount</name></member>
+      <member refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" prot="public" virt="non-virtual"><scope>IntervalList</scope><name>getInterval</name></member>
+      <member refid="classIntervalList_1a116aca078a86125154142320ddd92d2d" prot="private" virt="non-virtual"><scope>IntervalList</scope><name>getIntervalByNameId</name></member>
+      <member refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" prot="public" virt="non-virtual"><scope>IntervalList</scope><name>getIntervalIndex</name></member>
+      <member refid="classIntervalList_1a3ab56d339876fef6b8ce8c228e213bbe" prot="public" virt="non-virtual"><scope>IntervalList</scope><name>getStringInfo</name></member>
+      <member refid="classIntervalList_1ae080729097c3ea1fb615ae97984fba16" prot="public" virt="non-virtual"><scope>IntervalList</scope><name>intervalExists</name></member>
+      <member refid="classIntervalList_1a27c0f489901fea2bc1455a529ec50dea" prot="private" virt="non-virtual"><scope>IntervalList</scope><name>intervals</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structLexer_1_1SymbolLocation" kind="struct" language="C++" prot="private">
+    <compoundname>Lexer::SymbolLocation</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structLexer_1_1SymbolLocation_1ac2268ba9dc8744b8ba64fb67f1753e41" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Lexer::SymbolLocation::file</definition>
+        <argsstring></argsstring>
+        <name>file</name>
+        <qualifiedname>Lexer::SymbolLocation::file</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="50" column="9" bodyfile="shlexterm.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLexer_1_1SymbolLocation_1a2d16b554a4fba80bdbabccf0e20183c1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Lexer::SymbolLocation::line</definition>
+        <argsstring></argsstring>
+        <name>line</name>
+        <qualifiedname>Lexer::SymbolLocation::line</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="51" column="9" bodyfile="shlexterm.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLexer_1_1SymbolLocation_1a1d408d397800e4b4e099c44d719a0408" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Lexer::SymbolLocation::column</definition>
+        <argsstring></argsstring>
+        <name>column</name>
+        <qualifiedname>Lexer::SymbolLocation::column</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="52" column="9" bodyfile="shlexterm.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shlexterm.h" line="48" column="3" bodyfile="shlexterm.h" bodystart="49" bodyend="53"/>
+    <listofallmembers>
+      <member refid="structLexer_1_1SymbolLocation_1a1d408d397800e4b4e099c44d719a0408" prot="public" virt="non-virtual"><scope>Lexer::SymbolLocation</scope><name>column</name></member>
+      <member refid="structLexer_1_1SymbolLocation_1ac2268ba9dc8744b8ba64fb67f1753e41" prot="public" virt="non-virtual"><scope>Lexer::SymbolLocation</scope><name>file</name></member>
+      <member refid="structLexer_1_1SymbolLocation_1a2d16b554a4fba80bdbabccf0e20183c1" prot="public" virt="non-virtual"><scope>Lexer::SymbolLocation</scope><name>line</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

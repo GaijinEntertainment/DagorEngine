@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMatrixBufferHeapManager_1_1Heap" kind="struct" language="C++" prot="public">
+    <compoundname>MatrixBufferHeapManager::Heap</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMatrixBufferHeapManager_1_1Heap_1a3ce0e7b2eb35d01b838a859c719f9335" prot="public" static="no" mutable="no">
+        <type>UniqueBuf</type>
+        <definition>UniqueBuf MatrixBufferHeapManager::Heap::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>MatrixBufferHeapManager::Heap::buffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="23" column="15" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMatrixBufferHeapManager_1_1Heap_1aafb56fd22fba609748150aa13444da80" prot="public" static="no" mutable="no">
+        <type>Tab&lt; TMatrix &gt;</type>
+        <definition>Tab&lt;TMatrix&gt; MatrixBufferHeapManager::Heap::bindposeArr</definition>
+        <argsstring></argsstring>
+        <name>bindposeArr</name>
+        <qualifiedname>MatrixBufferHeapManager::Heap::bindposeArr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="24" column="9" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_linearMatrixBufferAllocator.h" line="21" column="3" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="22" bodyend="25"/>
+    <listofallmembers>
+      <member refid="structMatrixBufferHeapManager_1_1Heap_1aafb56fd22fba609748150aa13444da80" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager::Heap</scope><name>bindposeArr</name></member>
+      <member refid="structMatrixBufferHeapManager_1_1Heap_1a3ce0e7b2eb35d01b838a859c719f9335" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager::Heap</scope><name>buffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

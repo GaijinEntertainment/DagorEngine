@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classINamespace" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>INamespace</compoundname>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classINamespace_1a92c06693dac4f463627c3892e69ae6b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool INamespace::isUniqName</definition>
+        <argsstring>(const char *name)=0</argsstring>
+        <name>isUniqName</name>
+        <qualifiedname>INamespace::isUniqName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether object name is unique for current plugin. Called by Editor. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- tested name </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if name is unique for current plugin, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="330" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Interface class for name generation routine. Used during objects name generation in Editor. All plugins that create named objects support this interface. The Editor may poll all plugins by means of <ref refid="classINamespace" kindref="compound">INamespace</ref> to know if an object name be unique. </para>
+    </detaileddescription>
+    <location file="ec_interface_ex.h" line="322" column="1" bodyfile="ec_interface_ex.h" bodystart="323" bodyend="331"/>
+    <listofallmembers>
+      <member refid="classINamespace_1a92c06693dac4f463627c3892e69ae6b8" prot="public" virt="pure-virtual"><scope>INamespace</scope><name>isUniqName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

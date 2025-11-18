@@ -1,0 +1,291 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Ambient Occlusion Baker</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor Check Degenerated Faces Tool" href="check_degenerated_faces_tool.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor MaxScript Toolbox</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor Ambient Occlusion Baker</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-ambient-occlusion-baker">Accessing Ambient Occlusion Baker</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-ambient-occlusion-baker">Using Ambient Occlusion Baker</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor Simple CMP Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor Transfer Vertex Position to Vertex Color Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor MaxScript Toolbox</a></li>
+      <li class="breadcrumb-item active">Dagor Ambient Occlusion Baker</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/ambient_occlusion_baker.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-ambient-occlusion-baker">
+<h1>Dagor Ambient Occlusion Baker<a class="headerlink" href="#dagor-ambient-occlusion-baker" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This script requires <strong>3ds Max 2018 or later</strong>.</p>
+</div>
+</section>
+<section id="accessing-ambient-occlusion-baker">
+<h2>Accessing Ambient Occlusion Baker<a class="headerlink" href="#accessing-ambient-occlusion-baker" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Navigate to <strong>Gaijin Tools &gt; Ambient Occlusion Baker</strong>. This will open the
+main window of the <strong>Dagor AO Baker</strong>.</p></li>
+<li><p>To verify the version <span class="cnum">3</span> of the script, go to <strong>Gaijin Tools</strong>
+<span class="cnum">1</span> <strong>&gt; About</strong> <span class="cnum">2</span>. The <strong>About</strong> window will display the
+current version. It’s important to check this regularly to ensure your script
+is up to date.</p>
+<a class="reference internal image-reference" href="../../../../_images/ao_baker_01.png"><img alt="Using the Ambient Occlusion Baker" class="align-center" src="../../../../_images/ao_baker_01.png" style="width: 50em;" />
+</a>
+<div class="warning admonition">
+<p class="admonition-title">Plugin Version Requirement</p>
+<p>Requires plugin version <strong>1.4 or higher</strong>.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="using-ambient-occlusion-baker">
+<h2>Using Ambient Occlusion Baker<a class="headerlink" href="#using-ambient-occlusion-baker" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Open the tool panel by navigating to <strong>Gaijin Tools &gt; Ambient Occlusion
+Baker</strong>.</p>
+<a class="reference internal image-reference" href="../../../../_images/ao_baker_02.png"><img alt="Using the Ambient Occlusion Baker" class="align-center" src="../../../../_images/ao_baker_02.png" style="width: 50em;" />
+</a>
+</li>
+<li><p>Click the <strong>Bake Selected Object</strong> <span class="cnum">1</span> button to generate Ambient
+Occlusion (AO) for the selected object in the Viewport. Note that AO can only
+be baked for one object at a time.</p></li>
+<li><p>The tool provides several options:</p>
+<ul class="simple">
+<li><p><strong>AO Tint Color</strong> <span class="cnum">2</span>: chooses the color for the AO backlight.</p></li>
+<li><p><strong>AO Ambient Color</strong> <span class="cnum">3</span>: selects the color for the minimum lighting
+of the AO.</p></li>
+<li><p><strong>Display AO on Viewport</strong> <span class="cnum">4</span>: toggles the display of AO in the
+viewport (enabled by default).</p></li>
+<li><p><strong>Transfer AO to Map Channel</strong> <span class="cnum">5</span>: chooses which channel the AO
+results will be placed in (specific to Dagor Engine). By default, the AO is
+placed in channel 8.</p></li>
+<li><p><strong>Use Beautifier (experemental)</strong> <span class="cnum">8</span>: allows to change the nature of
+AO generation. It is a combination of post-generation and overlay lighting.
+It gives a more transparent and lighter result.</p></li>
+<li><p><strong>Enable Gradient</strong> <span class="cnum">10</span>: adds a gradient to the lighting from the
+base of the object to its top. Works well with bushes or small objects. The
+bottom will be shaded which looks nice as a result.</p></li>
+<li><p><strong>Gradient Blend Percentages</strong> <span class="cnum">9</span>: percentage value of gradient
+blending with the base lighting.</p></li>
+<li><p><strong>Gradient Blend Type</strong> <span class="cnum">11</span>: blending type. Determines how the AO
+and gradient base lighting will be blended.</p></li>
+<li><p><strong>Open Local Documentation</strong> <span class="cnum">6</span>: provides access to this article.</p></li>
+<li><p><strong>Contact with Developer</strong> <span class="cnum">7</span>: provides access the developer’s web
+page.</p></li>
+</ul>
+</li>
+<li><p>To test the AO Baker, load the following test scene:
+<a class="reference download internal" download="" href="../../../../_downloads/7b4ac70195d37587c61c91b9feda74ef/tree_AO_test_2021.zip"><code class="xref download docutils literal notranslate"><span class="pre">tree_AO_test_2021.max</span></code></a>.</p></li>
+<li><p>Open the scene and select the object <code class="docutils literal notranslate"><span class="pre">tree_vitellaria_wide_c.lod01</span></code>.</p></li>
+<li><p>For the test, configure the colors as shown below:</p>
+<a class="reference internal image-reference" href="../../../../_images/ao_baker_03.png"><img alt="Using the Ambient Occlusion Baker" class="align-center" src="../../../../_images/ao_baker_03.png" style="width: 15em;" />
+</a>
+</li>
+<li><p>Leave all other settings at their default values. Click <strong>Bake Selected
+Object</strong> and wait for the progress bar indicating scene lighting to complete.
+The result should appear as follows:</p>
+<a class="reference internal image-reference" href="../../../../_images/ao_baker_04.png"><img alt="Using the Ambient Occlusion Baker" class="align-center" src="../../../../_images/ao_baker_04.png" style="width: 50em;" />
+</a>
+</li>
+<li><p>To view the results, right-click on the Viewport and select the appropriate
+display option:</p>
+<a class="reference internal image-reference" href="../../../../_images/ao_baker_05.png"><img alt="Using the Ambient Occlusion Baker" class="align-center" src="../../../../_images/ao_baker_05.png" style="width: 20em;" />
+</a>
+</li>
+<li><p>Then, change the selection from <strong>Vertex Color</strong> to <strong>Map Channel Color</strong> as
+shown below:</p>
+<a class="reference internal image-reference" href="../../../../_images/ao_baker_06.png"><img alt="Using the Ambient Occlusion Baker" class="align-center" src="../../../../_images/ao_baker_06.png" style="width: 15em;" />
+</a>
+</li>
+<li><p>The AO should now be displayed correctly:</p></li>
+</ol>
+<a class="reference internal image-reference" href="../../../../_images/ao_baker_07.png"><img alt="Using the Ambient Occlusion Baker" class="align-center" src="../../../../_images/ao_baker_07.png" style="width: 50em;" />
+</a>
+<div class="important admonition">
+<p class="admonition-title">Supported Model Types</p>
+<p>The script works correctly with <strong>Edit Poly</strong>, <strong>Edit Mesh</strong>, and <strong>GrowFX</strong>
+model types. Other model types are not supported, and using modifiers on the
+source model may cause errors when generating LODs (level of detail) or
+collisions.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="check_degenerated_faces_tool.html" class="btn btn-neutral float-right" title="Dagor Check Degenerated Faces Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ResourceBindingTable_1_1TextureWrite" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ResourceBindingTable::TextureWrite</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a38bfa0ec45a7082b705af4550869e541" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* raytrace::ResourceBindingTable::TextureWrite::texture</definition>
+        <argsstring></argsstring>
+        <name>texture</name>
+        <qualifiedname>raytrace::ResourceBindingTable::TextureWrite::texture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Texture to write to. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="865" column="17" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="865" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a07f532615384ff035810540d0c6360e3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::TextureWrite::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>raytrace::ResourceBindingTable::TextureWrite::slot</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>u register slot </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="867" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="867" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a159c5d0ba81080a7717a2b356305e644" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::TextureWrite::mipIndex</definition>
+        <argsstring></argsstring>
+        <name>mipIndex</name>
+        <qualifiedname>raytrace::ResourceBindingTable::TextureWrite::mipIndex</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Mip map level to write to. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="869" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="869" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1ace608c7ebcaa31b660aa9d12eb43b70f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::TextureWrite::arrayIndex</definition>
+        <argsstring></argsstring>
+        <name>arrayIndex</name>
+        <qualifiedname>raytrace::ResourceBindingTable::TextureWrite::arrayIndex</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Array layer to write to. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="871" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="871" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1abdc25d204deb30790c4b2aaa853b9b32" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::ResourceBindingTable::TextureWrite::viewAsUI32</definition>
+        <argsstring></argsstring>
+        <name>viewAsUI32</name>
+        <qualifiedname>raytrace::ResourceBindingTable::TextureWrite::viewAsUI32</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Access data as an uint32. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="873" column="10" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="873" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Defines a texture write on a u register slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>raytrace::ResourceBindingTable::TextureWrite</label>
+        <link refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>texture</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="862" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="863" bodyend="874"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1ace608c7ebcaa31b660aa9d12eb43b70f" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::TextureWrite</scope><name>arrayIndex</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a159c5d0ba81080a7717a2b356305e644" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::TextureWrite</scope><name>mipIndex</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a07f532615384ff035810540d0c6360e3" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::TextureWrite</scope><name>slot</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a38bfa0ec45a7082b705af4550869e541" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::TextureWrite</scope><name>texture</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1abdc25d204deb30790c4b2aaa853b9b32" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::TextureWrite</scope><name>viewAsUI32</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

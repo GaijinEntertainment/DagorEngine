@@ -1,0 +1,923 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global Shader Variables</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Shader Material System" href="shader_material_system.html" />
+    <link rel="prev" title="Render State Overrides" href="Overrides.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../shaders.html">Shaders</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Overrides.html">Render State Overrides</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Global Shader Variables</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv410ManagedTex"><code class="docutils literal notranslate"><span class="pre">ManagedTex</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv410ManagedBuf"><code class="docutils literal notranslate"><span class="pre">ManagedBuf</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv413resptr_detail"><code class="docutils literal notranslate"><span class="pre">resptr_detail</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv411VariableMap"><code class="docutils literal notranslate"><span class="pre">VariableMap</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap15getVariableNameEib"><code class="docutils literal notranslate"><span class="pre">VariableMap::getVariableName()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap13getVariableIdEPKcb"><code class="docutils literal notranslate"><span class="pre">VariableMap::getVariableId()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap20getVariableArraySizeEPKc"><code class="docutils literal notranslate"><span class="pre">VariableMap::getVariableArraySize()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap17getVariablesCountEb"><code class="docutils literal notranslate"><span class="pre">VariableMap::getVariablesCount()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap23getGlobalVariablesCountEv"><code class="docutils literal notranslate"><span class="pre">VariableMap::getGlobalVariablesCount()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap21getGlobalVariableNameEi"><code class="docutils literal notranslate"><span class="pre">VariableMap::getGlobalVariableName()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap17isVariablePresentEi"><code class="docutils literal notranslate"><span class="pre">VariableMap::isVariablePresent()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap17isVariablePresentERK18ShaderVariableInfo"><code class="docutils literal notranslate"><span class="pre">VariableMap::isVariablePresent()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap21isGlobVariablePresentEi"><code class="docutils literal notranslate"><span class="pre">VariableMap::isGlobVariablePresent()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap21isGlobVariablePresentERK18ShaderVariableInfo"><code class="docutils literal notranslate"><span class="pre">VariableMap::isGlobVariablePresent()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap31getPresentedGlobalVariableNamesEv"><code class="docutils literal notranslate"><span class="pre">VariableMap::getPresentedGlobalVariableNames()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap10generationEv"><code class="docutils literal notranslate"><span class="pre">VariableMap::generation()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11VariableMap6BAD_IDE"><code class="docutils literal notranslate"><span class="pre">VariableMap::BAD_ID</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv412ShaderGlobal"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::Interval</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11SubintervalE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::Subinterval</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal7VariantE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::Variant</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11set_variantE8Interval11Subinterval"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_variant()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11set_variantE7Variant"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_variant()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11get_variantE8Interval"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_variant()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal26is_glob_interval_presentedE8Interval"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::is_glob_interval_presented()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal21get_subinterval_namesE8Interval"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_subinterval_names()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12get_var_typeEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_var_type()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal14is_var_assumedEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::is_var_assumed()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal26get_interval_assumed_valueEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_interval_assumed_value()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal26get_interval_current_valueEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_interval_current_value()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal23has_associated_intervalEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::has_associated_interval()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal19get_interval_rangesEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_interval_ranges()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal19get_interval_rangesE8Interval"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_interval_ranges()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal7set_intEii"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_int()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal8set_realEif"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_real()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Point2RK6Point2"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Point3f"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Point4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Color4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Color3f"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4Eiffff"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal16set_color4_arrayEiPK6Color4i"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4_array()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal16set_color4_arrayEiPK6Point4i"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4_array()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4Ei8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT2RK8XMFLOAT2"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT3f"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_color4Ei9FXMVECTOR"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12set_float4x4EiRK8TMatrix4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_float4x4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12set_float4x4EiRK10XMFLOAT4X4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_float4x4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12set_float4x4Ei9FXMMATRIX"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_float4x4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal8set_int4EiRK7IPoint4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_int4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal14set_int4_arrayEiPK7IPoint4i"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_int4_array()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11set_textureEi9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_texture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11set_textureEiRK10ManagedTex"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_texture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11set_samplerEiN3d3d13SamplerHandleE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_sampler()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_bufferEi8D3DRESID"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_bufferEiRK10ManagedBuf"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11set_textureERK18ShaderVariableInfoRK10ManagedTex"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_texture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10set_bufferERK18ShaderVariableInfoRK10ManagedBuf"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal8set_tlasEiP32RaytraceTopAccelerationStructure"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_tlas()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal14reset_texturesEb"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::reset_textures()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal16reset_stale_varsEv"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::reset_stale_vars()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal15reset_from_varsE9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::reset_from_vars()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal39reset_from_vars_and_release_managed_texER9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::reset_from_vars_and_release_managed_tex()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0EN12ShaderGlobal48reset_from_vars_and_release_managed_tex_verifiedEvR9TEXTUREIDR1T"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::reset_from_vars_and_release_managed_tex_verified()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12get_int_fastEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_int_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal13get_real_fastEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_real_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal15get_color4_fastEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_color4_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12get_tex_fastEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_tex_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12get_buf_fastEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_buf_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal11get_samplerEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_sampler()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal15get_int_by_nameEPKcRi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_int_by_name()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal16get_real_by_nameEPKcRf"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_real_by_name()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal18get_color4_by_nameEPKcR6Color4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_color4_by_name()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal17set_vars_from_blkERK9DataBlockbb"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_vars_from_blk()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal17set_vars_from_blkERK11RoDataBlock"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_vars_from_blk()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal19reset_vars_from_blkEv"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::reset_vars_from_blk()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal15get_glob_var_idEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_glob_var_id()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12set_int_fastEii"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_int_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal13set_real_fastEif"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_real_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal15set_color4_fastEiRK6Color4"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal15set_color4_fastEiffff"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_color4_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal16set_texture_fastEi9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::set_texture_fast()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal7get_intEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_int()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal8get_realEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_real()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal10get_color4Ei"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_color4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal12get_float4x4Ei"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_float4x4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal8get_int4Ei"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_int4()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal7get_texEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_tex()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal7get_bufEi"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_buf()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal14is_var_assumedERK18ShaderVariableInfo"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::is_var_assumed()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal26get_interval_assumed_valueERK18ShaderVariableInfo"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_interval_assumed_value()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal26get_interval_current_valueERK18ShaderVariableInfo"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_interval_current_value()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal23has_associated_intervalERK18ShaderVariableInfo"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::has_associated_interval()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal16get_slot_by_nameEPKc"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::get_slot_by_name()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_8uint32_tEN12ShaderGlobal8intervalE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::interval</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_8uint32_tEN12ShaderGlobal11subintervalE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::subinterval</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_8uint32_t_8uint32_tEN12ShaderGlobal7variantE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::variant</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12ShaderGlobal6detailE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::detail</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4I_bEN12ShaderGlobal6detail12StringToHashE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::detail::StringToHash</span></code></a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N12ShaderGlobal6detail12StringToHash12StringToHashE8uint32_t"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::detail::StringToHash::StringToHash()</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N12ShaderGlobal6detail12StringToHash12StringToHashEPKc6size_t"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::detail::StringToHash::StringToHash()</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4NK12ShaderGlobal6detail12StringToHasheqERK12StringToHash"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::detail::StringToHash::operator==()</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4NK12ShaderGlobal6detail12StringToHashneERK12StringToHash"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::detail::StringToHash::operator!=()</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N12ShaderGlobal6detail12StringToHash4hashE"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal::detail::StringToHash::hash</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="shader_material_system.html">Shader Material System</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../shaders.html">Shaders</a></li>
+      <li class="breadcrumb-item active">Global Shader Variables</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/shaders/global_shader_variables.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="global-shader-variables">
+<h1>Global Shader Variables<a class="headerlink" href="#global-shader-variables" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv410ManagedTex">
+<span id="_CPPv310ManagedTex"></span><span id="_CPPv210ManagedTex"></span><span class="target" id="dag__shaderVar_8h_1a092e5c46ad65df9b65d09d0f1a8fa928"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ManagedTex</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv413resptr_detail" title="resptr_detail"><span class="n"><span class="pre">resptr_detail</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ManagedRes</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../d3dAPI/textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv410ManagedTex" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv410ManagedBuf">
+<span id="_CPPv310ManagedBuf"></span><span id="_CPPv210ManagedBuf"></span><span class="target" id="dag__shaderVar_8h_1a7300c8cf858eb62d713410d184df5a02"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ManagedBuf</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv413resptr_detail" title="resptr_detail"><span class="n"><span class="pre">resptr_detail</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ManagedRes</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../d3dAPI/Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv410ManagedBuf" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv413resptr_detail">
+<span id="_CPPv313resptr_detail"></span><span id="_CPPv213resptr_detail"></span><span id="resptr_detail"></span><span class="target" id="namespaceresptr__detail"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resptr_detail</span></span></span><a class="headerlink" href="#_CPPv413resptr_detail" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv411VariableMap">
+<span id="_CPPv311VariableMap"></span><span id="_CPPv211VariableMap"></span><span id="VariableMap"></span><span class="target" id="namespaceVariableMap"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VariableMap</span></span></span><a class="headerlink" href="#_CPPv411VariableMap" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap15getVariableNameEib">
+<span id="_CPPv3N11VariableMap15getVariableNameEib"></span><span id="_CPPv2N11VariableMap15getVariableNameEib"></span><span id="VariableMap::getVariableName__i.b"></span><span class="target" id="dag__shaderVar_8h_1ac0cf0a9dc533ebaa472b2252467ce408"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getVariableName</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">var_id</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sec_dump_for_exp</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap15getVariableNameEib" title="Link to this definition"></a><br /></dt>
+<dd><p>Get variable name by ID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NULL when var_id is out of range. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap13getVariableIdEPKcb">
+<span id="_CPPv3N11VariableMap13getVariableIdEPKcb"></span><span id="_CPPv2N11VariableMap13getVariableIdEPKcb"></span><span id="VariableMap::getVariableId__cCP.b"></span><span class="target" id="dag__shaderVar_8h_1ac0f80078af9dfc329609b2c5a608ad34"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getVariableId</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">variable_name</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sec_dump_for_exp</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap13getVariableIdEPKcb" title="Link to this definition"></a><br /></dt>
+<dd><p>Get varID by for nam. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BAD_ID if fail (but generally will always return valid ID, so isVariablePresent() should also be used). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap20getVariableArraySizeEPKc">
+<span id="_CPPv3N11VariableMap20getVariableArraySizeEPKc"></span><span id="_CPPv2N11VariableMap20getVariableArraySizeEPKc"></span><span id="VariableMap::getVariableArraySize__cCP"></span><span class="target" id="dag__shaderVar_8h_1a70e7effbacaf74e814e130b47db150b3"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getVariableArraySize</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap20getVariableArraySizeEPKc" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The size of an array for a variable name. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap17getVariablesCountEb">
+<span id="_CPPv3N11VariableMap17getVariablesCountEb"></span><span id="_CPPv2N11VariableMap17getVariablesCountEb"></span><span id="VariableMap::getVariablesCount__b"></span><span class="target" id="dag__shaderVar_8h_1acc94686a31c9fc0c1293c103c1dafcc7"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getVariablesCount</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sec_dump_for_exp</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap17getVariablesCountEb" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Total number of variable identifiers (var_id will be valid from 0 to count-1). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap23getGlobalVariablesCountEv">
+<span id="_CPPv3N11VariableMap23getGlobalVariablesCountEv"></span><span id="_CPPv2N11VariableMap23getGlobalVariablesCountEv"></span><span id="VariableMap::getGlobalVariablesCount"></span><span class="target" id="dag__shaderVar_8h_1a8ee8a5e44d6a34d7f562f294d1364ca7"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getGlobalVariablesCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap23getGlobalVariablesCountEv" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Total number of global variables. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap21getGlobalVariableNameEi">
+<span id="_CPPv3N11VariableMap21getGlobalVariableNameEi"></span><span id="_CPPv2N11VariableMap21getGlobalVariableNameEi"></span><span id="VariableMap::getGlobalVariableName__i"></span><span class="target" id="dag__shaderVar_8h_1a000aca26d221a991899f50303bc1d3ee"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getGlobalVariableName</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">globvar_idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap21getGlobalVariableNameEi" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Name of global variable specified by ordinal index. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap17isVariablePresentEi">
+<span id="_CPPv3N11VariableMap17isVariablePresentEi"></span><span id="_CPPv2N11VariableMap17isVariablePresentEi"></span><span id="VariableMap::isVariablePresent__i"></span><span class="target" id="dag__shaderVar_8h_1a7549ed935160a8e2fc00302b285604eb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isVariablePresent</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap17isVariablePresentEi" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true when variable for specified var_id is present in shaders dump. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap17isVariablePresentERK18ShaderVariableInfo">
+<span id="_CPPv3N11VariableMap17isVariablePresentERK18ShaderVariableInfo"></span><span id="_CPPv2N11VariableMap17isVariablePresentERK18ShaderVariableInfo"></span><span id="VariableMap::isVariablePresent__ShaderVariableInfoCR"></span><span class="target" id="dag__shaderVar_8h_1acea7564a1f93862d4afafadda12b9fa9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isVariablePresent</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap17isVariablePresentERK18ShaderVariableInfo" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true when variable for specified var_id is present in shaders dump. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap21isGlobVariablePresentEi">
+<span id="_CPPv3N11VariableMap21isGlobVariablePresentEi"></span><span id="_CPPv2N11VariableMap21isGlobVariablePresentEi"></span><span id="VariableMap::isGlobVariablePresent__i"></span><span class="target" id="dag__shaderVar_8h_1a06bc68616bdb11d3366fbf64a57c2922"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isGlobVariablePresent</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap21isGlobVariablePresentEi" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true when global variable for specified var_id is present in shaders dump. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap21isGlobVariablePresentERK18ShaderVariableInfo">
+<span id="_CPPv3N11VariableMap21isGlobVariablePresentERK18ShaderVariableInfo"></span><span id="_CPPv2N11VariableMap21isGlobVariablePresentERK18ShaderVariableInfo"></span><span id="VariableMap::isGlobVariablePresent__ShaderVariableInfoCR"></span><span class="target" id="dag__shaderVar_8h_1aee0fdc2a5a8115cf0fe00078ae6abaae"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isGlobVariablePresent</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap21isGlobVariablePresentERK18ShaderVariableInfo" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true when global variable for specified var_id is present in shaders dump. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap31getPresentedGlobalVariableNamesEv">
+<span id="_CPPv3N11VariableMap31getPresentedGlobalVariableNamesEv"></span><span id="_CPPv2N11VariableMap31getPresentedGlobalVariableNamesEv"></span><span id="VariableMap::getPresentedGlobalVariableNames"></span><span class="target" id="dag__shaderVar_8h_1ac70b95119bdb8ffbcee1058ba861b89d"></span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">String</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPresentedGlobalVariableNames</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap31getPresentedGlobalVariableNamesEv" title="Link to this definition"></a><br /></dt>
+<dd><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Consider that some shadervars are present in dump but never used by ShaderGlobal:: or VariableMap:: public API. To iterate over all used variables you can use raw IDs from 0 to getGlobalVariablesCount() </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of all global shader variables names which are presented in current shaders dump. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap10generationEv">
+<span id="_CPPv3N11VariableMap10generationEv"></span><span id="_CPPv2N11VariableMap10generationEv"></span><span id="VariableMap::generation"></span><span class="target" id="dag__shaderVar_8h_1a4d590180507fc8adc60aee3ea7ed53b1"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generation</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N11VariableMap10generationEv" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>generation (i.e. is shader dump was reloaded). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-variables">Variables</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N11VariableMap6BAD_IDE">
+<span id="_CPPv3N11VariableMap6BAD_IDE"></span><span id="_CPPv2N11VariableMap6BAD_IDE"></span><span id="VariableMap::BAD_ID__i"></span><span class="target" id="dag__shaderVar_8h_1afccec9a11cb454c201f4ebaa36f71003"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BAD_ID</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N11VariableMap6BAD_IDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv412ShaderGlobal">
+<span id="_CPPv312ShaderGlobal"></span><span id="_CPPv212ShaderGlobal"></span><span id="ShaderGlobal"></span><span class="target" id="namespaceShaderGlobal"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ShaderGlobal</span></span></span><a class="headerlink" href="#_CPPv412ShaderGlobal" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal8IntervalE">
+<span id="_CPPv3N12ShaderGlobal8IntervalE"></span><span id="_CPPv2N12ShaderGlobal8IntervalE"></span><span class="target" id="dag__shaderVar_8h_1a39866c50b12dea1c5ad61c163c2873f2"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Interval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal6detailE" title="ShaderGlobal::detail"><span class="n"><span class="pre">detail</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I_bEN12ShaderGlobal6detail12StringToHashE" title="ShaderGlobal::detail::StringToHash"><span class="n"><span class="pre">StringToHash</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12ShaderGlobal8IntervalE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11SubintervalE">
+<span id="_CPPv3N12ShaderGlobal11SubintervalE"></span><span id="_CPPv2N12ShaderGlobal11SubintervalE"></span><span class="target" id="dag__shaderVar_8h_1a0bb6dce4ea6088cb632c38a3c17736b5"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Subinterval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal6detailE" title="ShaderGlobal::detail"><span class="n"><span class="pre">detail</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I_bEN12ShaderGlobal6detail12StringToHashE" title="ShaderGlobal::detail::StringToHash"><span class="n"><span class="pre">StringToHash</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11SubintervalE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal7VariantE">
+<span id="_CPPv3N12ShaderGlobal7VariantE"></span><span id="_CPPv2N12ShaderGlobal7VariantE"></span><span class="target" id="dag__shaderVar_8h_1ace746c29b924c4e0ef4152ae0ae366cc"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Variant</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/Heap.html#_CPPv45eastl" title="eastl"><span class="n"><span class="pre">eastl</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal11SubintervalE" title="ShaderGlobal::Subinterval"><span class="n"><span class="pre">Subinterval</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12ShaderGlobal7VariantE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11set_variantE8Interval11Subinterval">
+<span id="_CPPv3N12ShaderGlobal11set_variantE8Interval11Subinterval"></span><span id="_CPPv2N12ShaderGlobal11set_variantE8Interval11Subinterval"></span><span id="ShaderGlobal::set_variant__Interval.Subinterval"></span><span class="target" id="dag__shaderVar_8h_1ac8adf742f795d250a9317bf22bb5ed46"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_variant</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">interv</span></span>, <a class="reference internal" href="#_CPPv4N12ShaderGlobal11SubintervalE" title="ShaderGlobal::Subinterval"><span class="n"><span class="pre">Subinterval</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">subinterv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11set_variantE8Interval11Subinterval" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11set_variantE7Variant">
+<span id="_CPPv3N12ShaderGlobal11set_variantE7Variant"></span><span id="_CPPv2N12ShaderGlobal11set_variantE7Variant"></span><span id="ShaderGlobal::set_variant__Variant"></span><span class="target" id="dag__shaderVar_8h_1a0e05605b419592de073f28a388f23589"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_variant</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N12ShaderGlobal7VariantE" title="ShaderGlobal::Variant"><span class="n"><span class="pre">Variant</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">var</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11set_variantE7Variant" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11get_variantE8Interval">
+<span id="_CPPv3N12ShaderGlobal11get_variantE8Interval"></span><span id="_CPPv2N12ShaderGlobal11get_variantE8Interval"></span><span id="ShaderGlobal::get_variant__Interval"></span><span class="target" id="dag__shaderVar_8h_1a57dbcf5a674be888158815c1f4e57cea"></span><a class="reference internal" href="#_CPPv4N12ShaderGlobal11SubintervalE" title="ShaderGlobal::Subinterval"><span class="n"><span class="pre">Subinterval</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_variant</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">interv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11get_variantE8Interval" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal26is_glob_interval_presentedE8Interval">
+<span id="_CPPv3N12ShaderGlobal26is_glob_interval_presentedE8Interval"></span><span id="_CPPv2N12ShaderGlobal26is_glob_interval_presentedE8Interval"></span><span id="ShaderGlobal::is_glob_interval_presented__Interval"></span><span class="target" id="dag__shaderVar_8h_1a1783306b7d35b27a70eb346bebe4a474"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_glob_interval_presented</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">interv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal26is_glob_interval_presentedE8Interval" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal21get_subinterval_namesE8Interval">
+<span id="_CPPv3N12ShaderGlobal21get_subinterval_namesE8Interval"></span><span id="_CPPv2N12ShaderGlobal21get_subinterval_namesE8Interval"></span><span id="ShaderGlobal::get_subinterval_names__Interval"></span><span class="target" id="dag__shaderVar_8h_1a0237f7f286ad4d2aaa54ce8cc94bab57"></span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">String</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_subinterval_names</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">interv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal21get_subinterval_namesE8Interval" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12get_var_typeEi">
+<span id="_CPPv3N12ShaderGlobal12get_var_typeEi"></span><span id="_CPPv2N12ShaderGlobal12get_var_typeEi"></span><span id="ShaderGlobal::get_var_type__i"></span><span class="target" id="dag__shaderVar_8h_1ad3fc13b6354a3a07779e4d947187af50"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_var_type</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12get_var_typeEi" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SHVT_INT, SHVT_REAL, SHVT_COLOR4 or SHVT_TEXTURE. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal14is_var_assumedEi">
+<span id="_CPPv3N12ShaderGlobal14is_var_assumedEi"></span><span id="_CPPv2N12ShaderGlobal14is_var_assumedEi"></span><span id="ShaderGlobal::is_var_assumed__i"></span><span class="target" id="dag__shaderVar_8h_1a9b0ce2920d5b65fe8df7074b51c7d018"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_var_assumed</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal14is_var_assumedEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal26get_interval_assumed_valueEi">
+<span id="_CPPv3N12ShaderGlobal26get_interval_assumed_valueEi"></span><span id="_CPPv2N12ShaderGlobal26get_interval_assumed_valueEi"></span><span id="ShaderGlobal::get_interval_assumed_value__i"></span><span class="target" id="dag__shaderVar_8h_1ada99df390ca07f24386191f7945c090b"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interval_assumed_value</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal26get_interval_assumed_valueEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal26get_interval_current_valueEi">
+<span id="_CPPv3N12ShaderGlobal26get_interval_current_valueEi"></span><span id="_CPPv2N12ShaderGlobal26get_interval_current_valueEi"></span><span id="ShaderGlobal::get_interval_current_value__i"></span><span class="target" id="dag__shaderVar_8h_1aa1fc2a95381bd8844b4058f1bc1273e8"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interval_current_value</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal26get_interval_current_valueEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal23has_associated_intervalEi">
+<span id="_CPPv3N12ShaderGlobal23has_associated_intervalEi"></span><span id="_CPPv2N12ShaderGlobal23has_associated_intervalEi"></span><span id="ShaderGlobal::has_associated_interval__i"></span><span class="target" id="dag__shaderVar_8h_1ad5769a05bd215bcac49070886e11b5cb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_associated_interval</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal23has_associated_intervalEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal19get_interval_rangesEi">
+<span id="_CPPv3N12ShaderGlobal19get_interval_rangesEi"></span><span id="_CPPv2N12ShaderGlobal19get_interval_rangesEi"></span><span id="ShaderGlobal::get_interval_ranges__i"></span><span class="target" id="dag__shaderVar_8h_1a036cef45e3a2ed47fd711088423faf32"></span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interval_ranges</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal19get_interval_rangesEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal19get_interval_rangesE8Interval">
+<span id="_CPPv3N12ShaderGlobal19get_interval_rangesE8Interval"></span><span id="_CPPv2N12ShaderGlobal19get_interval_rangesE8Interval"></span><span id="ShaderGlobal::get_interval_ranges__Interval"></span><span class="target" id="dag__shaderVar_8h_1a5c041f51ccde440e2f7a9d324a63a5a0"></span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interval_ranges</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">interv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal19get_interval_rangesE8Interval" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal7set_intEii">
+<span id="_CPPv3N12ShaderGlobal7set_intEii"></span><span id="_CPPv2N12ShaderGlobal7set_intEii"></span><span id="ShaderGlobal::set_int__i.i"></span><span class="target" id="dag__shaderVar_8h_1a185497089fee326604e88314b445bc74"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_int</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal7set_intEii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal8set_realEif">
+<span id="_CPPv3N12ShaderGlobal8set_realEif"></span><span id="_CPPv2N12ShaderGlobal8set_realEif"></span><span id="ShaderGlobal::set_real__i.float"></span><span class="target" id="dag__shaderVar_8h_1aa66676d8eede662cc2ba64557b53c74a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_real</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal8set_realEif" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK6Point2RK6Point2">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK6Point2RK6Point2"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK6Point2RK6Point2"></span><span id="ShaderGlobal::set_color4__i.Point2CR.Point2CR"></span><span class="target" id="dag__shaderVar_8h_1a6ed9504bb4d927b60a01e4db35e1f4e4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point2</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rg</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point2</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ba</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">Point2</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Point2RK6Point2" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK6Point3f">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK6Point3f"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK6Point3f"></span><span id="ShaderGlobal::set_color4__i.Point3CR.float"></span><span class="target" id="dag__shaderVar_8h_1a7baf2e36bb72c1b90898099cf3027d97"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rgb</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">a</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Point3f" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK6Point4">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK6Point4"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK6Point4"></span><span id="ShaderGlobal::set_color4__i.Point4CR"></span><span class="target" id="dag__shaderVar_8h_1a8dbd0d0a5b1fe97f0a5be138500c08bb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Point4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK6Color4">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK6Color4"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK6Color4"></span><span id="ShaderGlobal::set_color4__i.Color4CR"></span><span class="target" id="dag__shaderVar_8h_1a229406e029a2d5c456815284f1a36089"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Color4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Color4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK6Color3f">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK6Color3f"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK6Color3f"></span><span id="ShaderGlobal::set_color4__i.Color3CR.float"></span><span class="target" id="dag__shaderVar_8h_1a55ca29bb9c014fb5614d5c796446cb7d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Color3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rgb</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">a</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK6Color3f" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4Eiffff">
+<span id="_CPPv3N12ShaderGlobal10set_color4Eiffff"></span><span id="_CPPv2N12ShaderGlobal10set_color4Eiffff"></span><span id="ShaderGlobal::set_color4__i.float.float.float.float"></span><span class="target" id="dag__shaderVar_8h_1af4b52fa23a1380e59275c8d0b25a54ec"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">g</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.f</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">a</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4Eiffff" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal16set_color4_arrayEiPK6Color4i">
+<span id="_CPPv3N12ShaderGlobal16set_color4_arrayEiPK6Color4i"></span><span id="_CPPv2N12ShaderGlobal16set_color4_arrayEiPK6Color4i"></span><span id="ShaderGlobal::set_color4_array__i.Color4CP.i"></span><span class="target" id="dag__shaderVar_8h_1a1cf1febe766c4cf0ead81f5cb2fb24fb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4_array</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Color4</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal16set_color4_arrayEiPK6Color4i" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal16set_color4_arrayEiPK6Point4i">
+<span id="_CPPv3N12ShaderGlobal16set_color4_arrayEiPK6Point4i"></span><span id="_CPPv2N12ShaderGlobal16set_color4_arrayEiPK6Point4i"></span><span id="ShaderGlobal::set_color4_array__i.Point4CP.i"></span><span class="target" id="dag__shaderVar_8h_1a606b31cd2b0e0c303d47a0049900fdd2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4_array</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point4</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal16set_color4_arrayEiPK6Point4i" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4Ei8E3DCOLOR">
+<span id="_CPPv3N12ShaderGlobal10set_color4Ei8E3DCOLOR"></span><span id="_CPPv2N12ShaderGlobal10set_color4Ei8E3DCOLOR"></span><span id="ShaderGlobal::set_color4__i.E3DCOLOR"></span><span class="target" id="dag__shaderVar_8h_1a7c7a2a9c68eb5478b89372983f7bf466"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">c</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4Ei8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT2RK8XMFLOAT2">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK8XMFLOAT2RK8XMFLOAT2"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK8XMFLOAT2RK8XMFLOAT2"></span><span id="ShaderGlobal::set_color4__i.XMFLOAT2CR.XMFLOAT2CR"></span><span class="target" id="dag__shaderVar_8h_1aef564f7db61d02746d664d51279de2a8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">XMFLOAT2</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rg</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">XMFLOAT2</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ba</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT2RK8XMFLOAT2" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT3f">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK8XMFLOAT3f"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK8XMFLOAT3f"></span><span id="ShaderGlobal::set_color4__i.XMFLOAT3CR.float"></span><span class="target" id="dag__shaderVar_8h_1a1f603e1b838fd681e3787c6d90daf573"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">XMFLOAT3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rgb</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">a</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT3f" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT4">
+<span id="_CPPv3N12ShaderGlobal10set_color4EiRK8XMFLOAT4"></span><span id="_CPPv2N12ShaderGlobal10set_color4EiRK8XMFLOAT4"></span><span id="ShaderGlobal::set_color4__i.XMFLOAT4CR"></span><span class="target" id="dag__shaderVar_8h_1a184b14f8e4967579e155c3f780e32985"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">XMFLOAT4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4EiRK8XMFLOAT4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_color4Ei9FXMVECTOR">
+<span id="_CPPv3N12ShaderGlobal10set_color4Ei9FXMVECTOR"></span><span id="_CPPv2N12ShaderGlobal10set_color4Ei9FXMVECTOR"></span><span id="ShaderGlobal::set_color4__i.FXMVECTOR"></span><span class="target" id="dag__shaderVar_8h_1a0e80dde0da4d8da0007313df96581db2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="n"><span class="pre">FXMVECTOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_color4Ei9FXMVECTOR" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12set_float4x4EiRK8TMatrix4">
+<span id="_CPPv3N12ShaderGlobal12set_float4x4EiRK8TMatrix4"></span><span id="_CPPv2N12ShaderGlobal12set_float4x4EiRK8TMatrix4"></span><span id="ShaderGlobal::set_float4x4__i.TMatrix4CR"></span><span class="target" id="dag__shaderVar_8h_1a2a2a0d5e72dbbe7d93423a8f0470a6e1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_float4x4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TMatrix4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mat</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12set_float4x4EiRK8TMatrix4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12set_float4x4EiRK10XMFLOAT4X4">
+<span id="_CPPv3N12ShaderGlobal12set_float4x4EiRK10XMFLOAT4X4"></span><span id="_CPPv2N12ShaderGlobal12set_float4x4EiRK10XMFLOAT4X4"></span><span id="ShaderGlobal::set_float4x4__i.XMFLOAT4X4CR"></span><span class="target" id="dag__shaderVar_8h_1a918ea434acb21ed43b12dad73dc298ef"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_float4x4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">XMFLOAT4X4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mat</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12set_float4x4EiRK10XMFLOAT4X4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12set_float4x4Ei9FXMMATRIX">
+<span id="_CPPv3N12ShaderGlobal12set_float4x4Ei9FXMMATRIX"></span><span id="_CPPv2N12ShaderGlobal12set_float4x4Ei9FXMMATRIX"></span><span id="ShaderGlobal::set_float4x4__i.FXMMATRIX"></span><span class="target" id="dag__shaderVar_8h_1a4ee7e1701fac458c24bb36f731d80e6f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_float4x4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="n"><span class="pre">FXMMATRIX</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mat</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12set_float4x4Ei9FXMMATRIX" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal8set_int4EiRK7IPoint4">
+<span id="_CPPv3N12ShaderGlobal8set_int4EiRK7IPoint4"></span><span id="_CPPv2N12ShaderGlobal8set_int4EiRK7IPoint4"></span><span id="ShaderGlobal::set_int4__i.IPoint4CR"></span><span class="target" id="dag__shaderVar_8h_1aa988907bda9acc5e31aa8fc654ab9d63"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_int4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">IPoint4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal8set_int4EiRK7IPoint4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal14set_int4_arrayEiPK7IPoint4i">
+<span id="_CPPv3N12ShaderGlobal14set_int4_arrayEiPK7IPoint4i"></span><span id="_CPPv2N12ShaderGlobal14set_int4_arrayEiPK7IPoint4i"></span><span id="ShaderGlobal::set_int4_array__i.IPoint4CP.i"></span><span class="target" id="dag__shaderVar_8h_1ad4783888b4e93d55b87a2eb68db05ee9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_int4_array</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">IPoint4</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal14set_int4_arrayEiPK7IPoint4i" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11set_textureEi9TEXTUREID">
+<span id="_CPPv3N12ShaderGlobal11set_textureEi9TEXTUREID"></span><span id="_CPPv2N12ShaderGlobal11set_textureEi9TEXTUREID"></span><span id="ShaderGlobal::set_texture__i.TEXTUREID"></span><span class="target" id="dag__shaderVar_8h_1a0a74da1db1e0e65e2716866dd623825e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_texture</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">texture_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11set_textureEi9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11set_textureEiRK10ManagedTex">
+<span id="_CPPv3N12ShaderGlobal11set_textureEiRK10ManagedTex"></span><span id="_CPPv2N12ShaderGlobal11set_textureEiRK10ManagedTex"></span><span id="ShaderGlobal::set_texture__i.ManagedTexCR"></span><span class="target" id="dag__shaderVar_8h_1ad55c55d601a1638460cb1da51133d407"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_texture</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv410ManagedTex" title="ManagedTex"><span class="n"><span class="pre">ManagedTex</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">texture</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11set_textureEiRK10ManagedTex" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11set_samplerEiN3d3d13SamplerHandleE">
+<span id="_CPPv3N12ShaderGlobal11set_samplerEiN3d3d13SamplerHandleE"></span><span id="_CPPv2N12ShaderGlobal11set_samplerEiN3d3d13SamplerHandleE"></span><span id="ShaderGlobal::set_sampler__i.d3d::SamplerHandle"></span><span class="target" id="dag__shaderVar_8h_1ad18c16c9b8a061b4c0112a0859f9da94"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_sampler</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <a class="reference internal" href="../d3dAPI/Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SamplerHandle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11set_samplerEiN3d3d13SamplerHandleE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_bufferEi8D3DRESID">
+<span id="_CPPv3N12ShaderGlobal10set_bufferEi8D3DRESID"></span><span id="_CPPv2N12ShaderGlobal10set_bufferEi8D3DRESID"></span><span id="ShaderGlobal::set_buffer__i.D3DRESID"></span><span class="target" id="dag__shaderVar_8h_1ab3a9a5ddaf3c74504802699689086f04"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_buffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <a class="reference internal" href="../resMgr/resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_bufferEi8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_bufferEiRK10ManagedBuf">
+<span id="_CPPv3N12ShaderGlobal10set_bufferEiRK10ManagedBuf"></span><span id="_CPPv2N12ShaderGlobal10set_bufferEiRK10ManagedBuf"></span><span id="ShaderGlobal::set_buffer__i.ManagedBufCR"></span><span class="target" id="dag__shaderVar_8h_1a01ec078b6c7bd2aa742a1a6519cf0631"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_buffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv410ManagedBuf" title="ManagedBuf"><span class="n"><span class="pre">ManagedBuf</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">buffer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_bufferEiRK10ManagedBuf" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11set_textureERK18ShaderVariableInfoRK10ManagedTex">
+<span id="_CPPv3N12ShaderGlobal11set_textureERK18ShaderVariableInfoRK10ManagedTex"></span><span id="_CPPv2N12ShaderGlobal11set_textureERK18ShaderVariableInfoRK10ManagedTex"></span><span id="ShaderGlobal::set_texture__ShaderVariableInfoCR.ManagedTexCR"></span><span class="target" id="dag__shaderVar_8h_1a48beae64300400037033f23c27fb2cc0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_texture</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv410ManagedTex" title="ManagedTex"><span class="n"><span class="pre">ManagedTex</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">texture</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11set_textureERK18ShaderVariableInfoRK10ManagedTex" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10set_bufferERK18ShaderVariableInfoRK10ManagedBuf">
+<span id="_CPPv3N12ShaderGlobal10set_bufferERK18ShaderVariableInfoRK10ManagedBuf"></span><span id="_CPPv2N12ShaderGlobal10set_bufferERK18ShaderVariableInfoRK10ManagedBuf"></span><span id="ShaderGlobal::set_buffer__ShaderVariableInfoCR.ManagedBufCR"></span><span class="target" id="dag__shaderVar_8h_1a392ae1d8486525c29cb26c458210b0f5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_buffer</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv410ManagedBuf" title="ManagedBuf"><span class="n"><span class="pre">ManagedBuf</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">buffer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10set_bufferERK18ShaderVariableInfoRK10ManagedBuf" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal8set_tlasEiP32RaytraceTopAccelerationStructure">
+<span id="_CPPv3N12ShaderGlobal8set_tlasEiP32RaytraceTopAccelerationStructure"></span><span id="_CPPv2N12ShaderGlobal8set_tlasEiP32RaytraceTopAccelerationStructure"></span><span id="ShaderGlobal::set_tlas__i.RaytraceTopAccelerationStructureP"></span><span class="target" id="dag__shaderVar_8h_1a2ec41aa6e9383cdd88960fd6a1ae8489"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_tlas</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="n"><span class="pre">RaytraceTopAccelerationStructure</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal8set_tlasEiP32RaytraceTopAccelerationStructure" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal14reset_texturesEb">
+<span id="_CPPv3N12ShaderGlobal14reset_texturesEb"></span><span id="_CPPv2N12ShaderGlobal14reset_texturesEb"></span><span id="ShaderGlobal::reset_textures__b"></span><span class="target" id="dag__shaderVar_8h_1a2196def4c981fc18118830fdcd2b47c8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_textures</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">removed_tex_only</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal14reset_texturesEb" title="Link to this definition"></a><br /></dt>
+<dd><p>Set all texture global vars to BAD_TEXTUREID and issue release_managed_tex() on them. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal16reset_stale_varsEv">
+<span id="_CPPv3N12ShaderGlobal16reset_stale_varsEv"></span><span id="_CPPv2N12ShaderGlobal16reset_stale_varsEv"></span><span id="ShaderGlobal::reset_stale_vars"></span><span class="target" id="dag__shaderVar_8h_1a4ad655f89863376dcd1580b98adfca1f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_stale_vars</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal16reset_stale_varsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Reset all var types, that are not valid after reset. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal15reset_from_varsE9TEXTUREID">
+<span id="_CPPv3N12ShaderGlobal15reset_from_varsE9TEXTUREID"></span><span id="_CPPv2N12ShaderGlobal15reset_from_varsE9TEXTUREID"></span><span id="ShaderGlobal::reset_from_vars__TEXTUREID"></span><span class="target" id="dag__shaderVar_8h_1ad99d956170c6b33594f55c8dca4a82a6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_from_vars</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal15reset_from_varsE9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Reset references to texture from all global shader vars. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal39reset_from_vars_and_release_managed_texER9TEXTUREID">
+<span id="_CPPv3N12ShaderGlobal39reset_from_vars_and_release_managed_texER9TEXTUREID"></span><span id="_CPPv2N12ShaderGlobal39reset_from_vars_and_release_managed_texER9TEXTUREID"></span><span id="ShaderGlobal::reset_from_vars_and_release_managed_tex__TEXTUREIDR"></span><span class="target" id="dag__shaderVar_8h_1ae71a5ade344f98496afdf6644276a962"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_from_vars_and_release_managed_tex</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal39reset_from_vars_and_release_managed_texER9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>Reset references to texture from all global shader vars and than calls release_managed_tex(id) and clears id. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN12ShaderGlobal48reset_from_vars_and_release_managed_tex_verifiedEvR9TEXTUREIDR1T">
+<span id="_CPPv3I0EN12ShaderGlobal48reset_from_vars_and_release_managed_tex_verifiedER9TEXTUREIDR1T"></span><span id="_CPPv2I0EN12ShaderGlobal48reset_from_vars_and_release_managed_tex_verifiedER9TEXTUREIDR1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dag__shaderVar_8h_1ac10d3b2bfea90a915043cb291bd155b3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_from_vars_and_release_managed_tex_verified</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">id</span></span>, <a class="reference internal" href="#_CPPv4I0EN12ShaderGlobal48reset_from_vars_and_release_managed_tex_verifiedEvR9TEXTUREIDR1T" title="ShaderGlobal::reset_from_vars_and_release_managed_tex_verified::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">check_tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN12ShaderGlobal48reset_from_vars_and_release_managed_tex_verifiedEvR9TEXTUREIDR1T" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12get_int_fastEi">
+<span id="_CPPv3N12ShaderGlobal12get_int_fastEi"></span><span id="_CPPv2N12ShaderGlobal12get_int_fastEi"></span><span id="ShaderGlobal::get_int_fast__i"></span><span class="target" id="dag__shaderVar_8h_1ad05f0b0babe8eb81ab8c3e18fc623fc9"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_int_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12get_int_fastEi" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Global shader variables using glob_var_id; tolerant to glob_var_id=-1 (return 0); with DAGOR_DBGLEVEL&gt;0 uses G_ASSERT to check that glob_var_id is in range and to check type. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal13get_real_fastEi">
+<span id="_CPPv3N12ShaderGlobal13get_real_fastEi"></span><span id="_CPPv2N12ShaderGlobal13get_real_fastEi"></span><span id="ShaderGlobal::get_real_fast__i"></span><span class="target" id="dag__shaderVar_8h_1aff2593c38d686fe0e7b302efed36fa7f"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_real_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal13get_real_fastEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal15get_color4_fastEi">
+<span id="_CPPv3N12ShaderGlobal15get_color4_fastEi"></span><span id="_CPPv2N12ShaderGlobal15get_color4_fastEi"></span><span id="ShaderGlobal::get_color4_fast__i"></span><span class="target" id="dag__shaderVar_8h_1a84de73665d16c2014092f2eff2f8e98a"></span><span class="n"><span class="pre">Color4</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_color4_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal15get_color4_fastEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12get_tex_fastEi">
+<span id="_CPPv3N12ShaderGlobal12get_tex_fastEi"></span><span id="_CPPv2N12ShaderGlobal12get_tex_fastEi"></span><span id="ShaderGlobal::get_tex_fast__i"></span><span class="target" id="dag__shaderVar_8h_1aa51ea3e218891e2ba454eef6644b6633"></span><a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_tex_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12get_tex_fastEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12get_buf_fastEi">
+<span id="_CPPv3N12ShaderGlobal12get_buf_fastEi"></span><span id="_CPPv2N12ShaderGlobal12get_buf_fastEi"></span><span id="ShaderGlobal::get_buf_fast__i"></span><span class="target" id="dag__shaderVar_8h_1a33c0ad61c18e412068ae77c19f5ce8ff"></span><a class="reference internal" href="../resMgr/resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_buf_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12get_buf_fastEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal11get_samplerEi">
+<span id="_CPPv3N12ShaderGlobal11get_samplerEi"></span><span id="_CPPv2N12ShaderGlobal11get_samplerEi"></span><span id="ShaderGlobal::get_sampler__i"></span><span class="target" id="dag__shaderVar_8h_1aefb46188c4670319a3d9b06f98d90daf"></span><a class="reference internal" href="../d3dAPI/Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SamplerHandle</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_sampler</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal11get_samplerEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal15get_int_by_nameEPKcRi">
+<span id="_CPPv3N12ShaderGlobal15get_int_by_nameEPKcRi"></span><span id="_CPPv2N12ShaderGlobal15get_int_by_nameEPKcRi"></span><span id="ShaderGlobal::get_int_by_name__cCP.iR"></span><span class="target" id="dag__shaderVar_8h_1a631d074eac215c836f90f4fbda6b2470"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_int_by_name</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal15get_int_by_nameEPKcRi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal16get_real_by_nameEPKcRf">
+<span id="_CPPv3N12ShaderGlobal16get_real_by_nameEPKcRf"></span><span id="_CPPv2N12ShaderGlobal16get_real_by_nameEPKcRf"></span><span id="ShaderGlobal::get_real_by_name__cCP.floatR"></span><span class="target" id="dag__shaderVar_8h_1a99ac1f0751e4e4b67db340a65804c74d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_real_by_name</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal16get_real_by_nameEPKcRf" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal18get_color4_by_nameEPKcR6Color4">
+<span id="_CPPv3N12ShaderGlobal18get_color4_by_nameEPKcR6Color4"></span><span id="_CPPv2N12ShaderGlobal18get_color4_by_nameEPKcR6Color4"></span><span id="ShaderGlobal::get_color4_by_name__cCP.Color4R"></span><span class="target" id="dag__shaderVar_8h_1ab815dd9b2fee6b5ebcdbc9d64bffc5e4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_color4_by_name</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">Color4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal18get_color4_by_nameEPKcR6Color4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal17set_vars_from_blkERK9DataBlockbb">
+<span id="_CPPv3N12ShaderGlobal17set_vars_from_blkERK9DataBlockbb"></span><span id="_CPPv2N12ShaderGlobal17set_vars_from_blkERK9DataBlockbb"></span><span id="ShaderGlobal::set_vars_from_blk__DataBlockCR.b.b"></span><span class="target" id="dag__shaderVar_8h_1a10020a6c4d15dce22bbcbf22d05260a5"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_vars_from_blk</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">blk</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">loadTexures</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">allowAddTextures</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal17set_vars_from_blkERK9DataBlockbb" title="Link to this definition"></a><br /></dt>
+<dd><p>Read list of global var values from DataBlock and sets them to shadr global variables. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal17set_vars_from_blkERK11RoDataBlock">
+<span id="_CPPv3N12ShaderGlobal17set_vars_from_blkERK11RoDataBlock"></span><span id="_CPPv2N12ShaderGlobal17set_vars_from_blkERK11RoDataBlock"></span><span id="ShaderGlobal::set_vars_from_blk__RoDataBlockCR"></span><span class="target" id="dag__shaderVar_8h_1a5ff754859c9dedbeef5f4e228fed706d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_vars_from_blk</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">RoDataBlock</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">blk</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal17set_vars_from_blkERK11RoDataBlock" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal19reset_vars_from_blkEv">
+<span id="_CPPv3N12ShaderGlobal19reset_vars_from_blkEv"></span><span id="_CPPv2N12ShaderGlobal19reset_vars_from_blkEv"></span><span id="ShaderGlobal::reset_vars_from_blk"></span><span class="target" id="dag__shaderVar_8h_1ab1e34112a9fb56e0fb4804dde2ca6a14"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_vars_from_blk</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal19reset_vars_from_blkEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Reset variables set by the set_vars_from_blk to their initial value (before setting any block, except textures). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal15get_glob_var_idEi">
+<span id="_CPPv3N12ShaderGlobal15get_glob_var_idEi"></span><span id="_CPPv2N12ShaderGlobal15get_glob_var_idEi"></span><span id="ShaderGlobal::get_glob_var_id__i"></span><span class="target" id="dag__shaderVar_8h_1a229c5d34bffb61695892463e84fa5d7e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_glob_var_id</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal15get_glob_var_idEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12set_int_fastEii">
+<span id="_CPPv3N12ShaderGlobal12set_int_fastEii"></span><span id="_CPPv2N12ShaderGlobal12set_int_fastEii"></span><span id="ShaderGlobal::set_int_fast__i.i"></span><span class="target" id="dag__shaderVar_8h_1ae503f114f999947907c19303c5f224e3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_int_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12set_int_fastEii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal13set_real_fastEif">
+<span id="_CPPv3N12ShaderGlobal13set_real_fastEif"></span><span id="_CPPv2N12ShaderGlobal13set_real_fastEif"></span><span id="ShaderGlobal::set_real_fast__i.float"></span><span class="target" id="dag__shaderVar_8h_1aa9cca03675fa771f954df785ff3bd678"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_real_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal13set_real_fastEif" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal15set_color4_fastEiRK6Color4">
+<span id="_CPPv3N12ShaderGlobal15set_color4_fastEiRK6Color4"></span><span id="_CPPv2N12ShaderGlobal15set_color4_fastEiRK6Color4"></span><span id="ShaderGlobal::set_color4_fast__i.Color4CR"></span><span class="target" id="dag__shaderVar_8h_1ae67debc2b5c61f00908fc2370263ea69"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Color4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal15set_color4_fastEiRK6Color4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal15set_color4_fastEiffff">
+<span id="_CPPv3N12ShaderGlobal15set_color4_fastEiffff"></span><span id="_CPPv2N12ShaderGlobal15set_color4_fastEiffff"></span><span id="ShaderGlobal::set_color4_fast__i.float.float.float.float"></span><span class="target" id="dag__shaderVar_8h_1a6a4b53f3aeadb2075e5bf833fe0b8114"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">g</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">a</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal15set_color4_fastEiffff" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal16set_texture_fastEi9TEXTUREID">
+<span id="_CPPv3N12ShaderGlobal16set_texture_fastEi9TEXTUREID"></span><span id="_CPPv2N12ShaderGlobal16set_texture_fastEi9TEXTUREID"></span><span id="ShaderGlobal::set_texture_fast__i.TEXTUREID"></span><span class="target" id="dag__shaderVar_8h_1a94f0830f33bffc0d4ec50ede76e14b5a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_texture_fast</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span>, <a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tex_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal16set_texture_fastEi9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal7get_intEi">
+<span id="_CPPv3N12ShaderGlobal7get_intEi"></span><span id="_CPPv2N12ShaderGlobal7get_intEi"></span><span id="ShaderGlobal::get_int__i"></span><span class="target" id="dag__shaderVar_8h_1af34aa17a0a34b2fb0044cccfb53b1a09"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_int</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal7get_intEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal8get_realEi">
+<span id="_CPPv3N12ShaderGlobal8get_realEi"></span><span id="_CPPv2N12ShaderGlobal8get_realEi"></span><span id="ShaderGlobal::get_real__i"></span><span class="target" id="dag__shaderVar_8h_1acaa78d943915a812f2e88b4e25361ac9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_real</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal8get_realEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal10get_color4Ei">
+<span id="_CPPv3N12ShaderGlobal10get_color4Ei"></span><span id="_CPPv2N12ShaderGlobal10get_color4Ei"></span><span id="ShaderGlobal::get_color4__i"></span><span class="target" id="dag__shaderVar_8h_1a3f24245856473fa1d21d26a10b602cef"></span><span class="n"><span class="pre">Color4</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_color4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal10get_color4Ei" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal12get_float4x4Ei">
+<span id="_CPPv3N12ShaderGlobal12get_float4x4Ei"></span><span id="_CPPv2N12ShaderGlobal12get_float4x4Ei"></span><span id="ShaderGlobal::get_float4x4__i"></span><span class="target" id="dag__shaderVar_8h_1ae01b69c7d1cb318623e31543d56cf97b"></span><span class="n"><span class="pre">TMatrix4</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_float4x4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal12get_float4x4Ei" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal8get_int4Ei">
+<span id="_CPPv3N12ShaderGlobal8get_int4Ei"></span><span id="_CPPv2N12ShaderGlobal8get_int4Ei"></span><span id="ShaderGlobal::get_int4__i"></span><span class="target" id="dag__shaderVar_8h_1a88ba665ae2befc29d2f6262fd102a44a"></span><span class="n"><span class="pre">IPoint4</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_int4</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal8get_int4Ei" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal7get_texEi">
+<span id="_CPPv3N12ShaderGlobal7get_texEi"></span><span id="_CPPv2N12ShaderGlobal7get_texEi"></span><span id="ShaderGlobal::get_tex__i"></span><span class="target" id="dag__shaderVar_8h_1a2972adb85d903af6e4224f68388d4aba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_tex</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal7get_texEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal7get_bufEi">
+<span id="_CPPv3N12ShaderGlobal7get_bufEi"></span><span id="_CPPv2N12ShaderGlobal7get_bufEi"></span><span id="ShaderGlobal::get_buf__i"></span><span class="target" id="dag__shaderVar_8h_1a6cc4c6f7a29707034d0d800dc24eb416"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="../resMgr/resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_buf</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">glob_var_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal7get_bufEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal14is_var_assumedERK18ShaderVariableInfo">
+<span id="_CPPv3N12ShaderGlobal14is_var_assumedERK18ShaderVariableInfo"></span><span id="_CPPv2N12ShaderGlobal14is_var_assumedERK18ShaderVariableInfo"></span><span id="ShaderGlobal::is_var_assumed__ShaderVariableInfoCR"></span><span class="target" id="dag__shaderVar_8h_1a877da06ac17d250bc96ef0fc7f258f2c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_var_assumed</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal14is_var_assumedERK18ShaderVariableInfo" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal26get_interval_assumed_valueERK18ShaderVariableInfo">
+<span id="_CPPv3N12ShaderGlobal26get_interval_assumed_valueERK18ShaderVariableInfo"></span><span id="_CPPv2N12ShaderGlobal26get_interval_assumed_valueERK18ShaderVariableInfo"></span><span id="ShaderGlobal::get_interval_assumed_value__ShaderVariableInfoCR"></span><span class="target" id="dag__shaderVar_8h_1ad479ab900c33d218c72aa17f88d09e6a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interval_assumed_value</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal26get_interval_assumed_valueERK18ShaderVariableInfo" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal26get_interval_current_valueERK18ShaderVariableInfo">
+<span id="_CPPv3N12ShaderGlobal26get_interval_current_valueERK18ShaderVariableInfo"></span><span id="_CPPv2N12ShaderGlobal26get_interval_current_valueERK18ShaderVariableInfo"></span><span id="ShaderGlobal::get_interval_current_value__ShaderVariableInfoCR"></span><span class="target" id="dag__shaderVar_8h_1a6f81fc2342b188c9d52025d3fb0e647a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interval_current_value</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal26get_interval_current_valueERK18ShaderVariableInfo" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal23has_associated_intervalERK18ShaderVariableInfo">
+<span id="_CPPv3N12ShaderGlobal23has_associated_intervalERK18ShaderVariableInfo"></span><span id="_CPPv2N12ShaderGlobal23has_associated_intervalERK18ShaderVariableInfo"></span><span id="ShaderGlobal::has_associated_interval__ShaderVariableInfoCR"></span><span class="target" id="dag__shaderVar_8h_1ad88fa8bc40315c5aa329424409544973"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_associated_interval</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ShaderVariableInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal23has_associated_intervalERK18ShaderVariableInfo" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal16get_slot_by_nameEPKc">
+<span id="_CPPv3N12ShaderGlobal16get_slot_by_nameEPKc"></span><span id="_CPPv2N12ShaderGlobal16get_slot_by_nameEPKc"></span><span id="ShaderGlobal::get_slot_by_name__cCP"></span><span class="target" id="dag__shaderVar_8h_1a3ce4466b20de7298216f02fca0df2ec4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_slot_by_name</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal16get_slot_by_nameEPKc" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-variables">Variables</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4I_8uint32_tEN12ShaderGlobal8intervalE">
+<span id="_CPPv3I_8uint32_tEN12ShaderGlobal8intervalE"></span><span id="_CPPv2I_8uint32_tEN12ShaderGlobal8intervalE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">h</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dag__shaderVar_8h_1ab051551a729c329b69a7a53ea6a9edba"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal8IntervalE" title="ShaderGlobal::Interval"><span class="n"><span class="pre">Interval</span></span></a><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4I_8uint32_tEN12ShaderGlobal8intervalE" title="ShaderGlobal::interval::h"><span class="n"><span class="pre">h</span></span></a><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4I_8uint32_tEN12ShaderGlobal8intervalE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4I_8uint32_tEN12ShaderGlobal11subintervalE">
+<span id="_CPPv3I_8uint32_tEN12ShaderGlobal11subintervalE"></span><span id="_CPPv2I_8uint32_tEN12ShaderGlobal11subintervalE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">h</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dag__shaderVar_8h_1a4ccab4616ef60eaef13d0e5803f10a33"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal11SubintervalE" title="ShaderGlobal::Subinterval"><span class="n"><span class="pre">Subinterval</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">subinterval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal11SubintervalE" title="ShaderGlobal::Subinterval"><span class="n"><span class="pre">Subinterval</span></span></a><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4I_8uint32_tEN12ShaderGlobal11subintervalE" title="ShaderGlobal::subinterval::h"><span class="n"><span class="pre">h</span></span></a><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4I_8uint32_tEN12ShaderGlobal11subintervalE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4I_8uint32_t_8uint32_tEN12ShaderGlobal7variantE">
+<span id="_CPPv3I_8uint32_t_8uint32_tEN12ShaderGlobal7variantE"></span><span id="_CPPv2I_8uint32_t_8uint32_tEN12ShaderGlobal7variantE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interv_h</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">subinterv_h</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dag__shaderVar_8h_1acfc2ffb6757fbdbacb8bcabe56c97629"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal7VariantE" title="ShaderGlobal::Variant"><span class="n"><span class="pre">Variant</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">variant</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N12ShaderGlobal7VariantE" title="ShaderGlobal::Variant"><span class="n"><span class="pre">Variant</span></span></a><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4I_8uint32_tEN12ShaderGlobal8intervalE" title="ShaderGlobal::interval"><span class="n"><span class="pre">interval</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_8uint32_t_8uint32_tEN12ShaderGlobal7variantE" title="ShaderGlobal::variant::interv_h"><span class="n"><span class="pre">interv_h</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_8uint32_tEN12ShaderGlobal11subintervalE" title="ShaderGlobal::subinterval"><span class="n"><span class="pre">subinterval</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_8uint32_t_8uint32_tEN12ShaderGlobal7variantE" title="ShaderGlobal::variant::subinterv_h"><span class="n"><span class="pre">subinterv_h</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4I_8uint32_t_8uint32_tEN12ShaderGlobal7variantE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal6detailE">
+<span id="_CPPv3N12ShaderGlobal6detailE"></span><span id="_CPPv2N12ShaderGlobal6detailE"></span><span id="ShaderGlobal::detail"></span><span class="target" id="namespaceShaderGlobal_1_1detail"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">detail</span></span></span><a class="headerlink" href="#_CPPv4N12ShaderGlobal6detailE" title="Link to this definition"></a><br /></dt>
+<dd><dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4I_bEN12ShaderGlobal6detail12StringToHashE">
+<span id="_CPPv3I_bEN12ShaderGlobal6detail12StringToHashE"></span><span id="_CPPv2I_bEN12ShaderGlobal6detail12StringToHashE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_interval</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structShaderGlobal_1_1detail_1_1StringToHash"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StringToHash</span></span></span><a class="headerlink" href="#_CPPv4I_bEN12ShaderGlobal6detail12StringToHashE" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal6detail12StringToHash12StringToHashE8uint32_t">
+<span id="_CPPv3N12ShaderGlobal6detail12StringToHash12StringToHashE8uint32_t"></span><span id="_CPPv2N12ShaderGlobal6detail12StringToHash12StringToHashE8uint32_t"></span><span id="ShaderGlobal::detail::StringToHash::StringToHash__uint32_tCE"></span><span class="target" id="structShaderGlobal_1_1detail_1_1StringToHash_1a5c3de7812c6db776e414608aa892919f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StringToHash</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal6detail12StringToHash12StringToHashE8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal6detail12StringToHash12StringToHashEPKc6size_t">
+<span id="_CPPv3N12ShaderGlobal6detail12StringToHash12StringToHashEPKc6size_t"></span><span id="_CPPv2N12ShaderGlobal6detail12StringToHash12StringToHashEPKc6size_t"></span><span id="ShaderGlobal::detail::StringToHash::StringToHash__cCP.s"></span><span class="target" id="structShaderGlobal_1_1detail_1_1StringToHash_1ad4917d5197198b6b6887f7c5772bda79"></span><span class="sig-name descname"><span class="n"><span class="pre">StringToHash</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12ShaderGlobal6detail12StringToHash12StringToHashEPKc6size_t" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12ShaderGlobal6detail12StringToHasheqERK12StringToHash">
+<span id="_CPPv3NK12ShaderGlobal6detail12StringToHasheqERK12StringToHash"></span><span id="_CPPv2NK12ShaderGlobal6detail12StringToHasheqERK12StringToHash"></span><span id="ShaderGlobal::detail::StringToHash::eq-operator__StringToHashCRC"></span><span class="target" id="structShaderGlobal_1_1detail_1_1StringToHash_1a0217755548e069fd9741626bd69c1fc9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_bEN12ShaderGlobal6detail12StringToHashE" title="ShaderGlobal::detail::StringToHash"><span class="n"><span class="pre">StringToHash</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12ShaderGlobal6detail12StringToHasheqERK12StringToHash" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12ShaderGlobal6detail12StringToHashneERK12StringToHash">
+<span id="_CPPv3NK12ShaderGlobal6detail12StringToHashneERK12StringToHash"></span><span id="_CPPv2NK12ShaderGlobal6detail12StringToHashneERK12StringToHash"></span><span id="ShaderGlobal::detail::StringToHash::neq-operator__StringToHashCRC"></span><span class="target" id="structShaderGlobal_1_1detail_1_1StringToHash_1a01919107d2e2106b7199ff885e2ab720"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">!=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_bEN12ShaderGlobal6detail12StringToHashE" title="ShaderGlobal::detail::StringToHash"><span class="n"><span class="pre">StringToHash</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12ShaderGlobal6detail12StringToHashneERK12StringToHash" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12ShaderGlobal6detail12StringToHash4hashE">
+<span id="_CPPv3N12ShaderGlobal6detail12StringToHash4hashE"></span><span id="_CPPv2N12ShaderGlobal6detail12StringToHash4hashE"></span><span id="ShaderGlobal::detail::StringToHash::hash__uint32_t"></span><span class="target" id="structShaderGlobal_1_1detail_1_1StringToHash_1a12ccf286a53e84c031968a403a1ad4c1"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hash</span></span></span><a class="headerlink" href="#_CPPv4N12ShaderGlobal6detail12StringToHash4hashE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Overrides.html" class="btn btn-neutral float-left" title="Render State Overrides" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shader_material_system.html" class="btn btn-neutral float-right" title="Shader Material System" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

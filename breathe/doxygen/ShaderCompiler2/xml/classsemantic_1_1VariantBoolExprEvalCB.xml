@@ -1,0 +1,183 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classsemantic_1_1VariantBoolExprEvalCB" kind="class" language="C++" prot="public">
+    <compoundname>semantic::VariantBoolExprEvalCB</compoundname>
+    <basecompoundref refid="classShaderParser_1_1ShaderBoolEvalCB" prot="public" virt="non-virtual">ShaderParser::ShaderBoolEvalCB</basecompoundref>
+    <derivedcompoundref refid="classShaderParser_1_1AssembleShaderEvalCB" prot="public" virt="non-virtual">ShaderParser::AssembleShaderEvalCB</derivedcompoundref>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classsemantic_1_1VariantBoolExprEvalCB_1a1b1bf0773f2a729ed3a8c6c4cdefd5c1" prot="private" static="no" mutable="no">
+        <type>String *</type>
+        <definition>String* semantic::VariantBoolExprEvalCB::curEvalExprErrStr</definition>
+        <argsstring></argsstring>
+        <name>curEvalExprErrStr</name>
+        <qualifiedname>semantic::VariantBoolExprEvalCB::curEvalExprErrStr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="25" column="10" bodyfile="variantSemantic.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classsemantic_1_1VariantBoolExprEvalCB_1a1c5adf9aeefe1803450047366d91eb73" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        <definition>shc::VariantContext&amp; semantic::VariantBoolExprEvalCB::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>semantic::VariantBoolExprEvalCB::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="26" column="23" bodyfile="variantSemantic.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classsemantic_1_1VariantBoolExprEvalCB_1ac0de7783c0cf7e4c7690db0005e87972" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>semantic::VariantBoolExprEvalCB::VariantBoolExprEvalCB</definition>
+        <argsstring>(shc::VariantContext &amp;a_ctx)</argsstring>
+        <name>VariantBoolExprEvalCB</name>
+        <qualifiedname>semantic::VariantBoolExprEvalCB::VariantBoolExprEvalCB</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="29" column="12" bodyfile="variantSemantic.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classsemantic_1_1VariantBoolExprEvalCB_1ae0c062f5b1f34d1d8fd6f9a7a2fca859" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool semantic::VariantBoolExprEvalCB::eval_expr</definition>
+        <argsstring>(bool_expr &amp;) override</argsstring>
+        <name>eval_expr</name>
+        <qualifiedname>semantic::VariantBoolExprEvalCB::eval_expr</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a9adf5ca170f128f4b53c4dce191b6e1b">eval_expr</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <defname>e</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="31" column="13" bodyfile="variantSemantic.cpp" bodystart="43" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classsemantic_1_1VariantBoolExprEvalCB_1a9821f354db0ee1de0dc805a201837128" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool semantic::VariantBoolExprEvalCB::eval_bool_value</definition>
+        <argsstring>(bool_value &amp;val) override</argsstring>
+        <name>eval_bool_value</name>
+        <qualifiedname>semantic::VariantBoolExprEvalCB::eval_bool_value</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a07dc087d3c096d83623b89cc7b02acc7">eval_bool_value</reimplements>
+        <param>
+          <type>bool_value &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="32" column="13" bodyfile="variantSemantic.cpp" bodystart="67" bodyend="247"/>
+      </memberdef>
+      <memberdef kind="function" id="classsemantic_1_1VariantBoolExprEvalCB_1acbd6f09e2484d9927d19f51dc0220747" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>int</type>
+        <definition>int semantic::VariantBoolExprEvalCB::eval_interval_value</definition>
+        <argsstring>(const char *ival_name) override</argsstring>
+        <name>eval_interval_value</name>
+        <qualifiedname>semantic::VariantBoolExprEvalCB::eval_interval_value</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1a086dc6d32830628d0635b45531188911">eval_interval_value</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>ival_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="33" column="7" bodyfile="variantSemantic.cpp" bodystart="249" bodyend="286"/>
+      </memberdef>
+      <memberdef kind="function" id="classsemantic_1_1VariantBoolExprEvalCB_1a8ea1c1a892a5b6911982b058dbc93d28" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void semantic::VariantBoolExprEvalCB::report_bool_eval_error</definition>
+        <argsstring>(const char *error) override</argsstring>
+        <name>report_bool_eval_error</name>
+        <qualifiedname>semantic::VariantBoolExprEvalCB::report_bool_eval_error</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderBoolEvalCB_1afbc6dd66cfcc4845688ba3261dca40b7">report_bool_eval_error</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>error</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="34" column="8" bodyfile="variantSemantic.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>ShaderParser::AssembleShaderEvalCB</label>
+        <link refid="classShaderParser_1_1AssembleShaderEvalCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="1">
+        <label>semantic::VariantBoolExprEvalCB</label>
+        <link refid="classsemantic_1_1VariantBoolExprEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="1">
+        <label>semantic::VariantBoolExprEvalCB</label>
+        <link refid="classsemantic_1_1VariantBoolExprEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="variantSemantic.h" line="23" column="1" bodyfile="variantSemantic.h" bodystart="24" bodyend="35"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a2a47dcc0c4945cd7ddd6568fa71e9151" prot="public" virt="virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>add_message</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1a1c5adf9aeefe1803450047366d91eb73" prot="private" virt="non-virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>ctx</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1a1b1bf0773f2a729ed3a8c6c4cdefd5c1" prot="private" virt="non-virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>curEvalExprErrStr</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a69a7fb78162d42fed759dcfa1877d54c" prot="public" virt="virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>decl_bool_alias</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1a9821f354db0ee1de0dc805a201837128" prot="public" virt="virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>eval_bool_value</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1ae0c062f5b1f34d1d8fd6f9a7a2fca859" prot="public" virt="virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>eval_expr</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1acbd6f09e2484d9927d19f51dc0220747" prot="public" virt="virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>eval_interval_value</name></member>
+      <member refid="classShaderParser_1_1ShaderBoolEvalCB_1a5ce5cefefa2c7e01910a9e62542baed7" prot="public" virt="virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>is_debug_mode_enabled</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1a8ea1c1a892a5b6911982b058dbc93d28" prot="public" virt="virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>report_bool_eval_error</name></member>
+      <member refid="classsemantic_1_1VariantBoolExprEvalCB_1ac0de7783c0cf7e4c7690db0005e87972" prot="public" virt="non-virtual"><scope>semantic::VariantBoolExprEvalCB</scope><name>VariantBoolExprEvalCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,108 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGenericEditorAppWindow_1_1OrtScrCells" kind="struct" language="C++" prot="public">
+    <compoundname>GenericEditorAppWindow::OrtScrCells</compoundname>
+    <includes refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtScrCells_1ad969e1f553c91537c586bcc9cc0d8129" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GenericEditorAppWindow::OrtScrCells::mapPos</definition>
+        <argsstring></argsstring>
+        <name>mapPos</name>
+        <qualifiedname>GenericEditorAppWindow::OrtScrCells::mapPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="112" column="12" bodyfile="ec_genappwnd.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtScrCells_1a36f163c867d1827a8b79aa6915adf985" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GenericEditorAppWindow::OrtScrCells::mapSize</definition>
+        <argsstring></argsstring>
+        <name>mapSize</name>
+        <qualifiedname>GenericEditorAppWindow::OrtScrCells::mapSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="112" column="19" bodyfile="ec_genappwnd.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtScrCells_1a1bbade0835b3deacbe9ba29a474c3cd1" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GenericEditorAppWindow::OrtScrCells::tileInMeters</definition>
+        <argsstring></argsstring>
+        <name>tileInMeters</name>
+        <qualifiedname>GenericEditorAppWindow::OrtScrCells::tileInMeters</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="113" column="12" bodyfile="ec_genappwnd.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtScrCells_1a3d750f0f9b874081b668c56b0f0ec54f" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 GenericEditorAppWindow::OrtScrCells::sizeInTiles</definition>
+        <argsstring></argsstring>
+        <name>sizeInTiles</name>
+        <qualifiedname>GenericEditorAppWindow::OrtScrCells::sizeInTiles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="114" column="13" bodyfile="ec_genappwnd.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structGenericEditorAppWindow_1_1OrtScrCells_1aa8d87e32d03cecc7c12fc6d51bef0be4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GenericEditorAppWindow::OrtScrCells::OrtScrCells</definition>
+        <argsstring>()</argsstring>
+        <name>OrtScrCells</name>
+        <qualifiedname>GenericEditorAppWindow::OrtScrCells::OrtScrCells</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="105" column="5" bodyfile="ec_genappwnd.h" bodystart="105" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="structGenericEditorAppWindow_1_1OrtScrCells_1ab801fc738203da25d68f7fe51284d064" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::OrtScrCells::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>GenericEditorAppWindow::OrtScrCells::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="106" column="10" bodyfile="ec_genappwnd.h" bodystart="106" bodyend="110"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_genappwnd.h" line="103" column="3" bodyfile="ec_genappwnd.h" bodystart="104" bodyend="115"/>
+    <listofallmembers>
+      <member refid="structGenericEditorAppWindow_1_1OrtScrCells_1ad969e1f553c91537c586bcc9cc0d8129" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtScrCells</scope><name>mapPos</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtScrCells_1a36f163c867d1827a8b79aa6915adf985" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtScrCells</scope><name>mapSize</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtScrCells_1aa8d87e32d03cecc7c12fc6d51bef0be4" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtScrCells</scope><name>OrtScrCells</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtScrCells_1ab801fc738203da25d68f7fe51284d064" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtScrCells</scope><name>reset</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtScrCells_1a3d750f0f9b874081b668c56b0f0ec54f" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtScrCells</scope><name>sizeInTiles</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtScrCells_1a1bbade0835b3deacbe9ba29a474c3cd1" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtScrCells</scope><name>tileInMeters</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

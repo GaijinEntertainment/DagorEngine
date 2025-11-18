@@ -1,0 +1,255 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>land_mesh_height_decal</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="rendinst_blend_diffuse_decal" href="rendinst_blend_diffuse_decal.html" />
+    <link rel="prev" title="dynamic_painted_by_mask" href="dynamic_painted_by_mask.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">daNetGame-based Shaders</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="dynamic_painted_by_mask.html"><code class="docutils literal notranslate"><span class="pre">dynamic_painted_by_mask</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">land_mesh_height_decal</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters">Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_normal_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_normal_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_modulate2x_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_modulate2x_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_emissive</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_colored.html"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_colored</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_mask_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_modulate2x_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_modulate2x_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_refraction.html"><code class="docutils literal notranslate"><span class="pre">rendinst_refraction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code>/<code class="docutils literal notranslate"><span class="pre">simple_aces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_emissive_anim.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive_anim</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_illum_anim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_glass.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_glass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_painted.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_colored.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_colored</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_perlin_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_vcolor_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_vcolor_layered</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Shaders</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daNetGame-based Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">land_mesh_height_decal</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/shaders/dng-shaders/land_mesh_height_decal.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="land-mesh-height-decal">
+<h1><code class="docutils literal notranslate"><span class="pre">land_mesh_height_decal</span></code><a class="headerlink" href="#land-mesh-height-decal" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This shader is used for rendering decals in clipmaps on prefabs or loft
+geometries.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For <em>WarThunder</em>-based projects, only the following parameters are supported:
+<code class="docutils literal notranslate"><span class="pre">alpha_threshold</span></code>, <code class="docutils literal notranslate"><span class="pre">height_above</span></code>, and <code class="docutils literal notranslate"><span class="pre">vertex_gamma</span></code>.</p>
+</div>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">height_above=1</span></code> – Controls whether the decal is convex or concave.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: The heightmap is interpreted as convex and is rendered above the
+<code class="docutils literal notranslate"><span class="pre">diffuse_threshold</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: The heightmap is interpreted as concave and is rendered below the
+<code class="docutils literal notranslate"><span class="pre">diffuse_threshold</span></code>.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">diffuse_threshold=0.5</span></code> – Determines the diffuse value at which the decal is
+fully rendered. A smooth transition is drawn up to this value, blending with
+the underlying surface.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hmap_softness=1</span></code> – Configures the contrast of the resulting alpha for height
+displacement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">norm_softness=1</span></code> – Configures the contrast of the resulting alpha for normal
+mapping.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r_softness=1</span></code> – Configures the contrast of the resulting alpha for
+reflectance, microdetails, smoothness, and occlusion.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vertex_gamma=1</span></code> – Configures the gamma for vertex alpha.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">attenuation_from_heightmap_height=0.7</span></code> – Modulates the decal mask based on
+the decal’s height above the heightmap surface.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: Disabled.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: Renders what is 1 meter above the landscape.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-1</span></code>: Renders what is 1 meter below the landscape.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">height_scale=0.15</span></code> – Sets the height of the displacement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">height_offset=-0.1</span></code> – Offsets the height of the displacement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">grass_decal_id=255</span></code> – Controls the grass index mask:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">255</span></code>: Removes grass.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: Keeps the grass as it was under the decal.</p></li>
+<li><p>Other values: Specific indices where grass is rendered.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;vertex_opacity=1&quot;</span></code> – To use vertex alpha in decals created from
+prefabs, write the vertex alpha into the second vertex channel. This ensures
+the vertex alpha is read from the object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">color_mul_add=255,255,255,0</span></code> – Colors the diffuse of the decals. In
+<a class="reference internal" href="../../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a>, there is a
+UI with a color picker that allows saving <code class="docutils literal notranslate"><span class="pre">.mat.blk</span></code> and <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files
+(available only in <em>War Thunder</em>).</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/land_mesh_height_decal_01.jpg"><img alt="../../../_images/land_mesh_height_decal_01.jpg" class="bg-primary align-center" src="../../../_images/land_mesh_height_decal_01.jpg" style="width: 80%;" />
+</a>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dynamic_painted_by_mask.html" class="btn btn-neutral float-left" title="dynamic_painted_by_mask" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rendinst_blend_diffuse_decal.html" class="btn btn-neutral float-right" title="rendinst_blend_diffuse_decal" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

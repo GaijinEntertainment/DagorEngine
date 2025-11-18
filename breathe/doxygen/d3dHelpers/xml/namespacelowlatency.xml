@@ -1,0 +1,382 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacelowlatency" kind="namespace" language="C++">
+    <compoundname>lowlatency</compoundname>
+    <innerclass refid="structlowlatency_1_1LatencyData" prot="public">lowlatency::LatencyData</innerclass>
+    <innerclass refid="structlowlatency_1_1Statistics" prot="public">lowlatency::Statistics</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cf" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>LatencyMarkerType</name>
+        <qualifiedname>lowlatency::LatencyMarkerType</qualifiedname>
+        <enumvalue id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfae7e4a809303f2429fec5cbe97b01af19" prot="public">
+          <name>SIMULATION_START</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa7e479d73b504f6dcd06b2782067d75e7" prot="public">
+          <name>SIMULATION_END</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa5cb3b47b9d8e0be0747a3bde4b62ffdc" prot="public">
+          <name>RENDERSUBMIT_START</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa0033d14e5a4ba99c7f4f970bcb0ceeff" prot="public">
+          <name>RENDERSUBMIT_END</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfabd3f5e342b72afb3eb8d0200f39eae68" prot="public">
+          <name>PRESENT_START</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa1ef0fb2b452732490d8835bf51fcac29" prot="public">
+          <name>PRESENT_END</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa80a1a02a7da1d25c25030fa0f12fe10e" prot="public">
+          <name>TRIGGER_FLASH</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="13" column="1" bodyfile="dag_latencyTypes.h" bodystart="14" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" prot="public" static="no" strong="no">
+        <type><ref refid="namespacelowlatency_1ac1470239a11ed863d099db245fa53aa6" kindref="member">LatencyModeFlag</ref></type>
+        <name>LatencyMode</name>
+        <qualifiedname>lowlatency::LatencyMode</qualifiedname>
+        <enumvalue id="namespacelowlatency_1add119224bd81c7433722d30d1e735c68a7c74c9e1d03d6be11e7b5ffca7efdc27" prot="public">
+          <name>LATENCY_MODE_OFF</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1add119224bd81c7433722d30d1e735c68acfa463fc6d3b10e60fd62405f39cd98d" prot="public">
+          <name>LATENCY_MODE_ON</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacelowlatency_1add119224bd81c7433722d30d1e735c68a32ff5dd2a049aea8560eba4c714dc285" prot="public">
+          <name>LATENCY_MODE_NV_BOOST</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="73" column="1" bodyfile="dag_latencyTypes.h" bodystart="74" bodyend="80"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespacelowlatency_1ac1470239a11ed863d099db245fa53aa6" prot="public" static="no">
+        <type>uint8_t</type>
+        <definition>using lowlatency::LatencyModeFlag = typedef uint8_t</definition>
+        <argsstring></argsstring>
+        <name>LatencyModeFlag</name>
+        <qualifiedname>lowlatency::LatencyModeFlag</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_latencyTypes.h" line="71" column="1" bodyfile="dag_latencyTypes.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacelowlatency_1a7ccddffa254659770ef9c8d09747476e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lowlatency::is_available</definition>
+        <argsstring>()</argsstring>
+        <name>is_available</name>
+        <qualifiedname>lowlatency::is_available</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="20" column="6" declfile="dag_lowLatency.h" declline="20" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a0db73556ae7a15449b2c9cecae4a2828" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::start_frame</definition>
+        <argsstring>(uint32_t frame_id)</argsstring>
+        <name>start_frame</name>
+        <qualifiedname>lowlatency::start_frame</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="21" column="6" declfile="dag_lowLatency.h" declline="21" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a9254b8ca992f47c6b7dc37b9dfe36509" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::set_latency_mode</definition>
+        <argsstring>(LatencyMode mode)</argsstring>
+        <name>set_latency_mode</name>
+        <qualifiedname>lowlatency::set_latency_mode</qualifiedname>
+        <param>
+          <type><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="22" column="6" declfile="dag_lowLatency.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1aee8d1b80ccdc7961346582fc6a6c3e65" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::set_latency_mode</definition>
+        <argsstring>(LatencyMode mode, float minimum_interval_ms)</argsstring>
+        <name>set_latency_mode</name>
+        <qualifiedname>lowlatency::set_latency_mode</qualifiedname>
+        <param>
+          <type><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>minimum_interval_ms</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="26" column="6" declfile="dag_lowLatency.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a6daf34059d5a3e86d420c642e73a72ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacelowlatency_1ac1470239a11ed863d099db245fa53aa6" kindref="member">LatencyModeFlag</ref></type>
+        <definition>LatencyModeFlag lowlatency::get_supported_latency_modes</definition>
+        <argsstring>()</argsstring>
+        <name>get_supported_latency_modes</name>
+        <qualifiedname>lowlatency::get_supported_latency_modes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="27" column="17" declfile="dag_lowLatency.h" declline="27" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1ac00631193e2f47b6920e9aa2b2b27d37" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::sleep</definition>
+        <argsstring>(uint32_t frame_id)</argsstring>
+        <name>sleep</name>
+        <qualifiedname>lowlatency::sleep</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="28" column="6" declfile="dag_lowLatency.h" declline="28" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a7388f0c92196c2122b5734660e948a6c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::set_marker</definition>
+        <argsstring>(uint32_t frame_id, LatencyMarkerType marker_type)</argsstring>
+        <name>set_marker</name>
+        <qualifiedname>lowlatency::set_marker</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_id</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cf" kindref="member">LatencyMarkerType</ref></type>
+          <declname>marker_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="29" column="6" declfile="dag_lowLatency.h" declline="29" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1abb28174f9c569f28bb4eb8a8f0063fc8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::mark_flash_indicator</definition>
+        <argsstring>()</argsstring>
+        <name>mark_flash_indicator</name>
+        <qualifiedname>lowlatency::mark_flash_indicator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="30" column="6" declfile="dag_lowLatency.h" declline="30" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1ab70889282a7f81cb7a3f7be55706d871" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref></type>
+        <definition>LatencyMode lowlatency::get_latency_mode</definition>
+        <argsstring>()</argsstring>
+        <name>get_latency_mode</name>
+        <qualifiedname>lowlatency::get_latency_mode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="31" column="13" declfile="dag_lowLatency.h" declline="31" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a7fb3f828463fd9a75daacc54fc264ca6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref></type>
+        <definition>LatencyMode lowlatency::get_from_blk</definition>
+        <argsstring>()</argsstring>
+        <name>get_from_blk</name>
+        <qualifiedname>lowlatency::get_from_blk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="32" column="13" declfile="dag_lowLatency.h" declline="32" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a98ae9b54e5eb6f4d161cc6470b1d5682" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structlowlatency_1_1LatencyData" kindref="compound">LatencyData</ref></type>
+        <definition>LatencyData lowlatency::get_statistics_since</definition>
+        <argsstring>(uint32_t frame_id, uint32_t max_count=0)</argsstring>
+        <name>get_statistics_since</name>
+        <qualifiedname>lowlatency::get_statistics_since</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_id</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>max_count</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="34" column="13" declfile="dag_lowLatency.h" declline="34" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a640e2c45668cd3cfb4b8a8b7b809e016" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structlowlatency_1_1LatencyData" kindref="compound">LatencyData</ref></type>
+        <definition>LatencyData lowlatency::get_new_statistics</definition>
+        <argsstring>(uint32_t max_count=0)</argsstring>
+        <name>get_new_statistics</name>
+        <qualifiedname>lowlatency::get_new_statistics</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>max_count</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="35" column="13" declfile="dag_lowLatency.h" declline="35" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1acfa871b191407e3feda573b4d85e21de" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structlowlatency_1_1LatencyData" kindref="compound">LatencyData</ref></type>
+        <definition>LatencyData lowlatency::get_last_statistics</definition>
+        <argsstring>()</argsstring>
+        <name>get_last_statistics</name>
+        <qualifiedname>lowlatency::get_last_statistics</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="36" column="13" declfile="dag_lowLatency.h" declline="36" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1aa8af4ad639d7040bfe034bb35d3aaee7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lowlatency::render_debug_low_latency</definition>
+        <argsstring>()</argsstring>
+        <name>render_debug_low_latency</name>
+        <qualifiedname>lowlatency::render_debug_low_latency</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="37" column="6" declfile="dag_lowLatency.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacelowlatency_1a23ae3a906da66ccf731d629b3abc0fe1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lowlatency::is_vsync_allowed</definition>
+        <argsstring>()</argsstring>
+        <name>is_vsync_allowed</name>
+        <qualifiedname>lowlatency::is_vsync_allowed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lowLatency.h" line="38" column="6" declfile="dag_lowLatency.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_latencyTypes.h" line="11" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1342 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Designing Vehicle Deformations</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tutorials and Manuals" href="../../tutorials/index.html" />
+    <link rel="prev" title="Creating a Mission" href="wt_creating_mission.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Projects</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../dng/index.html">daNetGame-Based Projects</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">War Thunder</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="wt_creating_mission.html">Creating a Mission</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Designing Vehicle Deformations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#plugins-and-tools">Plugins and Tools</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#platform-specifics">Platform Specifics</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#version-requirements">Version Requirements</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#general-concepts-of-vehicle-deformations-and-destruction">General Concepts of Vehicle Deformations and Destruction</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#key-constraints">Key Constraints</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#preparing-the-model-for-destruction">Preparing the Model for Destruction</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#importing-the-model">Importing the Model</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#setting-up-layers">Setting Up Layers</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#object-identification">Object Identification</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#deforming-large-rigid-components">Deforming Large Rigid Components</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuring-rigid-components">Configuring Rigid Components</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#script-adjustments">Script Adjustments</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#applying-changes">Applying Changes</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#adjusting-collision-boxes-for-objects">Adjusting Collision Boxes for Objects</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#configuring-the-deformable-parts-of-the-vehicle">Configuring the Deformable Parts of the Vehicle</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#deformation-process">Deformation Process</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#combining-layers">Combining Layers</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#transferring-vertex-positions-to-vertex-colors">Transferring Vertex Positions to Vertex Colors</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#assigning-custom-user-properties">Assigning Custom User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#final-scene-setup">Final Scene Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#auxiliary-collision-objects">Auxiliary Collision Objects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#assigning-dynamic-materials">Assigning Dynamic Materials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exporting-the-vehicle">Exporting the Vehicle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#testing-the-model">Testing the Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fine-tuning-deformation-parameters-for-a-vehicle-body">Fine-Tuning Deformation Parameters for a Vehicle Body</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#shader-parameters">Shader Parameters</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#testing-parameters-in-game">Testing Parameters In-Game</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#refining-parameters-in-3ds-max">Refining Parameters in 3ds Max</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#iterative-adjustments-and-enhancements">Iterative Adjustments and Enhancements</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#shading-and-coloring-adjustments">Shading and Coloring Adjustments</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#simulating-broken-glass">Simulating Broken Glass</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#exporting-the-final-model">Exporting the Final Model</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#final-testing">Final Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#example-vehicle-destruction-with-a-large-tank">Example: Vehicle Destruction with a Large Tank</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#physics-adjustments-post-testing">Physics Adjustments Post-Testing</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#note-on-quality-vs-time-constraints">Note on Quality vs. Time Constraints</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#example-vehicle-destruction-with-extensive-plastic-components">Example: Vehicle Destruction with Extensive Plastic Components</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#initial-checks">Initial Checks</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#separation-of-components">Separation of Components</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#export-and-initial-testing">Export and Initial Testing</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#refining-the-model">Refining the Model</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#adding-internal-structure">Adding Internal Structure</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#final-scene-for-export">Final Scene for Export</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#example-vehicle-destruction-with-canvas-and-fabric-components">Example: Vehicle Destruction with Canvas and Fabric Components</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#id1">Initial Checks</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#preparing-the-canvas-and-wooden-supports">Preparing the Canvas and Wooden Supports</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#wooden-components">Wooden Components</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#metal-components">Metal Components</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#organizing-the-deformable-objects">Organizing the Deformable Objects</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#initial-deformation-with-ffd">Initial Deformation with FFD</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#detailed-deformation">Detailed Deformation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#assigning-materials-for-the-canvas">Assigning Materials for the Canvas</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#final-testing-and-export">Final Testing and Export</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Projects</a></li>
+          <li class="breadcrumb-item"><a href="index.html">War Thunder</a></li>
+      <li class="breadcrumb-item active">Designing Vehicle Deformations</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/projects/wt/wt_designing_vehicle_deformations.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="designing-vehicle-deformations">
+<h1>Designing Vehicle Deformations<a class="headerlink" href="#designing-vehicle-deformations" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This article provides a step-by-step guide for creating vehicle deformations. It
+uses three vehicle models as examples, detailing how to implement destruction on
+them. The focus is on working with existing vehicles. You’ll need advanced
+knowledge of 3ds Max and a thorough understanding of how Dagor Engine handles
+destruction.</p>
+<section id="plugins-and-tools">
+<h3>Plugins and Tools<a class="headerlink" href="#plugins-and-tools" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Dagor import/export plugin.</p></li>
+<li><p><a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/transfer_vertex_position_to_vertex_color_tool.html"><span class="std std-doc">Dagor Transfer Vertex Position to Vertex Color
+Tool</span></a>.</p></li>
+<li><p><a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/damages_setup_tool.html"><span class="std std-doc">Dagor Damages Setup
+Tool</span></a>
+for setting up rigid-body destruction.</p></li>
+<li><p><a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fast_editor_user_properties.html"><span class="std std-doc">Dagor Fast Editor User
+Properties</span></a>
+for streamlined property editing.</p></li>
+<li><p><a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fix_normal_orientation_tool.html"><span class="std std-doc">Dagor Fix Normal Orientation
+Tool</span></a>
+to preemptively correct normal issues in dynamic objects.</p></li>
+<li><p><a class="reference external" href="https://rayfirestudios.com/">RayFire plugin</a> for glass and wood
+destruction.</p></li>
+</ul>
+</section>
+<section id="platform-specifics">
+<h3>Platform Specifics<a class="headerlink" href="#platform-specifics" title="Link to this heading"></a></h3>
+<p>The examples and guidelines are based on War Thunder. Projects based on
+daNetGame framework will follow the same principles, with minor differences in
+shaders.</p>
+</section>
+<section id="version-requirements">
+<h3>Version Requirements<a class="headerlink" href="#version-requirements" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Minimum 3ds Max 2021 is required.</p></li>
+<li><p>All example files were created using 3ds Max 2024.</p></li>
+</ul>
+</section>
+</section>
+<section id="general-concepts-of-vehicle-deformations-and-destruction">
+<h2>General Concepts of Vehicle Deformations and Destruction<a class="headerlink" href="#general-concepts-of-vehicle-deformations-and-destruction" title="Link to this heading"></a></h2>
+<section id="key-constraints">
+<h3>Key Constraints<a class="headerlink" href="#key-constraints" title="Link to this heading"></a></h3>
+<p>The primary limitation in a single Dagor <code class="docutils literal notranslate"><span class="pre">.dag</span></code> model file is that only <strong>one
+deformable object</strong> can exist. If multiple deformable objects are present, the
+engine will prioritize the largest object by bounding box, as indicated in logs:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>43.52 [E] multiple nodes with dynamic_deformed shader in instance, choosing the biggest one
+</pre></div>
+</div>
+<p>Rigid-body (non-deformable) objects are limited to <strong>a few hundred per model</strong>.
+These rigid objects should be identified and separated during the design phase
+to achieve the desired destruction effect. Objects that visually detach during
+real-world vehicle destruction or significantly differ in material (e.g.,
+wheels, wooden fences, glass, plastic panels) must be isolated into separate
+components by material type.</p>
+</section>
+</section>
+<section id="preparing-the-model-for-destruction">
+<h2>Preparing the Model for Destruction<a class="headerlink" href="#preparing-the-model-for-destruction" title="Link to this heading"></a></h2>
+<section id="importing-the-model">
+<h3>Importing the Model<a class="headerlink" href="#importing-the-model" title="Link to this heading"></a></h3>
+<p>Import the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> model:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1zwt9_2s5TmtXz6rWM7DZxisFAlPnpWGt/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">m123_truck.lod00.zip</span></code></a>.</p>
+<p>For material insights, preview the model with textures in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>:
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/entities/vehicles/cars_modern/m123_truck.lod00.dag</span></code></p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_01.jpg"><img alt="The model with textures preview in Asset Viewer" class="align-center" src="../../_images/wt_designing_vehicle_deformations_01.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="setting-up-layers">
+<h3>Setting Up Layers<a class="headerlink" href="#setting-up-layers" title="Link to this heading"></a></h3>
+<p>Organize your scene into layers for a structured workflow:</p>
+<ol class="arabic">
+<li><p><strong>DeformStart</strong>: Contains objects to be deformed.</p></li>
+<li><p><strong>DeformEnd</strong>: Contains objects after deformation.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Pay close attention to the naming of objects in <strong>DeformStart</strong> and
+<strong>DeformEnd</strong> layers. The quantity and naming must be identical. This
+consistency will prevent indexing errors in the order of vertices in the
+final model during the subsequent merging of all deformable objects.</p>
+</div>
+</li>
+<li><p><strong>RigidObj</strong>: Houses rigid, detachable components.</p></li>
+<li><p><strong>EXPORT</strong>: Final output layer.</p></li>
+</ol>
+<section id="object-identification">
+<h4>Object Identification<a class="headerlink" href="#object-identification" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Green</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>: Deformable metal requiring tessellation (placed
+in <strong>DeformStart</strong>).</p></li>
+<li><p><strong>Blue</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>: Metal requiring separation for realistic
+deformation (e.g., doors).</p></li>
+<li><p><strong>Brown</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>: Metal with sufficient detail, no tessellation
+needed (also in <strong>DeformStart</strong>).</p></li>
+<li><p><strong>Purple</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span>: Rigid objects, such as detachable components
+(placed in <strong>RigidObj</strong>).</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_02.jpg"><img alt="Color identification of the model parts in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_02.jpg" style="width: 50em;" />
+</a>
+</section>
+</section>
+</section>
+<section id="deforming-large-rigid-components">
+<h2>Deforming Large Rigid Components<a class="headerlink" href="#deforming-large-rigid-components" title="Link to this heading"></a></h2>
+<p>Pre-deform large rigid objects to improve realism post-separation. Minor parts
+can remain mostly intact. For example, large tires should appear damaged and
+should resemble this degree of deformation:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_03.jpg"><img alt="Deformed vehicle tyres in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_03.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="configuring-rigid-components">
+<h2>Configuring Rigid Components<a class="headerlink" href="#configuring-rigid-components" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p><strong>Set Active Layer</strong>: Work in the <strong>RigidObj</strong> layer.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_04.jpg"><img alt="Rigid object layer icon in 3ds Mas" class="align-center" src="../../_images/wt_designing_vehicle_deformations_04.jpg" style="width: 10em;" />
+</a>
+</li>
+<li><p><strong>Launch Script</strong>: Use <a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/damages_setup_tool.html"><span class="std std-doc">Dagor Damages Setup
+Tool</span></a>.</p></li>
+<li><p><strong>Reset Pivots</strong>: Reset pivots to object centers.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_05.jpg"><img alt="Pivots reset to objects center in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_05.jpg" style="width: 50em;" />
+</a>
+</li>
+</ol>
+<section id="script-adjustments">
+<h3>Script Adjustments<a class="headerlink" href="#script-adjustments" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Change <code class="docutils literal notranslate"><span class="pre">materialName:t=&quot;wood_solid&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">materialName:t=&quot;metal&quot;</span></code> for proper
+sound and effects.</p></li>
+<li><p>Change <code class="docutils literal notranslate"><span class="pre">density:r=150</span></code> to <code class="docutils literal notranslate"><span class="pre">density:r=250</span></code> for metal properties.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_06.jpg"><img alt="Dagor 2 Damage Setup properties window" class="align-center" src="../../_images/wt_designing_vehicle_deformations_06.jpg" style="width: 20em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="applying-changes">
+<h3>Applying Changes<a class="headerlink" href="#applying-changes" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Select all objects in <strong>RigidObj</strong> layer <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>.</p></li>
+<li><p>Apply the script to generate accurate collision hierarchies
+and user-defined properties <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_07.jpg"><img alt="Selecting objects in Rigid object layer and applying the script to generate collision hierarchies in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_07.jpg" style="width: 40em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_08.jpg"><img alt="Generated objects collisions in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_08.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="adjusting-collision-boxes-for-objects">
+<h3>Adjusting Collision Boxes for Objects<a class="headerlink" href="#adjusting-collision-boxes-for-objects" title="Link to this heading"></a></h3>
+<p>As observed, a collision box <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> is generated for each object,
+but it does not always precisely conform to the shape of the objects
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>. Therefore, it is necessary to manually adjust the collision
+boxes in the scene to achieve accurate coverage.</p>
+<p>For instance, when working with wheels, align the box size to the wheel’s
+diameter and duplicate the box collisions by rotating them. This will create an
+approximate cylinder shape. Unfortunately, Dagor Engine does not support native
+cylinder or sphere collisions, so all shapes must be approximated using boxes.
+The final scene will look as follows:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_10.jpg"><img alt="Generated collision boxes and objects in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_10.jpg" style="width: 50em;" />
+</a>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All scaling, positioning, and rotation adjustments must be performed in <strong>Local
+Space</strong>.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_09.jpg"><img alt="Local Space in enabled on the panel in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_09.jpg" style="width: 15em;" />
+</a>
+<p>Failure to do so will result in distortions and inaccuracies after export to
+Dagor Engine. Correcting these issues later is extremely difficult and
+time-consuming.</p>
+</div>
+<p>The components <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> such as wheels, headlight lenses, and
+mudguards are defined using multiple collision boxes. For complex shapes, take
+an existing collision box and modify it to match the object’s contours as
+closely as possible. If one box is insufficient, add as many as necessary.
+Simpler shapes, such as side mirrors <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>, can typically be
+described with a single box.</p>
+<p>To streamline the review of object properties, it is recommended to use the
+<a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fast_editor_user_properties.html"><span class="std std-doc">Dagor Fast Editor User
+Properties</span></a>
+script. After installation, the script is activated with <code class="docutils literal notranslate"><span class="pre">Alt</span></code>+<code class="docutils literal notranslate"><span class="pre">Ctrl</span></code>. For all
+selected objects <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>, it will display the contents of their
+<strong>custom user properties</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span> in a dedicated window
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>, eliminating the need to individually access these properties
+via context menus. To hide the script window, press <code class="docutils literal notranslate"><span class="pre">Alt</span></code>+<code class="docutils literal notranslate"><span class="pre">Shift</span></code>.</p>
+<p>With this step, the configuration of solid objects is complete. Hide this layer,
+as it will no longer be needed before export.</p>
+</section>
+</section>
+<section id="configuring-the-deformable-parts-of-the-vehicle">
+<h2>Configuring the Deformable Parts of the Vehicle<a class="headerlink" href="#configuring-the-deformable-parts-of-the-vehicle" title="Link to this heading"></a></h2>
+<p>Begin by configuring objects within the <strong>DeformStart</strong> and <strong>DeformEnd</strong>
+layers. For realistic vehicle deformation, the model must have sufficient
+detail. This often necessitates tessellating the model to enhance deformation
+quality. For example, attempting to deform fuel tanks <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>, the
+vehicle base <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>, wheel arches and fenders <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span>,
+mudguards <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>, and the cab <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span> will result in
+issues if there are insufficient triangles to allow proper deformation. Even
+separate components, like the door <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">6</span>, require tessellation.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_11.jpg"><img alt="View of model deformable parts in 3ds Max before tesselation in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_11.jpg" style="width: 50em;" />
+</a>
+<p>After tessellation, the model should not exceed 65,000 triangles in total. A
+properly tessellated vehicle should look approximately like this:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_12.jpg"><img alt="View of model deformable parts in 3ds Max after tesselation in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_12.jpg" style="width: 50em;" />
+</a>
+<p>Unfortunately, there are no strict tessellation rules. A good recommendation is
+to create cuts every 20-30 cm, striking a balance between visual quality and the
+triangle count. Aim to keep the triangle count as low as possible without
+sacrificing deformation quality. The optimal balance comes with experience after
+deforming 3-4 models.</p>
+<p>Next, copy all objects from the <strong>DeformStart</strong> layer into the <strong>DeformEnd</strong>
+layer. <strong>Pay close attention to naming conventions</strong>. Ensuring consistent naming
+is crucial for preserving vertex indexation when combining pieces later.
+Matching the vertex indexing between the initial (undeformed) and final (fully
+deformed) models is essential. Hide the <strong>DeformStart</strong> layer, as it contains
+the undeformed model version needed only at the end of the workflow to bake
+vertex position data into vertex colors. Verify that all names and object
+sequences are identical:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_13.jpg"><img alt="Copying all objects from the DeformStart layer into the DeformEnd layer in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_13.jpg" style="width: 50em;" />
+</a>
+<p>At this stage, you are ready to begin deformation. <strong>Save the scene before
+starting each deformation step</strong>. Results may not always match your
+expectations, and rolling back is often easier. Consider setting undo steps to
+at least 300-400 for safety. However, saving regularly is more reliable, as
+3ds Max may crash unexpectedly during deeper undo actions.</p>
+<section id="deformation-process">
+<h3>Deformation Process<a class="headerlink" href="#deformation-process" title="Link to this heading"></a></h3>
+<p>Deforming the vehicle involves using <strong>Soft Selection</strong> on vertices to create a
+realistic crumpled effect. Start with broader adjustments and refine as you go.
+For example:</p>
+<ul class="simple">
+<li><p><strong>Doors</strong>: Open or partially open the doors before deformation. Doors nearly
+always open or partially detach during vehicle collisions.</p></li>
+<li><p><strong>Fragile parts</strong>: Separate brittle components rather than deform them.</p></li>
+</ul>
+<p>Initially, apply an <strong>FFD (Free Form Deformation) modifier</strong> to all objects for
+rough adjustments:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_14.jpg"><img alt="Appling an FFD (Free Form Deformation) modifier to all objects for rough adjustments in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_14.jpg" style="width: 50em;" />
+</a>
+<p>Then carefully deform individual vehicle elements:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_15.jpg"><img alt="Deforming individual vehicle elements in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_15.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="combining-layers">
+<h3>Combining Layers<a class="headerlink" href="#combining-layers" title="Link to this heading"></a></h3>
+<p>After deformation, merge all parts in the <strong>DeformStart</strong> layer and then do the
+same for the <strong>DeformEnd</strong> layer. When merging, ensure that objects are attached
+in numerical order (e.g., attach to object <code class="docutils literal notranslate"><span class="pre">*000</span></code> in sequence). This step is
+critical to maintain consistent vertex indexing. The result will be two distinct
+models – deformed and undeformed. For convenience, move the pivot point of each
+model to the center of the scene and perform a <strong>Reset Transform</strong>. This step
+helps prevent potential issues with normals during export. Tools such as the
+<a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fix_normal_orientation_tool.html"><span class="std std-doc">Dagor Fix Normal Orientation
+Tool</span></a>
+or 3ds Max’s built-in tools can assist with this. The scene should now appear as
+follows:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_16.jpg"><img alt="Moving the pivot point of each model to the center of the scene and performing a Reset Transform" class="align-center" src="../../_images/wt_designing_vehicle_deformations_16.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="transferring-vertex-positions-to-vertex-colors">
+<h3>Transferring Vertex Positions to Vertex Colors<a class="headerlink" href="#transferring-vertex-positions-to-vertex-colors" title="Link to this heading"></a></h3>
+<p>Run the <a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/transfer_vertex_position_to_vertex_color_tool.html"><span class="std std-doc">Dagor Transfer Vertex Position to Vertex Color
+Tool</span></a>
+script. Select the undeformed model, set the deformed model as the source in the
+<strong>Pick Source Object</strong> field, and click <strong>Transfer Vertex Position to VColor!</strong>
+This will map the deformed model’s vertex position changes into the vertex color
+channel of the undeformed model. Check the vertex color channel to confirm it
+contains data. The undeformed model should now look similar to this:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_17.jpg"><img alt="Maping the deformed model's vertex position changes into the vertex color channel of the undeformed model" class="align-center" src="../../_images/wt_designing_vehicle_deformations_17.jpg" style="width: 50em;" />
+</a>
+<p>The intensity of the vertex colors indicates the degree of deformation –
+stronger deformations produce more vibrant colors, while minimal deformations
+appear closer to gray. This step verifies the successful transfer of position
+data into vertex colors. The deformed model is no longer needed and can be
+hidden along with the <strong>DeformEnd</strong> layer.</p>
+</section>
+<section id="assigning-custom-user-properties">
+<h3>Assigning Custom User Properties<a class="headerlink" href="#assigning-custom-user-properties" title="Link to this heading"></a></h3>
+<p>Assign the following <strong>custom user properties</strong> to the undeformed model to
+ensure correct behavior in Dagor Engine:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">animated_node</span><span class="nt">:b=</span><span class="si">yes</span>
+<span class="no">physObj</span><span class="nt">:b=</span><span class="si">yes</span>
+<span class="no">collidable</span><span class="nt">:b=</span><span class="si">no</span>
+<span class="no">density</span><span class="nt">:r=</span><span class="m">15500</span>
+<span class="no">massType</span><span class="nt">:t=</span><span class="nf">&quot;none&quot;</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">density:r=15500</span></code> parameter is set based on the vehicle type. For a heavy
+vehicle, use a value of ~<code class="docutils literal notranslate"><span class="pre">15,500</span></code>; for passenger cars, values between <code class="docutils literal notranslate"><span class="pre">5,000</span></code>
+and <code class="docutils literal notranslate"><span class="pre">7,000</span></code> are typical.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_18.jpg"><img alt="Setting the Dagor 2 Fast Properties tool parameters" class="align-center" src="../../_images/wt_designing_vehicle_deformations_18.jpg" style="width: 35em;" />
+</a>
+</section>
+<section id="final-scene-setup">
+<h3>Final Scene Setup<a class="headerlink" href="#final-scene-setup" title="Link to this heading"></a></h3>
+<p>Complete the general scene configuration to ensure the vehicle interacts
+properly in Dagor Engine. The vehicle body must behave correctly as a physical
+object and respond as intended within the engine.</p>
+</section>
+</section>
+<section id="auxiliary-collision-objects">
+<h2>Auxiliary Collision Objects<a class="headerlink" href="#auxiliary-collision-objects" title="Link to this heading"></a></h2>
+<p>To ensure proper interactions between the destructible vehicle model and tanks
+or other vehicles, auxiliary collision boxes need to be added to the scene.
+These objects are designed similarly to standard collision boxes but must be
+attached
+<a class="reference internal" href="../../_images/wt_designing_vehicle_deformations_19.jpg"><img alt="The Attaching icon" src="../../_images/wt_designing_vehicle_deformations_19.jpg" style="width: 1.8em;" /></a>
+to the main deformable body of the vehicle.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_20.jpg"><img alt="Collision boxes of the model parts in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_20.jpg" style="width: 50em;" />
+</a>
+<ul class="simple">
+<li><p><strong>Bumper</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> <strong>and External Platforms</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>:
+Ensure the detached wheels are pushed correctly away from the main body.</p></li>
+<li><p><strong>Stepped Base</strong>: Enables wheeled vehicles with smaller wheel diameters to
+visually climb onto a deformed section of the vehicle.</p></li>
+<li><p><strong>Box</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>: Simulates falling glass fragments dispersing
+outward.</p></li>
+<li><p><strong>Cabin (large deformation)</strong>: Prevents tanks from driving further by creating
+a larger physical obstacle.</p></li>
+<li><p><strong>Box Set</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span>: Facilitates correct interaction with the
+vehicle’s rear bulk.</p></li>
+<li><p><strong>Rear Platform Box</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span>: Acts as a support platform for
+smaller debris at the back of the vehicle.</p></li>
+<li><p><strong>Diagonal Boxes (bottom)</strong>: Prevent the vehicle from landing flat like a
+slab, instead allowing a natural tilted fall.</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_21.jpg"><img alt="Tailored auxiliary collision boxes of the model parts in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_21.jpg" style="width: 50em;" />
+</a>
+<p>Each vehicle requires tailored auxiliary collision boxes.</p>
+</section>
+<section id="assigning-dynamic-materials">
+<h2>Assigning Dynamic Materials<a class="headerlink" href="#assigning-dynamic-materials" title="Link to this heading"></a></h2>
+<p>Since we start with a static model, its materials need to be converted into
+dynamic ones to enable deformation. Dynamic vehicle pieces require specific
+shaders, distinct from static ones. Assign <strong>Dagorrat Material 1</strong> to the
+deformable body of the vehicle. Use the following settings:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_22.jpg"><img alt="Assigning Dagorrat Material 1 in Material Editor" class="align-left" src="../../_images/wt_designing_vehicle_deformations_22.jpg" style="width: 20em;" />
+</a>
+<ul class="simple">
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> <strong>Material Name</strong>: Use descriptive naming for clarity.</p></li>
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span> <strong>Material Class</strong>: Set to <code class="docutils literal notranslate"><span class="pre">dynamic_deformed</span></code> to specify
+the shader type.</p></li>
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span> <strong>Slot 0</strong>: Albedo texture.</p></li>
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span> <strong>Slot 2</strong>: Normal texture packed with metalness (B
+channel) and smoothness (A channel).</p></li>
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span> <strong>Slot 7</strong>: Damaged metal albedo texture with a
+fracture/mask in the alpha channel.</p></li>
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">6</span> <strong>Slot 8</strong>: Damaged metal normal map, packed identically to
+Slot 2.</p></li>
+</ul>
+<br clear="left">
+<p>Next, assign <strong>Dagorrat Material 2</strong> for solid objects using these settings:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_23.jpg"><img alt="Assigning Dagorrat Material 2 in Material Editor" class="align-left" src="../../_images/wt_designing_vehicle_deformations_23.jpg" style="width: 20em;" />
+</a>
+<ul class="simple">
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> <strong>Material Class</strong>: <code class="docutils literal notranslate"><span class="pre">dynamic_simple</span></code>.</p></li>
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span> <strong>Slot 0</strong>: Vehicle’s albedo texture.</p></li>
+<li><p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span> <strong>Slot 3</strong>: Packed normal/metalness/smoothness texture.</p></li>
+</ul>
+<br clear="left">
+<p>Assign <strong>Dagorrat Material 2</strong> to all non-collision objects within the
+<strong>RigidObj</strong> layer.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information on complex models with hierarchical materials, see
+<a class="reference internal" href="../../assets/materials/proxymats.html"><span class="std std-doc">Proxy materials</span></a>.</p>
+</div>
+</section>
+<section id="exporting-the-vehicle">
+<h2>Exporting the Vehicle<a class="headerlink" href="#exporting-the-vehicle" title="Link to this heading"></a></h2>
+<p>To export the completed vehicle:</p>
+<ol class="arabic">
+<li><p>Select all objects in the <strong>DeformStart</strong> and <strong>RigidObj</strong> layers.</p></li>
+<li><p>Move them to the <strong>EXPORT</strong> layer and make it active.</p></li>
+<li><p>Export with the following Dagor exporter settings:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_24.jpg"><img alt="Group of Dagor Exporter Settings labels" class="align-center" src="../../_images/wt_designing_vehicle_deformations_24.jpg" style="width: 12em;" />
+</a>
+</li>
+<li><p>Save the output file as (with overwriting):
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/entities/vehicles/cars_modern/m123_truck_destr.lod00.dag</span></code></p></li>
+</ol>
+<p>Ready-to-export scene:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1nrPxNJXumOMlYsSli09GEaFA_HkJ-FC8/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">m123_truck_destr_deform.zip</span></code></a>.</p>
+</section>
+<section id="testing-the-model">
+<h2>Testing the Model<a class="headerlink" href="#testing-the-model" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Open the model in <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> to test
+its destruction mechanics.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_25.jpg"><img alt="Model in Asset Viewer" class="align-center" src="../../_images/wt_designing_vehicle_deformations_25.jpg" style="width: 50em;" />
+</a>
+<ul>
+<li><p>Select the vehicle model <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">0</span>.</p></li>
+<li><p>Set the physics engine <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>.</p></li>
+<li><p>Start the simulation <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_26.jpg"><img alt="Steps for starting the simulation process in Asset Viewer" class="align-center" src="../../_images/wt_designing_vehicle_deformations_26.jpg" style="width: 50em;" />
+</a>
+<p>If errors occur (commonly shader-related), check the console logs
+<a class="reference internal" href="../../_images/wt_designing_vehicle_deformations_27.jpg"><img alt="The Console icon" src="../../_images/wt_designing_vehicle_deformations_27.jpg" style="width: 1.8em;" /></a></p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If the issues remain unresolved, please contact the author of this document
+at <svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-mail sd-text-info" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1.75 2A1.75 1.75 0 000 3.75v.736a.75.75 0 000 .027v7.737C0 13.216.784 14 1.75 14h12.5A1.75 1.75 0 0016 12.25v-8.5A1.75 1.75 0 0014.25 2H1.75zM14.5 4.07v-.32a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25v.32L8 7.88l6.5-3.81zm-13 1.74v6.441c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25V5.809L8.38 9.397a.75.75 0 01-.76 0L1.5 5.809z"></path></svg> <a class="reference external" href="mailto:a&#46;vlasov&#37;&#52;&#48;gaijin&#46;team">a<span>&#46;</span>vlasov<span>&#64;</span>gaijin<span>&#46;</span>team</a>.</p>
+</div>
+</li>
+</ul>
+</li>
+<li><p>Export resources to Dagor binary formats using the <strong>Export All (PC)</strong> option
+in the context menu:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_28.jpg"><img alt="The Export All (PC) option in Asset Viewer menu" class="align-center" src="../../_images/wt_designing_vehicle_deformations_28.jpg" style="width: 35em;" />
+</a>
+<p>To suppress warnings from older files during export, add the following block
+to <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">logerr_to_con</span><span class="ni">{</span>
+  <span class="se">AssetViewer</span><span class="ni">{</span>
+    <span class="no">exclude_re</span><span class="nt">:t=</span><span class="nf">&quot;(warning: node &lt;occluder_box&gt; from)|(Shader &#39;simple_aces&#39; not found in bin dump)|(Shader &#39;simple&#39; not found in bin dump)|(Shader &#39;land_mesh_combined&#39; not found in bin dump)|(has mesh with 0 faces)|(degenerate tri)|(degenerate mesh node)&quot;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This will allow to ignore warnings that outdated shaders are not found.
+Ensure there are no errors in the console after building:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_29.jpg"><img alt="The Asset Viewer console output" class="align-center" src="../../_images/wt_designing_vehicle_deformations_29.jpg" style="width: 35em;" />
+</a>
+</li>
+<li><p>Modify the destruction configuration for the vehicle in <code class="docutils literal notranslate"><span class="pre">rendinst_dmg.blk</span></code>
+placed at <code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/gameBase/config/</span></code> directory:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">m123_truck</span><span class="ni">{</span>
+  <span class="no">physRes</span><span class="nt">:t=</span><span class="nf">&quot;m123_truck_destr_phobj&quot;</span><span class="gp">;</span>
+  <span class="no">hp</span><span class="nt">:r=</span><span class="m">40</span><span class="gp">;</span>
+  <span class="no">impulseThreshold</span><span class="nt">:r=</span><span class="m">3</span><span class="gp">;</span>
+  <span class="no">dmPreset</span><span class="nt">:t=</span><span class="nf">&quot;metal_light_explosive_props&quot;</span><span class="gp">;</span>
+  <span class="no">fx</span><span class="nt">:t=</span><span class="nf">&quot;ad_car_wreck&quot;</span><span class="gp">;</span>
+  <span class="no">fxScale</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span>
+  <span class="no">material</span><span class="nt">:t=</span><span class="nf">&quot;metal&quot;</span><span class="gp">;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>Below is an explanation of key parameters for configuring destruction
+properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">m123_truck</span></code>: The name of the primary object that will be destructible.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m123_truck_destr_phobj</span></code>: The name of the virtual object generated from
+<code class="docutils literal notranslate"><span class="pre">m123_truck_destr.lod00.dag</span></code>. This represents the destructible version of
+the object and is the result of the processes outlined so far.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hp:r=40</span></code>: Specifies the HP threshold at which the destruction occurs. When
+the object’s HP falls below this value, it will break apart.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">impulseThreshold:r=3</span></code>: Defines the impulse force required to trigger
+destruction. For instance, a collision or impact with a force greater than
+this value will cause the object to break.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dmPreset:t=&quot;metal_light_explosive_props&quot;</span></code>: The destruction model preset to
+be used. This determines the destruction behavior, including debris
+generation and dynamics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fx:t=&quot;ad_car_wreck&quot;</span></code>: Specifies the particle effect to be used during the
+destruction event. For example, this could represent the explosion visuals
+triggered when the object is destroyed. Other particle effects can be
+reviewed in this file and substituted as needed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fxScale:r=1</span></code>: Adjusts the scale of the explosion effect. This parameter
+may need fine-tuning to match the size of the vehicle or object being
+destroyed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">material:t=&quot;metal&quot;</span></code>: This critical parameter overrides the material
+settings defined within the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file. For instance, if the <strong>custom user
+properties</strong> within the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file specify <code class="docutils literal notranslate"><span class="pre">materialName:t=&quot;wood&quot;</span></code>, but
+this file specifies <code class="docutils literal notranslate"><span class="pre">materialName:t=&quot;metal&quot;</span></code>, the material used for the
+destroyed parts will be <strong>metal</strong>. <strong>Always remember</strong> that this parameter
+takes precedence over internal <code class="docutils literal notranslate"><span class="pre">.dag</span></code> settings.</p></li>
+</ul>
+<p>Adjust the parameters as needed, e.g., particle effects, explosion scaling,
+or material overrides.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>By carefully adjusting these parameters, you can define how the vehicle
+behaves during destruction events, including material properties, effects,
+and thresholds for breaking apart.</p>
+</div>
+</li>
+<li><p>Rebuild vfsroms using <code class="docutils literal notranslate"><span class="pre">create_vfsroms.bat</span></code>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../dagor-tools/building-resources/building_resources.html"><span class="std std-doc">Building Resources</span></a>.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you encounter any errors or have questions regarding this document, please
+reach out to the author directly at
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-mail sd-text-info" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1.75 2A1.75 1.75 0 000 3.75v.736a.75.75 0 000 .027v7.737C0 13.216.784 14 1.75 14h12.5A1.75 1.75 0 0016 12.25v-8.5A1.75 1.75 0 0014.25 2H1.75zM14.5 4.07v-.32a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25v.32L8 7.88l6.5-3.81zm-13 1.74v6.441c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25V5.809L8.38 9.397a.75.75 0 01-.76 0L1.5 5.809z"></path></svg> <a class="reference external" href="mailto:a&#46;vlasov&#37;&#52;&#48;gaijin&#46;team">a<span>&#46;</span>vlasov<span>&#64;</span>gaijin<span>&#46;</span>team</a>.</p>
+</div>
+</li>
+</ol>
+<p><strong>Placing and Testing the Vehicle in a Level:</strong></p>
+<ol class="arabic">
+<li><p>Open the level in the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>:
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/levels/avg_proto/apex_test_scene/apex_test_scene.level.blk</span></code>.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_30.jpg"><img alt="The level opened in daEditor" class="align-center" src="../../_images/wt_designing_vehicle_deformations_30.jpg" style="width: 50em;" />
+</a>
+</li>
+<li><p>Export the level to a binary format using the top menu. Save the level after
+successful export.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_31.jpg"><img alt="The Export to Game (PC format) option in daEditor menu" class="align-center" src="../../_images/wt_designing_vehicle_deformations_31.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p>Download test mission: <a class="reference download external" download="" href="https://drive.google.com/file/d/1K65Kjh2Qkcl7h9j2m9WQaEYplU9QhCZF/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">test_01_car.zip</span></code></a>.</p></li>
+<li><p>Place it in:
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/gameBase/gameData/missions</span></code>.</p></li>
+<li><p>Open the <strong>Mission Editor</strong>, select the test mission, and start the game
+<a class="reference internal" href="../../_images/wt_designing_vehicle_deformations_33.jpg"><img alt="The Play icon" src="../../_images/wt_designing_vehicle_deformations_33.jpg" style="width: 1.8em;" /></a>.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_32.jpg"><img alt="The Mission Editor panel" class="align-center" src="../../_images/wt_designing_vehicle_deformations_32.jpg" style="width: 60em;" />
+</a>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>During testing, it is likely that the console will display numerous errors
+related to resource mismatches or insufficiently built resources. However, these
+errors are not critical for the purpose of testing.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_34.jpg"><img alt="The daEditor console output during testing" class="align-center" src="../../_images/wt_designing_vehicle_deformations_34.jpg" style="width: 50em;" />
+</a>
+<p>In case of <strong>assert errors</strong>, initially try ignoring them by pressing the
+<strong>Ignore</strong> button.</p>
+</div>
+<p>If everything is set up correctly, you should see a tank in the environment,
+which can be used to collide with the test truck.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If the issues remain unresolved, please contact the author of this document at
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-mail sd-text-info" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1.75 2A1.75 1.75 0 000 3.75v.736a.75.75 0 000 .027v7.737C0 13.216.784 14 1.75 14h12.5A1.75 1.75 0 0016 12.25v-8.5A1.75 1.75 0 0014.25 2H1.75zM14.5 4.07v-.32a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25v.32L8 7.88l6.5-3.81zm-13 1.74v6.441c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25V5.809L8.38 9.397a.75.75 0 01-.76 0L1.5 5.809z"></path></svg> <a class="reference external" href="mailto:a&#46;vlasov&#37;&#52;&#48;gaijin&#46;team">a<span>&#46;</span>vlasov<span>&#64;</span>gaijin<span>&#46;</span>team</a>.</p>
+</div>
+</section>
+<section id="fine-tuning-deformation-parameters-for-a-vehicle-body">
+<h2>Fine-Tuning Deformation Parameters for a Vehicle Body<a class="headerlink" href="#fine-tuning-deformation-parameters-for-a-vehicle-body" title="Link to this heading"></a></h2>
+<p>To achieve realistic vehicle deformation, specific parameters can be configured
+in the vehicle body material in 3ds Max. These settings influence shaders and
+allow precise control over deformation behavior. Below is a detailed list of
+parameters and their purpose:</p>
+<section id="shader-parameters">
+<h3>Shader Parameters<a class="headerlink" href="#shader-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">diffuse_tex_scale=1</span></code>: Controls the scale of the damage texture’s albedo.
+Adjust based on the vehicle’s size.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">normals_tex_scale=1</span></code>: Similar to <code class="docutils literal notranslate"><span class="pre">diffuse_tex_scale</span></code>, this affects the
+normal/metalness/smoothness texture scale.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">diffuse_power=1</span></code>: Determines the intensity of the albedo damage texture.
+Default: <code class="docutils literal notranslate"><span class="pre">1.0</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">normals_power=1</span></code>: Controls the intensity of the normal/metalness/smoothness
+damage texture. Default: <code class="docutils literal notranslate"><span class="pre">1.0</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_height=1.2</span></code>: A multiplier for maximum deformation height. Default baked
+value is <code class="docutils literal notranslate"><span class="pre">1.0</span></code>. Increase (e.g., <code class="docutils literal notranslate"><span class="pre">1.9</span></code>) for larger deformations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">springback=0.05</span></code>: Defines how much the metal bends back after deformation.
+Higher values mean greater restoration.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">expand_atten=0.5</span></code>: Sets the range of deformation expansion, simulating
+material characteristics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">expand_atten_pow=0.5</span></code>: Adjusts the pressure curve during deformation,
+affecting how the material bends under force.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">noise_scale=1.0</span></code>: Adds procedural deformation noise. Larger models require
+smaller values for realism.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">noise_power=1.3</span></code>: Amplifies the procedural noise intensity for dynamic
+deformations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crumple_rnd=0.5</span></code>: Randomizes the crumpling intensity, visible only during
+dynamic interaction.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crumple_force=0.1</span></code>: Determines the crumpling force during dynamic
+interactions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crumple_dist=0.5</span></code>: Specifies the crumpling effect distance during collisions.</p></li>
+</ul>
+</section>
+<section id="testing-parameters-in-game">
+<h3>Testing Parameters In-Game<a class="headerlink" href="#testing-parameters-in-game" title="Link to this heading"></a></h3>
+<p>To test these parameters effectively:</p>
+<ol class="arabic">
+<li><p>Launch the game and simulate interaction (e.g., a tank driving over a truck).</p></li>
+<li><p>Pause the game using <code class="docutils literal notranslate"><span class="pre">P</span></code>, then open the in-game editor with <code class="docutils literal notranslate"><span class="pre">F2</span></code>.</p></li>
+<li><p>Navigate to the <strong>dynamic_deform</strong> menu:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_35.jpg"><img alt="The Dynamic Deform menu in game" class="align-center" src="../../_images/wt_designing_vehicle_deformations_35.jpg" style="width: 50em;" />
+</a>
+<ul>
+<li><p>Identify the coordinates <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> of the test vehicle body
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_36.jpg"><img alt="Identifying the coordinates and the test vehicle body in daEditor" class="align-center" src="../../_images/wt_designing_vehicle_deformations_36.jpg" style="width: 50em;" />
+</a>
+</li>
+<li><p>Input the coordinates into the deformation testing block to align the test
+box with the vehicle.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_37.jpg"><img alt="Inputting the coordinates into the deformation testing block to align the test box with the vehicle" class="align-center" src="../../_images/wt_designing_vehicle_deformations_37.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p>Adjust the test deformation box:</p>
+<ul>
+<li><p>Enable checkboxes to visualize the deformation.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_38.jpg"><img alt="Enabling the Debug and Debug Draw checkboxes in DynamicDeform menu" class="align-center" src="../../_images/wt_designing_vehicle_deformations_38.jpg" style="width: 15em;" />
+</a>
+</li>
+<li><p>Use sliders to manipulate the deformation box and observe effects
+dynamically.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_40.jpg"><img alt="Using sliders to manipulate the deformation box" class="align-center" src="../../_images/wt_designing_vehicle_deformations_40.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Always clear deformations after each test using the
+<a class="reference internal" href="../../_images/wt_designing_vehicle_deformations_39.jpg"><img alt="The Clear All button" src="../../_images/wt_designing_vehicle_deformations_39.jpg" style="width: 5em;" /></a>
+button to reset the vehicle for further iterations.</p>
+</div>
+</li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For the deformation box to function correctly, ensure it intersects with the
+<strong>bounding box</strong> of the deformable object (indicated by a red highlight).
+Misalignment may prevent parameter application.</p>
+</div>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_41.jpg"><img alt="Ensuring the deformation box intersects with the bounding box of the deformable object" class="align-center" src="../../_images/wt_designing_vehicle_deformations_41.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="refining-parameters-in-3ds-max">
+<h3>Refining Parameters in 3ds Max<a class="headerlink" href="#refining-parameters-in-3ds-max" title="Link to this heading"></a></h3>
+<p>After determining the optimal settings:</p>
+<ol class="arabic">
+<li><p>Adjust parameters like <code class="docutils literal notranslate"><span class="pre">max_height</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">1.5</span></code>) and <code class="docutils literal notranslate"><span class="pre">noise_power</span></code> (<code class="docutils literal notranslate"><span class="pre">1.0</span></code>)
+in the material properties of the vehicle in 3ds Max.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_42.jpg"><img alt="Adjusting the Max Height and Noise Power parameters in Material Editor" class="align-center" src="../../_images/wt_designing_vehicle_deformations_42.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p>Re-export the model following the steps outlined earlier.</p></li>
+<li><p>Test the updated model in the game and iterate as needed.</p></li>
+</ol>
+</section>
+<section id="iterative-adjustments-and-enhancements">
+<h3>Iterative Adjustments and Enhancements<a class="headerlink" href="#iterative-adjustments-and-enhancements" title="Link to this heading"></a></h3>
+<p>Testing often reveals areas for refinement, such as missing components like
+broken windshield glass. These elements can be added and fine-tuned in
+subsequent iterations.</p>
+<section id="shading-and-coloring-adjustments">
+<h4>Shading and Coloring Adjustments<a class="headerlink" href="#shading-and-coloring-adjustments" title="Link to this heading"></a></h4>
+<p>Vehicles may include random color tinting for variety. This is configured using
+procedural settings within the
+<a class="reference internal" href="../../assets/shaders/dng-shaders/rendinst_simple.html"><span class="std std-doc">rendinst_simple</span></a> shader.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../assets/about-assets/procedural-rendinst-painting/procedural_rendinst_painting.html"><span class="std std-doc">Procedural Rendinst Painting</span></a>.</p>
+</div>
+<p>The parameters for <code class="docutils literal notranslate"><span class="pre">use_painting</span></code> and <code class="docutils literal notranslate"><span class="pre">painting_line</span></code> can be specified in the
+same location as the <strong>shader dynamic_deformed</strong> parameters, as follows:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_43.jpg"><img alt="Specifying the Use Painting and Painting Line parameters" class="align-center" src="../../_images/wt_designing_vehicle_deformations_43.jpg" style="width: 25em;" />
+</a>
+<p>This ensures proper integration and behavior of the painting line within the
+shader configuration.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Ensure that static shader settings match their dynamic counterparts to avoid
+inconsistencies.</p>
+</div>
+</section>
+<section id="simulating-broken-glass">
+<h4>Simulating Broken Glass<a class="headerlink" href="#simulating-broken-glass" title="Link to this heading"></a></h4>
+<p>To add shattered glass:</p>
+<ol class="arabic">
+<li><p>Extract original glass models from the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file.</p></li>
+<li><p>Use <a class="reference external" href="https://rayfirestudios.com/">RayFire</a> for fracturing:</p>
+<ul>
+<li><p>Set fracture parameters to produce radial breakage patterns.</p></li>
+<li><p>Remove overly small fragments to optimize simulation performance.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_44.jpg"><img alt="Using the RayFire plugin for 3ds Max for fracturing" class="align-center" src="../../_images/wt_designing_vehicle_deformations_44.jpg" style="width: 50em;" />
+</a>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Keep the number of glass fragments below 100 to prevent excessive physics
+calculations.</p>
+</div>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_45.jpg"><img alt="Glass fragments in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_45.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p>For each fragment:</p>
+<ul>
+<li><p>Separate front-facing triangles.</p></li>
+<li><p>Adjust pivots to the center for accurate collision generation.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_46.jpg"><img alt="Separating front-facing triangles and adjusting pivots to the center for accurate collision generation in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_46.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p>Apply a slight <strong>Noise modifier</strong> for realism, then assign a dynamic shader
+for glass fragments:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_47.jpg"><img alt="Applying the NoiseModifier in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_47.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p>Change the <code class="docutils literal notranslate"><span class="pre">rendinst_pbr_glass</span></code> shader to <code class="docutils literal notranslate"><span class="pre">dynamic_pbr_glass</span></code>:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_48.jpg"><img alt="Changing the Rendinst Pbr Glass shader to Dynamic Pbr Glass shader in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_48.jpg" style="width: 30em;" />
+</a>
+</li>
+<li><p>Assigned it to all available glass fragments, generate collisions with <a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/damages_setup_tool.html"><span class="std std-doc">Dagor
+Damages Setup
+Tool</span></a>:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_49.jpg"><img alt="The Dagor Damages Setup Tool option in Gaijin Tools menu in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_49.jpg" style="width: 20em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_50.jpg"><img alt="Generating collisions with Dagor 2 Damages Setup Tool" class="align-center" src="../../_images/wt_designing_vehicle_deformations_50.jpg" style="width: 50em;" />
+</a>
+<p>As you can see, all bboxes have their own thickness.</p>
+</li>
+</ol>
+</section>
+<section id="exporting-the-final-model">
+<h4>Exporting the Final Model<a class="headerlink" href="#exporting-the-final-model" title="Link to this heading"></a></h4>
+<p>After finalizing deformation and additional enhancements:</p>
+<ol class="arabic">
+<li><p>Save the model as <code class="docutils literal notranslate"><span class="pre">m123_truck_destr.lod00.dag</span></code>.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_51.jpg"><img alt="Saving the model" class="align-center" src="../../_images/wt_designing_vehicle_deformations_51.jpg" style="width: 30em;" />
+</a>
+</li>
+<li><p>Rebuild and test resources in the game using the steps outlined in earlier
+sections.</p></li>
+</ol>
+</section>
+</section>
+<section id="final-testing">
+<h3>Final Testing<a class="headerlink" href="#final-testing" title="Link to this heading"></a></h3>
+<p>The completed scene should include deformation behavior and additional features
+like broken glass. For adjustments, iterate on the 3ds Max scene and test
+within the game environment until the desired results are achieved.</p>
+<p>Download the final 3ds Max scene:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1KF0F9we5zXaqrL1gOA8gTEMrJFBgvA-S/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">m123_truck_destr_deform_final.max</span></code></a>.</p>
+</section>
+</section>
+<section id="example-vehicle-destruction-with-a-large-tank">
+<h2>Example: Vehicle Destruction with a Large Tank<a class="headerlink" href="#example-vehicle-destruction-with-a-large-tank" title="Link to this heading"></a></h2>
+<p>To begin, import the model from the archive:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1BPfFpzwanbFOwIyYUUSRdj6uvCRjQlCF/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">zis_6_bz.zip</span></code></a>.</p>
+<p>The primary challenge here is deforming the tank separately. During crushing,
+the tank will not only compress vertically but also bulge horizontally. The
+truck’s cab should also be separated into a distinct object. Before deformation,
+the scene should look approximately as follows:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_52.jpg"><img alt="Separating the tank and the cabin from truck body in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_52.jpg" style="width: 50em;" />
+</a>
+<p>When assessing the vehicle’s construction, note that elements like the fenders
+are distinct from the cab, just like the doors, the tank, and the tank’s guard
+rails. The key is to consider the varying rigidity of these parts. Consequently,
+deform these as separate objects. The vehicle’s internal components should also
+be split into segments based on the material’s rigidity. The image below
+illustrates a color-coded example of this segmentation:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_53.jpg"><img alt="Color-coded example of the segmentation in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_53.jpg" style="width: 50em;" />
+</a>
+<p>Next, as before, apply <strong>FDD</strong> modifiers to deform each object individually.
+After initial rough deformation, the scene will look something like this:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_54.jpg"><img alt="Applying FDD modifiers to deform each object individually in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_54.jpg" style="width: 50em;" />
+</a>
+<p>Deforming the tank is the most complex task, given its size. Here’s an example
+of a partially deformed tank:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_55.jpg"><img alt="The first example of a partially deformed tank on a real truck" class="align-center" src="../../_images/wt_designing_vehicle_deformations_55.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_56.jpg"><img alt="The second example of a partially deformed tank on a real truck" class="align-center" src="../../_images/wt_designing_vehicle_deformations_56.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_57.jpg"><img alt="The third example of a partially deformed tank on a real truck" class="align-center" src="../../_images/wt_designing_vehicle_deformations_57.jpg" style="width: 50em;" />
+</a>
+<p>Following this initial deformation, fine-tune the shapes manually using <strong>Soft
+Selection</strong>. The resulting deformed vehicle should preserve realistic creases
+and folds. The tank necks are minimally deformed, while sharp edges exhibit
+folds consistent with the model’s level of detail. The tank expands horizontally
+under pressure from above, creating natural-looking radial folds around the
+necks. The detailed appearance of the tank after refinement is shown below:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_58.jpg"><img alt="Top view of the detailed appearance of the tank after refinement in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_58.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_59.jpg"><img alt="Front view of the detailed appearance of the tank after refinement in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_59.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_60.jpg"><img alt="Side view of the detailed appearance of the tank after refinement in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_60.jpg" style="width: 50em;" />
+</a>
+<section id="physics-adjustments-post-testing">
+<h3>Physics Adjustments Post-Testing<a class="headerlink" href="#physics-adjustments-post-testing" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Wheels</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>: Slightly tilted to naturally detach from the
+vehicle body and roll away.</p></li>
+<li><p><strong>Ejection Boxes</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>: Added to prevent wheels from clipping
+through the tank guard rails. These boxes push the wheels outward, creating
+more natural movement.</p></li>
+<li><p><strong>Rear Wheel</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>: Designed to detach along with part of its
+assembly. Additional collision boxes are added to replicate a round wheel’s
+behavior, improving realism.</p></li>
+<li><p><strong>Flat Tire</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span>: Includes a collision box to tilt the
+vehicle’s frame when it falls. A single collision box is deliberately used
+here to amplify the impact.</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_61.jpg"><img alt="Side view of model collision boxes in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_61.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_62.jpg"><img alt="Back view of model collision boxes in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_62.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="note-on-quality-vs-time-constraints">
+<h3>Note on Quality vs. Time Constraints<a class="headerlink" href="#note-on-quality-vs-time-constraints" title="Link to this heading"></a></h3>
+<p>Balancing time and quality is crucial. While the tank could feature more
+advanced details like ruptures or cracks, such improvements require significant
+time investment. The chosen approach aims for an optimal balance of detail and
+efficiency.</p>
+<p>The scene with the modifier stack and detailed setup:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1j6MbBOFX1iSJWXcEx-BK_pI4YmjRcR4b/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">zis_6_bz_deform_modificators.zip</span></code></a>.</p>
+<p>The final scene, fully prepared for export with refined collision settings and
+other adjustments:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1cCYR7aUPHzdVG0HIimkURXwZ5OEJgtVt/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">zis_6_bz_deform.max</span></code></a>.</p>
+</section>
+</section>
+<section id="example-vehicle-destruction-with-extensive-plastic-components">
+<h2>Example: Vehicle Destruction with Extensive Plastic Components<a class="headerlink" href="#example-vehicle-destruction-with-extensive-plastic-components" title="Link to this heading"></a></h2>
+<p>This example demonstrates the destruction of a vehicle model that incorporates
+significant plastic components, such as bumpers and panels. Plastic behaves
+differently than metal, often bending, springing back, or detaching entirely
+under stress. Here’s a step-by-step guide to prepare and simulate such
+destruction.</p>
+<p>Download the model:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1ZF4WMjcIq67CvH6Ozbg6S00jIOcvoQmI/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">arctic_tayga_patrul_551.zip</span></code></a>.</p>
+<section id="initial-checks">
+<h3>Initial Checks<a class="headerlink" href="#initial-checks" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>Ensure proper scale</strong>:</p>
+<ul>
+<li><p>Verify that the model has no negative scaling and that all scaling values
+are <code class="docutils literal notranslate"><span class="pre">1.0</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Ensuring the correct scale is critical for the pipeline. If this step is
+skipped, everything may need to be redone from scratch later, so address it
+upfront.</p>
+</div>
+</li>
+</ul>
+</li>
+<li><p><strong>Inspect model structure</strong>:</p>
+<ul class="simple">
+<li><p>This particular model is relatively new, so it doesn’t have scaling issues.
+However, older models may require adjustments.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="separation-of-components">
+<h3>Separation of Components<a class="headerlink" href="#separation-of-components" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Begin by separating <strong>glass</strong> and other <strong>rigid objects</strong> (e.g., detachable
+plastic parts like panels, bumpers).</p></li>
+<li><p>Objects such as the protective transparent visor often have intricate shapes.
+After generating collisions, manually adjust their position and size for
+accurate representation.</p>
+<p>The goal is to achieve a realistic breakup of rigid parts that can detach
+during collisions. Example result:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_63.jpg"><img alt="Example of a realistic breakup of rigid parts that can detach during collisions" class="align-center" src="../../_images/wt_designing_vehicle_deformations_63.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="export-and-initial-testing">
+<h3>Export and Initial Testing<a class="headerlink" href="#export-and-initial-testing" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Assign appropriate materials to the separated components.</p></li>
+<li><p>Export the current setup into the game without adding deformation to the main
+body.</p></li>
+<li><p>Evaluate the in-game appearance:</p>
+<ul class="simple">
+<li><p>Rigid parts should separate cleanly during interactions.</p></li>
+<li><p>Large gaps (e.g., from detached panels) should be filled or masked
+appropriately.</p></li>
+</ul>
+</li>
+</ol>
+<p>Example result after initial export:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_64.jpg"><img alt="Example result after initial export in Asset Viewer" class="align-center" src="../../_images/wt_designing_vehicle_deformations_64.jpg" style="width: 50em;" />
+</a>
+<p>Intermediate stage of the scene with finished rigid objects and materials:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1tjUuMUdOwl_55sTmcu8DBxDuRgz5T7Np/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">arctic_tayga_patrul_551_deform_Rigid_Body_done.max</span></code></a>.</p>
+</section>
+<section id="refining-the-model">
+<h3>Refining the Model<a class="headerlink" href="#refining-the-model" title="Link to this heading"></a></h3>
+<section id="adding-internal-structure">
+<h4>Adding Internal Structure<a class="headerlink" href="#adding-internal-structure" title="Link to this heading"></a></h4>
+<p>Plastic panels often cover empty spaces. To mask these gaps:</p>
+<ol class="arabic">
+<li><p>Duplicate the <strong>deformable panels</strong> and adjust their placement.</p></li>
+<li><p>Use these duplicates to create an <strong>approximate internal frame</strong>:</p>
+<ul>
+<li><p>Assign a dark texture from the existing material library to simulate depth.</p></li>
+<li><p>Ensure the base structure is visually coherent when panels detach.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_65.jpg"><img alt="Making an approximate internal frame" class="align-center" src="../../_images/wt_designing_vehicle_deformations_65.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+</ol>
+<ul class="simple">
+<li><p><strong>Side Panels</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>: These are essentially the vehicle’s
+fenders and should also be separated into distinct entities. They will detach
+from the main body during deformation, revealing the black base underneath.</p></li>
+<li><p><strong>Dashboard and Plastic Covering</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>: Extract these into an
+individual entity for separate handling.</p></li>
+<li><p><strong>Black Base</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>: Separate the base along with the driver and
+passenger seats as distinct entities.</p></li>
+</ul>
+<p>As per standard practice, further separate parts that will deform independently
+due to differences in metal or material rigidity. This ensures a realistic
+deformation process tailored to the specific properties of each component.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<ol class="arabic simple">
+<li><p>Do <strong>not</strong> modify smoothing groups or normals during this stage. Adjustments
+to these attributes will change vertex indexing, leading to errors during
+deformation.</p></li>
+<li><p>Keep the model as an <strong>Editable Mesh</strong> throughout. Avoid converting between
+<code class="docutils literal notranslate"><span class="pre">Edit</span> <span class="pre">Poly</span></code> and <code class="docutils literal notranslate"><span class="pre">Edit</span> <span class="pre">Mesh</span></code> to preserve vertex consistency.</p></li>
+</ol>
+</div>
+</section>
+</section>
+<section id="final-scene-for-export">
+<h3>Final Scene for Export<a class="headerlink" href="#final-scene-for-export" title="Link to this heading"></a></h3>
+<p>Once the internal structure and rigid body setup are complete:</p>
+<ol class="arabic simple">
+<li><p>Fine-tune materials and shaders for plastic and metal parts.</p></li>
+<li><p>Test the model in the game environment to verify the detachment and
+deformation behaviors.</p></li>
+<li><p>Export the model as a finalized <code class="docutils literal notranslate"><span class="pre">.max</span></code> file:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1uffRGTSmti4_BiA43CyfQMIeVdA6eE-t/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">arctic_tayga_patrul_551_deform.max</span></code></a>.</p></li>
+</ol>
+</section>
+</section>
+<section id="example-vehicle-destruction-with-canvas-and-fabric-components">
+<h2>Example: Vehicle Destruction with Canvas and Fabric Components<a class="headerlink" href="#example-vehicle-destruction-with-canvas-and-fabric-components" title="Link to this heading"></a></h2>
+<p>In this section, we’ll explore the process of preparing a vehicle with fabric
+and canvas elements for dynamic deformation and destruction. The focus will be
+on separating, refining, and deforming components such as wooden supports, metal
+parts, and fabric material.</p>
+<p>Download the base model:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/149VnKlwrBM3nAhLgmAynx8VC7U03Uy3e/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">renault_ahn.zip</span></code></a>.</p>
+<section id="id1">
+<h3>Initial Checks<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>Inspect Transform Settings</strong>:</p>
+<ul>
+<li><p>Check for negative scaling or non-uniform scaling values (e.g., not equal
+to <code class="docutils literal notranslate"><span class="pre">1.0</span></code>).</p></li>
+<li><p>Incorrect transforms can cause inverted normals and other issues after
+exporting to a dynamic model.</p>
+<p><strong>Example of incorrect scaling:</strong></p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_66.jpg"><img alt="Example of incorrect scaling in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_66.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Correcting Transforms</strong>:</p>
+<ul class="simple">
+<li><p>Attach the vehicle body to a temporary box object.</p></li>
+<li><p>Detach the box and reposition the <strong>Pivot</strong> to the original position,
+typically <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></code>.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Ensure the scaling values are normalized before proceeding. Fixing these
+issues after deformation and settings adjustments can be exceedingly
+difficult.</p>
+</div>
+<p><strong>Example of correct transformation:</strong></p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_67.jpg"><img alt="Example of correct transformation in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_67.jpg" style="width: 30em;" />
+</a>
+</li>
+</ol>
+</section>
+<section id="preparing-the-canvas-and-wooden-supports">
+<h3>Preparing the Canvas and Wooden Supports<a class="headerlink" href="#preparing-the-canvas-and-wooden-supports" title="Link to this heading"></a></h3>
+<section id="wooden-components">
+<h4>Wooden Components<a class="headerlink" href="#wooden-components" title="Link to this heading"></a></h4>
+<ol class="arabic">
+<li><p><strong>Separate Wooden Elements</strong>:</p>
+<ul>
+<li><p>Identify seatbacks, planks, and other wooden components.</p></li>
+<li><p>Split them into smaller fragments using
+<a class="reference external" href="https://rayfirestudios.com/">RayFire</a> plugin: use fracture settings that
+mimic natural wood breakage.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_68.jpg"><img alt="Identifying seatbacks, planks, and other wooden model components" class="align-center" src="../../_images/wt_designing_vehicle_deformations_68.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_69.jpg"><img alt="Splitting them into smaller fragments using RayFire plugin in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_69.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Fracturing Details</strong>:</p>
+<ul>
+<li><p>Divide each plank into <strong>2-3 pieces</strong> (to meet the 100-object limit per
+<code class="docutils literal notranslate"><span class="pre">.dag</span></code> file).</p></li>
+<li><p>Apply a <strong>Noise modifier</strong> to simulate splintered edges.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_70.jpg"><img alt="Dividing each plank into 2-3 pieces to meet the 100-object limit per .dag file in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_70.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="metal-components">
+<h4>Metal Components<a class="headerlink" href="#metal-components" title="Link to this heading"></a></h4>
+<p><strong>Attach Non-Deforming Metal Parts</strong>:</p>
+<ul>
+<li><p>Metal elements like seat mounts and corner brackets should remain rigid
+(highlighted in red in the image below).</p></li>
+<li><p>Merge these with the main body and assign them a metal material for proper
+deformation behavior.</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_71.jpg"><img alt="Metal model elements that should remain rigid are highlighted in red in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_71.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</section>
+</section>
+<section id="organizing-the-deformable-objects">
+<h3>Organizing the Deformable Objects<a class="headerlink" href="#organizing-the-deformable-objects" title="Link to this heading"></a></h3>
+<p>Divide the vehicle into logical deformation groups:</p>
+<ol class="arabic simple">
+<li><p><strong>Side Panels</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>: These should behave like hinged doors,
+bending and opening during a collision.</p></li>
+<li><p><strong>Fuel Tank</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>: Sturdier than the body frame; must deform
+separately.</p></li>
+<li><p><strong>Wheel Discs</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>: Should have independent deformation logic
+due to their circular shape.</p></li>
+<li><p><strong>Front Fenders</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span>: Their rounded design requires unique
+deformation parameters compared to the angular cabin structure.</p></li>
+<li><p><strong>Rear Mudguards</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span>: These have different densities and
+require separate deformation behavior.</p></li>
+</ol>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_72.jpg"><img alt="Dividing the vehicle into logical deformation groups in 3ds Max" class="align-center" src="../../_images/wt_designing_vehicle_deformations_72.jpg" style="width: 50em;" />
+</a>
+<p>Intermediate preparation stage of the model:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1b3vf07PodEakJM9y-08mHB9PR8sGfBG1/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">renault_ahn_a_deform_ready_to_deform.max</span></code></a>.</p>
+</section>
+<section id="initial-deformation-with-ffd">
+<h3>Initial Deformation with FFD<a class="headerlink" href="#initial-deformation-with-ffd" title="Link to this heading"></a></h3>
+<p><strong>Apply Rough Deformations</strong>:</p>
+<ul class="simple">
+<li><p>Use an <strong>FFD modifier</strong> to simulate large-scale bending and crushing.</p></li>
+<li><p>Test deformations at this stage to ensure logical breakage patterns.</p></li>
+</ul>
+<p>Result after rough deformation:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_73.jpg"><img alt="The right side view of result after rough deformation" class="align-center" src="../../_images/wt_designing_vehicle_deformations_73.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_74.jpg"><img alt="The left side view of result after rough deformation" class="align-center" src="../../_images/wt_designing_vehicle_deformations_74.jpg" style="width: 50em;" />
+</a>
+<p>The scene after rough deformation:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1ZUDN1u_RM7dRe8cbJPUS09hbjvEfMuhQ/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">renault_ahn_a_deform_FFD_done.max</span></code></a>.</p>
+</section>
+<section id="detailed-deformation">
+<h3>Detailed Deformation<a class="headerlink" href="#detailed-deformation" title="Link to this heading"></a></h3>
+<p><strong>Finalize Deformation Details</strong>:</p>
+<ul class="simple">
+<li><p>Add finer details using <strong>Noise modifiers</strong> and <strong>manual adjustments</strong> to
+simulate realistic crushing and bending.</p></li>
+<li><p>Ensure no overlapping geometry or unnatural stretching.</p></li>
+</ul>
+<p>Final detailed deformation result:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_75.jpg"><img alt="The side view of final detailed deformation result" class="align-center" src="../../_images/wt_designing_vehicle_deformations_75.jpg" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_76.jpg"><img alt="The front view of final detailed deformation result" class="align-center" src="../../_images/wt_designing_vehicle_deformations_76.jpg" style="width: 50em;" />
+</a>
+<p>The scene after detailed deformation:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1X8SRjeIw9qwAgNjdY6aiynB4i9gOV_MN/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">renault_ahn_a_deform_all_deformation_done.max</span></code></a>.</p>
+</section>
+<section id="assigning-materials-for-the-canvas">
+<h3>Assigning Materials for the Canvas<a class="headerlink" href="#assigning-materials-for-the-canvas" title="Link to this heading"></a></h3>
+<p>To accurately simulate the canvas (tent), create a unique material with specific
+deformation properties:</p>
+<p><strong>Separate the Canvas Material</strong>:</p>
+<ul class="simple">
+<li><p>Use a dark texture for initial testing.</p></li>
+<li><p>Modify deformation parameters for the canvas:</p>
+<ul>
+<li><p>Disable blending of deformation textures.</p></li>
+<li><p>Increase recovery behavior to simulate fabric’s spring-back properties.</p></li>
+</ul>
+</li>
+</ul>
+<p>Example of material setup for canvas:</p>
+<a class="reference internal image-reference" href="../../_images/wt_designing_vehicle_deformations_77.jpg"><img alt="Example of material setup for canvas" class="align-center" src="../../_images/wt_designing_vehicle_deformations_77.jpg" style="width: 30em;" />
+</a>
+</section>
+<section id="final-testing-and-export">
+<h3>Final Testing and Export<a class="headerlink" href="#final-testing-and-export" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>In-Game Testing</strong>:</p>
+<ul class="simple">
+<li><p>Verify deformation and recovery behaviors in the game.</p></li>
+<li><p>Adjust shader parameters based on observed results.</p></li>
+</ul>
+</li>
+<li><p><strong>Export the Final Model</strong>:</p>
+<ul class="simple">
+<li><p>After testing, export the complete setup for integration into the game.</p></li>
+</ul>
+</li>
+</ol>
+<p>Final scene:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1xZs82yt_NV98bARCefE3f7JECJVyDf2M/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">renault_ahn_a_deform.max</span></code></a>.</p>
+<p>By following these steps, you’ll achieve a destructible vehicle model with
+realistic behavior for both rigid and flexible components, including proper
+handling of wooden and fabric elements.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="wt_creating_mission.html" class="btn btn-neutral float-left" title="Creating a Mission" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../tutorials/index.html" class="btn btn-neutral float-right" title="Tutorials and Manuals" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

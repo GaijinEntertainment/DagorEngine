@@ -1,0 +1,328 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__indirectDrawcallsBuffer_8h" kind="file" language="C++">
+    <compoundname>dag_indirectDrawcallsBuffer.h</compoundname>
+    <includes local="no">EASTL/string.h</includes>
+    <includes refid="dag__resPtr_8h" local="no">3d/dag_resPtr.h</includes>
+    <includes local="no">drv/3d/dag_info.h</includes>
+    <includes refid="dag__lockSbuffer_8h" local="no">3d/dag_lockSbuffer.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_indirectDrawcallsBuffer.h</label>
+        <link refid="dag__indirectDrawcallsBuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>3d/dag_lockSbuffer.h</label>
+        <link refid="dag__lockSbuffer_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>3d/dag_resPtr.h</label>
+        <link refid="dag__resPtr_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="25">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="23">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="20">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="19">
+        <label>drv/3d/dag_commands.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="16">
+        <label>drv/3d/dag_heap.h</label>
+      </node>
+      <node id="28">
+        <label>drv/3d/dag_info.h</label>
+      </node>
+      <node id="30">
+        <label>drv/3d/dag_query.h</label>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_renderTarget.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="12">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_texture.h</label>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_vertexIndexBuffer.h</label>
+      </node>
+      <node id="22">
+        <label>gameRes/dag_gameResources.h</label>
+      </node>
+      <node id="27">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="31">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="13">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="7">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="21">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="9">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="26">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classIndirectDrawcallsBuffer" prot="public">IndirectDrawcallsBuffer</innerclass>
+    <innerclass refid="structIndirectDrawcallsBuffer_1_1ExtendedDrawIndexedIndirectArgs" prot="private">IndirectDrawcallsBuffer::ExtendedDrawIndexedIndirectArgs</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551cedd" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>FillOnGPU</name>
+        <enumvalue id="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551ceddabafd7322c6e97d25b6299b5d6fe8920b" prot="public">
+          <name>No</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551cedda93cba07454f06a4a960172bbd6e2a435" prot="public">
+          <name>Yes</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="14" column="1" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="15" bodyend="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resPtr_8h" kindref="compound">3d/dag_resPtr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_info.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__lockSbuffer_8h" kindref="compound">3d/dag_lockSbuffer.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551cedd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551cedd" kindref="member">FillOnGPU</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551ceddabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">No</ref>,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551cedda93cba07454f06a4a960172bbd6e2a435" kindref="member">Yes</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>BaseArgsType&gt;</highlight></codeline>
+<codeline lineno="21" refid="classIndirectDrawcallsBuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueBuf</ref><sp/>buffer;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>uint32_t<sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>eastl::string<sp/>bufferName;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>usesPackedDrawCallID()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3d::get_driver_code().is(d3d::dx12);<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>packDrawCallIdAsOffset()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3d::get_driver_code().is(d3d::ps4<sp/>||<sp/>d3d::ps5<sp/>||<sp/>d3d::vulkan);<sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>useDiscardOnFill()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3d::get_driver_code().is(d3d::vulkan);<sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/>dwordsCountPerDrawcall()</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>G_STATIC_ASSERT(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(BaseArgsType)<sp/>%<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>BASE_DWORDS_COUNT<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(BaseArgsType)<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>usesPackedDrawCallID()<sp/>?<sp/>BASE_DWORDS_COUNT<sp/>+<sp/>1<sp/>:<sp/>BASE_DWORDS_COUNT;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ExtendedDrawIndexedIndirectArgs</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>drawcallId;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>BaseArgsType<sp/>args;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="47" refid="classIndirectDrawcallsBuffer_1a5ddb852f7c81552c1af8bdb71b760b74" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIndirectDrawcallsBuffer_1a5ddb852f7c81552c1af8bdb71b760b74" kindref="member">IndirectDrawcallsBuffer</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48" refid="classIndirectDrawcallsBuffer_1a0a86b4dbc4d35efeb722b9d553e9c35b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIndirectDrawcallsBuffer_1a0a86b4dbc4d35efeb722b9d553e9c35b" kindref="member">IndirectDrawcallsBuffer</ref>(eastl::string<sp/>name)<sp/>:<sp/>bufferName(eastl::move(name))<sp/>{}</highlight></codeline>
+<codeline lineno="49" refid="classIndirectDrawcallsBuffer_1a522318d1ee9aea19677fce7bcf74c13f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIndirectDrawcallsBuffer_1a522318d1ee9aea19677fce7bcf74c13f" kindref="member">IndirectDrawcallsBuffer</ref>(<ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50" refid="classIndirectDrawcallsBuffer_1a4d6fa2e8db06a91533312c37036a69e2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref><sp/>&amp;<ref refid="classIndirectDrawcallsBuffer_1a4d6fa2e8db06a91533312c37036a69e2" kindref="member">operator=</ref>(<ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="51" refid="classIndirectDrawcallsBuffer_1aae7583e50a94c58b605f53726bbedab1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIndirectDrawcallsBuffer_1aae7583e50a94c58b605f53726bbedab1" kindref="member">IndirectDrawcallsBuffer</ref>(<ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="52" refid="classIndirectDrawcallsBuffer_1a1060690ffcade5396f6e40d755536106" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref><sp/>&amp;<ref refid="classIndirectDrawcallsBuffer_1a1060690ffcade5396f6e40d755536106" kindref="member">operator=</ref>(<ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="classIndirectDrawcallsBuffer_1abb9eb4aea087edd963e1fbc0fa0c64be" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIndirectDrawcallsBuffer_1abb9eb4aea087edd963e1fbc0fa0c64be" kindref="member">fillBuffer</ref>(dag::ConstSpan&lt;BaseArgsType&gt;<sp/>drawcalls_data,<sp/>uint32_t<sp/>drawid_offset<sp/>=<sp/>0,<sp/><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551cedd" kindref="member">FillOnGPU</ref><sp/>fill_on_gpu<sp/>=<sp/><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551ceddabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">FillOnGPU::No</ref>)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(allocatedDrawcallsInBuffer<sp/>&lt;<sp/>drawcalls_data.size()<sp/>||<sp/>!buffer.getBuf())</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>drawcalls_data.size();</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>buffer.<ref refid="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>buffer<sp/>=<sp/>dag::create_sbuffer(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t),<sp/>allocatedDrawcallsInBuffer<sp/>*<sp/>dwordsCountPerDrawcall(),</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fill_on_gpu<sp/>==<sp/><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551ceddabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">FillOnGPU::No</ref><sp/>?<sp/>SBCF_INDIRECT<sp/>:<sp/>SBCF_UA_INDIRECT,<sp/>0,<sp/>bufferName.c_str());</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>LOCK_FLAGS<sp/>=<sp/>VBLOCK_WRITEONLY<sp/>|<sp/>(useDiscardOnFill()<sp/>?<sp/>VBLOCK_DISCARD<sp/>:<sp/>0);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(usesPackedDrawCallID())</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>data<sp/>=<sp/>lock_sbuffer&lt;ExtendedDrawIndexedIndirectArgs&gt;(buffer.getBuf(),<sp/>0,<sp/>drawcalls_data.size(),<sp/>LOCK_FLAGS))</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>drawcalls_data.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>data[i].drawcallId<sp/>=<sp/>i<sp/>+<sp/>drawid_offset;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>data[i].args<sp/>=<sp/>drawcalls_data[i];</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>logerr(</highlight><highlight class="stringliteral">&quot;Buffer<sp/>%s<sp/>data<sp/>wasn&apos;t<sp/>updated.&quot;</highlight><highlight class="normal">,<sp/>bufferName.c_str());</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(packDrawCallIdAsOffset())</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>data<sp/>=<sp/>lock_sbuffer&lt;BaseArgsType&gt;(buffer.getBuf(),<sp/>0,<sp/>drawcalls_data.size(),<sp/>LOCK_FLAGS))</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>drawcalls_data.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(drawcalls_data[i].startInstanceLocation<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>data[i]<sp/>=<sp/>drawcalls_data[i];</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>data[i].startInstanceLocation<sp/>=<sp/>i<sp/>+<sp/>drawid_offset;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>logerr(</highlight><highlight class="stringliteral">&quot;Buffer<sp/>%s<sp/>data<sp/>wasn&apos;t<sp/>updated.&quot;</highlight><highlight class="normal">,<sp/>bufferName.c_str());</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>buffer-&gt;updateData(0,<sp/>data_size(drawcalls_data),<sp/>drawcalls_data.data(),<sp/>LOCK_FLAGS);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100" refid="classIndirectDrawcallsBuffer_1a28f5f0c6569fb0279eea48e68a544c6b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIndirectDrawcallsBuffer_1a28f5f0c6569fb0279eea48e68a544c6b" kindref="member">close</ref>()</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>buffer.<ref refid="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106" refid="classIndirectDrawcallsBuffer_1ac3c619116a1687b3eae246360d576001" refkind="member"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*<ref refid="classIndirectDrawcallsBuffer_1ac3c619116a1687b3eae246360d576001" kindref="member">getBuffer</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>buffer.getBuf();<sp/>}</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="classIndirectDrawcallsBuffer_1a49fbe9be1cb3e5af643466e665093ba9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="classIndirectDrawcallsBuffer_1a49fbe9be1cb3e5af643466e665093ba9" kindref="member">getStride</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dwordsCountPerDrawcall()<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t);<sp/>}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110" refid="classIndirectDrawcallsBuffer_1af6ebb5a7a14296e06381de4a262ebc6e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="classIndirectDrawcallsBuffer_1af6ebb5a7a14296e06381de4a262ebc6e" kindref="member">getArgsOffset</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>usesPackedDrawCallID()<sp/>?<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t)<sp/>:<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_indirectDrawcallsBuffer.h"/>
+  </compounddef>
+</doxygen>

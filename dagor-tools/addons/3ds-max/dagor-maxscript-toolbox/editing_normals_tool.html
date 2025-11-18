@@ -1,0 +1,376 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Editing Normals Tool</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor Fast Editor User Properties" href="fast_editor_user_properties.html" />
+    <link rel="prev" title="Dagor Damages Setup Tool" href="damages_setup_tool.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor MaxScript Toolbox</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor Ambient Occlusion Baker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor Damages Setup Tool</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor Editing Normals Tool</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-editing-normals-tool">Accessing Editing Normals Tool</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-editing-normals-tool">Using Editing Normals Tool</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#interface-overview">Interface Overview</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#working-with-puffiness">Working with Puffiness</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#polysurface-settings">Polysurface Settings</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#classic-normals-thief-method">Classic Normals Thief Method</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor Simple CMP Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor Transfer Vertex Position to Vertex Color Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor MaxScript Toolbox</a></li>
+      <li class="breadcrumb-item active">Dagor Editing Normals Tool</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/editing_normals_tool.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-editing-normals-tool">
+<h1>Dagor Editing Normals Tool<a class="headerlink" href="#dagor-editing-normals-tool" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This script requires <strong>3ds Max 2023 or later</strong>.</p>
+</div>
+</section>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The Editing Normals Tool provides comprehensive functionality for generating and
+transferring vegetation normals using all widely recognized methods available at
+the time of publication. It supports:</p>
+<ul class="simple">
+<li><p><strong>Puffiness</strong>, similar to the technique used in SpeedTree.</p></li>
+<li><p><strong>Polysurface Method</strong>, as demonstrated by Guerrilla Games’ Gilbert Sanders
+during the 2018 GDC session on Horizon Zero Dawn.</p></li>
+<li><p><strong>Classic Normal Transfer</strong>, via the Noors Normal Thief approach, which
+transfers normals from a parent object.</p></li>
+</ul>
+<p>Example of the tool’s output:</p>
+<video controls="True" preload="auto" width="90%"><source src="../../../../_images/editing_normals_00.webm" type="video/webm"></video></section>
+<section id="accessing-editing-normals-tool">
+<h2>Accessing Editing Normals Tool<a class="headerlink" href="#accessing-editing-normals-tool" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Navigate to <strong>Gaijin Tools</strong> <span class="cnum">1</span> <strong>&gt; Dagor Editing Normals Tool…</strong>
+<span class="cnum">2</span>. This will open the main window of the Dagor Editing Normals Tool.</p></li>
+<li><p>To verify the version <span class="cnum">3</span> of the script, go to <strong>Gaijin
+Tools</strong> <span class="cnum">1</span> <strong>&gt; About</strong>. The <strong>About</strong> window will display the
+current version. It’s important to check this regularly to ensure your script
+is up to date.</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_01.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_01.png" style="width: 50em;" />
+</a>
+<div class="warning admonition">
+<p class="admonition-title">Plugin Version Requirement</p>
+<p>Requires plugin version <strong>1.6 or higher</strong>.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="using-editing-normals-tool">
+<h2>Using Editing Normals Tool<a class="headerlink" href="#using-editing-normals-tool" title="Link to this heading"></a></h2>
+<p>To begin, open the tool panel by navigating to <strong>Gaijin Tools &gt; Dagor Editing
+Normals Tool</strong>.</p>
+<p>Download the following test scene:
+<a class="reference download internal" download="" href="../../../../_downloads/4ebe132a864c4c4a2e08ef876d492e78/tree_example.zip"><code class="xref download docutils literal notranslate"><span class="pre">tree_example.max</span></code></a>.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This scene requires <strong>3ds Max 2024 or later</strong>.</p>
+</div>
+<section id="interface-overview">
+<h3>Interface Overview<a class="headerlink" href="#interface-overview" title="Link to this heading"></a></h3>
+<p>The Editing Normals Tool interface is divided into three main sections:
+Puffiness Settings, Polysurface Settings, and Classic Normals Thief Settings,
+with a General Settings block that affects all three sections.</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_02.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_02.png" style="width: 70em;" />
+</a>
+<ul class="simple">
+<li><p><strong>From Ground Center Offset</strong> <span class="cnum">1</span>: adjusts the elevation of the
+Puffiness build point from the ground to the center of the build.</p></li>
+<li><p><strong>Start Puffiness!</strong> <span class="cnum">2</span>: initiates the Puffiness generation process.</p></li>
+<li><p><strong>Strength %</strong> <span class="cnum">10</span>: controls the blending ratio between the new and
+existing normals on the object. This is crucial when you only need to
+partially replace the normals’ weight. A typical range is 70% to 90%.</p></li>
+<li><p><strong>Display Normals Length</strong> <span class="cnum">11</span>: determines the duration that normals
+are displayed in the Viewport.</p></li>
+</ul>
+</section>
+<section id="working-with-puffiness">
+<h3>Working with Puffiness<a class="headerlink" href="#working-with-puffiness" title="Link to this heading"></a></h3>
+<p>To see how Puffiness works, set parameter <strong>Strength %</strong> <span class="cnum">10</span> to <code class="docutils literal notranslate"><span class="pre">100</span></code> and
+parameter <strong>Display Normals Length</strong> <span class="cnum">11</span> to <code class="docutils literal notranslate"><span class="pre">100</span></code> for clear visibility.
+Note that the normal length is dependent on the scene’s scale and units. Select
+the palm tree in the test scene (you can also process multiple objects or LODs
+at once). Press the <strong>Start Puffiness!</strong> <span class="cnum">2</span> button to generate the
+normals:</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_03.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_03.png" style="width: 50em;" />
+</a>
+<p>Initially, the center aligns with the tree’s base, near the Pivot. If needed,
+adjust the center by setting <strong>From Ground Center Offset</strong> <span class="cnum">1</span> to <code class="docutils literal notranslate"><span class="pre">2500</span></code>.
+Remove the <strong>Edit Normals</strong> modifier generated by the script before re-running
+the process. After pressing the <strong>Start Puffiness!</strong> <span class="cnum">2</span> button again, you
+should see the result:</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_04.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_04.png" style="width: 50em;" />
+</a>
+<p>As you can see, everything is much better with the crown. With the crown
+adjusted, set the <strong>Strength %</strong> <span class="cnum">10</span> to 80%, remove the <strong>Edit Normals</strong>
+modifier again, and run the process:</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_05.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_05.png" style="width: 50em;" />
+</a>
+<p>The result shows improved lighting on the large palm leaves, though issues may
+still exist with the root system. To address this, you may need to edit the
+normals on the roots separately. Some tree bark normals might remain unedited,
+shown as blue. The <strong>Keep Normals on Material Name</strong> <span class="cnum">12</span> parameter is
+vital here, as it allows you to specify which materials’ normals will be
+processed.</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_06.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_06.png" style="width: 50em;" />
+</a>
+<p>For example, if the bark is named “bark”, ensure that <code class="docutils literal notranslate"><span class="pre">bark</span></code> is listed in
+<span class="cnum">12</span>. This field supports RegExp, enabling precise control over which
+materials are included or excluded from processing. After adjusting the
+expression, set the <strong>From Ground Center Offset</strong> <span class="cnum">1</span> parameter to zero.
+After all, the center of illumination of the root beam should be just somewhere
+at zero. At the Pivot point of the object. Set the parameter of normal transfer
+strength <span class="cnum">10</span> to 80% and rerun the Puffiness generation:</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_07.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_07.png" style="width: 50em;" />
+</a>
+</section>
+<section id="polysurface-settings">
+<h3>Polysurface Settings<a class="headerlink" href="#polysurface-settings" title="Link to this heading"></a></h3>
+<p>The <strong>Polysurface Settings</strong> block provides advanced tools for generating and
+transferring normals, originally used in the Horizon Zero Dawn project.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>More details about the method can be found in the video
+<a class="reference external" href="https://www.youtube.com/watch?v=wavnKZNSYqU">Between Tech and Art: The
+Vegetation of Horizon Zero Dawn</a>.</p>
+</div>
+<p>To apply similar lighting effects to your tree, select the tree without the
+<strong>Edit Normals</strong> modifier and configure the <strong>Polysurface Settings</strong> and
+<strong>General Group</strong> as shown below. Ensure that “bark” is excluded from normal
+adjustments:</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_08.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_08.png" style="width: 70em;" />
+</a>
+<p>After applying, you should see a result similar to this:</p>
+<a class="reference internal image-reference" href="../../../../_images/editing_normals_09.png"><img alt="Editing Normals Tool" class="align-center" src="../../../../_images/editing_normals_09.png" style="width: 50em;" />
+</a>
+<p>You can remove the Polysurface after generation using <strong>Delete PSurface after
+Transfer</strong> <span class="cnum">6</span> checkbox.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All Polysurface parameters are sensitive to the scene size and object scale. If
+values are set too high, Polysurface may not generate; too low, and it could
+generate with excessive triangles, causing processing issues in 3ds Max.</p>
+</div>
+<p>Adjust these settings carefully:</p>
+<ul class="simple">
+<li><p><strong>Polysurface Size</strong> <span class="cnum">3</span>: controls surface smoothness. A larger value
+results in a smoother surface, while a smaller value creates more detailed but
+less smooth surfaces.</p></li>
+<li><p><strong>Polysurface Tension</strong> <span class="cnum">4</span>: sets the surface tension. A value of <code class="docutils literal notranslate"><span class="pre">1.0</span></code>
+creates a maximally bulged surface, and <code class="docutils literal notranslate"><span class="pre">0.0</span></code> creates a tight surface.
+Typically, <code class="docutils literal notranslate"><span class="pre">0.5</span></code> is optimal, though this may vary based on the object type
+(e.g., higher for conifers, lower for palm trees).</p></li>
+<li><p><strong>Polysurface Accuracy</strong> <span class="cnum">5</span>: defines the step size for generating
+surface triangles. Smaller steps yield more precise surfaces but increase the
+triangle count exponentially. Usually 20 to 30 thousand triangles are enough
+to get an excellent result of Polysurface generation. Carefully reduce the
+value. Reducing the value by 2 times you increase the number of resulting
+triangles from 4 to 9 times.</p></li>
+</ul>
+</section>
+<section id="classic-normals-thief-method">
+<h3>Classic Normals Thief Method<a class="headerlink" href="#classic-normals-thief-method" title="Link to this heading"></a></h3>
+<p>The Normals Thief method, dating back to 2008, allows manual creation and
+projection of normals. Select the source object with the <strong>Source Object</strong>
+<span class="cnum">8</span> button, and project normals onto the target object using the <strong>Steal
+!</strong> <span class="cnum">9</span>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference external" href="http://www.scriptspot.com/3ds-max/scripts/noors-normal-thief">Noors Normal Thief</a>.</p>
+</div>
+<p>In the General Block, you can adjust the normal transfer strength <span class="cnum">10</span>
+(default: 50%). Setting this to 100% replicates the classic Normals Thief
+behavior. You can also clear the material exclusion mask for full normal
+transfer, mimicking the original tool’s functionality.</p>
+<ul class="simple">
+<li><p><strong>Progress bar</strong> <span class="cnum">13</span>: progress bar.</p></li>
+<li><p><strong>Open Local Documentation</strong> <span class="cnum">14</span>: links to this documentation.</p></li>
+<li><p><strong>Contact with Developer</strong> <span class="cnum">15</span>: provides contact information for the
+developer if assistance is needed.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="damages_setup_tool.html" class="btn btn-neutral float-left" title="Dagor Damages Setup Tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fast_editor_user_properties.html" class="btn btn-neutral float-right" title="Dagor Fast Editor User Properties" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

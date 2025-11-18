@@ -1,0 +1,216 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__linkedListOfShadervars_8h" kind="file" language="C++">
+    <compoundname>dag_linkedListOfShadervars.h</compoundname>
+    <includes refid="dag__shaders_8h" local="yes">dag_shaders.h</includes>
+    <incdepgraph>
+      <node id="12">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_linkedListOfShadervars.h</label>
+        <link refid="dag__linkedListOfShadervars_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="11">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="24">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="22">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="23">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="21">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="26">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="25">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="7">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="17">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="14">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="18">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="16">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="27">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="13">
+        <label>stdint.h</label>
+      </node>
+      <node id="28">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="15">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structshadervars_1_1Node" prot="public">shadervars::Node</innerclass>
+    <innernamespace refid="namespaceshadervars">shadervars</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;dag_shaders.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>You<sp/>can<sp/>get<sp/>shadervar<sp/>IDs<sp/>automatically</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>For<sp/>example:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>In<sp/>global<sp/>scope</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>shadervars::Node<sp/>gi_quality(&quot;gi_quality&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>In<sp/>function</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>ShaderGlobal::set_int(gi_quality.shadervarId,<sp/>WSAO);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">shadervars</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Node<sp/>*&amp;head();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="structshadervars_1_1Node" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshadervars_1_1Node" kindref="compound">Node</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="structshadervars_1_1Node" kindref="compound">Node</ref><sp/>*next<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shadervarName<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>shadervarId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="structshadervars_1_1Node" kindref="compound">Node</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>:<sp/>shadervarName(name)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>next<sp/>=<sp/>head();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>head()<sp/>=<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><ref refid="structshadervars_1_1Node" kindref="compound">Node</ref><sp/>*head_node_ptr<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structshadervars_1_1Node" kindref="compound">Node</ref><sp/>*&amp;head()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>head_node_ptr&lt;void&gt;;<sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resolve_shadervars()</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(Node<sp/>*node<sp/>=<sp/>head();<sp/>node;<sp/>node<sp/>=<sp/>node-&gt;next)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>node-&gt;shadervarId<sp/>=<sp/>get_shader_variable_id(node-&gt;shadervarName,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shadervars</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_linkedListOfShadervars.h"/>
+  </compounddef>
+</doxygen>

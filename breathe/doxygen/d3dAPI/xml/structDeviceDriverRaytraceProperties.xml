@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverRaytraceProperties" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverRaytraceProperties</compoundname>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDeviceDriverRaytraceProperties_1a0309a008b8d9c9c25c313202319f00c1" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::topAccelerationStructureInstanceElementSize</definition>
+        <argsstring></argsstring>
+        <name>topAccelerationStructureInstanceElementSize</name>
+        <qualifiedname>DeviceDriverRaytraceProperties::topAccelerationStructureInstanceElementSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2478" column="12" bodyfile="dag_consts.h" bodystart="2478" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverRaytraceProperties_1a9c7b230b5053a63323191497fcdd097c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::accelerationStructureBuildScratchBufferOffsetAlignment</definition>
+        <argsstring></argsstring>
+        <name>accelerationStructureBuildScratchBufferOffsetAlignment</name>
+        <qualifiedname>DeviceDriverRaytraceProperties::accelerationStructureBuildScratchBufferOffsetAlignment</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Offsets for scratch buffers for acceleration structures builds have to be aligned to this value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2480" column="12" bodyfile="dag_consts.h" bodystart="2480" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverRaytraceProperties_1a64065a4bac706df032418ae0ae3a2bcf" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::maxRecursionDepth</definition>
+        <argsstring></argsstring>
+        <name>maxRecursionDepth</name>
+        <qualifiedname>DeviceDriverRaytraceProperties::maxRecursionDepth</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Describes how many &quot;recursions&quot; ray dispatching supports. This describes how many rays can be cast without returning. A value of 1 would mean that only the ray gen shader can shoot the initial ray and no other shader invoked by the rays miss or hit shader. A value of 2 means that the ray gen shader shoots the first ray and the invoked hit or miss shader may also shoot one ray. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2486" column="12" bodyfile="dag_consts.h" bodystart="2486" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverRaytraceProperties_1ab296e3776bdcdbd804021099346900d9" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::accelerationStructurePoolSizeAlignment</definition>
+        <argsstring></argsstring>
+        <name>accelerationStructurePoolSizeAlignment</name>
+        <qualifiedname>DeviceDriverRaytraceProperties::accelerationStructurePoolSizeAlignment</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Sizes of acceleration structure pools have to be aligned to this value or the create call will fail. May be 0 when pools are not supported. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2489" column="12" bodyfile="dag_consts.h" bodystart="2489" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverRaytraceProperties_1a67ab90cf145c8a47633308a6353c8fc7" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::accelerationStructurePoolOffsetAlignment</definition>
+        <argsstring></argsstring>
+        <name>accelerationStructurePoolOffsetAlignment</name>
+        <qualifiedname>DeviceDriverRaytraceProperties::accelerationStructurePoolOffsetAlignment</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Offsets of acceleration structures in pools have to be aligned to this value or create call will fail. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2491" column="12" bodyfile="dag_consts.h" bodystart="2491" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Holds the device and driver specific ray tracing related properties. NOTE some platforms may override these with fixed values. </para>
+    </detaileddescription>
+    <location file="dag_consts.h" line="2474" column="1" bodyfile="dag_consts.h" bodystart="2475" bodyend="2492"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverRaytraceProperties_1a9c7b230b5053a63323191497fcdd097c" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>accelerationStructureBuildScratchBufferOffsetAlignment</name></member>
+      <member refid="structDeviceDriverRaytraceProperties_1a67ab90cf145c8a47633308a6353c8fc7" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>accelerationStructurePoolOffsetAlignment</name></member>
+      <member refid="structDeviceDriverRaytraceProperties_1ab296e3776bdcdbd804021099346900d9" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>accelerationStructurePoolSizeAlignment</name></member>
+      <member refid="structDeviceDriverRaytraceProperties_1a64065a4bac706df032418ae0ae3a2bcf" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>maxRecursionDepth</name></member>
+      <member refid="structDeviceDriverRaytraceProperties_1a0309a008b8d9c9c25c313202319f00c1" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>topAccelerationStructureInstanceElementSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

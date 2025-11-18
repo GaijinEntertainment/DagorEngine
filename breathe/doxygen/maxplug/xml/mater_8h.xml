@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="mater_8h" kind="file" language="C++">
+    <compoundname>mater.h</compoundname>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="matConvUtil_8cpp" local="yes">matConvUtil.cpp</includedby>
+    <includedby refid="mater_8cpp" local="yes">mater.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="3">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="4">
+        <label>matConvUtil.cpp</label>
+        <link refid="matConvUtil_8cpp"/>
+      </node>
+      <node id="5">
+        <label>mater.cpp</label>
+        <link refid="mater_8cpp"/>
+      </node>
+      <node id="1">
+        <label>mater.h</label>
+        <link refid="mater_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="7">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="8">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classIDagorMat" prot="public">IDagorMat</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="mater_8h_1a36dcaa0c637134b05278e83da132935e" prot="public" static="no">
+        <name>I_DAGORMAT</name>
+        <initializer>0x70a066e2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="4" column="9" bodyfile="mater.h" bodystart="4" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="mater_8h_1a36dcaa0c637134b05278e83da132935e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>I_DAGORMAT<sp/>0x70a066e2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="classIDagorMat" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIDagorMat" kindref="compound">IDagorMat</ref></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="9" refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">Sides</ref><sp/>:<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aa81797e9c6fc44586202026bb6aaefe8c" kindref="member">OneSided</ref>,</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aa54c65daef485e12e23c450d276053134" kindref="member">DoubleSided</ref>,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aadaa5aa0f34789eda3a5dff2920e7c8d0" kindref="member">RealDoubleSided</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classIDagorMat_1a87ba4f21930b96625725ef197be7f358" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Color<sp/><ref refid="classIDagorMat_1a87ba4f21930b96625725ef197be7f358" kindref="member">get_amb</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="17" refid="classIDagorMat_1a619315422c7471fc3865590e4f288d48" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Color<sp/><ref refid="classIDagorMat_1a619315422c7471fc3865590e4f288d48" kindref="member">get_diff</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="18" refid="classIDagorMat_1a7bd1940bef3e2436cf26e447e1cbf693" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Color<sp/><ref refid="classIDagorMat_1a7bd1940bef3e2436cf26e447e1cbf693" kindref="member">get_spec</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="19" refid="classIDagorMat_1a1b3ec43de86ca25d121b61b2ec38d7e4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Color<sp/><ref refid="classIDagorMat_1a1b3ec43de86ca25d121b61b2ec38d7e4" kindref="member">get_emis</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="20" refid="classIDagorMat_1a915c33b5c5b998e4cb05bebb3770543f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1a915c33b5c5b998e4cb05bebb3770543f" kindref="member">get_power</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="21" refid="classIDagorMat_1a8d93be97a06dcd377a24e9fa47055d13" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">Sides</ref><sp/><ref refid="classIDagorMat_1a8d93be97a06dcd377a24e9fa47055d13" kindref="member">get_2sided</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="22" refid="classIDagorMat_1a41d2a95db7399aa0a504416e5a300c65" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classIDagorMat_1a41d2a95db7399aa0a504416e5a300c65" kindref="member">get_classname</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="23" refid="classIDagorMat_1ac93f0f9f28724d6ab4ddc83319888a88" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classIDagorMat_1ac93f0f9f28724d6ab4ddc83319888a88" kindref="member">get_script</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="24" refid="classIDagorMat_1a26c96873fd833ac5cee96482b6f99383" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classIDagorMat_1a26c96873fd833ac5cee96482b6f99383" kindref="member">get_texname</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="25" refid="classIDagorMat_1a527d73c3c814c58c7edb159889577f1d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1a527d73c3c814c58c7edb159889577f1d" kindref="member">get_param</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="classIDagorMat_1a3d3d99ddfd74b9097aee8182d703aab5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1a3d3d99ddfd74b9097aee8182d703aab5" kindref="member">set_amb</ref>(Color)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="28" refid="classIDagorMat_1acd05e9a7c199e6ca8e12f8479ae733c4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1acd05e9a7c199e6ca8e12f8479ae733c4" kindref="member">set_diff</ref>(Color)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="29" refid="classIDagorMat_1a12f0adb00b6c0862ab4d004f196c54bd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1a12f0adb00b6c0862ab4d004f196c54bd" kindref="member">set_spec</ref>(Color)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="30" refid="classIDagorMat_1aa80fad171c33a42412edb879d64b5528" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1aa80fad171c33a42412edb879d64b5528" kindref="member">set_emis</ref>(Color)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="31" refid="classIDagorMat_1ac2fc4570c8981f75760921925db1b6e1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1ac2fc4570c8981f75760921925db1b6e1" kindref="member">set_power</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="32" refid="classIDagorMat_1ab9a123a1bfa48a9c034865411fddf1e2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1ab9a123a1bfa48a9c034865411fddf1e2" kindref="member">set_2sided</ref>(<ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">Sides</ref>)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="33" refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" kindref="member">set_classname</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="34" refid="classIDagorMat_1ab727afb93e454029978bcec8bbb6f893" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1ab727afb93e454029978bcec8bbb6f893" kindref="member">set_script</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="35" refid="classIDagorMat_1a7295ecd78b9f54d0991dc3b689edb989" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1a7295ecd78b9f54d0991dc3b689edb989" kindref="member">set_texname</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="36" refid="classIDagorMat_1a4b4604f7c5f2687a2b949f205d221ef8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIDagorMat_1a4b4604f7c5f2687a2b949f205d221ef8" kindref="member">set_param</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="mater.h"/>
+  </compounddef>
+</doxygen>

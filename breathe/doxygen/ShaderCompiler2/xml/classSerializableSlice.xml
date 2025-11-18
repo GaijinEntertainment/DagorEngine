@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSerializableSlice" kind="class" language="C++" prot="public">
+    <compoundname>SerializableSlice</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSerializableSlice_1affffda871ff8ff742c8b4d2816e548e7" prot="private" static="no" mutable="no">
+        <type>bindump::Address&lt; int &gt;</type>
+        <definition>bindump::Address&lt;int&gt; SerializableSlice::mPtr</definition>
+        <argsstring></argsstring>
+        <name>mPtr</name>
+        <qualifiedname>SerializableSlice::mPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="28" column="20" bodyfile="shcode.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSerializableSlice_1a81e90cfedcc6d56ab777fe98a8bc5681" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t SerializableSlice::mCount</definition>
+        <argsstring></argsstring>
+        <name>mCount</name>
+        <qualifiedname>SerializableSlice::mCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="29" column="12" bodyfile="shcode.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSerializableSlice_1ab79ef04abe336e30b7c34222ceefe329" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SerializableSlice::set</definition>
+        <argsstring>(int *p, intptr_t n)</argsstring>
+        <name>set</name>
+        <qualifiedname>SerializableSlice::set</qualifiedname>
+        <param>
+          <type>int *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>intptr_t</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="32" column="8" bodyfile="shcode.h" bodystart="32" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableSlice_1aee47aa8f680da28a1e53502e8722c52b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SerializableSlice::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>SerializableSlice::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="37" column="8" bodyfile="shcode.h" bodystart="37" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableSlice_1a65b93b0d83a58460ded9caff9e399cee" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const int *</type>
+        <definition>const int * SerializableSlice::data</definition>
+        <argsstring>() const</argsstring>
+        <name>data</name>
+        <qualifiedname>SerializableSlice::data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="42" column="13" bodyfile="shcode.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableSlice_1a5ff07bdcb3b22eda12edb0bce846ffd2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>intptr_t</type>
+        <definition>intptr_t SerializableSlice::size</definition>
+        <argsstring>() const</argsstring>
+        <name>size</name>
+        <qualifiedname>SerializableSlice::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="43" column="12" bodyfile="shcode.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableSlice_1a7f22d81fd2bf1d8fdbeb4f7a75359ac2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const int &amp;</type>
+        <definition>const int &amp; SerializableSlice::operator[]</definition>
+        <argsstring>(int idx) const</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>SerializableSlice::operator[]</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="45" column="13" bodyfile="shcode.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableSlice_1acb53665dae62354719b223ba02f1c3c9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int &amp;</type>
+        <definition>int &amp; SerializableSlice::operator[]</definition>
+        <argsstring>(int idx)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>SerializableSlice::operator[]</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="46" column="7" bodyfile="shcode.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shcode.h" line="26" column="1" bodyfile="shcode.h" bodystart="27" bodyend="47"/>
+    <listofallmembers>
+      <member refid="classSerializableSlice_1a65b93b0d83a58460ded9caff9e399cee" prot="public" virt="non-virtual"><scope>SerializableSlice</scope><name>data</name></member>
+      <member refid="classSerializableSlice_1a81e90cfedcc6d56ab777fe98a8bc5681" prot="private" virt="non-virtual"><scope>SerializableSlice</scope><name>mCount</name></member>
+      <member refid="classSerializableSlice_1affffda871ff8ff742c8b4d2816e548e7" prot="private" virt="non-virtual"><scope>SerializableSlice</scope><name>mPtr</name></member>
+      <member refid="classSerializableSlice_1a7f22d81fd2bf1d8fdbeb4f7a75359ac2" prot="public" virt="non-virtual"><scope>SerializableSlice</scope><name>operator[]</name></member>
+      <member refid="classSerializableSlice_1acb53665dae62354719b223ba02f1c3c9" prot="public" virt="non-virtual"><scope>SerializableSlice</scope><name>operator[]</name></member>
+      <member refid="classSerializableSlice_1aee47aa8f680da28a1e53502e8722c52b" prot="public" virt="non-virtual"><scope>SerializableSlice</scope><name>reset</name></member>
+      <member refid="classSerializableSlice_1ab79ef04abe336e30b7c34222ceefe329" prot="public" virt="non-virtual"><scope>SerializableSlice</scope><name>set</name></member>
+      <member refid="classSerializableSlice_1a5ff07bdcb3b22eda12edb0bce846ffd2" prot="public" virt="non-virtual"><scope>SerializableSlice</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

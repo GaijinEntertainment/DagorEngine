@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__eventQueryHolder_8h" kind="file" language="C++">
+    <compoundname>dag_eventQueryHolder.h</compoundname>
+    <includes local="no">drv/3d/dag_query.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_eventQueryHolder.h</label>
+        <link refid="dag__eventQueryHolder_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_query.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structEventFenceDeleter" prot="public">EventFenceDeleter</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__eventQueryHolder_8h_1aea66e61d38cb06e11685aa2a6d2398c5" prot="public" static="no">
+        <type>eastl::unique_ptr&lt; D3dEventQuery, <ref refid="structEventFenceDeleter" kindref="compound">EventFenceDeleter</ref> &gt;</type>
+        <definition>using EventQueryHolder =  eastl::unique_ptr&lt;D3dEventQuery, EventFenceDeleter&gt;</definition>
+        <argsstring></argsstring>
+        <name>EventQueryHolder</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_eventQueryHolder.h" line="14" column="1" bodyfile="dag_eventQueryHolder.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_query.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="structEventFenceDeleter" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structEventFenceDeleter" kindref="compound">EventFenceDeleter</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12" refid="structEventFenceDeleter_1aff88b11c73c817decca963e008b25fe4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structEventFenceDeleter_1aff88b11c73c817decca963e008b25fe4" kindref="member">operator()</ref>(D3dEventQuery<sp/>*ptr)<sp/>{<sp/>ptr<sp/>?<sp/>d3d::release_event_query(ptr)<sp/>:<sp/>(void)0;<sp/>}</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="14" refid="dag__eventQueryHolder_8h_1aea66e61d38cb06e11685aa2a6d2398c5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="dag__eventQueryHolder_8h_1aea66e61d38cb06e11685aa2a6d2398c5" kindref="member">EventQueryHolder</ref><sp/>=<sp/>eastl::unique_ptr&lt;D3dEventQuery,<sp/>EventFenceDeleter&gt;;</highlight></codeline>
+    </programlisting>
+    <location file="dag_eventQueryHolder.h"/>
+  </compounddef>
+</doxygen>

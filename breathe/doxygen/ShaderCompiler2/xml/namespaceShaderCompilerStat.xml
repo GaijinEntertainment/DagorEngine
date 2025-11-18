@@ -1,0 +1,185 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceShaderCompilerStat" kind="namespace" language="C++">
+    <compoundname>ShaderCompilerStat</compoundname>
+    <innerclass refid="structShaderCompilerStat_1_1DroppedVariants" prot="public">ShaderCompilerStat::DroppedVariants</innerclass>
+    <innerclass refid="structShaderCompilerStat_1_1ShaderStatistics" prot="public">ShaderCompilerStat::ShaderStatistics</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceShaderCompilerStat_1a3fec6c24aa67c9a0223e5e084285470b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::totalVariants</definition>
+        <argsstring></argsstring>
+        <name>totalVariants</name>
+        <qualifiedname>ShaderCompilerStat::totalVariants</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="17" column="12" bodyfile="sh_stat.cpp" bodystart="10" bodyend="-1" declfile="sh_stat.h" declline="17" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderCompilerStat_1afcb4b728593b30eea62cd542f7496368" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderCompilerStat_1_1DroppedVariants" kindref="compound">DroppedVariants</ref></type>
+        <definition>ShaderCompilerStat::DroppedVariants ShaderCompilerStat::droppedVariants</definition>
+        <argsstring></argsstring>
+        <name>droppedVariants</name>
+        <qualifiedname>ShaderCompilerStat::droppedVariants</qualifiedname>
+        <initializer>= {0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="22" column="24" bodyfile="sh_stat.cpp" bodystart="11" bodyend="-1" declfile="sh_stat.h" declline="22" declcolumn="24"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderCompilerStat_1a983c8037ae29bbf6a3ec0a21c34df598" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::hlslCompileCount</definition>
+        <argsstring></argsstring>
+        <name>hlslCompileCount</name>
+        <qualifiedname>ShaderCompilerStat::hlslCompileCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="23" column="12" bodyfile="sh_stat.cpp" bodystart="13" bodyend="-1" declfile="sh_stat.h" declline="23" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderCompilerStat_1a340a1c254f203e96131e622ecdaf17e7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::hlslCacheHitCount</definition>
+        <argsstring></argsstring>
+        <name>hlslCacheHitCount</name>
+        <qualifiedname>ShaderCompilerStat::hlslCacheHitCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="23" column="29" bodyfile="sh_stat.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderCompilerStat_1a295e64377cae808b0d8df8af7a6e3f44" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::hlslEqResultCount</definition>
+        <argsstring></argsstring>
+        <name>hlslEqResultCount</name>
+        <qualifiedname>ShaderCompilerStat::hlslEqResultCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="23" column="47" bodyfile="sh_stat.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderCompilerStat_1aa075abe041ad03cfb185adebfabe378f" prot="public" static="no" mutable="no">
+        <type>dag::AtomicInteger&lt; int &gt;</type>
+        <definition>dag::AtomicInteger&lt; int &gt; ShaderCompilerStat::hlslExternalCacheHitCount</definition>
+        <argsstring></argsstring>
+        <name>hlslExternalCacheHitCount</name>
+        <qualifiedname>ShaderCompilerStat::hlslExternalCacheHitCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="24" column="27" bodyfile="sh_stat.cpp" bodystart="14" bodyend="-1" declfile="sh_stat.h" declline="24" declcolumn="27"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderCompilerStat_1a7356b1efb5e0167af1ddb433a0372e67" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderCompilerStat_1_1ShaderStatistics" kindref="compound">ShaderStatistics</ref> &gt;</type>
+        <definition>Tab&lt; ShaderCompilerStat::ShaderStatistics &gt; ShaderCompilerStat::shaderStatisticsList</definition>
+        <argsstring></argsstring>
+        <name>shaderStatisticsList</name>
+        <qualifiedname>ShaderCompilerStat::shaderStatisticsList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="62" column="12" declfile="sh_stat.h" declline="62" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceShaderCompilerStat_1a1b8f5d565699cdda335f64e632a89ad5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderCompilerStat::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>ShaderCompilerStat::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="65" column="6" bodyfile="sh_stat.cpp" bodystart="18" bodyend="23" declfile="sh_stat.h" declline="65" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderCompilerStat_1ae602f997edcc4efccbe26bb20d960ae4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderCompilerStat::printReport</definition>
+        <argsstring>(const char *dir)</argsstring>
+        <name>printReport</name>
+        <qualifiedname>ShaderCompilerStat::printReport</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>dir</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="66" column="6" bodyfile="sh_stat.cpp" bodystart="25" bodyend="67" declfile="sh_stat.h" declline="66" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderCompilerStat_1af13618154cfa1ad6730602881bb9fcd5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderCompilerStat::collectTargetStats</definition>
+        <argsstring>(const shc::TargetContext &amp;ctx)</argsstring>
+        <name>collectTargetStats</name>
+        <qualifiedname>ShaderCompilerStat::collectTargetStats</qualifiedname>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="67" column="6" bodyfile="sh_stat.cpp" bodystart="69" bodyend="72" declfile="sh_stat.h" declline="67" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderCompilerStat_1a1030d3430aa370a25543c3af4afd1b06" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::getUniqueCompilationCount</definition>
+        <argsstring>()</argsstring>
+        <name>getUniqueCompilationCount</name>
+        <qualifiedname>ShaderCompilerStat::getUniqueCompilationCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="68" column="12" bodyfile="sh_stat.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="sh_stat.h" line="15" column="1"/>
+  </compounddef>
+</doxygen>

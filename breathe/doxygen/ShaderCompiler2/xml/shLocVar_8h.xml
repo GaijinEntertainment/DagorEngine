@@ -1,0 +1,239 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shLocVar_8h" kind="file" language="C++">
+    <compoundname>shLocVar.h</compoundname>
+    <includedby refid="shLocVar_8cpp" local="yes">shLocVar.cpp</includedby>
+    <includedby refid="shVariantContext_8h" local="yes">shVariantContext.h</includedby>
+    <invincdepgraph>
+      <node id="16">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="5">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="4">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="2">
+        <label>shLocVar.cpp</label>
+        <link refid="shLocVar_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shLocVar.h</label>
+        <link refid="shLocVar_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="3">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="13">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="14">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="12">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="15">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structLocalVar" prot="public">LocalVar</innerclass>
+    <innerclass refid="unionLocalVar_1_1ConstValue" prot="public">LocalVar::ConstValue</innerclass>
+    <innerclass refid="classLocalVarTable" prot="public">LocalVarTable</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>local<sp/>variable<sp/>support</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_color.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shExpr_8h" kindref="compound">shExpr.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shVarVecTypes_8h" kindref="compound">shVarVecTypes.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TargetContext;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//************************************************************************</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//*<sp/>forwards</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//************************************************************************</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ScriptedShaderElement;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">/*********************************</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>class<sp/>LocalVar</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*********************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="structLocalVar" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structLocalVar" kindref="compound">LocalVar</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="32" refid="unionLocalVar_1_1ConstValue" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union<sp/></highlight><highlight class="normal"><ref refid="unionLocalVar_1_1ConstValue" kindref="compound">ConstValue</ref></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="34" refid="unionLocalVar_1_1ConstValue_1aced328c75d3d61ec9fd44e0748aec33d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshc_1_1Col4" kindref="compound">shc::Col4</ref><sp/><ref refid="unionLocalVar_1_1ConstValue_1aced328c75d3d61ec9fd44e0748aec33d" kindref="member">c</ref>;</highlight></codeline>
+<codeline lineno="35" refid="unionLocalVar_1_1ConstValue_1a684300f7837dfbd35c7b9373fb8d8b56" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>real<sp/><ref refid="unionLocalVar_1_1ConstValue_1a684300f7837dfbd35c7b9373fb8d8b56" kindref="member">r</ref>;</highlight></codeline>
+<codeline lineno="36" refid="unionLocalVar_1_1ConstValue_1a6b23b6adb7b8ebdd8f43dd29a1395678" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="unionLocalVar_1_1ConstValue_1a6b23b6adb7b8ebdd8f43dd29a1395678" kindref="member">ConstValue</ref>()<sp/>:<sp/><ref refid="unionLocalVar_1_1ConstValue_1aced328c75d3d61ec9fd44e0748aec33d" kindref="member">c</ref>{0,<sp/>0,<sp/>0,<sp/>0}<sp/>{}</highlight></codeline>
+<codeline lineno="37" refid="unionLocalVar_1_1ConstValue_1ae320421f8351491dfab515c171c2b12c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="unionLocalVar_1_1ConstValue_1ae320421f8351491dfab515c171c2b12c" kindref="member">ConstValue</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="unionLocalVar_1_1ConstValue_1a684300f7837dfbd35c7b9373fb8d8b56" kindref="member">r</ref>,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>g,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>b,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a)<sp/>:<sp/><ref refid="unionLocalVar_1_1ConstValue_1aced328c75d3d61ec9fd44e0748aec33d" kindref="member">c</ref>{<ref refid="unionLocalVar_1_1ConstValue_1a684300f7837dfbd35c7b9373fb8d8b56" kindref="member">r</ref>,<sp/>g,<sp/>b,<sp/>a}<sp/>{}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="structLocalVar_1addd5be6f538d72f7f4719be69b3cc4da" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="unionLocalVar_1_1ConstValue" kindref="compound">ConstValue</ref><sp/><ref refid="structLocalVar_1addd5be6f538d72f7f4719be69b3cc4da" kindref="member">cv</ref>;</highlight></codeline>
+<codeline lineno="41" refid="structLocalVar_1acd4a3827cb48e24fa4d52e69f2a12ede" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="structLocalVar_1acd4a3827cb48e24fa4d52e69f2a12ede" kindref="member">reg</ref><sp/>:<sp/>28<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="42" refid="structLocalVar_1a731b1f0d5e66eb5ed728d819a1a5d865" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structLocalVar_1a731b1f0d5e66eb5ed728d819a1a5d865" kindref="member">isConst</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43" refid="structLocalVar_1a7a0249249c8dd30526a3c30be6eec341" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structLocalVar_1a7a0249249c8dd30526a3c30be6eec341" kindref="member">isDynamic</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44" refid="structLocalVar_1add3501d79d8d7b5cdcc9c1826e9ce816" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structLocalVar_1add3501d79d8d7b5cdcc9c1826e9ce816" kindref="member">isInteger</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="45" refid="structLocalVar_1ab060992b4cae3092ad7c90185875aec2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structLocalVar_1ab060992b4cae3092ad7c90185875aec2" kindref="member">dependsOnDynVarsAndMaterialParams</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46" refid="structLocalVar_1a37e48daab927d6420bd9372caf85dbe6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structLocalVar_1a37e48daab927d6420bd9372caf85dbe6" kindref="member">varNameId</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="47" refid="structLocalVar_1a28b868de52e6d5b3210f360b46d6bda7" refkind="member"><highlight class="normal"><sp/><sp/>shexpr::ValueType<sp/><ref refid="structLocalVar_1a28b868de52e6d5b3210f360b46d6bda7" kindref="member">valueType</ref>;</highlight></codeline>
+<codeline lineno="48" refid="structLocalVar_1ac9f88562d468be9f927e32f570c1b160" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structLocalVar_1ac9f88562d468be9f927e32f570c1b160" kindref="member">LocalVar</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="structLocalVar_1a5a30181518ad3d9280d6e6be521eba4d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structLocalVar_1a5a30181518ad3d9280d6e6be521eba4d" kindref="member">LocalVar</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>_varNameId,<sp/>shexpr::ValueType<sp/>val_type,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_integer)<sp/>:</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structLocalVar_1a37e48daab927d6420bd9372caf85dbe6" kindref="member">varNameId</ref>(_varNameId),<sp/><ref refid="structLocalVar_1a28b868de52e6d5b3210f360b46d6bda7" kindref="member">valueType</ref>(val_type),<sp/><ref refid="structLocalVar_1add3501d79d8d7b5cdcc9c1826e9ce816" kindref="member">isInteger</ref>(is_integer)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>class<sp/>LocalVar</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="comment">/*********************************</highlight></codeline>
+<codeline lineno="57"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="58"><highlight class="comment"><sp/>*<sp/>class<sp/>LocalVarTable</highlight></codeline>
+<codeline lineno="59"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="60"><highlight class="comment"><sp/>*********************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="classLocalVarTable" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref></highlight></codeline>
+<codeline lineno="62"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ctor/dtor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;a_ctx);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><ref refid="classLocalVarTable_1a31ca41e73408fbbbfd96eb15a6df89c2" kindref="member">~LocalVarTable</ref>();</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>clear<sp/>all<sp/>table</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable_1a66da05acb9d2276fce5235431b33c038" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>add<sp/>new<sp/>local<sp/>variable<sp/>(return<sp/>variable<sp/>ID)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable_1ac5b5d3b9695b8db06057df2dc6d6c09d" kindref="member">addVariable</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structLocalVar" kindref="compound">LocalVar</ref><sp/>&amp;var);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>local<sp/>variable<sp/>ID<sp/>by<sp/>name<sp/>(-1,<sp/>if<sp/>failed)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable_1a89151c12d65aa70028d87fc1c64979c0" kindref="member">getVariableId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>//<sp/>return<sp/>local<sp/>variable<sp/>ID<sp/>by<sp/>ptr<sp/>(-1,<sp/>if<sp/>failed)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>int<sp/>getVariableId(LocalVar*<sp/>var);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>local<sp/>variable<sp/>by<sp/>name<sp/>(NULL,<sp/>if<sp/>failed)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classLocalVarTable_1acc73e6bd975d8ac1058d7855f28fca35" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structLocalVar" kindref="compound">LocalVar</ref><sp/>*<ref refid="classLocalVarTable_1acc73e6bd975d8ac1058d7855f28fca35" kindref="member">getVariableByName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_name_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable_1a503b3e7b1e6247a7f86a9058e3679e38" kindref="member">getVariableById</ref>(<ref refid="classLocalVarTable_1a89151c12d65aa70028d87fc1c64979c0" kindref="member">getVariableId</ref>(var_name_id));<sp/>}</highlight></codeline>
+<codeline lineno="82" refid="classLocalVarTable_1a4e4f9bc874d7b0ac133555eca786fe0d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structLocalVar" kindref="compound">LocalVar</ref><sp/>*<ref refid="classLocalVarTable_1a4e4f9bc874d7b0ac133555eca786fe0d" kindref="member">getVariableByName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_name_id)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="83"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const_cast&lt;</highlight><highlight class="normal"><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">this</highlight><highlight class="normal">)-&gt;<ref refid="classLocalVarTable_1acc73e6bd975d8ac1058d7855f28fca35" kindref="member">getVariableByName</ref>(var_name_id);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>local<sp/>variable<sp/>by<sp/>ID<sp/>(NULL,<sp/>if<sp/>failed)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="classLocalVarTable_1a503b3e7b1e6247a7f86a9058e3679e38" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structLocalVar" kindref="compound">LocalVar</ref><sp/>*<ref refid="classLocalVarTable_1a503b3e7b1e6247a7f86a9058e3679e38" kindref="member">getVariableById</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(var_id<sp/>&lt;<sp/>0<sp/>||<sp/>var_id<sp/>&gt;=<sp/>varTable.size())<sp/>?<sp/>NULL<sp/>:<sp/>&amp;varTable[var_id];<sp/>}</highlight></codeline>
+<codeline lineno="89" refid="classLocalVarTable_1aef0632dd2b1fa5401108d727ddb74d8e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structLocalVar" kindref="compound">LocalVar</ref><sp/>*<ref refid="classLocalVarTable_1aef0632dd2b1fa5401108d727ddb74d8e" kindref="member">getVariableById</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const_cast&lt;</highlight><highlight class="normal"><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">this</highlight><highlight class="normal">)-&gt;<ref refid="classLocalVarTable_1aef0632dd2b1fa5401108d727ddb74d8e" kindref="member">getVariableById</ref>(var_id);<sp/>}</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>create<sp/>copy</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable_1a350588305d5cd51e6397f23c8486c172" kindref="member">copyFrom</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref><sp/>&amp;c);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="classLocalVarTable_1a0d9b276803c50c165ce44e55d9d95d3c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>dag::ConstSpan&lt;LocalVar&gt;<sp/><ref refid="classLocalVarTable_1a0d9b276803c50c165ce44e55d9d95d3c" kindref="member">getVars</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>varTable;<sp/>}</highlight></codeline>
+<codeline lineno="96" refid="classLocalVarTable_1a64549636f3d695b6eeb48118120d2ee9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable_1a64549636f3d695b6eeb48118120d2ee9" kindref="member">getCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>varTable.size();<sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>Tab&lt;LocalVar&gt;<sp/>varTable;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref><sp/>&amp;other)<sp/>:<sp/>varTable(midmem),<sp/>ctx{other.ctx}<sp/>{}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>addBuiltinConstants();</highlight></codeline>
+<codeline lineno="106"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>class<sp/>LocalVarTable</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="shLocVar.h"/>
+  </compounddef>
+</doxygen>

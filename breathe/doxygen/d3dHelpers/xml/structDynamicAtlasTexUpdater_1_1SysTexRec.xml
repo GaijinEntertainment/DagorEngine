@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicAtlasTexUpdater_1_1SysTexRec" kind="struct" language="C++" prot="public">
+    <compoundname>DynamicAtlasTexUpdater::SysTexRec</compoundname>
+    <includes refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicAtlasTexUpdater_1_1SysTexRec_1af74e0a9690c5b1090f24ec17756347c3" prot="public" static="no" mutable="no">
+        <type>rbp::SkylineBinPack</type>
+        <definition>rbp::SkylineBinPack DynamicAtlasTexUpdater::SysTexRec::pack</definition>
+        <argsstring></argsstring>
+        <name>pack</name>
+        <qualifiedname>DynamicAtlasTexUpdater::SysTexRec::pack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="419" column="25" bodyfile="dag_dynAtlas.h" bodystart="419" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexUpdater_1_1SysTexRec_1a611c724fb0aa6404bcbca0d1bfd53e64" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DynamicAtlasTexUpdater::SysTexRec::frameNo</definition>
+        <argsstring></argsstring>
+        <name>frameNo</name>
+        <qualifiedname>DynamicAtlasTexUpdater::SysTexRec::frameNo</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="420" column="14" bodyfile="dag_dynAtlas.h" bodystart="420" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexUpdater_1_1SysTexRec_1a1f095c8a136b1306bf926dfc203a4fc1" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+        <definition>Texture* DynamicAtlasTexUpdater::SysTexRec::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>DynamicAtlasTexUpdater::SysTexRec::tex</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="421" column="13" bodyfile="dag_dynAtlas.h" bodystart="421" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynAtlas.h" line="417" column="3" bodyfile="dag_dynAtlas.h" bodystart="418" bodyend="422"/>
+    <listofallmembers>
+      <member refid="structDynamicAtlasTexUpdater_1_1SysTexRec_1a611c724fb0aa6404bcbca0d1bfd53e64" prot="public" virt="non-virtual"><scope>DynamicAtlasTexUpdater::SysTexRec</scope><name>frameNo</name></member>
+      <member refid="structDynamicAtlasTexUpdater_1_1SysTexRec_1af74e0a9690c5b1090f24ec17756347c3" prot="public" virt="non-virtual"><scope>DynamicAtlasTexUpdater::SysTexRec</scope><name>pack</name></member>
+      <member refid="structDynamicAtlasTexUpdater_1_1SysTexRec_1a1f095c8a136b1306bf926dfc203a4fc1" prot="public" virt="non-virtual"><scope>DynamicAtlasTexUpdater::SysTexRec</scope><name>tex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="priority_8h" kind="file" language="C++">
+    <compoundname>priority.h</compoundname>
+    <includes local="no">EASTL/numeric_limits.h</includes>
+    <includedby refid="registry_8h" local="no">registry.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>priority.h</label>
+        <link refid="priority_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EASTL/numeric_limits.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>daFG.h</label>
+        <link refid="daFG_8h"/>
+      </node>
+      <node id="1">
+        <label>priority.h</label>
+        <link refid="priority_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/numeric_limits.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" refkind="member"><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref><sp/>=<sp/>int32_t;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="namespacedafg_1a1bb5a834e607dcd9de90cf2b3a79f4f3" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref><sp/><ref refid="namespacedafg_1a1bb5a834e607dcd9de90cf2b3a79f4f3" kindref="member">PRIO_DEFAULT</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="namespacedafg_1a436606c43fdd50ad658bc5e9b444d620" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref><sp/><ref refid="namespacedafg_1a436606c43fdd50ad658bc5e9b444d620" kindref="member">PRIO_AS_LATE_AS_POSSIBLE</ref><sp/>=<sp/>eastl::numeric_limits&lt;priority_t&gt;::max();</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="namespacedafg_1a1d9330256a3b21123618ec7387ea390d" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref><sp/><ref refid="namespacedafg_1a1d9330256a3b21123618ec7387ea390d" kindref="member">PRIO_AS_EARLY_AS_POSSIBLE</ref><sp/>=<sp/>eastl::numeric_limits&lt;priority_t&gt;::min();</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="priority.h"/>
+  </compounddef>
+</doxygen>

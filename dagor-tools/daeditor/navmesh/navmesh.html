@@ -1,0 +1,325 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navigation Mesh</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Splines in daEditor" href="../splines_in_daeditor.html" />
+    <link rel="prev" title="Navigation Mesh" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">daEditor</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daeditor-console-commands/index.html">daEditor Console Commands</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Navigation Mesh</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Navigation Mesh</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#navigation-mesh-interface">Navigation Mesh Interface</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#navmesh-jumps-links-and-cover-interface">Navmesh Jumps, Links, and Cover Interface</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tank-navigation-mesh">Tank Navigation Mesh</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#displaying-navigation-in-daeditor">Displaying Navigation in daEditor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../splines_in_daeditor.html">Splines in daEditor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">daEditor</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Navigation Mesh</a></li>
+      <li class="breadcrumb-item active">Navigation Mesh</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/daeditor/navmesh/navmesh.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="navigation-mesh">
+<h1>Navigation Mesh<a class="headerlink" href="#navigation-mesh" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>To ensure bots navigate around obstacles like buildings and trees, we use a
+<em>navigation mesh</em> system. This system generates a separate mesh based on the
+heightmap, landmesh, or water (depending on settings) that defines areas bots
+can traverse. The mesh is generated in the <a class="reference internal" href="../daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>
+under the <strong>locationed/properties</strong> tab.</p>
+<p>The navigation mesh is baked into a binary file during every export.</p>
+<p>The navigation mesh is generated from a top-down view, which means there will be
+no navmesh under bridges or other elevated assets. To avoid this, you can
+specify the rendinst to exclude in <code class="docutils literal notranslate"><span class="pre">develop/gameBase/config/navmesh_layers.blk</span></code>
+under the <code class="docutils literal notranslate"><span class="pre">filter{}</span></code> block. The syntax is as follows:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;^.*af_conveyor.*$&quot; {}
+</pre></div>
+</div>
+<p>This is a regular expression, allowing you to exclude either all assets or
+specific ones by name. Note that the ending <code class="docutils literal notranslate"><span class="pre">*$&quot;</span> <span class="pre">{}</span></code> is required.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For successful ground navigation mesh generation, at least one spline must be
+present in the level (water navigation meshes are calculated based on the water
+surface alone).</p>
+</div>
+</section>
+<section id="navigation-mesh-interface">
+<h2>Navigation Mesh Interface<a class="headerlink" href="#navigation-mesh-interface" title="Link to this heading"></a></h2>
+<img alt="Navigation mesh interface" class="align-left" src="../../../_images/navmesh_01.jpg" />
+<img alt="Navigation mesh interface" class="align-left" src="../../../_images/navmesh_02.jpg" />
+<p>The settings are generally straightforward, but here are the key options:</p>
+<ul class="simple">
+<li><p><strong>Full main HMAP/Detailed HMAP/Explicit area</strong>: this option selects which part
+of the location to generate the navmesh for. It is recommended to map only the
+detailed area or even less if the entire location isn’t used. Mapping the
+entire detailed area can:</p>
+<ul>
+<li><p>Increase the binary size beyond reasonable limits.</p></li>
+<li><p>Slow down server performance.</p></li>
+</ul>
+</li>
+<li><p><strong>Navmesh type</strong>: defines how the navigation mesh is generated.</p></li>
+<li><p><strong>Water navigation</strong>: generates a navigation mesh on water.</p></li>
+<li><p><strong>Splines navigation</strong>: generates a navmesh around splines. If there are no
+splines with the <strong>Use for navmesh</strong> checkbox enabled, no navmesh will be
+generated.</p></li>
+<li><p><strong>Height from above</strong>: generates the mesh based on geometry from a top-down
+view.</p></li>
+<li><p><strong>Detailed geometry</strong>: uses high-detail rendinsts for the navigation mesh.</p></li>
+<li><p><strong>Water and geometry</strong>: generates the navigation mesh based on both water and
+geometry, considering any rendinsts encountered on the surface.</p></li>
+<li><p><strong>Use water surface</strong>: excludes the underwater portion of the heightmap,
+making it inaccessible to tanks. The water height is defined in the <strong>Crossing
+water</strong> block, ensuring bots can cross small bodies of water.</p></li>
+<li><p><strong>Water navigation</strong>: generates a navigation mesh for ships. Currently, it’s
+not possible to have both tank and ship navigation meshes on the same
+location.</p></li>
+</ul>
+<p>By default, the navigation mesh generates a reasonably dense grid. However, for
+narrow streets or other tight spaces, it may be necessary to adjust the cell
+size or distance to obstacles.</p>
+<ul class="simple">
+<li><p><strong>Use detailed geometry</strong> and <strong>Tiled navmesh</strong> are available for
+daNetGame-based projects.</p></li>
+</ul>
+<br clear="left">
+<p>daNetGame-based projects also allow bots to use the navigation mesh for jumping
+over obstacles (e.g., fences) and taking cover behind objects.</p>
+</section>
+<section id="navmesh-jumps-links-and-cover-interface">
+<h2>Navmesh Jumps, Links, and Cover Interface<a class="headerlink" href="#navmesh-jumps-links-and-cover-interface" title="Link to this heading"></a></h2>
+<img alt="Navmesh jumps, links, and cover interface" class="align-left" src="../../../_images/navmesh_03.jpg" />
+<ul class="simple">
+<li><p><strong>Export jump links mesh</strong>: generates jump links, essential for most maps.
+Without this, bots won’t be able to jump over fences.</p></li>
+<li><p><strong>jump over height</strong>: the maximum height of an obstacle that bots can jump
+over.</p></li>
+<li><p><strong>jump length</strong>: the depth of the obstacle and the maximum distance between
+two jump points.</p></li>
+<li><p><strong>delta height</strong>: defines the height difference at which a single jump link is
+split into smaller jumps (prevents bots from jumping over overly tall objects
+like poles).</p></li>
+<li><p><strong>merge delta angle</strong>: the angle at which different jump links are merged.</p></li>
+<li><p><strong>max angle between edge</strong>: another setting related to jump link merging.</p></li>
+<li><p><strong>Export covers</strong>: generates cover points for bots.</p></li>
+</ul>
+<p>For the first four settings, these are simply size constraints for covers:</p>
+<ul class="simple">
+<li><p><strong>min window for shoot</strong>: defines a window (e.g., a small opening) through
+which a bot can shoot. Once found, it marks the end of a cover point.</p></li>
+<li><p><strong>collision transparent</strong>: determines the transparency of collisions. This
+feature has limited accuracy because voxelized collision is imprecise. Since
+simplified collision data is used for map generation, small gaps might not be
+recognized (e.g., for carts or fences with large openings).</p></li>
+<li><p><strong>delta height</strong>: similar to jump links, this setting divides cover points
+based on height differences (e.g., a wall with a window in the middle could
+result in three separate cover points: full cover, half cover, and full
+cover).</p></li>
+<li><p><strong>shoot depth</strong>: checks the possibility of shooting from cover. Special points
+are generated from which bots can shoot, and these points are traced from the
+cover’s edges.</p></li>
+</ul>
+<br clear="left">
+</section>
+<section id="tank-navigation-mesh">
+<h2>Tank Navigation Mesh<a class="headerlink" href="#tank-navigation-mesh" title="Link to this heading"></a></h2>
+<p>The tank navigation mesh is constrained by splines. You can use existing splines
+or create new ones specifically for navigation mesh purposes.</p>
+<img alt="Tank navigation mesh" class="align-left" src="../../../_images/navmesh_04.jpg" />
+<p>If a spline has the <strong>Use for navmesh</strong> checkbox enabled in the properties
+panel, the mesh will include the area within the specified radius around the
+spline.</p>
+<br clear="left">
+<p>After creating a navigation mesh, additional files such as <code class="docutils literal notranslate"><span class="pre">navMesh.PC.bin</span></code>
+and/or <code class="docutils literal notranslate"><span class="pre">navMesh2.PC.bin</span></code> will appear in the level directory.</p>
+<p>To view the navmesh in the <a class="reference internal" href="../daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>, enable the
+<strong>show exported navmesh</strong> option in the panel.</p>
+<p>To view the navmesh in-game, use the console command <code class="docutils literal notranslate"><span class="pre">ai.debug_nav</span></code>.</p>
+<p><strong>Common Error</strong></p>
+<p>The following error indicates that the tank/ship navigation mesh is missing from
+the level:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>18.43 [F] $03 FATAL ERROR: skyquake\prog\main\app.cpp,5191: assert failed in ..\..\skyquake\prog\main\app.cpp:5191,AcesApp::doJob() : &quot;pathfinder::isLoaded() || (strstr(levelFileName, &quot;avg_&quot;) != levelFileName &amp;&amp; strstr(levelFileName, &quot;avn_&quot;) != levelFileName)&quot; Call stack (5 frames): ...
+</pre></div>
+</div>
+</section>
+<section id="displaying-navigation-in-daeditor">
+<h2>Displaying Navigation in daEditor<a class="headerlink" href="#displaying-navigation-in-daeditor" title="Link to this heading"></a></h2>
+<p>The navigation and additional object display modes can be toggled from the
+following menu:</p>
+<img alt="Displaying navigation in daEditor" class="align-center" src="../../../_images/navmesh_05.jpg" />
+<ul>
+<li><p><strong>Show exported nav mesh</strong>: displays navigation areas with a red-yellow
+overlay.</p>
+<a class="reference internal image-reference" href="../../../_images/navmesh_06.jpg"><img alt="Show exported nav mesh" class="align-center" src="../../../_images/navmesh_06.jpg" style="width: 50em;" />
+</a>
+</li>
+<li><p><strong>Show exported covers</strong>: displays cover points for AI in green.</p>
+<a class="reference internal image-reference" href="../../../_images/navmesh_07.jpg"><img alt="Show exported covers" class="align-center" src="../../../_images/navmesh_07.jpg" style="width: 50em;" />
+</a>
+</li>
+<li><p><strong>Show exported nav mesh obstacles</strong>: displays navigation obstacles in purple
+boxes.</p>
+<a class="reference internal image-reference" href="../../../_images/navmesh_08.jpg"><img alt="Show exported nav mesh obstacles" class="align-center" src="../../../_images/navmesh_08.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Navigation Mesh" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../splines_in_daeditor.html" class="btn btn-neutral float-right" title="Splines in daEditor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

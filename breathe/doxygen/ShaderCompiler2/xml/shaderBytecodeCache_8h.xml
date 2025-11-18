@@ -1,0 +1,698 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shaderBytecodeCache_8h" kind="file" language="C++">
+    <compoundname>shaderBytecodeCache.h</compoundname>
+    <includes refid="hash_8h" local="yes">hash.h</includes>
+    <includes refid="hlslStage_8h" local="yes">hlslStage.h</includes>
+    <includes refid="compileResult_8h" local="yes">compileResult.h</includes>
+    <includes refid="commonUtils_8h" local="yes">commonUtils.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">memory/dag_memBase.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">util/dag_simpleString.h</includes>
+    <includedby refid="shTargetContext_8h" local="yes">shTargetContext.h</includedby>
+    <includedby refid="shaderBytecodeCache_8cpp" local="yes">shaderBytecodeCache.cpp</includedby>
+    <incdepgraph>
+      <node id="16">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="19">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="11">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>cstring</label>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="20">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="3">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="12">
+        <label>memory</label>
+      </node>
+      <node id="21">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="18">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="23">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="22">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="17">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="3">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="6">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="29">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="28">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="15">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="20">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="19">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="24">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="21">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="38">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="10">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="26">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="27">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="44">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="35">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="37">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="12">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="14">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="30">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="32">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShaderCacheLevelIds" prot="public">ShaderCacheLevelIds</innerclass>
+    <innerclass refid="structShaderCacheEntry" prot="public">ShaderCacheEntry</innerclass>
+    <innerclass refid="structShaderCacheEntry_1_1Level2" prot="public">ShaderCacheEntry::Level2</innerclass>
+    <innerclass refid="structShaderCacheEntry_1_1Level2_1_1Level3" prot="public">ShaderCacheEntry::Level2::Level3</innerclass>
+    <innerclass refid="structCachedShader" prot="public">CachedShader</innerclass>
+    <innerclass refid="classShaderBytecodeCache" prot="public">ShaderBytecodeCache</innerclass>
+    <innerclass refid="structShaderBytecodeCache_1_1LookupResult" prot="public">ShaderBytecodeCache::LookupResult</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" prot="public" static="no" strong="yes">
+        <type>int32_t</type>
+        <name>ShaderCacheIndex</name>
+        <enumvalue id="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" prot="public">
+          <name>EMPTY</name>
+          <initializer>= -1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697ac69f06e1a9b016d133907b4e5f5864d2" prot="public">
+          <name>PENDING</name>
+          <initializer>= -2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="15" column="1" bodyfile="shaderBytecodeCache.h" bodystart="16" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shaderBytecodeCache_8h_1a27d34e801b7fd4581cd6dc3256b9af2e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_valid</definition>
+        <argsstring>(ShaderCacheIndex id)</argsstring>
+        <name>is_valid</name>
+        <param>
+          <type><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="26" column="13" bodyfile="shaderBytecodeCache.h" bodystart="26" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="shaderBytecodeCache_8h_1a53df41b64958672c8ba7bfecc65bf0fa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void apply_shader_from_cache</definition>
+        <argsstring>(SemanticShaderPass &amp;pass, HlslCompilationStage stage, ShaderCacheLevelIds c, const ShaderBytecodeCache &amp;cache)</argsstring>
+        <name>apply_shader_from_cache</name>
+        <param>
+          <type><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> &amp;</type>
+          <declname>pass</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref> &amp;</type>
+          <declname>cache</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="127" column="6" bodyfile="shaderBytecodeCache.cpp" bodystart="101" bodyend="116" declfile="shaderBytecodeCache.h" declline="127" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="hash_8h" kindref="compound">hash.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="hlslStage_8h" kindref="compound">hlslStage.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="compileResult_8h" kindref="compound">compileResult.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="commonUtils_8h" kindref="compound">commonUtils.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory/dag_memBase.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_simpleString.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref><sp/>:<sp/>int32_t</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">EMPTY</ref><sp/>=<sp/>-1,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697ac69f06e1a9b016d133907b4e5f5864d2" kindref="member">PENDING</ref><sp/>=<sp/>-2,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="structShaderCacheLevelIds" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23" refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref>,<sp/><ref refid="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" kindref="member">l2</ref>,<sp/><ref refid="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" kindref="member">l3</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="shaderBytecodeCache_8h_1a27d34e801b7fd4581cd6dc3256b9af2e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="shaderBytecodeCache_8h_1a27d34e801b7fd4581cd6dc3256b9af2e" kindref="member">is_valid</ref>(<ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>G_ASSERT(eastl::to_underlying(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>&gt;=<sp/>eastl::to_underlying(<ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697ac69f06e1a9b016d133907b4e5f5864d2" kindref="member">ShaderCacheIndex::PENDING</ref>));</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>!=<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">ShaderCacheIndex::EMPTY</ref><sp/>&amp;&amp;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>!=<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697ac69f06e1a9b016d133907b4e5f5864d2" kindref="member">ShaderCacheIndex::PENDING</ref>;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="structShaderCacheEntry" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderCacheEntry" kindref="compound">ShaderCacheEntry</ref></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34" refid="structShaderCacheEntry_1_1Level2" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderCacheEntry_1_1Level2" kindref="compound">Level2</ref></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="36" refid="structShaderCacheEntry_1_1Level2_1_1Level3" refkind="compound"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderCacheEntry_1_1Level2_1_1Level3" kindref="compound">Level3</ref></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="38" refid="structShaderCacheEntry_1_1Level2_1_1Level3_1aa56aa6f95ebe81ffb5c421d3204b4f50" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SimpleString<sp/><ref refid="structShaderCacheEntry_1_1Level2_1_1Level3_1aa56aa6f95ebe81ffb5c421d3204b4f50" kindref="member">entry</ref>,<sp/><ref refid="structShaderCacheEntry_1_1Level2_1_1Level3_1a29f42f86b6da218178e00b9665f84f1a" kindref="member">profile</ref>;</highlight></codeline>
+<codeline lineno="39" refid="structShaderCacheEntry_1_1Level2_1_1Level3_1ad64657643b23af50318376f80a4e4550" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref><sp/><ref refid="structShaderCacheEntry_1_1Level2_1_1Level3_1ad64657643b23af50318376f80a4e4550" kindref="member">codeIdx</ref>;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="structShaderCacheEntry_1_1Level2_1a36c36086c56c0c1b28487f9b43a86d15" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/><ref refid="structShaderCacheEntry_1_1Level2_1a36c36086c56c0c1b28487f9b43a86d15" kindref="member">constDigest</ref>;</highlight></codeline>
+<codeline lineno="43" refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;Level3&gt;<sp/><ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="structShaderCacheEntry_1_1Level2_1a35d66ca44d0c4614657083680673644b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCacheEntry_1_1Level2_1a35d66ca44d0c4614657083680673644b" kindref="member">Level2</ref>()<sp/>:<sp/><ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>(midmem)<sp/>{}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="structShaderCacheEntry_1_1Level2_1a6936307463546920f90b287541b75939" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCacheEntry_1_1Level2_1a6936307463546920f90b287541b75939" kindref="member">addEntry</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structShaderCacheEntry_1_1Level2_1_1Level3" kindref="compound">Level3</ref><sp/>&amp;l3<sp/>=<sp/><ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>.push_back();</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>l3.<ref refid="structShaderCacheEntry_1_1Level2_1_1Level3_1ad64657643b23af50318376f80a4e4550" kindref="member">codeIdx</ref><sp/>=<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697aba2b45bdc11e2a4a6e86aab2ac693cbb" kindref="member">ShaderCacheIndex::EMPTY</ref>;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>l3.<ref refid="structShaderCacheEntry_1_1Level2_1_1Level3_1aa56aa6f95ebe81ffb5c421d3204b4f50" kindref="member">entry</ref><sp/>=<sp/>entry;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>l3.<ref refid="structShaderCacheEntry_1_1Level2_1_1Level3_1a29f42f86b6da218178e00b9665f84f1a" kindref="member">profile</ref><sp/>=<sp/>profile;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderCacheEntry_1_1Level2_1a72bcd38703e2accf9d405f8f7e18d3bf" kindref="member">lv3</ref>.size()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="structShaderCacheEntry_1a48aff9e279a60c514c122e4b39868906" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/><ref refid="structShaderCacheEntry_1a48aff9e279a60c514c122e4b39868906" kindref="member">codeDigest</ref>;</highlight></codeline>
+<codeline lineno="58" refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;Level2&gt;<sp/><ref refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" kindref="member">lv2</ref>;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="structShaderCacheEntry_1aaf87ee553f4b4f33e36a399732001915" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderCacheEntry_1aaf87ee553f4b4f33e36a399732001915" kindref="member">ShaderCacheEntry</ref>()<sp/>:<sp/><ref refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" kindref="member">lv2</ref>(midmem)<sp/>{}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structShaderCacheEntry_1a19973c17cdb048c89eaf3477d0d37614" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCacheEntry_1a19973c17cdb048c89eaf3477d0d37614" kindref="member">addEntry</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/>&amp;const_digest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCacheEntry_1_1Level2" kindref="compound">Level2</ref><sp/>&amp;l2<sp/>=<sp/><ref refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" kindref="member">lv2</ref>.push_back();</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>l2.<ref refid="structShaderCacheEntry_1_1Level2_1a36c36086c56c0c1b28487f9b43a86d15" kindref="member">constDigest</ref><sp/>=<sp/>const_digest;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>l2.<ref refid="structShaderCacheEntry_1_1Level2_1a6936307463546920f90b287541b75939" kindref="member">addEntry</ref>(entry,<sp/>profile);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" kindref="member">lv2</ref>.size()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="structCachedShader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCachedShader" kindref="compound">CachedShader</ref></highlight></codeline>
+<codeline lineno="72"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73" refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/><ref refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" kindref="member">codeType</ref>;</highlight></codeline>
+<codeline lineno="74" refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;unsigned&gt;<sp/><ref refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" kindref="member">relCode</ref>;</highlight></codeline>
+<codeline lineno="75" refid="structCachedShader_1a1ac146f94af6082b0157df7eee64c7fe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structComputeShaderInfo" kindref="compound">ComputeShaderInfo</ref><sp/><ref refid="structCachedShader_1a1ac146f94af6082b0157df7eee64c7fe" kindref="member">computeShaderInfo</ref>;</highlight></codeline>
+<codeline lineno="76" refid="structCachedShader_1a393f875e5a1d219514ec106f64e0448e" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structCachedShader_1a393f875e5a1d219514ec106f64e0448e" kindref="member">compileCtx</ref>;</highlight></codeline>
+<codeline lineno="77" refid="structCachedShader_1ae2d3aacefffd371aed1bb9a237235d32" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structCachedShader_1ae2d3aacefffd371aed1bb9a237235d32" kindref="member">CachedShader</ref>()<sp/>:<sp/><ref refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" kindref="member">relCode</ref>(midmem_ptr()),<sp/><ref refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" kindref="member">codeType</ref>(<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a122ff6a6ec14da30f15afba301d36b4c" kindref="member">HLSL_INVALID</ref>)<sp/>{}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="structCachedShader_1a9f30a4f8a4449c048a685f652d0742b6" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;unsigned&gt;<sp/><ref refid="structCachedShader_1a9f30a4f8a4449c048a685f652d0742b6" kindref="member">getShaderOutCode</ref>(<ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>type)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="80"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" kindref="member">codeType</ref><sp/>==<sp/>type<sp/>?<sp/><ref refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" kindref="member">relCode</ref><sp/>:<sp/>dag::ConstSpan&lt;unsigned&gt;();</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structComputeShaderInfo" kindref="compound">ComputeShaderInfo</ref><sp/>&amp;<ref refid="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" kindref="member">getComputeShaderInfo</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="85"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" kindref="member">codeType</ref><sp/>==<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a650263c7ccac846d596bd102f8731e45" kindref="member">HLSL_CS</ref><sp/>||<sp/><ref refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" kindref="member">codeType</ref><sp/>==<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a9b00fd134e3a16ccea975e6308ac0407" kindref="member">HLSL_MS</ref><sp/>||<sp/><ref refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" kindref="member">codeType</ref><sp/>==<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82a817ee5a4475f199b5cd88655ac66d6c9" kindref="member">HLSL_AS</ref>);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structCachedShader_1a1ac146f94af6082b0157df7eee64c7fe" kindref="member">computeShaderInfo</ref>;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91" refid="classShaderBytecodeCache" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref></highlight></codeline>
+<codeline lineno="92"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderCacheEntry&gt;<sp/>cacheEntries{midmem_ptr()};</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>Tab&lt;CachedShader&gt;<sp/>cachedShadersList{midmem_ptr()};</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><ref refid="structPerHlslStage" kindref="compound">PerHlslStage&lt;int&gt;</ref><sp/>codeCounts{};</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>Tab&lt;SemanticShaderPass<sp/>*&gt;<sp/>pendingShaderPasses{midmem_ptr()};</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCachedShader" kindref="compound">CachedShader</ref><sp/>EMPTY_CACHED_SHADER<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="102" refid="classShaderBytecodeCache_1a453ee9b1f6ad2705f851f1ca97b25529" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderBytecodeCache_1a453ee9b1f6ad2705f851f1ca97b25529" kindref="member">ShaderBytecodeCache</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="103" refid="classShaderBytecodeCache_1af216216203ab46297de3b1a85f0e303a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderBytecodeCache_1af216216203ab46297de3b1a85f0e303a" kindref="member">~ShaderBytecodeCache</ref>()<sp/>{<sp/>debug(</highlight><highlight class="stringliteral">&quot;[stat]<sp/>cached_shaders_list.count=%d&quot;</highlight><highlight class="normal">,<sp/>cachedShadersList.size());<sp/>}</highlight></codeline>
+<codeline lineno="104" refid="classShaderBytecodeCache_1a04d2ca457de383dbae300721f9ee3fcb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderBytecodeCache_1a04d2ca457de383dbae300721f9ee3fcb" kindref="member">PINNED_TYPE</ref>(<ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref>);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106" refid="structShaderBytecodeCache_1_1LookupResult" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderBytecodeCache_1_1LookupResult" kindref="compound">LookupResult</ref></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="108" refid="structShaderBytecodeCache_1_1LookupResult_1a633aa98a618e5d297a94b57533302c63" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref><sp/><ref refid="structShaderBytecodeCache_1_1LookupResult_1a633aa98a618e5d297a94b57533302c63" kindref="member">id</ref>;</highlight></codeline>
+<codeline lineno="109" refid="structShaderBytecodeCache_1_1LookupResult_1a6cf871ba4e4ebf0b746274eaf53909ae" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/><ref refid="structShaderBytecodeCache_1_1LookupResult_1a6cf871ba4e4ebf0b746274eaf53909ae" kindref="member">c</ref>;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache_1a8bd68a0f8c8fab2483d536e09d187fb3" kindref="member">post</ref>(<ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>c,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCompileResult" kindref="compound">CompileResult</ref><sp/>&amp;result,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;compile_ctx);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><ref refid="structShaderBytecodeCache_1_1LookupResult" kindref="compound">LookupResult</ref><sp/><ref refid="classShaderBytecodeCache_1a59f62e38c3b8d202eb7777a68247f4b9" kindref="member">find</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/>&amp;code_digest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/>&amp;const_digest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profile);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115" refid="classShaderBytecodeCache_1aae7fd205f02b77f3a46bd7820fb26018" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structCachedShader" kindref="compound">CachedShader</ref><sp/>&amp;<ref refid="classShaderBytecodeCache_1aae7fd205f02b77f3a46bd7820fb26018" kindref="member">resolveEntry</ref>(<ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>c)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="116"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref><sp/>idx<sp/>=<sp/>cacheEntries[c.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref>].lv2[c.<ref refid="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" kindref="member">l2</ref>].lv3[c.<ref refid="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" kindref="member">l3</ref>].codeIdx;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="shaderBytecodeCache_8h_1a27d34e801b7fd4581cd6dc3256b9af2e" kindref="member">is_valid</ref>(idx)<sp/>?<sp/>cachedShadersList[eastl::to_underlying(idx)]<sp/>:<sp/>EMPTY_CACHED_SHADER;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121" refid="classShaderBytecodeCache_1ae350c1069643f21cee52cb928aa80aa3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache_1ae350c1069643f21cee52cb928aa80aa3" kindref="member">markEntryAsPending</ref>(<ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>c)<sp/>{<sp/>cacheEntries[c.<ref refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" kindref="member">l1</ref>].lv2[c.<ref refid="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" kindref="member">l2</ref>].lv3[c.<ref refid="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" kindref="member">l3</ref>].codeIdx<sp/>=<sp/><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697ac69f06e1a9b016d133907b4e5f5864d2" kindref="member">ShaderCacheIndex::PENDING</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache_1a456942262603af909796d18e59c56d71" kindref="member">resolvePendingPasses</ref>();</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache_1aeb96c34e97bf8b805ceceea6f3ea4d1c" kindref="member">registerPendingPass</ref>(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;p);</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shaderBytecodeCache_8h_1a53df41b64958672c8ba7bfecc65bf0fa" kindref="member">apply_shader_from_cache</ref>(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;pass,<sp/><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref><sp/>stage,<sp/><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref><sp/>c,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref><sp/>&amp;cache);</highlight></codeline>
+    </programlisting>
+    <location file="shaderBytecodeCache.h"/>
+  </compounddef>
+</doxygen>

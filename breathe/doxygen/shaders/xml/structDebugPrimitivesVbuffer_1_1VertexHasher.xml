@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDebugPrimitivesVbuffer_1_1VertexHasher" kind="struct" language="C++" prot="private">
+    <compoundname>DebugPrimitivesVbuffer::VertexHasher</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDebugPrimitivesVbuffer_1_1VertexHasher_1a2fd98986f611e5cb5d3763dbf06c9054" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t DebugPrimitivesVbuffer::VertexHasher::operator()</definition>
+        <argsstring>(const Point3 &amp;p) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>DebugPrimitivesVbuffer::VertexHasher::operator()</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="83" column="19" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_DebugPrimitivesVbuffer.h" line="81" column="3" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="82" bodyend="84"/>
+    <listofallmembers>
+      <member refid="structDebugPrimitivesVbuffer_1_1VertexHasher_1a2fd98986f611e5cb5d3763dbf06c9054" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::VertexHasher</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

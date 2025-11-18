@@ -1,0 +1,527 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classImpUtil" kind="class" language="C++" prot="public">
+    <compoundname>ImpUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UtilityObj</basecompoundref>
+    <innerclass refid="structImpUtil_1_1Rules" prot="public">ImpUtil::Rules</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classImpUtil_1a6fa3af8024f3fa308c487db77fee6ede" prot="public" static="no" mutable="no">
+        <type>IUtil *</type>
+        <definition>IUtil* ImpUtil::iu</definition>
+        <argsstring></argsstring>
+        <name>iu</name>
+        <qualifiedname>ImpUtil::iu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="445" column="9" bodyfile="dagimp.cpp" bodystart="445" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1abd454717661b78a9507fe23361ed9906" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* ImpUtil::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>ImpUtil::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="446" column="13" bodyfile="dagimp.cpp" bodystart="446" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a127fc868d986c3f635b8c1c652624e22" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ImpUtil::hImpHelp</definition>
+        <argsstring></argsstring>
+        <name>hImpHelp</name>
+        <qualifiedname>ImpUtil::hImpHelp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="447" column="8" bodyfile="dagimp.cpp" bodystart="447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1acab5fd278f79b1b72c8dcd82af71e061" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ImpUtil::hImpParam</definition>
+        <argsstring></argsstring>
+        <name>hImpParam</name>
+        <qualifiedname>ImpUtil::hImpParam</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="447" column="17" bodyfile="dagimp.cpp" bodystart="447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1afdee8ac4d3b2b7882bdb93cb2fda0b35" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ImpUtil::hImpPanel</definition>
+        <argsstring></argsstring>
+        <name>hImpPanel</name>
+        <qualifiedname>ImpUtil::hImpPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="447" column="27" bodyfile="dagimp.cpp" bodystart="447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a2399dee70c6460f25cf0953a1a0de2eb" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ImpUtil::hTab</definition>
+        <argsstring></argsstring>
+        <name>hTab</name>
+        <qualifiedname>ImpUtil::hTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="447" column="37" bodyfile="dagimp.cpp" bodystart="447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a8ea0b33860fea64c6ecf2a0b900e9e1a" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ImpUtil::hTabVisible</definition>
+        <argsstring></argsstring>
+        <name>hTabVisible</name>
+        <qualifiedname>ImpUtil::hTabVisible</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="447" column="42" bodyfile="dagimp.cpp" bodystart="447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1abaa4f7a4b5a084beeaccb2921fb2e8dc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ImpUtil::selectedTab</definition>
+        <argsstring></argsstring>
+        <name>selectedTab</name>
+        <qualifiedname>ImpUtil::selectedTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="448" column="7" bodyfile="dagimp.cpp" bodystart="448" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a46b719be93e53180788285db6edd9f23" prot="public" static="no" mutable="no">
+        <type><ref refid="structImpUtil_1_1Rules" kindref="compound">Rules</ref></type>
+        <definition>Rules ImpUtil::wildcard</definition>
+        <argsstring></argsstring>
+        <name>wildcard</name>
+        <qualifiedname>ImpUtil::wildcard</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="450" column="9" bodyfile="dagimp.cpp" bodystart="450" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a3be70cdfe85ab05d0b1729674674f5ec" prot="public" static="no" mutable="no">
+        <type><ref refid="structImpUtil_1_1Rules" kindref="compound">Rules</ref></type>
+        <definition>Rules ImpUtil::regex</definition>
+        <argsstring></argsstring>
+        <name>regex</name>
+        <qualifiedname>ImpUtil::regex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="450" column="18" bodyfile="dagimp.cpp" bodystart="450" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a674477879ac16175c457b88d0edafef7" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR ImpUtil::dirPath</definition>
+        <argsstring></argsstring>
+        <name>dirPath</name>
+        <qualifiedname>ImpUtil::dirPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="452" column="8" bodyfile="dagimp.cpp" bodystart="452" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a717627038cc29886843554f578b0b3f6" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR ImpUtil::filePath</definition>
+        <argsstring></argsstring>
+        <name>filePath</name>
+        <qualifiedname>ImpUtil::filePath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="453" column="8" bodyfile="dagimp.cpp" bodystart="453" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImpUtil_1a9e360dcd2d3d40b3f112e39e0ed55d32" prot="public" static="no" mutable="no">
+        <type>ToolTipExtender</type>
+        <definition>ToolTipExtender ImpUtil::tooltipExtender</definition>
+        <argsstring></argsstring>
+        <name>tooltipExtender</name>
+        <qualifiedname>ImpUtil::tooltipExtender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="455" column="19" bodyfile="dagimp.cpp" bodystart="455" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classImpUtil_1a154d6b3f03b126569f46e0f40b0af63c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ImpUtil::ImpUtil</definition>
+        <argsstring>()</argsstring>
+        <name>ImpUtil</name>
+        <qualifiedname>ImpUtil::ImpUtil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="457" column="3" bodyfile="dagimp.cpp" bodystart="482" bodyend="494"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a6e7787bbc39d7632222552ccf0323399" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::BeginEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>ImpUtil::BeginEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="458" column="8" bodyfile="dagimp.cpp" bodystart="1238" bodyend="1253"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a202028631f572f0cdb36921b290e885a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::EndEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>ImpUtil::EndEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="459" column="8" bodyfile="dagimp.cpp" bodystart="1255" bodyend="1262"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1ad5a555b35acb06df6ff37fcf351c2292" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>ImpUtil::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="460" column="8" bodyfile="dagimp.cpp" bodystart="460" bodyend="460"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a61a1dced2b2f33ab231a454de75480ba" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>LPCTSTR</type>
+        <definition>LPCTSTR ImpUtil::tabResourceName</definition>
+        <argsstring>() const</argsstring>
+        <name>tabResourceName</name>
+        <qualifiedname>ImpUtil::tabResourceName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="462" column="11" bodyfile="dagimp.cpp" bodystart="520" bodyend="526"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1ae6f7afa32da78452cee412372791c367" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>DLGPROC</type>
+        <definition>DLGPROC ImpUtil::tabDlgProc</definition>
+        <argsstring>() const</argsstring>
+        <name>tabDlgProc</name>
+        <qualifiedname>ImpUtil::tabDlgProc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="463" column="11" bodyfile="dagimp.cpp" bodystart="533" bodyend="538"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1af4bbfbee394353e1089d2c6038dbd461" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>LPARAM</type>
+        <definition>LPARAM ImpUtil::tabInitParam</definition>
+        <argsstring>() const</argsstring>
+        <name>tabInitParam</name>
+        <qualifiedname>ImpUtil::tabInitParam</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="464" column="10" bodyfile="dagimp.cpp" bodystart="540" bodyend="545"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1acd2984afc6eb47a284be680ade122a97" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>LPCTSTR</type>
+        <definition>LPCTSTR ImpUtil::tabHelp</definition>
+        <argsstring>() const</argsstring>
+        <name>tabHelp</name>
+        <qualifiedname>ImpUtil::tabHelp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="465" column="11" bodyfile="dagimp.cpp" bodystart="547" bodyend="573"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1ac250df592f1b30563f180dc31cf155b7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>LPCTSTR</type>
+        <definition>LPCTSTR ImpUtil::tabHint</definition>
+        <argsstring>(int index) const</argsstring>
+        <name>tabHint</name>
+        <qualifiedname>ImpUtil::tabHint</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="466" column="11" bodyfile="dagimp.cpp" bodystart="575" bodyend="587"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a74110bb86e1204d3be9e995203c9fef4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::updateUi</definition>
+        <argsstring>() const</argsstring>
+        <name>updateUi</name>
+        <qualifiedname>ImpUtil::updateUi</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="468" column="8" bodyfile="dagimp.cpp" bodystart="496" bodyend="518"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a2ffb6fd1ef20d9d0386983a83f3df3ab" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::updateTab</definition>
+        <argsstring>() const</argsstring>
+        <name>updateTab</name>
+        <qualifiedname>ImpUtil::updateTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="469" column="8" bodyfile="dagimp.cpp" bodystart="589" bodyend="603"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a5eb3600bf909ff732723cd66d0d8b561" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::onTabChanged</definition>
+        <argsstring>(HWND hDlg)</argsstring>
+        <name>onTabChanged</name>
+        <qualifiedname>ImpUtil::onTabChanged</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hDlg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="470" column="8" bodyfile="dagimp.cpp" bodystart="605" bodyend="629"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1acbaed671d5e372cbd174ab4ece37234d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::openImportDirectory</definition>
+        <argsstring>() const</argsstring>
+        <name>openImportDirectory</name>
+        <qualifiedname>ImpUtil::openImportDirectory</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="472" column="8" bodyfile="dagimp.cpp" bodystart="644" bodyend="649"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a96b7bdc4d3e30f24b0ee8c9544d7e886" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::openDocumentation</definition>
+        <argsstring>() const</argsstring>
+        <name>openDocumentation</name>
+        <qualifiedname>ImpUtil::openDocumentation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="473" column="8" bodyfile="dagimp.cpp" bodystart="651" bodyend="663"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a998d5c514b5d8a2f0cddc8c015261035" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::doImport</definition>
+        <argsstring>()</argsstring>
+        <name>doImport</name>
+        <qualifiedname>ImpUtil::doImport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="475" column="8" bodyfile="dagimp.cpp" bodystart="742" bodyend="754"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a9e9bc30cd434796eb680dd94bb3f809b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::doStandardImport</definition>
+        <argsstring>() const</argsstring>
+        <name>doStandardImport</name>
+        <qualifiedname>ImpUtil::doStandardImport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="476" column="8" bodyfile="dagimp.cpp" bodystart="707" bodyend="711"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtil_1a2f146d87460807d80b88287d70ef3376" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpUtil::doRegexImport</definition>
+        <argsstring>(const Rules &amp;rules)</argsstring>
+        <name>doRegexImport</name>
+        <qualifiedname>ImpUtil::doRegexImport</qualifiedname>
+        <param>
+          <type>const <ref refid="structImpUtil_1_1Rules" kindref="compound">Rules</ref> &amp;</type>
+          <declname>rules</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="477" column="8" bodyfile="dagimp.cpp" bodystart="713" bodyend="740"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ImpUtil</label>
+        <link refid="classImpUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ImpUtil</label>
+        <link refid="classImpUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>regex</edgelabel>
+          <edgelabel>wildcard</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ImpUtil::Rules</label>
+        <link refid="structImpUtil_1_1Rules"/>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="dagimp.cpp" line="426" column="1" bodyfile="dagimp.cpp" bodystart="427" bodyend="478"/>
+    <listofallmembers>
+      <member refid="classImpUtil_1a6e7787bbc39d7632222552ccf0323399" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>BeginEditParams</name></member>
+      <member refid="classImpUtil_1ad5a555b35acb06df6ff37fcf351c2292" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>DeleteThis</name></member>
+      <member refid="classImpUtil_1a674477879ac16175c457b88d0edafef7" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>dirPath</name></member>
+      <member refid="classImpUtil_1a998d5c514b5d8a2f0cddc8c015261035" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>doImport</name></member>
+      <member refid="classImpUtil_1a2f146d87460807d80b88287d70ef3376" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>doRegexImport</name></member>
+      <member refid="classImpUtil_1a9e9bc30cd434796eb680dd94bb3f809b" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>doStandardImport</name></member>
+      <member refid="classImpUtil_1a202028631f572f0cdb36921b290e885a" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>EndEditParams</name></member>
+      <member refid="classImpUtil_1a717627038cc29886843554f578b0b3f6" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>filePath</name></member>
+      <member refid="classImpUtil_1a127fc868d986c3f635b8c1c652624e22" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>hImpHelp</name></member>
+      <member refid="classImpUtil_1afdee8ac4d3b2b7882bdb93cb2fda0b35" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>hImpPanel</name></member>
+      <member refid="classImpUtil_1acab5fd278f79b1b72c8dcd82af71e061" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>hImpParam</name></member>
+      <member refid="classImpUtil_1a2399dee70c6460f25cf0953a1a0de2eb" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>hTab</name></member>
+      <member refid="classImpUtil_1a8ea0b33860fea64c6ecf2a0b900e9e1a" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>hTabVisible</name></member>
+      <member refid="classImpUtil_1a154d6b3f03b126569f46e0f40b0af63c" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>ImpUtil</name></member>
+      <member refid="classImpUtil_1abd454717661b78a9507fe23361ed9906" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>ip</name></member>
+      <member refid="classImpUtil_1a6fa3af8024f3fa308c487db77fee6ede" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>iu</name></member>
+      <member refid="classImpUtil_1a5eb3600bf909ff732723cd66d0d8b561" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>onTabChanged</name></member>
+      <member refid="classImpUtil_1a96b7bdc4d3e30f24b0ee8c9544d7e886" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>openDocumentation</name></member>
+      <member refid="classImpUtil_1acbaed671d5e372cbd174ab4ece37234d" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>openImportDirectory</name></member>
+      <member refid="classImpUtil_1a3be70cdfe85ab05d0b1729674674f5ec" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>regex</name></member>
+      <member refid="classImpUtil_1abaa4f7a4b5a084beeaccb2921fb2e8dc" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>selectedTab</name></member>
+      <member refid="classImpUtil_1ae6f7afa32da78452cee412372791c367" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>tabDlgProc</name></member>
+      <member refid="classImpUtil_1acd2984afc6eb47a284be680ade122a97" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>tabHelp</name></member>
+      <member refid="classImpUtil_1ac250df592f1b30563f180dc31cf155b7" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>tabHint</name></member>
+      <member refid="classImpUtil_1af4bbfbee394353e1089d2c6038dbd461" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>tabInitParam</name></member>
+      <member refid="classImpUtil_1a61a1dced2b2f33ab231a454de75480ba" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>tabResourceName</name></member>
+      <member refid="classImpUtil_1a9e360dcd2d3d40b3f112e39e0ed55d32" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>tooltipExtender</name></member>
+      <member refid="classImpUtil_1a2ffb6fd1ef20d9d0386983a83f3df3ab" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>updateTab</name></member>
+      <member refid="classImpUtil_1a74110bb86e1204d3be9e995203c9fef4" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>updateUi</name></member>
+      <member refid="classImpUtil_1a46b719be93e53180788285db6edd9f23" prot="public" virt="non-virtual"><scope>ImpUtil</scope><name>wildcard</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

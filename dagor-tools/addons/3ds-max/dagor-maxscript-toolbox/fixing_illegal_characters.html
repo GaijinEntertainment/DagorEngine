@@ -1,0 +1,313 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Fixing Illegal Characters Tool</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor LODs and Collisions Generator" href="lods_and_collisions_generator.html" />
+    <link rel="prev" title="Dagor Fix Normal Orientation Tool" href="fix_normal_orientation_tool.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor MaxScript Toolbox</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor Ambient Occlusion Baker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor Fixing Illegal Characters Tool</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-fixing-illegal-characters-tool">Accessing Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-fixing-illegal-characters-tool">Using Fixing Illegal Characters Tool</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#tool-options">Tool Options</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor Simple CMP Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor Transfer Vertex Position to Vertex Color Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor MaxScript Toolbox</a></li>
+      <li class="breadcrumb-item active">Dagor Fixing Illegal Characters Tool</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fixing_illegal_characters.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-fixing-illegal-characters-tool">
+<h1>Dagor Fixing Illegal Characters Tool<a class="headerlink" href="#dagor-fixing-illegal-characters-tool" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This script requires <strong>3ds Max 2013 or later</strong>.</p>
+</div>
+</section>
+<section id="accessing-fixing-illegal-characters-tool">
+<h2>Accessing Fixing Illegal Characters Tool<a class="headerlink" href="#accessing-fixing-illegal-characters-tool" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Navigate to <strong>Gaijin Tools</strong> <span class="cnum">1</span> <strong>&gt; Fix Illegal Characters…</strong>. This
+will open the main window of the Dagor Fix Illegal Characters script.</p></li>
+<li><p>To verify the version <span class="cnum">3</span> of the script, go to <strong>Gaijin Tools</strong>
+<span class="cnum">1</span> <strong>&gt; About</strong> <span class="cnum">2</span>. The <strong>About</strong> window will display the
+current version. It’s important to check this regularly to ensure your script
+is up to date.</p>
+<a class="reference internal image-reference" href="../../../../_images/fixing_illegal_chars_01.png"><img alt="Fixing Illegal Characters Tool" class="align-center" src="../../../../_images/fixing_illegal_chars_01.png" style="width: 55em;" />
+</a>
+<div class="warning admonition">
+<p class="admonition-title">Plugin Version Requirement</p>
+<p>Requires plugin version <strong>1.4 or higher</strong>.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="using-fixing-illegal-characters-tool">
+<h2>Using Fixing Illegal Characters Tool<a class="headerlink" href="#using-fixing-illegal-characters-tool" title="Link to this heading"></a></h2>
+<p>To begin, run the script from the <strong>Gaijin Tools</strong> <span class="cnum">1</span> <strong>&gt; Fix Illegal
+Characters…</strong> menu. The following window will appear:</p>
+<a class="reference internal image-reference" href="../../../../_images/fixing_illegal_chars_02.png"><img alt="Fixing Illegal Characters Tool" class="align-center" src="../../../../_images/fixing_illegal_chars_02.png" style="width: 55em;" />
+</a>
+<section id="tool-options">
+<h3>Tool Options<a class="headerlink" href="#tool-options" title="Link to this heading"></a></h3>
+<ul>
+<li><p><strong>Illegal Characters List</strong> <span class="cnum">2</span>: enter or delete illegal characters in
+this field.</p></li>
+<li><p><strong>Replace with Characters</strong> <span class="cnum">3</span>: specifies characters to replace the
+illegal ones. If left blank, illegal characters will be removed. This option
+supports UTF-8, including hieroglyphs, Slavic languages, and Arabic
+characters, etc.</p></li>
+<li><p><strong>Latinization of the Russian</strong> <span class="cnum">4</span>: converts all Russian characters to
+Latin according to standard Latinization rules. If unchecked, Russian
+characters will be replaced with the characters specified in the <strong>Replace
+with Characters</strong> <span class="cnum">3</span> field.</p></li>
+<li><p><strong>Log Warning Bitmap Path Name</strong> <span class="cnum">5</span>: logs warnings for file paths
+containing illegal characters to the log window <span class="cnum">17</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>No substitutions are made; this only outputs warnings.</p>
+</div>
+</li>
+<li><p><strong>Log Warning Texture Maps Names</strong> <span class="cnum">6</span>: logs warnings for texture names
+containing illegal characters to the log window <span class="cnum">17</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>No substitutions are made; this only outputs warnings.</p>
+</div>
+</li>
+<li><p><strong>Fix Layers Names</strong> <span class="cnum">7</span>: replaces illegal characters in layer names
+with the specified replacement characters.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Layer 0 (default) cannot be renamed.</p>
+</div>
+<p>There cannot be layers with the same name. If naming conflicts occur or
+renaming fails, a warning is displayed in the log window <span class="cnum">17</span>:</p>
+<a class="reference internal image-reference" href="../../../../_images/fixing_illegal_chars_03.png"><img alt="Fixing Illegal Characters Tool" class="align-center" src="../../../../_images/fixing_illegal_chars_03.png" style="width: 40em;" />
+</a>
+</li>
+<li><p><strong>Fix Objects Names</strong> <span class="cnum">8</span>: replaces illegal characters in object names
+with the specified replacement characters. For check naming it’s necessary to
+select objects.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This may result in objects having identical names.</p>
+</div>
+</li>
+<li><p><strong>Fix Materials Names</strong> <span class="cnum">9</span>: replaces illegal characters in material
+names with the specified replacement characters.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This may result in materials having identical names.</p>
+</div>
+</li>
+<li><p><strong>All Changes to Lower Case</strong> <span class="cnum">10</span>: converts all names to lower case and
+performs checks in lower case.</p></li>
+<li><p><strong>DAG Export After Fixing Illegal Characters</strong> <span class="cnum">11</span>: opens the DAG
+format export window after all checks are complete.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Ensure you are familiar with how Dagor plugins work before enabling this
+option.</p>
+</div>
+</li>
+<li><p><strong>Save Current Settings</strong> <span class="cnum">12</span>: saves the current settings.</p></li>
+<li><p><strong>Load Default Settings</strong> <span class="cnum">13</span>: loads the default settings.</p></li>
+<li><p><strong>FIX ILLEGAL CHARACTERS FROM SELECTION!</strong> <span class="cnum">14</span>: executes the script to
+fix illegal characters in the selected objects.</p></li>
+<li><p><strong>Open Local Documentation</strong> <span class="cnum">15</span>: links to this documentation.</p></li>
+<li><p><strong>Get in Touch with the Author</strong> <span class="cnum">16</span>: provides contact information for
+the developer if assistance is needed.</p></li>
+<li><p><strong>Errors Log</strong> <span class="cnum">17</span>: displays information about the results of the
+checks and any changes made.</p></li>
+</ul>
+<p>If the scene contains no errors, you will see a window like this:</p>
+<a class="reference internal image-reference" href="../../../../_images/fixing_illegal_chars_04.png"><img alt="Fixing Illegal Characters Tool" class="align-center" src="../../../../_images/fixing_illegal_chars_04.png" style="width: 17em;" />
+</a>
+<p>Any errors will be highlighted in red and labeled as <strong>ERROR!</strong> or <strong>WARNING!</strong>:</p>
+<a class="reference internal image-reference" href="../../../../_images/fixing_illegal_chars_05.png"><img alt="Fixing Illegal Characters Tool" class="align-center" src="../../../../_images/fixing_illegal_chars_05.png" style="width: 30em;" />
+</a>
+<p>A scene containing multiple errors may produce results like this:</p>
+<a class="reference internal image-reference" href="../../../../_images/fixing_illegal_chars_06.png"><img alt="Fixing Illegal Characters Tool" class="align-center" src="../../../../_images/fixing_illegal_chars_06.png" style="width: 70em;" />
+</a>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fix_normal_orientation_tool.html" class="btn btn-neutral float-left" title="Dagor Fix Normal Orientation Tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lods_and_collisions_generator.html" class="btn btn-neutral float-right" title="Dagor LODs and Collisions Generator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,694 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classStcodeBranchedBuildEvalCB" kind="class" language="C++" prot="public">
+    <compoundname>StcodeBranchedBuildEvalCB</compoundname>
+    <basecompoundref refid="classShaderParser_1_1ShaderEvalCB" prot="public" virt="non-virtual">ShaderParser::ShaderEvalCB</basecompoundref>
+    <includes refid="cppStcodePasses_8h" local="no">cppStcodePasses.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classStcodeBranchedBuildEvalCB_1a9b4ce3dc4f85f9651f8bd471f379a20d" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        <definition>shc::VariantContext&amp; StcodeBranchedBuildEvalCB::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="11" column="23" bodyfile="cppStcodePasses.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStcodeBranchedBuildEvalCB_1ae7580389f351743e299d0b30acda6d29" prot="private" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+        <definition>Parser&amp; StcodeBranchedBuildEvalCB::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="14" column="10" bodyfile="cppStcodePasses.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStcodeBranchedBuildEvalCB_1a837cd96a52b2d5b196534db5c6b18123" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; uintptr_t, <ref refid="classShVarBool" kindref="compound">ShVarBool</ref> &gt;</type>
+        <definition>ska::flat_hash_map&lt;uintptr_t, ShVarBool&gt; StcodeBranchedBuildEvalCB::boolEvalResults</definition>
+        <argsstring></argsstring>
+        <name>boolEvalResults</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::boolEvalResults</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="16" column="22" bodyfile="cppStcodePasses.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStcodeBranchedBuildEvalCB_1a34f1c5652f0c56884200d12efe55c669" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_set&lt; const state_block_stat * &gt;</type>
+        <definition>ska::flat_hash_set&lt;const state_block_stat *&gt; StcodeBranchedBuildEvalCB::preshaderStatementsUsedInAnyVariant</definition>
+        <argsstring></argsstring>
+        <name>preshaderStatementsUsedInAnyVariant</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::preshaderStatementsUsedInAnyVariant</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="17" column="22" bodyfile="cppStcodePasses.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a45d3f21516dd968b71b689b5bed55f63" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeBranchedBuildEvalCB::StcodeBranchedBuildEvalCB</definition>
+        <argsstring>(shc::VariantContext &amp;a_ctx)</argsstring>
+        <name>StcodeBranchedBuildEvalCB</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::StcodeBranchedBuildEvalCB</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="20" column="12" bodyfile="cppStcodePasses.cpp" bodystart="8" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1adbc571db3834ce212fe3f60713f80e59" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_static</definition>
+        <argsstring>(static_var_decl &amp;d) override</argsstring>
+        <name>eval_static</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_static</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a773524a09efd3b118970955178a69efd">eval_static</reimplements>
+        <param>
+          <type>static_var_decl &amp;</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="24" column="8" bodyfile="cppStcodePasses.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a7d3efd2035611a00fa6eb90da4805c3c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_interval_decl</definition>
+        <argsstring>(interval &amp;) override</argsstring>
+        <name>eval_interval_decl</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_interval_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1ad1e613fd064621334abb0c35002af923">eval_interval_decl</reimplements>
+        <param>
+          <type>interval &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="25" column="8" bodyfile="cppStcodePasses.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a43d675e8a8e6de383715ecad85348022" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_error_stat</definition>
+        <argsstring>(error_stat &amp;) override</argsstring>
+        <name>eval_error_stat</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_error_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4feaa347af2510e01f37ebc31027211a">eval_error_stat</reimplements>
+        <param>
+          <type>error_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="26" column="8" bodyfile="cppStcodePasses.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1aa7467ccce89cc9d5602eb4f7fb3bd987" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_channel_decl</definition>
+        <argsstring>(channel_decl &amp;, int) override</argsstring>
+        <name>eval_channel_decl</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_channel_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4342c33792df4746ba4575adeebad9e7">eval_channel_decl</reimplements>
+        <param>
+          <type>channel_decl &amp;</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="27" column="8" bodyfile="cppStcodePasses.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1ad1f11f49eb5b8d05da9f72ebcb3b5253" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_state</definition>
+        <argsstring>(state_stat &amp;) override</argsstring>
+        <name>eval_state</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_state</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a484b9919d67d330ad15f99a673aeb3f3">eval_state</reimplements>
+        <param>
+          <type>state_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="28" column="8" bodyfile="cppStcodePasses.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a4fdbecaef6f848234523fb1be7f1a843" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_zbias_state</definition>
+        <argsstring>(zbias_state_stat &amp;) override</argsstring>
+        <name>eval_zbias_state</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_zbias_state</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a9bed93ba21bf89440d7b037f4ac2800d">eval_zbias_state</reimplements>
+        <param>
+          <type>zbias_state_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="29" column="8" bodyfile="cppStcodePasses.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a2b708e82c8b592b2478d6ade7fbc3be3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval</definition>
+        <argsstring>(immediate_const_block &amp;) override</argsstring>
+        <name>eval</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a2a70eff4ba8af3b3efc57fb6eb0ac15c">eval</reimplements>
+        <param>
+          <type>immediate_const_block &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="30" column="8" bodyfile="cppStcodePasses.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a6c1026caed4ec400babc32baf3dc37b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_supports</definition>
+        <argsstring>(supports_stat &amp;) override</argsstring>
+        <name>eval_supports</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_supports</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a6da845097d790e43f21f1d743f0b4ea7">eval_supports</reimplements>
+        <param>
+          <type>supports_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="31" column="8" bodyfile="cppStcodePasses.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a3da84c8121bbe6888c51fddfd93ccc35" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_render_stage</definition>
+        <argsstring>(render_stage_stat &amp;) override</argsstring>
+        <name>eval_render_stage</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_render_stage</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aadbbbbeee8e38a94cfbc2a59f0108b89">eval_render_stage</reimplements>
+        <param>
+          <type>render_stage_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="32" column="8" bodyfile="cppStcodePasses.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1ac6b6a165847ae0b1cbcf2c7fde5c7a99" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_assume_stat</definition>
+        <argsstring>(assume_stat &amp;) override</argsstring>
+        <name>eval_assume_stat</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_assume_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4a1e738e214667e11fc939008f4f3c95">eval_assume_stat</reimplements>
+        <param>
+          <type>assume_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="33" column="8" bodyfile="cppStcodePasses.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a9e556a3ba05e1ff2f8c736d7919b8ea7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_assume_if_not_assumed_stat</definition>
+        <argsstring>(assume_if_not_assumed_stat &amp;) override</argsstring>
+        <name>eval_assume_if_not_assumed_stat</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_assume_if_not_assumed_stat</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a5117e36e50dbf966e0e8d09d291523ff">eval_assume_if_not_assumed_stat</reimplements>
+        <param>
+          <type>assume_if_not_assumed_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="34" column="8" bodyfile="cppStcodePasses.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a2b8ff81cf992f1aaf8e7ccbdf43f7edf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_command</definition>
+        <argsstring>(shader_directive &amp;) override</argsstring>
+        <name>eval_command</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_command</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1ab93a6a4886b18225c46688a355703854">eval_command</reimplements>
+        <param>
+          <type>shader_directive &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="35" column="8" bodyfile="cppStcodePasses.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a5bed5b796aff51aa9ac8de49ebb5ed75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_hlsl_compile</definition>
+        <argsstring>(hlsl_compile_class &amp;) override</argsstring>
+        <name>eval_hlsl_compile</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_hlsl_compile</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a9ea4626b3b1eab41bd7a8fadfad3c349">eval_hlsl_compile</reimplements>
+        <param>
+          <type>hlsl_compile_class &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="36" column="8" bodyfile="cppStcodePasses.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1af3d893da2f4dd29182e7320e7b707886" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_hlsl_decl</definition>
+        <argsstring>(hlsl_local_decl_class &amp;) override</argsstring>
+        <name>eval_hlsl_decl</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_hlsl_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aeca67333ebe04120b20e000ee0bf826a">eval_hlsl_decl</reimplements>
+        <param>
+          <type>hlsl_local_decl_class &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="37" column="8" bodyfile="cppStcodePasses.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a3c0f44e8ba116d0bfd5db391892a6a4a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_bool_decl</definition>
+        <argsstring>(bool_decl &amp;d) override</argsstring>
+        <name>eval_bool_decl</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_bool_decl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a0b1484996b87155daf73af501febbd9d">eval_bool_decl</reimplements>
+        <param>
+          <type>bool_decl &amp;</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="39" column="8" bodyfile="cppStcodePasses.cpp" bodystart="119" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a61be14d856626981fbedc0b09d7ea710" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_external_block</definition>
+        <argsstring>(external_state_block &amp;state_block) override</argsstring>
+        <name>eval_external_block</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_external_block</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1af335c328a2c5792ea32c2429be3d308a">eval_external_block</reimplements>
+        <param>
+          <type>external_state_block &amp;</type>
+          <declname>state_block</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="41" column="8" bodyfile="cppStcodePasses.cpp" bodystart="29" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a5b8f24b06507d9a86c258e34cf140214" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_shader_locdecl</definition>
+        <argsstring>(local_var_decl &amp;s) override</argsstring>
+        <name>eval_shader_locdecl</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_shader_locdecl</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a4c4bdf71ee607e8951eaee08654fc954">eval_shader_locdecl</reimplements>
+        <param>
+          <type>local_var_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="42" column="8" bodyfile="cppStcodePasses.cpp" bodystart="108" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a575c7262124851f831592c6921dfc24d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>int</type>
+        <definition>int StcodeBranchedBuildEvalCB::eval_if</definition>
+        <argsstring>(bool_expr &amp;e) override</argsstring>
+        <name>eval_if</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_if</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a515e729e35d13de79ffbea9eacbd9d70">eval_if</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="44" column="7" bodyfile="cppStcodePasses.cpp" bodystart="141" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a7c92b276bd47f975ee1f9b9eff947b5b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_else</definition>
+        <argsstring>(bool_expr &amp;e) override</argsstring>
+        <name>eval_else</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_else</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1a989962b2c720c97dcfc93e7c5d60caea">eval_else</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="45" column="8" bodyfile="cppStcodePasses.cpp" bodystart="155" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1ae9b274d61618116a2b6e982dc28aa29c" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::eval_endif</definition>
+        <argsstring>(bool_expr &amp;e) override</argsstring>
+        <name>eval_endif</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::eval_endif</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ShaderEvalCB_1aad4f2cba55111bfe7c17380c714f3383">eval_endif</reimplements>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="46" column="8" bodyfile="cppStcodePasses.cpp" bodystart="162" bodyend="167"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1ac26184676e8439cfc21244fc230d642b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::evalExternalBlockStat</definition>
+        <argsstring>(const state_block_stat &amp;, ShaderStage stage)</argsstring>
+        <name>evalExternalBlockStat</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::evalExternalBlockStat</qualifiedname>
+        <param>
+          <type>const state_block_stat &amp;</type>
+          <defname>state_block</defname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="49" column="8" bodyfile="cppStcodePasses.cpp" bodystart="73" bodyend="106"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a01b7184d9dadacdc85613afd74be6ebf" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="classShVarBool" kindref="compound">ShVarBool</ref> &gt;</type>
+        <definition>eastl::optional&lt; ShVarBool &gt; StcodeBranchedBuildEvalCB::evalBoolStatIfExists</definition>
+        <argsstring>(const auto &amp;stat)</argsstring>
+        <name>evalBoolStatIfExists</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::evalBoolStatIfExists</qualifiedname>
+        <param>
+          <type>const auto &amp;</type>
+          <declname>stat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="51" column="19" bodyfile="cppStcodePasses.h" bodystart="51" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a0025a290257ab1fb0d494b47bd7a5601" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool StcodeBranchedBuildEvalCB::evalBoolStat</definition>
+        <argsstring>(const auto &amp;stat)</argsstring>
+        <name>evalBoolStat</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::evalBoolStat</qualifiedname>
+        <param>
+          <type>const auto &amp;</type>
+          <declname>stat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="59" column="13" bodyfile="cppStcodePasses.h" bodystart="59" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1ab901754be481ba19c8288aa6f45cd997" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::buildConditionString</definition>
+        <argsstring>(const bool_expr &amp;e, StcodeBuilder &amp;out)</argsstring>
+        <name>buildConditionString</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::buildConditionString</qualifiedname>
+        <param>
+          <type>const bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="67" column="8" bodyfile="cppStcodePasses.cpp" bodystart="323" bodyend="343"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a065d82d4625ea9f32d25fa2a6faa8303" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::buildConditionBoolAnd</definition>
+        <argsstring>(const and_expr &amp;e, StcodeBuilder &amp;out)</argsstring>
+        <name>buildConditionBoolAnd</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::buildConditionBoolAnd</qualifiedname>
+        <param>
+          <type>const and_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="68" column="8" bodyfile="cppStcodePasses.cpp" bodystart="308" bodyend="321"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a9e9369f495e36476fc6d3cb49e03b137" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::buildConditionBoolNot</definition>
+        <argsstring>(const not_expr &amp;e, StcodeBuilder &amp;out)</argsstring>
+        <name>buildConditionBoolNot</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::buildConditionBoolNot</qualifiedname>
+        <param>
+          <type>const not_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="69" column="8" bodyfile="cppStcodePasses.cpp" bodystart="294" bodyend="306"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a4166c5dd9c61ba01a1232dbcdf0c2b1f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeBranchedBuildEvalCB::buildConditionBoolValue</definition>
+        <argsstring>(const bool_value &amp;val, StcodeBuilder &amp;out)</argsstring>
+        <name>buildConditionBoolValue</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::buildConditionBoolValue</qualifiedname>
+        <param>
+          <type>const bool_value &amp;</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref> &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="70" column="8" bodyfile="cppStcodePasses.cpp" bodystart="169" bodyend="292"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classStcodeBranchedBuildEvalCB_1a16d7482a24b62370d364c5b7e3fee93b" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * StcodeBranchedBuildEvalCB::boolToStr</definition>
+        <argsstring>(bool b)</argsstring>
+        <name>boolToStr</name>
+        <qualifiedname>StcodeBranchedBuildEvalCB::boolToStr</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodePasses.h" line="72" column="21" bodyfile="cppStcodePasses.h" bodystart="72" bodyend="72"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ShaderParser::ShaderEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderEvalCB"/>
+      </node>
+      <node id="1">
+        <label>StcodeBranchedBuildEvalCB</label>
+        <link refid="classStcodeBranchedBuildEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderParser::ShaderEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderEvalCB"/>
+      </node>
+      <node id="1">
+        <label>StcodeBranchedBuildEvalCB</label>
+        <link refid="classStcodeBranchedBuildEvalCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodePasses.h" line="9" column="1" bodyfile="cppStcodePasses.h" bodystart="10" bodyend="73"/>
+    <listofallmembers>
+      <member refid="classStcodeBranchedBuildEvalCB_1a837cd96a52b2d5b196534db5c6b18123" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>boolEvalResults</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a16d7482a24b62370d364c5b7e3fee93b" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>boolToStr</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a065d82d4625ea9f32d25fa2a6faa8303" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>buildConditionBoolAnd</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a9e9369f495e36476fc6d3cb49e03b137" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>buildConditionBoolNot</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a4166c5dd9c61ba01a1232dbcdf0c2b1f" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>buildConditionBoolValue</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1ab901754be481ba19c8288aa6f45cd997" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>buildConditionString</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a9b4ce3dc4f85f9651f8bd471f379a20d" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>ctx</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a2b708e82c8b592b2478d6ade7fbc3be3" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a9e556a3ba05e1ff2f8c736d7919b8ea7" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_assume_if_not_assumed_stat</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1ac6b6a165847ae0b1cbcf2c7fde5c7a99" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_assume_stat</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a3c0f44e8ba116d0bfd5db391892a6a4a" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_bool_decl</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1aa7467ccce89cc9d5602eb4f7fb3bd987" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_channel_decl</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a2b8ff81cf992f1aaf8e7ccbdf43f7edf" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_command</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a7c92b276bd47f975ee1f9b9eff947b5b" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_else</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1ae9b274d61618116a2b6e982dc28aa29c" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_endif</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a43d675e8a8e6de383715ecad85348022" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_error_stat</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a61be14d856626981fbedc0b09d7ea710" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_external_block</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a5bed5b796aff51aa9ac8de49ebb5ed75" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_hlsl_compile</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1af3d893da2f4dd29182e7320e7b707886" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_hlsl_decl</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a575c7262124851f831592c6921dfc24d" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_if</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a7d3efd2035611a00fa6eb90da4805c3c" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_interval_decl</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a3da84c8121bbe6888c51fddfd93ccc35" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_render_stage</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a5b8f24b06507d9a86c258e34cf140214" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_shader_locdecl</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1ad1f11f49eb5b8d05da9f72ebcb3b5253" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_state</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1adbc571db3834ce212fe3f60713f80e59" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_static</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a6c1026caed4ec400babc32baf3dc37b0" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_supports</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a4fdbecaef6f848234523fb1be7f1a843" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>eval_zbias_state</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a0025a290257ab1fb0d494b47bd7a5601" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>evalBoolStat</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a01b7184d9dadacdc85613afd74be6ebf" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>evalBoolStatIfExists</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1ac26184676e8439cfc21244fc230d642b" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>evalExternalBlockStat</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a581f2cf7ed7c9fc774cac32e197b8b35" prot="public" virt="virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>getDefines</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa67354fcef9c601179eef2864b8228b76" prot="public" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>IF_BOTH</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa58399c8728006ad1e82d90527d55d3c6" prot="public" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>IF_FALSE</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa795199991378708f0bd9307c73262846" prot="public" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>IF_TRUE</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1ae7580389f351743e299d0b30acda6d29" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>parser</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a34f1c5652f0c56884200d12efe55c669" prot="private" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>preshaderStatementsUsedInAnyVariant</name></member>
+      <member refid="classStcodeBranchedBuildEvalCB_1a45d3f21516dd968b71b689b5bed55f63" prot="public" virt="non-virtual"><scope>StcodeBranchedBuildEvalCB</scope><name>StcodeBranchedBuildEvalCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

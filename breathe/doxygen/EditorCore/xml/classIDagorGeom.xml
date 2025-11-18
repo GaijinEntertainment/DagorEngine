@@ -1,0 +1,2882 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorGeom" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorGeom</compoundname>
+    <includes refid="ec__IEditorCore_8h" local="no">ec_IEditorCore.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorGeom_1aff24717c0e48e1223edd83273f938b91" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticGeometryContainer *</type>
+        <definition>virtual StaticGeometryContainer * IDagorGeom::newStaticGeometryContainer</definition>
+        <argsstring>(IMemAlloc *alloc=NULL)=0</argsstring>
+        <name>newStaticGeometryContainer</name>
+        <qualifiedname>IDagorGeom::newStaticGeometryContainer</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="227" column="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ae65d9ef5219b1da0cfe767220007778a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteStaticGeometryContainer</definition>
+        <argsstring>(StaticGeometryContainer *&amp;cont)=0</argsstring>
+        <name>deleteStaticGeometryContainer</name>
+        <qualifiedname>IDagorGeom::deleteStaticGeometryContainer</qualifiedname>
+        <param>
+          <type>StaticGeometryContainer *&amp;</type>
+          <declname>cont</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="228" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a3adaabb916c73346ad28b4d8033bbb40" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::staticGeometryContainerClear</definition>
+        <argsstring>(StaticGeometryContainer &amp;cont)=0</argsstring>
+        <name>staticGeometryContainerClear</name>
+        <qualifiedname>IDagorGeom::staticGeometryContainerClear</qualifiedname>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>cont</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="229" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ae3db765f1851896adb5e1cca8988bd9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::staticGeometryContainerLoadFromDag</definition>
+        <argsstring>(StaticGeometryContainer &amp;cont, const char *path, ILogWriter *log, bool use_not_found_tex=false, int load_flags=LASF_MATNAMES|LASF_NULLMATS)=0</argsstring>
+        <name>staticGeometryContainerLoadFromDag</name>
+        <qualifiedname>IDagorGeom::staticGeometryContainerLoadFromDag</qualifiedname>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>cont</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>ILogWriter *</type>
+          <declname>log</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_not_found_tex</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>load_flags</declname>
+          <defval>LASF_MATNAMES|LASF_NULLMATS</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="230" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a8e2cd4538b044e7e86343ebff33f3bef" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::staticGeometryContainerImportDag</definition>
+        <argsstring>(StaticGeometryContainer &amp;cont, const char *src, const char *dest) const =0</argsstring>
+        <name>staticGeometryContainerImportDag</name>
+        <qualifiedname>IDagorGeom::staticGeometryContainerImportDag</qualifiedname>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>cont</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>dest</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="232" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1bce6f1d35ab0d3ef3f2959010be8260" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::staticGeometryContainerExportDag</definition>
+        <argsstring>(StaticGeometryContainer &amp;cont, const char *path, bool make_tex_path_local=true) const =0</argsstring>
+        <name>staticGeometryContainerExportDag</name>
+        <qualifiedname>IDagorGeom::staticGeometryContainerExportDag</qualifiedname>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>cont</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>make_tex_path_local</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="233" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a76c165f54d1872e53341b1e7b5c70bf0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>GeomObject *</type>
+        <definition>virtual GeomObject * IDagorGeom::newGeomObject</definition>
+        <argsstring>(IMemAlloc *alloc=NULL)=0</argsstring>
+        <name>newGeomObject</name>
+        <qualifiedname>IDagorGeom::newGeomObject</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="237" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1afa1f7192255a9a7d505ba07bd31b7272" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteGeomObject</definition>
+        <argsstring>(GeomObject *&amp;geom)=0</argsstring>
+        <name>deleteGeomObject</name>
+        <qualifiedname>IDagorGeom::deleteGeomObject</qualifiedname>
+        <param>
+          <type>GeomObject *&amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="238" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1accd5d825dbf2b4b380d314b4d5b6d70c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectSaveToDag</definition>
+        <argsstring>(GeomObject &amp;go, const char *path) const =0</argsstring>
+        <name>geomObjectSaveToDag</name>
+        <qualifiedname>IDagorGeom::geomObjectSaveToDag</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="240" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a6ebde59688ce32d7f31aca92017978d1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::geomObjectLoadFromDag</definition>
+        <argsstring>(GeomObject &amp;go, const char *path, ILogWriter *log, ITextureNameResolver *resolv_cb=NULL) const =0</argsstring>
+        <name>geomObjectLoadFromDag</name>
+        <qualifiedname>IDagorGeom::geomObjectLoadFromDag</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>ILogWriter *</type>
+          <declname>log</declname>
+        </param>
+        <param>
+          <type>ITextureNameResolver *</type>
+          <declname>resolv_cb</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="241" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a72f97d0447471788cff7661d6095c20c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectClear</definition>
+        <argsstring>(GeomObject &amp;go) const =0</argsstring>
+        <name>geomObjectClear</name>
+        <qualifiedname>IDagorGeom::geomObjectClear</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="243" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a620b1c81b566956b6c762f72f10983fe" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectEraseNode</definition>
+        <argsstring>(GeomObject &amp;go, int idx) const =0</argsstring>
+        <name>geomObjectEraseNode</name>
+        <qualifiedname>IDagorGeom::geomObjectEraseNode</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="244" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ae07388e7691ebb5347d3efb80c5350b0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticGeometryContainer &amp;</type>
+        <definition>virtual StaticGeometryContainer &amp; IDagorGeom::geomObjectGetGeometryContainer</definition>
+        <argsstring>(GeomObject &amp;go) const =0</argsstring>
+        <name>geomObjectGetGeometryContainer</name>
+        <qualifiedname>IDagorGeom::geomObjectGetGeometryContainer</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="246" column="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a8a4978f43dd716e354f9d32c82818cd7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const StaticGeometryContainer &amp;</type>
+        <definition>virtual const StaticGeometryContainer &amp; IDagorGeom::geomObjectGetGeometryContainer</definition>
+        <argsstring>(const GeomObject &amp;go) const =0</argsstring>
+        <name>geomObjectGetGeometryContainer</name>
+        <qualifiedname>IDagorGeom::geomObjectGetGeometryContainer</qualifiedname>
+        <param>
+          <type>const GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="247" column="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a5b33fc0f320bd6d7f2aeb29810b79112" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectSetDefNodeVis</definition>
+        <argsstring>(GeomObject &amp;go)=0</argsstring>
+        <name>geomObjectSetDefNodeVis</name>
+        <qualifiedname>IDagorGeom::geomObjectSetDefNodeVis</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="249" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aaefd71dcbc5fe3f05457f193e8987cba" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectRecompile</definition>
+        <argsstring>(GeomObject &amp;go, const Bitarray *node_vis=NULL)=0</argsstring>
+        <name>geomObjectRecompile</name>
+        <qualifiedname>IDagorGeom::geomObjectRecompile</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>const Bitarray *</type>
+          <declname>node_vis</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="250" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aa5eb89c5b9c525b73cddc187635e497e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectCreateFromGeomContainer</definition>
+        <argsstring>(GeomObject &amp;go, const StaticGeometryContainer &amp;cont, bool do_recompile=true)=0</argsstring>
+        <name>geomObjectCreateFromGeomContainer</name>
+        <qualifiedname>IDagorGeom::geomObjectCreateFromGeomContainer</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>const StaticGeometryContainer &amp;</type>
+          <declname>cont</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>do_recompile</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="251" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a01954038c0b68950a0de65cf52bf2475" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectRender</definition>
+        <argsstring>(GeomObject &amp;go)=0</argsstring>
+        <name>geomObjectRender</name>
+        <qualifiedname>IDagorGeom::geomObjectRender</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="253" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a03590080951441a55db31a99a42dcb93" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectRenderColor</definition>
+        <argsstring>(GeomObject &amp;go, DynRenderBuffer *buffer, E3DCOLOR c, bool renderable_only=true) const =0</argsstring>
+        <name>geomObjectRenderColor</name>
+        <qualifiedname>IDagorGeom::geomObjectRenderColor</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>DynRenderBuffer *</type>
+          <declname>buffer</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>renderable_only</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="254" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a206236f4f6446a2ab2b9e8f0f0710aa4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectRenderNodeColor</definition>
+        <argsstring>(GeomObject &amp;go, int idx, DynRenderBuffer *buffer, E3DCOLOR c, bool renderable_only=true) const =0</argsstring>
+        <name>geomObjectRenderNodeColor</name>
+        <qualifiedname>IDagorGeom::geomObjectRenderNodeColor</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>DynRenderBuffer *</type>
+          <declname>buffer</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>renderable_only</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="255" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aa26d84595a8e20be24d98ef59c41fefc" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectRenderTrans</definition>
+        <argsstring>(GeomObject &amp;go)=0</argsstring>
+        <name>geomObjectRenderTrans</name>
+        <qualifiedname>IDagorGeom::geomObjectRenderTrans</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="257" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a4a2673bc69c5ef41f2ea16ad140f6a0f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomObjectRenderEdges</definition>
+        <argsstring>(GeomObject &amp;go, bool is_visible, E3DCOLOR color=E3DCOLOR(200, 200, 200, 200))=0</argsstring>
+        <name>geomObjectRenderEdges</name>
+        <qualifiedname>IDagorGeom::geomObjectRenderEdges</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_visible</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+          <defval>E3DCOLOR(200, 200, 200, 200)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="258" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a28eac69a44fe80906cfac062fbd50361" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>BBox3</type>
+        <definition>virtual BBox3 IDagorGeom::geomObjectGetBoundBox</definition>
+        <argsstring>(GeomObject &amp;go, bool local_coord=false) const =0</argsstring>
+        <name>geomObjectGetBoundBox</name>
+        <qualifiedname>IDagorGeom::geomObjectGetBoundBox</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>local_coord</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="260" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a4e1531b6b0ac063b1c5c58b0409c36de" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>BBox3</type>
+        <definition>virtual BBox3 IDagorGeom::geomObjectGetNodeBoundBox</definition>
+        <argsstring>(const GeomObject &amp;go, int idx, bool local_coord=false) const =0</argsstring>
+        <name>geomObjectGetNodeBoundBox</name>
+        <qualifiedname>IDagorGeom::geomObjectGetNodeBoundBox</qualifiedname>
+        <param>
+          <type>const GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>local_coord</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="261" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ae8c38eebc81f01c6a171e90bb44fb594" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IDagorGeom::geomObjectGetShaderName</definition>
+        <argsstring>(const GeomObject &amp;go, int idx) const =0</argsstring>
+        <name>geomObjectGetShaderName</name>
+        <qualifiedname>IDagorGeom::geomObjectGetShaderName</qualifiedname>
+        <param>
+          <type>const GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="263" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1af6db84610ababf3694e00be9189cf8d8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>ShaderMesh *</type>
+        <definition>virtual ShaderMesh * IDagorGeom::geomObjectGetShaderMesh</definition>
+        <argsstring>(const GeomObject &amp;go, int idx) const =0</argsstring>
+        <name>geomObjectGetShaderMesh</name>
+        <qualifiedname>IDagorGeom::geomObjectGetShaderMesh</qualifiedname>
+        <param>
+          <type>const GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="264" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1e34f70a4868822431e2b0380779f974" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::geomObjectShadowRayHitTest</definition>
+        <argsstring>(GeomObject &amp;go, const Point3 &amp;p, const Point3 &amp;dir, real maxt, int trace_flags=0) const =0</argsstring>
+        <name>geomObjectShadowRayHitTest</name>
+        <qualifiedname>IDagorGeom::geomObjectShadowRayHitTest</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>maxt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>trace_flags</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="266" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ac524712a9c08ed7dd5f7d298725f6407" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::geomObjectTraceRay</definition>
+        <argsstring>(GeomObject &amp;go, const Point3 &amp;p, const Point3 &amp;dir, real &amp;maxt, Point3 *norm) const =0</argsstring>
+        <name>geomObjectTraceRay</name>
+        <qualifiedname>IDagorGeom::geomObjectTraceRay</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>maxt</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>norm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="268" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a00cc0736d673a629013922258332a94d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::geomObjectReloadRayTracer</definition>
+        <argsstring>(GeomObject &amp;go) const =0</argsstring>
+        <name>geomObjectReloadRayTracer</name>
+        <qualifiedname>IDagorGeom::geomObjectReloadRayTracer</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="269" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ae8550fcae028e56a7040ff7d4a217061" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticSceneRayTracer *</type>
+        <definition>virtual StaticSceneRayTracer * IDagorGeom::geomObjectGetRayTracer</definition>
+        <argsstring>(GeomObject &amp;go) const =0</argsstring>
+        <name>geomObjectGetRayTracer</name>
+        <qualifiedname>IDagorGeom::geomObjectGetRayTracer</qualifiedname>
+        <param>
+          <type>GeomObject &amp;</type>
+          <declname>go</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="270" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a6bc51f270e6e196c7a696396cfdc0e84" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticGeometryNode *</type>
+        <definition>virtual StaticGeometryNode * IDagorGeom::newStaticGeometryNode</definition>
+        <argsstring>(IMemAlloc *alloc=NULL)=0</argsstring>
+        <name>newStaticGeometryNode</name>
+        <qualifiedname>IDagorGeom::newStaticGeometryNode</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="274" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a71517a11fd4fbdb53ee939fc830770a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticGeometryNode *</type>
+        <definition>virtual StaticGeometryNode * IDagorGeom::newStaticGeometryNode</definition>
+        <argsstring>(const StaticGeometryNode &amp;from, IMemAlloc *alloc=NULL)=0</argsstring>
+        <name>newStaticGeometryNode</name>
+        <qualifiedname>IDagorGeom::newStaticGeometryNode</qualifiedname>
+        <param>
+          <type>const StaticGeometryNode &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="275" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ab968cbfc7d4294392ee5ce84e38fd5f7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteStaticGeometryNode</definition>
+        <argsstring>(StaticGeometryNode *&amp;node)=0</argsstring>
+        <name>deleteStaticGeometryNode</name>
+        <qualifiedname>IDagorGeom::deleteStaticGeometryNode</qualifiedname>
+        <param>
+          <type>StaticGeometryNode *&amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="276" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a0840f4116eb6fed33adfcc7f1f854936" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::staticGeometryNodeHaveBillboardMat</definition>
+        <argsstring>(const StaticGeometryNode &amp;node) const =0</argsstring>
+        <name>staticGeometryNodeHaveBillboardMat</name>
+        <qualifiedname>IDagorGeom::staticGeometryNodeHaveBillboardMat</qualifiedname>
+        <param>
+          <type>const StaticGeometryNode &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="277" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a161c762016af07e4b63da481a4e638af" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::staticGeometryNodeCalcBoundBox</definition>
+        <argsstring>(StaticGeometryNode &amp;node) const =0</argsstring>
+        <name>staticGeometryNodeCalcBoundBox</name>
+        <qualifiedname>IDagorGeom::staticGeometryNodeCalcBoundBox</qualifiedname>
+        <param>
+          <type>StaticGeometryNode &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="278" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a22a60ba2f0ac8c258510f57a762fcaf9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::staticGeometryNodeCalcBoundSphere</definition>
+        <argsstring>(StaticGeometryNode &amp;node) const =0</argsstring>
+        <name>staticGeometryNodeCalcBoundSphere</name>
+        <qualifiedname>IDagorGeom::staticGeometryNodeCalcBoundSphere</qualifiedname>
+        <param>
+          <type>StaticGeometryNode &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="279" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aeb5496b6d5601b8bfc2362cc679b5a95" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::staticGeometryNodeSetMaterialLighting</definition>
+        <argsstring>(const StaticGeometryNode &amp;node, StaticGeometryMaterial &amp;mat) const =0</argsstring>
+        <name>staticGeometryNodeSetMaterialLighting</name>
+        <qualifiedname>IDagorGeom::staticGeometryNodeSetMaterialLighting</qualifiedname>
+        <param>
+          <type>const StaticGeometryNode &amp;</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>StaticGeometryMaterial &amp;</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="280" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a333b3aabdae4d0a8df2f4d59c237e229" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IDagorGeom::staticGeometryNodeLightingToStr</definition>
+        <argsstring>(StaticGeometryNode::Lighting light) const =0</argsstring>
+        <name>staticGeometryNodeLightingToStr</name>
+        <qualifiedname>IDagorGeom::staticGeometryNodeLightingToStr</qualifiedname>
+        <param>
+          <type>StaticGeometryNode::Lighting</type>
+          <declname>light</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="282" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1a491b6af507202f532368b566b50fa5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticGeometryNode::Lighting</type>
+        <definition>virtual StaticGeometryNode::Lighting IDagorGeom::staticGeometryNodeStrToLighting</definition>
+        <argsstring>(const char *light) const =0</argsstring>
+        <name>staticGeometryNodeStrToLighting</name>
+        <qualifiedname>IDagorGeom::staticGeometryNodeStrToLighting</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>light</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="283" column="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1f5a3d660876778cf2cb6507f7d8a454" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>StaticGeometryMesh *</type>
+        <definition>virtual StaticGeometryMesh * IDagorGeom::newStaticGeometryMesh</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newStaticGeometryMesh</name>
+        <qualifiedname>IDagorGeom::newStaticGeometryMesh</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="286" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ab59ee3f77fff6df67d93860bfbd82ac8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteStaticGeometryMesh</definition>
+        <argsstring>(StaticGeometryMesh *&amp;mesh) const =0</argsstring>
+        <name>deleteStaticGeometryMesh</name>
+        <qualifiedname>IDagorGeom::deleteStaticGeometryMesh</qualifiedname>
+        <param>
+          <type>StaticGeometryMesh *&amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="287" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a23999ee56f3319d2dd83b0e39d704184" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>GeomResourcesHelper *</type>
+        <definition>virtual GeomResourcesHelper * IDagorGeom::newGeomResourcesHelper</definition>
+        <argsstring>(IStaticGeomResourcesService *svc, IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newGeomResourcesHelper</name>
+        <qualifiedname>IDagorGeom::newGeomResourcesHelper</qualifiedname>
+        <param>
+          <type>IStaticGeomResourcesService *</type>
+          <declname>svc</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="290" column="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a22e9b8895cf5223237a653cab98f91fa" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteGeomResourcesHelper</definition>
+        <argsstring>(GeomResourcesHelper *&amp;helper) const =0</argsstring>
+        <name>deleteGeomResourcesHelper</name>
+        <qualifiedname>IDagorGeom::deleteGeomResourcesHelper</qualifiedname>
+        <param>
+          <type>GeomResourcesHelper *&amp;</type>
+          <declname>helper</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="291" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1c6a41a4094a02c6fe03b285a716dbfc" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomResourcesHelperSetResourcesService</definition>
+        <argsstring>(GeomResourcesHelper &amp;helper, IStaticGeomResourcesService *svc) const =0</argsstring>
+        <name>geomResourcesHelperSetResourcesService</name>
+        <qualifiedname>IDagorGeom::geomResourcesHelperSetResourcesService</qualifiedname>
+        <param>
+          <type>GeomResourcesHelper &amp;</type>
+          <declname>helper</declname>
+        </param>
+        <param>
+          <type>IStaticGeomResourcesService *</type>
+          <declname>svc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="293" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ab9ae5b41a68b6a51f244cd564274c20e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomResourcesHelperCreateResources</definition>
+        <argsstring>(GeomResourcesHelper &amp;helper, const void *obj_id, const TMatrix &amp;tm, const StaticGeometryContainer &amp;cont, ILogWriter *log=NULL) const =0</argsstring>
+        <name>geomResourcesHelperCreateResources</name>
+        <qualifiedname>IDagorGeom::geomResourcesHelperCreateResources</qualifiedname>
+        <param>
+          <type>GeomResourcesHelper &amp;</type>
+          <declname>helper</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>obj_id</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>const StaticGeometryContainer &amp;</type>
+          <declname>cont</declname>
+        </param>
+        <param>
+          <type>ILogWriter *</type>
+          <declname>log</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="294" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a71d4a8ece75eb68389a4818372078efe" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomResourcesHelperFreeResources</definition>
+        <argsstring>(GeomResourcesHelper &amp;helper, const void *obj_id) const =0</argsstring>
+        <name>geomResourcesHelperFreeResources</name>
+        <qualifiedname>IDagorGeom::geomResourcesHelperFreeResources</qualifiedname>
+        <param>
+          <type>GeomResourcesHelper &amp;</type>
+          <declname>helper</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>obj_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="296" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1abf32a0af744c259edb9b02db025d483c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomResourcesHelperSetResourcesTm</definition>
+        <argsstring>(GeomResourcesHelper &amp;helper, const void *obj_id, const TMatrix &amp;tm) const =0</argsstring>
+        <name>geomResourcesHelperSetResourcesTm</name>
+        <qualifiedname>IDagorGeom::geomResourcesHelperSetResourcesTm</qualifiedname>
+        <param>
+          <type>GeomResourcesHelper &amp;</type>
+          <declname>helper</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>obj_id</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="297" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1af23b2a1d27ba392582871c7e9000b127" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::geomResourcesHelperRemapResources</definition>
+        <argsstring>(GeomResourcesHelper &amp;helper, const void *obj_id_old, const void *obj_id_new) const =0</argsstring>
+        <name>geomResourcesHelperRemapResources</name>
+        <qualifiedname>IDagorGeom::geomResourcesHelperRemapResources</qualifiedname>
+        <param>
+          <type>GeomResourcesHelper &amp;</type>
+          <declname>helper</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>obj_id_old</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>obj_id_new</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="298" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1afa272394e45393aac802022db2b7c9d9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::geomResourcesHelperCompact</definition>
+        <argsstring>(GeomResourcesHelper &amp;helper) const =0</argsstring>
+        <name>geomResourcesHelperCompact</name>
+        <qualifiedname>IDagorGeom::geomResourcesHelperCompact</qualifiedname>
+        <param>
+          <type>GeomResourcesHelper &amp;</type>
+          <declname>helper</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="300" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ab95ec6b9fee24f4d2f4b02c607238174" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>ShaderMaterial *</type>
+        <definition>virtual ShaderMaterial * IDagorGeom::newShaderMaterial</definition>
+        <argsstring>(MaterialData &amp;m) const =0</argsstring>
+        <name>newShaderMaterial</name>
+        <qualifiedname>IDagorGeom::newShaderMaterial</qualifiedname>
+        <param>
+          <type>MaterialData &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="303" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a03984d6745169ff03fa2ee5811f4b65d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::getShaderVariableId</definition>
+        <argsstring>(const char *name) const =0</argsstring>
+        <name>getShaderVariableId</name>
+        <qualifiedname>IDagorGeom::getShaderVariableId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="305" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aef16245ba322b9664d4066cf4cd73acc" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IDagorGeom::getShaderVariableName</definition>
+        <argsstring>(int id) const =0</argsstring>
+        <name>getShaderVariableName</name>
+        <qualifiedname>IDagorGeom::getShaderVariableName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="306" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a28220cbde0f8a26740bc7e2df5c1bab0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::shaderGlobalSetInt</definition>
+        <argsstring>(int id, int val) const =0</argsstring>
+        <name>shaderGlobalSetInt</name>
+        <qualifiedname>IDagorGeom::shaderGlobalSetInt</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="308" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a7027c9aef2a454d6389a1e37b4fa619f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::shaderGlobalSetReal</definition>
+        <argsstring>(int id, real val) const =0</argsstring>
+        <name>shaderGlobalSetReal</name>
+        <qualifiedname>IDagorGeom::shaderGlobalSetReal</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="309" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1adfc8142e78a8fd2c89b7df022125580b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::shaderGlobalSetColor4</definition>
+        <argsstring>(int id, const Color4 &amp;val) const =0</argsstring>
+        <name>shaderGlobalSetColor4</name>
+        <qualifiedname>IDagorGeom::shaderGlobalSetColor4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="310" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1afdd0c3b5bb5aa314be8c86b6c1960986" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::shaderGlobalSetTexture</definition>
+        <argsstring>(int id, TEXTUREID val) const =0</argsstring>
+        <name>shaderGlobalSetTexture</name>
+        <qualifiedname>IDagorGeom::shaderGlobalSetTexture</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="311" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a3b2e822793b333ae6893863f95ef16a5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::shaderGlobalSetSampler</definition>
+        <argsstring>(int id, d3d::SamplerHandle val) const =0</argsstring>
+        <name>shaderGlobalSetSampler</name>
+        <qualifiedname>IDagorGeom::shaderGlobalSetSampler</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="312" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a2bbac6bc0c3cca66642a1aa792b4f04c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>d3d::SamplerHandle</type>
+        <definition>virtual d3d::SamplerHandle IDagorGeom::getSeparateSampler</definition>
+        <argsstring>(TEXTUREID val) const =0</argsstring>
+        <name>getSeparateSampler</name>
+        <qualifiedname>IDagorGeom::getSeparateSampler</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="313" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a266cf060a57fbe8f1602970832e93a43" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::shaderGlobalGetInt</definition>
+        <argsstring>(int id) const =0</argsstring>
+        <name>shaderGlobalGetInt</name>
+        <qualifiedname>IDagorGeom::shaderGlobalGetInt</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="315" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a03da0fd24c041fbc4a35ff7b76482745" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>real</type>
+        <definition>virtual real IDagorGeom::shaderGlobalGetReal</definition>
+        <argsstring>(int id) const =0</argsstring>
+        <name>shaderGlobalGetReal</name>
+        <qualifiedname>IDagorGeom::shaderGlobalGetReal</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="316" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a025240be5092677ce168d3a342b94c84" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>Color4</type>
+        <definition>virtual Color4 IDagorGeom::shaderGlobalGetColor4</definition>
+        <argsstring>(int id) const =0</argsstring>
+        <name>shaderGlobalGetColor4</name>
+        <qualifiedname>IDagorGeom::shaderGlobalGetColor4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="317" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a118af246dcb35dde6d430f0a12dacfd4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>TEXTUREID</type>
+        <definition>virtual TEXTUREID IDagorGeom::shaderGlobalGetTexture</definition>
+        <argsstring>(int id) const =0</argsstring>
+        <name>shaderGlobalGetTexture</name>
+        <qualifiedname>IDagorGeom::shaderGlobalGetTexture</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="318" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a52edd03d85d74ecb34f06c99c63a23af" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::shaderGlobalSetVarsFromBlk</definition>
+        <argsstring>(const DataBlock &amp;blk) const =0</argsstring>
+        <name>shaderGlobalSetVarsFromBlk</name>
+        <qualifiedname>IDagorGeom::shaderGlobalSetVarsFromBlk</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="320" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aa6e37b5e1fd41aa30bee70d50f0c48bd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::shaderGlobalGetBlockId</definition>
+        <argsstring>(const char *name) const =0</argsstring>
+        <name>shaderGlobalGetBlockId</name>
+        <qualifiedname>IDagorGeom::shaderGlobalGetBlockId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="322" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a830540c21c0d4a2b44cda42edf7c9252" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::shaderGlobalSetBlock</definition>
+        <argsstring>(int id, int layer=-1) const =0</argsstring>
+        <name>shaderGlobalSetBlock</name>
+        <qualifiedname>IDagorGeom::shaderGlobalSetBlock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="323" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a3aa9931f09d7b17bb1a3e82ff862743a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::shaderElemInvalidateCachedStateBlock</definition>
+        <argsstring>() const =0</argsstring>
+        <name>shaderElemInvalidateCachedStateBlock</name>
+        <qualifiedname>IDagorGeom::shaderElemInvalidateCachedStateBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="325" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a7cfe8fafb92f5a35e45aaacb9d3ed7ee" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>shaders::OverrideStateId</type>
+        <definition>virtual shaders::OverrideStateId IDagorGeom::create</definition>
+        <argsstring>(const shaders::OverrideState &amp;) const =0</argsstring>
+        <name>create</name>
+        <qualifiedname>IDagorGeom::create</qualifiedname>
+        <param>
+          <type>const shaders::OverrideState &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="327" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1afb49839b11108c3fef6bf854fe1a06f6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::destroy</definition>
+        <argsstring>(shaders::OverrideStateId &amp;override_id) const =0</argsstring>
+        <name>destroy</name>
+        <qualifiedname>IDagorGeom::destroy</qualifiedname>
+        <param>
+          <type>shaders::OverrideStateId &amp;</type>
+          <declname>override_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="328" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a2896818d7872a836ef0e2aae2ee1ec2f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::set</definition>
+        <argsstring>(shaders::OverrideStateId override_id) const =0</argsstring>
+        <name>set</name>
+        <qualifiedname>IDagorGeom::set</qualifiedname>
+        <param>
+          <type>shaders::OverrideStateId</type>
+          <declname>override_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="329" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ace9392be8fc9696c5f0693f6971bd63b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::reset_override</definition>
+        <argsstring>() const =0</argsstring>
+        <name>reset_override</name>
+        <qualifiedname>IDagorGeom::reset_override</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="330" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a8c4a4681dcf2886ae8e7173baa84981c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>Mesh *</type>
+        <definition>virtual Mesh * IDagorGeom::newMesh</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newMesh</name>
+        <qualifiedname>IDagorGeom::newMesh</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="333" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a72ebf9461a90a38eef63806b764502a8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteMesh</definition>
+        <argsstring>(Mesh *&amp;mesh) const =0</argsstring>
+        <name>deleteMesh</name>
+        <qualifiedname>IDagorGeom::deleteMesh</qualifiedname>
+        <param>
+          <type>Mesh *&amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="334" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a7a98317d8574abbbcb94fccda608e6f0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::meshOptimizeTverts</definition>
+        <argsstring>(Mesh &amp;mesh) const =0</argsstring>
+        <name>meshOptimizeTverts</name>
+        <qualifiedname>IDagorGeom::meshOptimizeTverts</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="336" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aa2275789b35e8f60023f32229e8e5cc9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::meshCalcNgr</definition>
+        <argsstring>(Mesh &amp;mesh) const =0</argsstring>
+        <name>meshCalcNgr</name>
+        <qualifiedname>IDagorGeom::meshCalcNgr</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="337" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aeeb83db082da1a9e823486c8915899fe" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::meshCalcVertnorms</definition>
+        <argsstring>(Mesh &amp;mesh) const =0</argsstring>
+        <name>meshCalcVertnorms</name>
+        <qualifiedname>IDagorGeom::meshCalcVertnorms</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="338" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a98ef43e96195d70f2a007222d480a1cf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::meshFlipNormals</definition>
+        <argsstring>(Mesh &amp;mesh, int f0=0, int nf=-1) const =0</argsstring>
+        <name>meshFlipNormals</name>
+        <qualifiedname>IDagorGeom::meshFlipNormals</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f0</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nf</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="339" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1afb4e3be3bf0a9e3802517f4b89caf23a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>PostFxRenderer *</type>
+        <definition>virtual PostFxRenderer * IDagorGeom::newPostFxRenderer</definition>
+        <argsstring>() const =0</argsstring>
+        <name>newPostFxRenderer</name>
+        <qualifiedname>IDagorGeom::newPostFxRenderer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="341" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ae04dad00e54bff3f902b2173a62b9c0e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deletePostFxRenderer</definition>
+        <argsstring>(PostFxRenderer *&amp;) const =0</argsstring>
+        <name>deletePostFxRenderer</name>
+        <qualifiedname>IDagorGeom::deletePostFxRenderer</qualifiedname>
+        <param>
+          <type>PostFxRenderer *&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="342" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1affdae81d77d0b34cbf94ce6c452254f7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::postFxRendererInit</definition>
+        <argsstring>(PostFxRenderer &amp;p, const char *shader_name) const =0</argsstring>
+        <name>postFxRendererInit</name>
+        <qualifiedname>IDagorGeom::postFxRendererInit</qualifiedname>
+        <param>
+          <type>PostFxRenderer &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="343" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a299676db41f829cd278b9e7cf9c32e10" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::postFxRendererRender</definition>
+        <argsstring>(PostFxRenderer &amp;p) const =0</argsstring>
+        <name>postFxRendererRender</name>
+        <qualifiedname>IDagorGeom::postFxRendererRender</qualifiedname>
+        <param>
+          <type>PostFxRenderer &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="344" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a7cd28f267d4d44eb34e082727d3681d1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generatePlane</definition>
+        <argsstring>(const Point2 &amp;cell_size, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generatePlane</name>
+        <qualifiedname>IDagorGeom::generatePlane</qualifiedname>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>cell_size</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="347" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a0382bba2a430c2884c8ff375e968c8a5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generatePlane</definition>
+        <argsstring>(const Point2 &amp;cell_size, StaticGeometryContainer &amp;geom, StaticGeometryMaterial *material) const =0</argsstring>
+        <name>generatePlane</name>
+        <qualifiedname>IDagorGeom::generatePlane</qualifiedname>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>cell_size</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <param>
+          <type>StaticGeometryMaterial *</type>
+          <declname>material</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="348" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ad95683553ec74d2db29816e877a77237" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateBox</definition>
+        <argsstring>(const IPoint3 &amp;segments, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateBox</name>
+        <qualifiedname>IDagorGeom::generateBox</qualifiedname>
+        <param>
+          <type>const IPoint3 &amp;</type>
+          <declname>segments</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="350" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a44cd62432c75383532331cef948a656e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateCylinder</definition>
+        <argsstring>(int sides, int height_segments, int cap_segments, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateCylinder</name>
+        <qualifiedname>IDagorGeom::generateCylinder</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>sides</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>height_segments</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cap_segments</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="352" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aa103cf121db45d4bb80168c94de1c367" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generatePolyMesh</definition>
+        <argsstring>(const Tab&lt; Point2 &gt; &amp;points, int height_segments, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generatePolyMesh</name>
+        <qualifiedname>IDagorGeom::generatePolyMesh</qualifiedname>
+        <param>
+          <type>const Tab&lt; Point2 &gt; &amp;</type>
+          <declname>points</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>height_segments</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="354" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a6ab0157db81c1262a3868b19705e3c70" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateBoxSpiralStair</definition>
+        <argsstring>(int steps, real w, real arc, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateBoxSpiralStair</name>
+        <qualifiedname>IDagorGeom::generateBoxSpiralStair</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>steps</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>arc</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="356" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a443bc5976da77931eb69c534502f2b4d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateClosedSpiralStair</definition>
+        <argsstring>(int steps, real w, real arc, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateClosedSpiralStair</name>
+        <qualifiedname>IDagorGeom::generateClosedSpiralStair</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>steps</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>arc</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="357" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ac50d2f36cf2087a385fb3bb42f38041b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateOpenSpiralStair</definition>
+        <argsstring>(int steps, real w, real h, real arc, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateOpenSpiralStair</name>
+        <qualifiedname>IDagorGeom::generateOpenSpiralStair</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>steps</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>arc</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="358" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1af1fb8f5f3d13a3556fa7d2364d649654" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateBoxStair</definition>
+        <argsstring>(int steps, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateBoxStair</name>
+        <qualifiedname>IDagorGeom::generateBoxStair</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>steps</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="360" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a0a36215974f3f2330a4076abd3a430fd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateClosedStair</definition>
+        <argsstring>(int steps, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateClosedStair</name>
+        <qualifiedname>IDagorGeom::generateClosedStair</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>steps</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="361" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a8cc7b858eb16df364f87c6d2e1c98ce2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::generateOpenStair</definition>
+        <argsstring>(int steps, real h, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>generateOpenStair</name>
+        <qualifiedname>IDagorGeom::generateOpenStair</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>steps</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="362" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a40a193a325f867e68bbbfd862087a0e2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::objCreator3dAddNode</definition>
+        <argsstring>(const char *name, Mesh *mesh, MaterialDataList *material, StaticGeometryContainer &amp;geom) const =0</argsstring>
+        <name>objCreator3dAddNode</name>
+        <qualifiedname>IDagorGeom::objCreator3dAddNode</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Mesh *</type>
+          <declname>mesh</declname>
+        </param>
+        <param>
+          <type>MaterialDataList *</type>
+          <declname>material</declname>
+        </param>
+        <param>
+          <type>StaticGeometryContainer &amp;</type>
+          <declname>geom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="365" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a88e3a7603ae785fffc5f4f6d65012ac4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classBoxCreator" kindref="compound">BoxCreator</ref> *</type>
+        <definition>virtual BoxCreator * IDagorGeom::newBoxCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newBoxCreator</name>
+        <qualifiedname>IDagorGeom::newBoxCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="368" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a645e37a24a16472b664ce784dacdf30a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteBoxCreator</definition>
+        <argsstring>(BoxCreator *&amp;creator) const =0</argsstring>
+        <name>deleteBoxCreator</name>
+        <qualifiedname>IDagorGeom::deleteBoxCreator</qualifiedname>
+        <param>
+          <type><ref refid="classBoxCreator" kindref="compound">BoxCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="369" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aeadfc1c24ee2bbda925eb9710e119412" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classSphereCreator" kindref="compound">SphereCreator</ref> *</type>
+        <definition>virtual SphereCreator * IDagorGeom::newSphereCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newSphereCreator</name>
+        <qualifiedname>IDagorGeom::newSphereCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="371" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a41bfcfe6fd8fa3db22c70775f32533a2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteSphereCreator</definition>
+        <argsstring>(SphereCreator *&amp;creator) const =0</argsstring>
+        <name>deleteSphereCreator</name>
+        <qualifiedname>IDagorGeom::deleteSphereCreator</qualifiedname>
+        <param>
+          <type><ref refid="classSphereCreator" kindref="compound">SphereCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="372" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1adac79dd5ae1e8623d2f1e102bff6db75" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classPlaneCreator" kindref="compound">PlaneCreator</ref> *</type>
+        <definition>virtual PlaneCreator * IDagorGeom::newPlaneCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newPlaneCreator</name>
+        <qualifiedname>IDagorGeom::newPlaneCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="374" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a10e2be42343ecbd42374f81fc7602ce1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deletePlaneCreator</definition>
+        <argsstring>(PlaneCreator *&amp;creator) const =0</argsstring>
+        <name>deletePlaneCreator</name>
+        <qualifiedname>IDagorGeom::deletePlaneCreator</qualifiedname>
+        <param>
+          <type><ref refid="classPlaneCreator" kindref="compound">PlaneCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="375" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aa4262a69b83ddd8a5bf0db6992747987" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classPointCreator" kindref="compound">PointCreator</ref> *</type>
+        <definition>virtual PointCreator * IDagorGeom::newPointCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newPointCreator</name>
+        <qualifiedname>IDagorGeom::newPointCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="377" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aff3e5b89acf2ea69513ad19577bca324" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deletePointCreator</definition>
+        <argsstring>(PointCreator *&amp;creator) const =0</argsstring>
+        <name>deletePointCreator</name>
+        <qualifiedname>IDagorGeom::deletePointCreator</qualifiedname>
+        <param>
+          <type><ref refid="classPointCreator" kindref="compound">PointCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="378" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a2f2f6d172bd88e6e1e94c6d8d4c998f3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classCylinderCreator" kindref="compound">CylinderCreator</ref> *</type>
+        <definition>virtual CylinderCreator * IDagorGeom::newCylinderCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newCylinderCreator</name>
+        <qualifiedname>IDagorGeom::newCylinderCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="380" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a4e17f43f43be0b67adac2f135502d464" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteCylinderCreator</definition>
+        <argsstring>(CylinderCreator *&amp;creator) const =0</argsstring>
+        <name>deleteCylinderCreator</name>
+        <qualifiedname>IDagorGeom::deleteCylinderCreator</qualifiedname>
+        <param>
+          <type><ref refid="classCylinderCreator" kindref="compound">CylinderCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="381" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a094141389242308281f3c9468b022e94" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classPolyMeshCreator" kindref="compound">PolyMeshCreator</ref> *</type>
+        <definition>virtual PolyMeshCreator * IDagorGeom::newPolyMeshCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newPolyMeshCreator</name>
+        <qualifiedname>IDagorGeom::newPolyMeshCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="383" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1af74167304c7e87cef7e562670bcce489" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deletePolyMeshCreator</definition>
+        <argsstring>(PolyMeshCreator *&amp;creator) const =0</argsstring>
+        <name>deletePolyMeshCreator</name>
+        <qualifiedname>IDagorGeom::deletePolyMeshCreator</qualifiedname>
+        <param>
+          <type><ref refid="classPolyMeshCreator" kindref="compound">PolyMeshCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="384" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a14c669f7631bc915997d830ef89f50f8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classStairCreator" kindref="compound">StairCreator</ref> *</type>
+        <definition>virtual StairCreator * IDagorGeom::newStairCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newStairCreator</name>
+        <qualifiedname>IDagorGeom::newStairCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="386" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a523212165f4efdc9cf4afaee29753172" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteStairCreator</definition>
+        <argsstring>(StairCreator *&amp;creator) const =0</argsstring>
+        <name>deleteStairCreator</name>
+        <qualifiedname>IDagorGeom::deleteStairCreator</qualifiedname>
+        <param>
+          <type><ref refid="classStairCreator" kindref="compound">StairCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="387" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1600586d6ed5bd1de4ef2de5e433bd54" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classSpiralStairCreator" kindref="compound">SpiralStairCreator</ref> *</type>
+        <definition>virtual SpiralStairCreator * IDagorGeom::newSpiralStairCreator</definition>
+        <argsstring>(IMemAlloc *alloc) const =0</argsstring>
+        <name>newSpiralStairCreator</name>
+        <qualifiedname>IDagorGeom::newSpiralStairCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="389" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a64c0d9d1c893b221d1c18c7bd3e7f174" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteSpiralStairCreator</definition>
+        <argsstring>(SpiralStairCreator *&amp;creator) const =0</argsstring>
+        <name>deleteSpiralStairCreator</name>
+        <qualifiedname>IDagorGeom::deleteSpiralStairCreator</qualifiedname>
+        <param>
+          <type><ref refid="classSpiralStairCreator" kindref="compound">SpiralStairCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="390" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a98735281ec88d498136354a1ccea8910" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classSplineCreator" kindref="compound">SplineCreator</ref> *</type>
+        <definition>virtual SplineCreator * IDagorGeom::newSplineCreator</definition>
+        <argsstring>(IMemAlloc *alloc) const =0</argsstring>
+        <name>newSplineCreator</name>
+        <qualifiedname>IDagorGeom::newSplineCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="392" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a554aaddab7e53fda04b317ef2eca0dd3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteSplineCreator</definition>
+        <argsstring>(SplineCreator *&amp;creator) const =0</argsstring>
+        <name>deleteSplineCreator</name>
+        <qualifiedname>IDagorGeom::deleteSplineCreator</qualifiedname>
+        <param>
+          <type><ref refid="classSplineCreator" kindref="compound">SplineCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="393" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a574523af37545168479c094ce7970985" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classTargetCreator" kindref="compound">TargetCreator</ref> *</type>
+        <definition>virtual TargetCreator * IDagorGeom::newTargetCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newTargetCreator</name>
+        <qualifiedname>IDagorGeom::newTargetCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="395" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ad50b5b7d49a31483172ea6f06dcf0c45" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteTargetCreator</definition>
+        <argsstring>(TargetCreator *&amp;creator) const =0</argsstring>
+        <name>deleteTargetCreator</name>
+        <qualifiedname>IDagorGeom::deleteTargetCreator</qualifiedname>
+        <param>
+          <type><ref refid="classTargetCreator" kindref="compound">TargetCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="396" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a9b3d1e0b5cf511a8c5d7b1ef6f547636" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classPolygoneZoneCreator" kindref="compound">PolygoneZoneCreator</ref> *</type>
+        <definition>virtual PolygoneZoneCreator * IDagorGeom::newPolygonZoneCreator</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newPolygonZoneCreator</name>
+        <qualifiedname>IDagorGeom::newPolygonZoneCreator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="398" column="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a67c0025a3d1e7d0014ad60731c2d2605" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deletePolyZoneCreator</definition>
+        <argsstring>(PolygoneZoneCreator *&amp;creator) const =0</argsstring>
+        <name>deletePolyZoneCreator</name>
+        <qualifiedname>IDagorGeom::deletePolyZoneCreator</qualifiedname>
+        <param>
+          <type><ref refid="classPolygoneZoneCreator" kindref="compound">PolygoneZoneCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="399" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ac6e901a616669c5a38c0b7754d85c1e8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteIObjectCreator</definition>
+        <argsstring>(IObjectCreator *&amp;creator) const =0</argsstring>
+        <name>deleteIObjectCreator</name>
+        <qualifiedname>IDagorGeom::deleteIObjectCreator</qualifiedname>
+        <param>
+          <type><ref refid="classIObjectCreator" kindref="compound">IObjectCreator</ref> *&amp;</type>
+          <declname>creator</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="401" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aac267920052b92b03f2c9828d5ab27b3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>DagSaver *</type>
+        <definition>virtual DagSaver * IDagorGeom::newDagSaver</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newDagSaver</name>
+        <qualifiedname>IDagorGeom::newDagSaver</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="404" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1ae883f453f4c2f27d69cebc7a6ca4f86c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteDagSaver</definition>
+        <argsstring>(DagSaver *&amp;saver) const =0</argsstring>
+        <name>deleteDagSaver</name>
+        <qualifiedname>IDagorGeom::deleteDagSaver</qualifiedname>
+        <param>
+          <type>DagSaver *&amp;</type>
+          <declname>saver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="405" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a97baef43233cb878c16260ae2fee6372" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::dagSaverStartSaveDag</definition>
+        <argsstring>(DagSaver &amp;saver, const char *path) const =0</argsstring>
+        <name>dagSaverStartSaveDag</name>
+        <qualifiedname>IDagorGeom::dagSaverStartSaveDag</qualifiedname>
+        <param>
+          <type>DagSaver &amp;</type>
+          <declname>saver</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="407" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a280e19dfa51854be2089982caa47cba9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::dagSaverEndSaveDag</definition>
+        <argsstring>(DagSaver &amp;saver) const =0</argsstring>
+        <name>dagSaverEndSaveDag</name>
+        <qualifiedname>IDagorGeom::dagSaverEndSaveDag</qualifiedname>
+        <param>
+          <type>DagSaver &amp;</type>
+          <declname>saver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="408" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aca51bf1f4a1c731d2371947ec1ce1dec" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::dagSaverStartSaveNodes</definition>
+        <argsstring>(DagSaver &amp;saver) const =0</argsstring>
+        <name>dagSaverStartSaveNodes</name>
+        <qualifiedname>IDagorGeom::dagSaverStartSaveNodes</qualifiedname>
+        <param>
+          <type>DagSaver &amp;</type>
+          <declname>saver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="410" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a7638b21f0fc25f2fa1cabae3f687fa4b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::dagSaverEndSaveNodes</definition>
+        <argsstring>(DagSaver &amp;saver) const =0</argsstring>
+        <name>dagSaverEndSaveNodes</name>
+        <qualifiedname>IDagorGeom::dagSaverEndSaveNodes</qualifiedname>
+        <param>
+          <type>DagSaver &amp;</type>
+          <declname>saver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="411" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1fdeb059045144d7d4a94d87dd400388" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::dagSaverStartSaveNode</definition>
+        <argsstring>(DagSaver &amp;saver, const char *name, const TMatrix &amp;wtm, int flg=DAG_NF_RENDERABLE|DAG_NF_CASTSHADOW|DAG_NF_RCVSHADOW, int children=0) const =0</argsstring>
+        <name>dagSaverStartSaveNode</name>
+        <qualifiedname>IDagorGeom::dagSaverStartSaveNode</qualifiedname>
+        <param>
+          <type>DagSaver &amp;</type>
+          <declname>saver</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>wtm</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+          <defval>DAG_NF_RENDERABLE|DAG_NF_CASTSHADOW|DAG_NF_RCVSHADOW</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>children</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="413" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a1128e18ced94036c067d2afdabdf254d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::dagSaverEndSaveNode</definition>
+        <argsstring>(DagSaver &amp;saver) const =0</argsstring>
+        <name>dagSaverEndSaveNode</name>
+        <qualifiedname>IDagorGeom::dagSaverEndSaveNode</qualifiedname>
+        <param>
+          <type>DagSaver &amp;</type>
+          <declname>saver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="415" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a84099a248c35b83c16df417df4c1b1c8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::dagSaverSaveDagSpline</definition>
+        <argsstring>(DagSaver &amp;saver, DagSpline **spline, int cnt) const =0</argsstring>
+        <name>dagSaverSaveDagSpline</name>
+        <qualifiedname>IDagorGeom::dagSaverSaveDagSpline</qualifiedname>
+        <param>
+          <type>DagSaver &amp;</type>
+          <declname>saver</declname>
+        </param>
+        <param>
+          <type>DagSpline **</type>
+          <declname>spline</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="417" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a3a3c61f49ee86e70809a5131ca1f3ed1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>AScene *</type>
+        <definition>virtual AScene * IDagorGeom::newAScene</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newAScene</name>
+        <qualifiedname>IDagorGeom::newAScene</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="420" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1aee7ac51688799670848dcb26688ebfc9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::deleteAScene</definition>
+        <argsstring>(AScene *&amp;scene) const =0</argsstring>
+        <name>deleteAScene</name>
+        <qualifiedname>IDagorGeom::deleteAScene</qualifiedname>
+        <param>
+          <type>AScene *&amp;</type>
+          <declname>scene</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="421" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a2add96ef97671b4a737dd8fcb75f635e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorGeom::loadAscene</definition>
+        <argsstring>(const char *fn, AScene &amp;sc, int flg, bool fatal_on_error) const =0</argsstring>
+        <name>loadAscene</name>
+        <qualifiedname>IDagorGeom::loadAscene</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>AScene &amp;</type>
+          <declname>sc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fatal_on_error</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="423" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a0348b2ee4d5395d1e68b08197284c401" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorGeom::nodeCalcWtm</definition>
+        <argsstring>(Node &amp;node) const =0</argsstring>
+        <name>nodeCalcWtm</name>
+        <qualifiedname>IDagorGeom::nodeCalcWtm</qualifiedname>
+        <param>
+          <type>Node &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="426" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorGeom_1a95fc68d2523ec407cef18c9224c1a709" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorGeom::nodeEnumNodes</definition>
+        <argsstring>(Node &amp;node, Node::NodeEnumCB &amp;cb, Node **res=NULL) const =0</argsstring>
+        <name>nodeEnumNodes</name>
+        <qualifiedname>IDagorGeom::nodeEnumNodes</qualifiedname>
+        <param>
+          <type>Node &amp;</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>Node::NodeEnumCB &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>Node **</type>
+          <declname>res</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="427" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="223" column="1" bodyfile="ec_IEditorCore.h" bodystart="224" bodyend="428"/>
+    <listofallmembers>
+      <member refid="classIDagorGeom_1a7cfe8fafb92f5a35e45aaacb9d3ed7ee" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>create</name></member>
+      <member refid="classIDagorGeom_1a280e19dfa51854be2089982caa47cba9" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>dagSaverEndSaveDag</name></member>
+      <member refid="classIDagorGeom_1a1128e18ced94036c067d2afdabdf254d" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>dagSaverEndSaveNode</name></member>
+      <member refid="classIDagorGeom_1a7638b21f0fc25f2fa1cabae3f687fa4b" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>dagSaverEndSaveNodes</name></member>
+      <member refid="classIDagorGeom_1a84099a248c35b83c16df417df4c1b1c8" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>dagSaverSaveDagSpline</name></member>
+      <member refid="classIDagorGeom_1a97baef43233cb878c16260ae2fee6372" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>dagSaverStartSaveDag</name></member>
+      <member refid="classIDagorGeom_1a1fdeb059045144d7d4a94d87dd400388" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>dagSaverStartSaveNode</name></member>
+      <member refid="classIDagorGeom_1aca51bf1f4a1c731d2371947ec1ce1dec" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>dagSaverStartSaveNodes</name></member>
+      <member refid="classIDagorGeom_1aee7ac51688799670848dcb26688ebfc9" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteAScene</name></member>
+      <member refid="classIDagorGeom_1a645e37a24a16472b664ce784dacdf30a" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteBoxCreator</name></member>
+      <member refid="classIDagorGeom_1a4e17f43f43be0b67adac2f135502d464" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteCylinderCreator</name></member>
+      <member refid="classIDagorGeom_1ae883f453f4c2f27d69cebc7a6ca4f86c" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteDagSaver</name></member>
+      <member refid="classIDagorGeom_1afa1f7192255a9a7d505ba07bd31b7272" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteGeomObject</name></member>
+      <member refid="classIDagorGeom_1a22e9b8895cf5223237a653cab98f91fa" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteGeomResourcesHelper</name></member>
+      <member refid="classIDagorGeom_1ac6e901a616669c5a38c0b7754d85c1e8" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteIObjectCreator</name></member>
+      <member refid="classIDagorGeom_1a72ebf9461a90a38eef63806b764502a8" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteMesh</name></member>
+      <member refid="classIDagorGeom_1a10e2be42343ecbd42374f81fc7602ce1" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deletePlaneCreator</name></member>
+      <member refid="classIDagorGeom_1aff3e5b89acf2ea69513ad19577bca324" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deletePointCreator</name></member>
+      <member refid="classIDagorGeom_1af74167304c7e87cef7e562670bcce489" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deletePolyMeshCreator</name></member>
+      <member refid="classIDagorGeom_1a67c0025a3d1e7d0014ad60731c2d2605" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deletePolyZoneCreator</name></member>
+      <member refid="classIDagorGeom_1ae04dad00e54bff3f902b2173a62b9c0e" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deletePostFxRenderer</name></member>
+      <member refid="classIDagorGeom_1a41bfcfe6fd8fa3db22c70775f32533a2" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteSphereCreator</name></member>
+      <member refid="classIDagorGeom_1a64c0d9d1c893b221d1c18c7bd3e7f174" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteSpiralStairCreator</name></member>
+      <member refid="classIDagorGeom_1a554aaddab7e53fda04b317ef2eca0dd3" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteSplineCreator</name></member>
+      <member refid="classIDagorGeom_1a523212165f4efdc9cf4afaee29753172" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteStairCreator</name></member>
+      <member refid="classIDagorGeom_1ae65d9ef5219b1da0cfe767220007778a" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteStaticGeometryContainer</name></member>
+      <member refid="classIDagorGeom_1ab59ee3f77fff6df67d93860bfbd82ac8" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteStaticGeometryMesh</name></member>
+      <member refid="classIDagorGeom_1ab968cbfc7d4294392ee5ce84e38fd5f7" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteStaticGeometryNode</name></member>
+      <member refid="classIDagorGeom_1ad50b5b7d49a31483172ea6f06dcf0c45" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>deleteTargetCreator</name></member>
+      <member refid="classIDagorGeom_1afb49839b11108c3fef6bf854fe1a06f6" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>destroy</name></member>
+      <member refid="classIDagorGeom_1ad95683553ec74d2db29816e877a77237" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateBox</name></member>
+      <member refid="classIDagorGeom_1a6ab0157db81c1262a3868b19705e3c70" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateBoxSpiralStair</name></member>
+      <member refid="classIDagorGeom_1af1fb8f5f3d13a3556fa7d2364d649654" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateBoxStair</name></member>
+      <member refid="classIDagorGeom_1a443bc5976da77931eb69c534502f2b4d" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateClosedSpiralStair</name></member>
+      <member refid="classIDagorGeom_1a0a36215974f3f2330a4076abd3a430fd" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateClosedStair</name></member>
+      <member refid="classIDagorGeom_1a44cd62432c75383532331cef948a656e" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateCylinder</name></member>
+      <member refid="classIDagorGeom_1ac50d2f36cf2087a385fb3bb42f38041b" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateOpenSpiralStair</name></member>
+      <member refid="classIDagorGeom_1a8cc7b858eb16df364f87c6d2e1c98ce2" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generateOpenStair</name></member>
+      <member refid="classIDagorGeom_1a7cd28f267d4d44eb34e082727d3681d1" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generatePlane</name></member>
+      <member refid="classIDagorGeom_1a0382bba2a430c2884c8ff375e968c8a5" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generatePlane</name></member>
+      <member refid="classIDagorGeom_1aa103cf121db45d4bb80168c94de1c367" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>generatePolyMesh</name></member>
+      <member refid="classIDagorGeom_1a72f97d0447471788cff7661d6095c20c" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectClear</name></member>
+      <member refid="classIDagorGeom_1aa5eb89c5b9c525b73cddc187635e497e" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectCreateFromGeomContainer</name></member>
+      <member refid="classIDagorGeom_1a620b1c81b566956b6c762f72f10983fe" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectEraseNode</name></member>
+      <member refid="classIDagorGeom_1a28eac69a44fe80906cfac062fbd50361" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectGetBoundBox</name></member>
+      <member refid="classIDagorGeom_1ae07388e7691ebb5347d3efb80c5350b0" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectGetGeometryContainer</name></member>
+      <member refid="classIDagorGeom_1a8a4978f43dd716e354f9d32c82818cd7" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectGetGeometryContainer</name></member>
+      <member refid="classIDagorGeom_1a4e1531b6b0ac063b1c5c58b0409c36de" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectGetNodeBoundBox</name></member>
+      <member refid="classIDagorGeom_1ae8550fcae028e56a7040ff7d4a217061" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectGetRayTracer</name></member>
+      <member refid="classIDagorGeom_1af6db84610ababf3694e00be9189cf8d8" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectGetShaderMesh</name></member>
+      <member refid="classIDagorGeom_1ae8c38eebc81f01c6a171e90bb44fb594" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectGetShaderName</name></member>
+      <member refid="classIDagorGeom_1a6ebde59688ce32d7f31aca92017978d1" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectLoadFromDag</name></member>
+      <member refid="classIDagorGeom_1aaefd71dcbc5fe3f05457f193e8987cba" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectRecompile</name></member>
+      <member refid="classIDagorGeom_1a00cc0736d673a629013922258332a94d" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectReloadRayTracer</name></member>
+      <member refid="classIDagorGeom_1a01954038c0b68950a0de65cf52bf2475" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectRender</name></member>
+      <member refid="classIDagorGeom_1a03590080951441a55db31a99a42dcb93" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectRenderColor</name></member>
+      <member refid="classIDagorGeom_1a4a2673bc69c5ef41f2ea16ad140f6a0f" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectRenderEdges</name></member>
+      <member refid="classIDagorGeom_1a206236f4f6446a2ab2b9e8f0f0710aa4" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectRenderNodeColor</name></member>
+      <member refid="classIDagorGeom_1aa26d84595a8e20be24d98ef59c41fefc" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectRenderTrans</name></member>
+      <member refid="classIDagorGeom_1accd5d825dbf2b4b380d314b4d5b6d70c" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectSaveToDag</name></member>
+      <member refid="classIDagorGeom_1a5b33fc0f320bd6d7f2aeb29810b79112" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectSetDefNodeVis</name></member>
+      <member refid="classIDagorGeom_1a1e34f70a4868822431e2b0380779f974" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectShadowRayHitTest</name></member>
+      <member refid="classIDagorGeom_1ac524712a9c08ed7dd5f7d298725f6407" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomObjectTraceRay</name></member>
+      <member refid="classIDagorGeom_1afa272394e45393aac802022db2b7c9d9" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomResourcesHelperCompact</name></member>
+      <member refid="classIDagorGeom_1ab9ae5b41a68b6a51f244cd564274c20e" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomResourcesHelperCreateResources</name></member>
+      <member refid="classIDagorGeom_1a71d4a8ece75eb68389a4818372078efe" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomResourcesHelperFreeResources</name></member>
+      <member refid="classIDagorGeom_1af23b2a1d27ba392582871c7e9000b127" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomResourcesHelperRemapResources</name></member>
+      <member refid="classIDagorGeom_1a1c6a41a4094a02c6fe03b285a716dbfc" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomResourcesHelperSetResourcesService</name></member>
+      <member refid="classIDagorGeom_1abf32a0af744c259edb9b02db025d483c" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>geomResourcesHelperSetResourcesTm</name></member>
+      <member refid="classIDagorGeom_1a2bbac6bc0c3cca66642a1aa792b4f04c" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>getSeparateSampler</name></member>
+      <member refid="classIDagorGeom_1a03984d6745169ff03fa2ee5811f4b65d" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>getShaderVariableId</name></member>
+      <member refid="classIDagorGeom_1aef16245ba322b9664d4066cf4cd73acc" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>getShaderVariableName</name></member>
+      <member refid="classIDagorGeom_1a2add96ef97671b4a737dd8fcb75f635e" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>loadAscene</name></member>
+      <member refid="classIDagorGeom_1aa2275789b35e8f60023f32229e8e5cc9" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>meshCalcNgr</name></member>
+      <member refid="classIDagorGeom_1aeeb83db082da1a9e823486c8915899fe" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>meshCalcVertnorms</name></member>
+      <member refid="classIDagorGeom_1a98ef43e96195d70f2a007222d480a1cf" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>meshFlipNormals</name></member>
+      <member refid="classIDagorGeom_1a7a98317d8574abbbcb94fccda608e6f0" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>meshOptimizeTverts</name></member>
+      <member refid="classIDagorGeom_1a3a3c61f49ee86e70809a5131ca1f3ed1" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newAScene</name></member>
+      <member refid="classIDagorGeom_1a88e3a7603ae785fffc5f4f6d65012ac4" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newBoxCreator</name></member>
+      <member refid="classIDagorGeom_1a2f2f6d172bd88e6e1e94c6d8d4c998f3" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newCylinderCreator</name></member>
+      <member refid="classIDagorGeom_1aac267920052b92b03f2c9828d5ab27b3" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newDagSaver</name></member>
+      <member refid="classIDagorGeom_1a76c165f54d1872e53341b1e7b5c70bf0" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newGeomObject</name></member>
+      <member refid="classIDagorGeom_1a23999ee56f3319d2dd83b0e39d704184" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newGeomResourcesHelper</name></member>
+      <member refid="classIDagorGeom_1a8c4a4681dcf2886ae8e7173baa84981c" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newMesh</name></member>
+      <member refid="classIDagorGeom_1adac79dd5ae1e8623d2f1e102bff6db75" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newPlaneCreator</name></member>
+      <member refid="classIDagorGeom_1aa4262a69b83ddd8a5bf0db6992747987" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newPointCreator</name></member>
+      <member refid="classIDagorGeom_1a9b3d1e0b5cf511a8c5d7b1ef6f547636" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newPolygonZoneCreator</name></member>
+      <member refid="classIDagorGeom_1a094141389242308281f3c9468b022e94" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newPolyMeshCreator</name></member>
+      <member refid="classIDagorGeom_1afb4e3be3bf0a9e3802517f4b89caf23a" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newPostFxRenderer</name></member>
+      <member refid="classIDagorGeom_1ab95ec6b9fee24f4d2f4b02c607238174" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newShaderMaterial</name></member>
+      <member refid="classIDagorGeom_1aeadfc1c24ee2bbda925eb9710e119412" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newSphereCreator</name></member>
+      <member refid="classIDagorGeom_1a1600586d6ed5bd1de4ef2de5e433bd54" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newSpiralStairCreator</name></member>
+      <member refid="classIDagorGeom_1a98735281ec88d498136354a1ccea8910" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newSplineCreator</name></member>
+      <member refid="classIDagorGeom_1a14c669f7631bc915997d830ef89f50f8" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newStairCreator</name></member>
+      <member refid="classIDagorGeom_1aff24717c0e48e1223edd83273f938b91" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newStaticGeometryContainer</name></member>
+      <member refid="classIDagorGeom_1a1f5a3d660876778cf2cb6507f7d8a454" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newStaticGeometryMesh</name></member>
+      <member refid="classIDagorGeom_1a6bc51f270e6e196c7a696396cfdc0e84" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newStaticGeometryNode</name></member>
+      <member refid="classIDagorGeom_1a71517a11fd4fbdb53ee939fc830770a2" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newStaticGeometryNode</name></member>
+      <member refid="classIDagorGeom_1a574523af37545168479c094ce7970985" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>newTargetCreator</name></member>
+      <member refid="classIDagorGeom_1a0348b2ee4d5395d1e68b08197284c401" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>nodeCalcWtm</name></member>
+      <member refid="classIDagorGeom_1a95fc68d2523ec407cef18c9224c1a709" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>nodeEnumNodes</name></member>
+      <member refid="classIDagorGeom_1a40a193a325f867e68bbbfd862087a0e2" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>objCreator3dAddNode</name></member>
+      <member refid="classIDagorGeom_1affdae81d77d0b34cbf94ce6c452254f7" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>postFxRendererInit</name></member>
+      <member refid="classIDagorGeom_1a299676db41f829cd278b9e7cf9c32e10" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>postFxRendererRender</name></member>
+      <member refid="classIDagorGeom_1ace9392be8fc9696c5f0693f6971bd63b" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>reset_override</name></member>
+      <member refid="classIDagorGeom_1a2896818d7872a836ef0e2aae2ee1ec2f" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>set</name></member>
+      <member refid="classIDagorGeom_1a3aa9931f09d7b17bb1a3e82ff862743a" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderElemInvalidateCachedStateBlock</name></member>
+      <member refid="classIDagorGeom_1aa6e37b5e1fd41aa30bee70d50f0c48bd" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalGetBlockId</name></member>
+      <member refid="classIDagorGeom_1a025240be5092677ce168d3a342b94c84" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalGetColor4</name></member>
+      <member refid="classIDagorGeom_1a266cf060a57fbe8f1602970832e93a43" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalGetInt</name></member>
+      <member refid="classIDagorGeom_1a03da0fd24c041fbc4a35ff7b76482745" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalGetReal</name></member>
+      <member refid="classIDagorGeom_1a118af246dcb35dde6d430f0a12dacfd4" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalGetTexture</name></member>
+      <member refid="classIDagorGeom_1a830540c21c0d4a2b44cda42edf7c9252" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalSetBlock</name></member>
+      <member refid="classIDagorGeom_1adfc8142e78a8fd2c89b7df022125580b" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalSetColor4</name></member>
+      <member refid="classIDagorGeom_1a28220cbde0f8a26740bc7e2df5c1bab0" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalSetInt</name></member>
+      <member refid="classIDagorGeom_1a7027c9aef2a454d6389a1e37b4fa619f" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalSetReal</name></member>
+      <member refid="classIDagorGeom_1a3b2e822793b333ae6893863f95ef16a5" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalSetSampler</name></member>
+      <member refid="classIDagorGeom_1afdd0c3b5bb5aa314be8c86b6c1960986" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalSetTexture</name></member>
+      <member refid="classIDagorGeom_1a52edd03d85d74ecb34f06c99c63a23af" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>shaderGlobalSetVarsFromBlk</name></member>
+      <member refid="classIDagorGeom_1a3adaabb916c73346ad28b4d8033bbb40" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryContainerClear</name></member>
+      <member refid="classIDagorGeom_1a1bce6f1d35ab0d3ef3f2959010be8260" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryContainerExportDag</name></member>
+      <member refid="classIDagorGeom_1a8e2cd4538b044e7e86343ebff33f3bef" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryContainerImportDag</name></member>
+      <member refid="classIDagorGeom_1ae3db765f1851896adb5e1cca8988bd9a" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryContainerLoadFromDag</name></member>
+      <member refid="classIDagorGeom_1a161c762016af07e4b63da481a4e638af" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryNodeCalcBoundBox</name></member>
+      <member refid="classIDagorGeom_1a22a60ba2f0ac8c258510f57a762fcaf9" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryNodeCalcBoundSphere</name></member>
+      <member refid="classIDagorGeom_1a0840f4116eb6fed33adfcc7f1f854936" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryNodeHaveBillboardMat</name></member>
+      <member refid="classIDagorGeom_1a333b3aabdae4d0a8df2f4d59c237e229" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryNodeLightingToStr</name></member>
+      <member refid="classIDagorGeom_1aeb5496b6d5601b8bfc2362cc679b5a95" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryNodeSetMaterialLighting</name></member>
+      <member refid="classIDagorGeom_1a1a491b6af507202f532368b566b50fa5" prot="public" virt="pure-virtual"><scope>IDagorGeom</scope><name>staticGeometryNodeStrToLighting</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

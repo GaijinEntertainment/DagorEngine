@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFontUtilDesc" kind="class" language="C++" prot="public">
+    <compoundname>FontUtilDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFontUtilDesc_1af4cabd15ceab519130970c4ce5d7ef9b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int FontUtilDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>FontUtilDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="41" column="7" bodyfile="font.cpp" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a396336ee9643196d709337e769db66f2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * FontUtilDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>FontUtilDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="42" column="8" bodyfile="font.cpp" bodystart="42" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a006cb0775f95d6481162c924328ce573" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * FontUtilDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>FontUtilDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="43" column="15" bodyfile="font.cpp" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a2286ab56ee31f777647fad2041bb50a6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * FontUtilDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>FontUtilDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="47" column="15" bodyfile="font.cpp" bodystart="47" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a0278dcd5279ec06073b3cd7ab1246a31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID FontUtilDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>FontUtilDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="49" column="13" bodyfile="font.cpp" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a73f547bd38cfa9b07c163c2233cac182" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID FontUtilDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>FontUtilDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="50" column="12" bodyfile="font.cpp" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1ad3ca482e4c0300ed05a94b73f87e36f9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * FontUtilDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>FontUtilDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="51" column="15" bodyfile="font.cpp" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a26a63c00aeaa0906cddc26e4e66595fc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL FontUtilDesc::NeedsToSave</definition>
+        <argsstring>() override</argsstring>
+        <name>NeedsToSave</name>
+        <qualifiedname>FontUtilDesc::NeedsToSave</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="52" column="8" bodyfile="font.cpp" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a39c75edb6af4e302c7e9f81d9998bff3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult FontUtilDesc::Save</definition>
+        <argsstring>(ISave *) override</argsstring>
+        <name>Save</name>
+        <qualifiedname>FontUtilDesc::Save</qualifiedname>
+        <param>
+          <type>ISave *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="53" column="12" bodyfile="font.cpp" bodystart="62" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontUtilDesc_1a7d0b3c3d6bbbf67ceb349876b3ecf2f1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult FontUtilDesc::Load</definition>
+        <argsstring>(ILoad *) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>FontUtilDesc::Load</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="54" column="12" bodyfile="font.cpp" bodystart="75" bodyend="92"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>FontUtilDesc</label>
+        <link refid="classFontUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>FontUtilDesc</label>
+        <link refid="classFontUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="font.cpp" line="38" column="1" bodyfile="font.cpp" bodystart="39" bodyend="55"/>
+    <listofallmembers>
+      <member refid="classFontUtilDesc_1ad3ca482e4c0300ed05a94b73f87e36f9" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>Category</name></member>
+      <member refid="classFontUtilDesc_1a73f547bd38cfa9b07c163c2233cac182" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>ClassID</name></member>
+      <member refid="classFontUtilDesc_1a006cb0775f95d6481162c924328ce573" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>ClassName</name></member>
+      <member refid="classFontUtilDesc_1a396336ee9643196d709337e769db66f2" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>Create</name></member>
+      <member refid="classFontUtilDesc_1af4cabd15ceab519130970c4ce5d7ef9b" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>IsPublic</name></member>
+      <member refid="classFontUtilDesc_1a7d0b3c3d6bbbf67ceb349876b3ecf2f1" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>Load</name></member>
+      <member refid="classFontUtilDesc_1a26a63c00aeaa0906cddc26e4e66595fc" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>NeedsToSave</name></member>
+      <member refid="classFontUtilDesc_1a2286ab56ee31f777647fad2041bb50a6" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classFontUtilDesc_1a39c75edb6af4e302c7e9f81d9998bff3" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>Save</name></member>
+      <member refid="classFontUtilDesc_1a0278dcd5279ec06073b3cd7ab1246a31" prot="public" virt="non-virtual"><scope>FontUtilDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,316 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register Request for Access to Slots Storage</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Node and Slot Access Handle" href="nodeHandleWithSlotsAccess.html" />
+    <link rel="prev" title="Resource Slots" href="../resourceSlot.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Register Request for Access to Slots Storage</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N13resource_slot5StateE"><code class="docutils literal notranslate"><span class="pre">State</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK13resource_slot5State18resourceToReadFromEPKc"><code class="docutils literal notranslate"><span class="pre">State::resourceToReadFrom()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK13resource_slot5State19resourceToCreateForEPKc"><code class="docutils literal notranslate"><span class="pre">State::resourceToCreateFor()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N13resource_slot6CreateE"><code class="docutils literal notranslate"><span class="pre">Create</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N13resource_slot6Create6CreateEPKcPKc"><code class="docutils literal notranslate"><span class="pre">Create::Create()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N13resource_slot6UpdateE"><code class="docutils literal notranslate"><span class="pre">Update</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N13resource_slot6Update6UpdateEPKcPKci"><code class="docutils literal notranslate"><span class="pre">Update::Update()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N13resource_slot4ReadE"><code class="docutils literal notranslate"><span class="pre">Read</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N13resource_slot4Read4ReadEPKci"><code class="docutils literal notranslate"><span class="pre">Read::Read()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="nodeHandleWithSlotsAccess.html">Node and Slot Access Handle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="resolveAccess.html">Perform Access Requests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="resource_slot_ecs.html">Resource Slot in Daslang + ECS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="resource_slot_das.html">Resource Slot in Daslang</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResourceSlotCore.html">ResourceSlotCore Daslang Module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../resourceSlot.html">Resource Slots</a></li>
+      <li class="breadcrumb-item active">Register Request for Access to Slots Storage</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/resourceSlot/registerAccess.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="register-request-for-access-to-slots-storage">
+<h1>Register Request for Access to Slots Storage<a class="headerlink" href="#register-request-for-access-to-slots-storage" title="Link to this heading"></a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenfunction: Unable to resolve function “resource_slot::register_access” with arguments None in doxygen xml output for project “resourceSlot” from directory: _build/breathe/doxygen/resourceSlot/xml.
+Potential matches:
+</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span> <span class="n">resource_slot</span><span class="p">::</span><span class="n">NodeHandleWithSlotsAccess</span> <span class="n">register_access</span><span class="p">(</span><span class="n">const</span> <span class="n">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="n">const</span> <span class="n">char</span> <span class="o">*</span><span class="n">source_location</span><span class="p">,</span> <span class="n">resource_slot</span><span class="p">::</span><span class="n">detail</span><span class="p">::</span><span class="n">ActionList</span> <span class="o">&amp;&amp;</span><span class="n">action_list</span><span class="p">,</span> <span class="n">F</span> <span class="o">&amp;&amp;</span><span class="n">declaration_callback</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span> <span class="n">resource_slot</span><span class="p">::</span><span class="n">NodeHandleWithSlotsAccess</span> <span class="n">register_access</span><span class="p">(</span><span class="n">dafg</span><span class="p">::</span><span class="n">NameSpace</span> <span class="n">ns</span><span class="p">,</span> <span class="n">const</span> <span class="n">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="n">const</span> <span class="n">char</span> <span class="o">*</span><span class="n">source_location</span><span class="p">,</span> <span class="n">resource_slot</span><span class="p">::</span><span class="n">detail</span><span class="p">::</span><span class="n">ActionList</span> <span class="o">&amp;&amp;</span><span class="n">action_list</span><span class="p">,</span> <span class="n">F</span> <span class="o">&amp;&amp;</span><span class="n">declaration_callback</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N13resource_slot5StateE">
+<span id="_CPPv3N13resource_slot5StateE"></span><span id="_CPPv2N13resource_slot5StateE"></span><span id="resource_slot::State"></span><span class="target" id="structresource__slot_1_1State"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">State</span></span></span><a class="headerlink" href="#_CPPv4N13resource_slot5StateE" title="Link to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structresource__slot_1_1State"><span class="std std-ref">State</span></a> of slots storage.</p>
+<p>Size is kept small, can be copied to declaration_callback. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK13resource_slot5State18resourceToReadFromEPKc">
+<span id="_CPPv3NK13resource_slot5State18resourceToReadFromEPKc"></span><span id="_CPPv2NK13resource_slot5State18resourceToReadFromEPKc"></span><span id="resource_slot::State::resourceToReadFrom__cCPC"></span><span class="target" id="structresource__slot_1_1State_1aff47c210c4d351220b468b4126486168"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">resourceToReadFrom</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">slot_name</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK13resource_slot5State18resourceToReadFromEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Get name of resource in slot before the node.</p>
+<p>This function can be called several times inside the node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>slot_name</strong> – name of slot; should be requested in action_list </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>current resource </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK13resource_slot5State19resourceToCreateForEPKc">
+<span id="_CPPv3NK13resource_slot5State19resourceToCreateForEPKc"></span><span id="_CPPv2NK13resource_slot5State19resourceToCreateForEPKc"></span><span id="resource_slot::State::resourceToCreateFor__cCPC"></span><span class="target" id="structresource__slot_1_1State_1a95dc1fbca8fc25ad0ecb9e9300ed92b4"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">resourceToCreateFor</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">slot_name</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK13resource_slot5State19resourceToCreateForEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Get name of resource from declaration of <a class="reference internal" href="#structresource__slot_1_1Create"><span class="std std-ref">Create</span></a> or <a class="reference internal" href="#structresource__slot_1_1Update"><span class="std std-ref">Update</span></a> for using after the node.</p>
+<p>This function can be called several times inside the node. For example, for using in readTextureHistory().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>slot_name</strong> – name of slot; should be requested in action_list </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>resource after node </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N13resource_slot6CreateE">
+<span id="_CPPv3N13resource_slot6CreateE"></span><span id="_CPPv2N13resource_slot6CreateE"></span><span id="resource_slot::Create"></span><span class="target" id="structresource__slot_1_1Create"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Create</span></span></span><a class="headerlink" href="#_CPPv4N13resource_slot6CreateE" title="Link to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structresource__slot_1_1Create"><span class="std std-ref">Create</span></a> request</p>
+<p>Declared resource MUST be created in the node </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N13resource_slot6Create6CreateEPKcPKc">
+<span id="_CPPv3N13resource_slot6Create6CreateEPKcPKc"></span><span id="_CPPv2N13resource_slot6Create6CreateEPKcPKc"></span><span id="resource_slot::Create::Create__cCP.cCP"></span><span class="target" id="structresource__slot_1_1Create_1a4ff02b7a8cad522ef4047cf653b88648"></span><span class="sig-name descname"><span class="n"><span class="pre">Create</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">slot_name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resource_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13resource_slot6Create6CreateEPKcPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>slot_name</strong> – name of the slot </p></li>
+<li><p><strong>resource_name</strong> – name of the resource, that MUST be created in current node and WILL be saved into slot for using after the node </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N13resource_slot6UpdateE">
+<span id="_CPPv3N13resource_slot6UpdateE"></span><span id="_CPPv2N13resource_slot6UpdateE"></span><span id="resource_slot::Update"></span><span class="target" id="structresource__slot_1_1Update"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Update</span></span></span><a class="headerlink" href="#_CPPv4N13resource_slot6UpdateE" title="Link to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structresource__slot_1_1Update"><span class="std std-ref">Update</span></a> request</p>
+<p>Requested slot CAN be read in the node and declared resource MUST be created in the node </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N13resource_slot6Update6UpdateEPKcPKci">
+<span id="_CPPv3N13resource_slot6Update6UpdateEPKcPKci"></span><span id="_CPPv2N13resource_slot6Update6UpdateEPKcPKci"></span><span id="resource_slot::Update::Update__cCP.cCP.i"></span><span class="target" id="structresource__slot_1_1Update_1a912d02a74981cadaefc459b69c2b22ce"></span><span class="sig-name descname"><span class="n"><span class="pre">Update</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">slot_name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resource_name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">update_priority</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13resource_slot6Update6UpdateEPKcPKci" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>slot_name</strong> – name of the slot </p></li>
+<li><p><strong>resource_name</strong> – name of the resource, that MUST be created in current node and WILL be saved into slot for using after the node </p></li>
+<li><p><strong>update_priority</strong> – priority of update, nodes with HIGHER priority will be scheduled AFTER nodes with LOWER priority </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N13resource_slot4ReadE">
+<span id="_CPPv3N13resource_slot4ReadE"></span><span id="_CPPv2N13resource_slot4ReadE"></span><span id="resource_slot::Read"></span><span class="target" id="structresource__slot_1_1Read"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Read</span></span></span><a class="headerlink" href="#_CPPv4N13resource_slot4ReadE" title="Link to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structresource__slot_1_1Read"><span class="std std-ref">Read</span></a> request</p>
+<p>Requested slot CAN be read in the node </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N13resource_slot4Read4ReadEPKci">
+<span id="_CPPv3N13resource_slot4Read4ReadEPKci"></span><span id="_CPPv2N13resource_slot4Read4ReadEPKci"></span><span id="resource_slot::Read::Read__cCP.i"></span><span class="target" id="structresource__slot_1_1Read_1a5b9c7c4d1d8c8b4d02c858b35b33203a"></span><span class="sig-name descname"><span class="n"><span class="pre">Read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">slot_name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">read_priority</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DEFAULT_READ_PRIORITY</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13resource_slot4Read4ReadEPKci" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>slot_name</strong> – name of the slot </p></li>
+<li><p><strong>read_priority</strong> – priority of read; nodes with LOWER priority will be scheduled BEFORE current node. By default <a class="reference internal" href="#structresource__slot_1_1Read"><span class="std std-ref">Read</span></a> will be scheduled after all <a class="reference internal" href="#structresource__slot_1_1Update"><span class="std std-ref">Update</span></a> of this slot. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../resourceSlot.html" class="btn btn-neutral float-left" title="Resource Slots" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nodeHandleWithSlotsAccess.html" class="btn btn-neutral float-right" title="Node and Slot Access Handle" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

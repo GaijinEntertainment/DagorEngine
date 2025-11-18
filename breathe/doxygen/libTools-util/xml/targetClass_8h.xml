@@ -1,0 +1,175 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="targetClass_8h" kind="file" language="C++">
+    <compoundname>targetClass.h</compoundname>
+    <includes local="no">util/dag_baseDef.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includedby refid="binDumpReader_8h" local="no">binDumpReader.h</includedby>
+    <includedby refid="makeBindump_8h" local="no">makeBindump.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>targetClass.h</label>
+        <link refid="targetClass_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_baseDef.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>binDumpHierBitmap.h</label>
+        <link refid="binDumpHierBitmap_8h"/>
+      </node>
+      <node id="2">
+        <label>binDumpReader.h</label>
+        <link refid="binDumpReader_8h"/>
+      </node>
+      <node id="5">
+        <label>binDumpUtil.h</label>
+        <link refid="binDumpUtil_8h"/>
+      </node>
+      <node id="3">
+        <label>makeBindump.h</label>
+        <link refid="makeBindump_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>targetClass.h</label>
+        <link refid="targetClass_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="targetClass_8h_1a07d0dc339289f79ac8c6c3d5778007b2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool dagor_target_code_valid</definition>
+        <argsstring>(unsigned tc)</argsstring>
+        <name>dagor_target_code_valid</name>
+        <param>
+          <type>unsigned</type>
+          <declname>tc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="targetClass.h" line="10" column="14" bodyfile="targetClass.h" bodystart="10" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="targetClass_8h_1a104dd2489da4658cffd8a561779a820b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool dagor_target_code_be</definition>
+        <argsstring>(unsigned)</argsstring>
+        <name>dagor_target_code_be</name>
+        <param>
+          <type>unsigned</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="targetClass.h" line="22" column="14" bodyfile="targetClass.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="targetClass_8h_1ac7e15e64bbfd6ff979b9b68db98b4a9d" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool dagor_target_code_store_packed</definition>
+        <argsstring>(unsigned tc)</argsstring>
+        <name>dagor_target_code_store_packed</name>
+        <param>
+          <type>unsigned</type>
+          <declname>tc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="targetClass.h" line="24" column="14" bodyfile="targetClass.h" bodystart="24" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="targetClass_8h_1af4964ff6b5e298f121e0d66ca2d2fecf" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool dagor_target_code_supports_tex_diff</definition>
+        <argsstring>(unsigned tc)</argsstring>
+        <name>dagor_target_code_supports_tex_diff</name>
+        <param>
+          <type>unsigned</type>
+          <declname>tc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="targetClass.h" line="36" column="14" bodyfile="targetClass.h" bodystart="36" bodyend="43"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_baseDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_target_code_valid(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>tc)</highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(tc)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;PC&apos;</highlight><highlight class="normal">):</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/>case<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;iOS&apos;</highlight><highlight class="normal">):</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/>case<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;and&apos;</highlight><highlight class="normal">):</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/>case<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;PS4&apos;</highlight><highlight class="normal">):<sp/>return<sp/>true;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_target_code_be(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_target_code_store_packed(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>tc)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(tc)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;PC&apos;</highlight><highlight class="normal">):</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>case<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;iOS&apos;</highlight><highlight class="normal">):</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>case<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;and&apos;</highlight><highlight class="normal">):</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>case<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;PS4&apos;</highlight><highlight class="normal">):<sp/>return<sp/>true;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_target_code_supports_tex_diff(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>tc)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(tc)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;PC&apos;</highlight><highlight class="normal">):<sp/>return<sp/>true;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="targetClass.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1TextureGetter" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::TextureGetter</compoundname>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename DerivedType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1TextureGetter_1afe9aebab39b89f3d21f4d1a40d7d8a97" prot="public" static="no">
+        <type>DerivedType</type>
+        <definition>using resptr_detail::TextureGetter&lt; DerivedType &gt;::derived_t =  DerivedType</definition>
+        <argsstring></argsstring>
+        <name>derived_t</name>
+        <qualifiedname>resptr_detail::TextureGetter::derived_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="189" column="3" bodyfile="dag_resPtr.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1TextureGetter_1aa54d43ddd48c2472c88dce54059f76a3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture * resptr_detail::TextureGetter&lt; DerivedType &gt;::getBaseTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getBaseTex</name>
+        <qualifiedname>resptr_detail::TextureGetter::getBaseTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="191" column="15" bodyfile="dag_resPtr.h" bodystart="191" bodyend="191"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1TextureGetter_1a58e0b31910d052d69cba9340db5436f3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+        <definition>Texture * resptr_detail::TextureGetter&lt; DerivedType &gt;::getTex2D</definition>
+        <argsstring>() const</argsstring>
+        <name>getTex2D</name>
+        <qualifiedname>resptr_detail::TextureGetter::getTex2D</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="192" column="11" bodyfile="dag_resPtr.h" bodystart="192" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1TextureGetter_1a00fa93c3936c08666e0fae90d375f6d9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>ArrayTexture *</type>
+        <definition>ArrayTexture * resptr_detail::TextureGetter&lt; DerivedType &gt;::getArrayTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getArrayTex</name>
+        <qualifiedname>resptr_detail::TextureGetter::getArrayTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="196" column="16" bodyfile="dag_resPtr.h" bodystart="196" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1TextureGetter_1a64abc8ef84d2d2d1376898949ddedeec" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>CubeTexture *</type>
+        <definition>CubeTexture * resptr_detail::TextureGetter&lt; DerivedType &gt;::getCubeTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getCubeTex</name>
+        <qualifiedname>resptr_detail::TextureGetter::getCubeTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="200" column="15" bodyfile="dag_resPtr.h" bodystart="200" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1TextureGetter_1a2a25372dde12265e40d63cb531cd24ff" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>VolTexture *</type>
+        <definition>VolTexture * resptr_detail::TextureGetter&lt; DerivedType &gt;::getVolTex</definition>
+        <argsstring>() const</argsstring>
+        <name>getVolTex</name>
+        <qualifiedname>resptr_detail::TextureGetter::getVolTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="204" column="14" bodyfile="dag_resPtr.h" bodystart="204" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1TextureGetter_1a2f769c467304a4df7eeb5a4924ea9503" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID resptr_detail::TextureGetter&lt; DerivedType &gt;::getTexId</definition>
+        <argsstring>() const</argsstring>
+        <name>getTexId</name>
+        <qualifiedname>resptr_detail::TextureGetter::getTexId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="208" column="13" bodyfile="dag_resPtr.h" bodystart="208" bodyend="208"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resPtr.h" line="186" column="1" bodyfile="dag_resPtr.h" bodystart="187" bodyend="209"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1TextureGetter_1afe9aebab39b89f3d21f4d1a40d7d8a97" prot="public" virt="non-virtual"><scope>resptr_detail::TextureGetter</scope><name>derived_t</name></member>
+      <member refid="classresptr__detail_1_1TextureGetter_1a00fa93c3936c08666e0fae90d375f6d9" prot="public" virt="non-virtual"><scope>resptr_detail::TextureGetter</scope><name>getArrayTex</name></member>
+      <member refid="classresptr__detail_1_1TextureGetter_1aa54d43ddd48c2472c88dce54059f76a3" prot="public" virt="non-virtual"><scope>resptr_detail::TextureGetter</scope><name>getBaseTex</name></member>
+      <member refid="classresptr__detail_1_1TextureGetter_1a64abc8ef84d2d2d1376898949ddedeec" prot="public" virt="non-virtual"><scope>resptr_detail::TextureGetter</scope><name>getCubeTex</name></member>
+      <member refid="classresptr__detail_1_1TextureGetter_1a58e0b31910d052d69cba9340db5436f3" prot="public" virt="non-virtual"><scope>resptr_detail::TextureGetter</scope><name>getTex2D</name></member>
+      <member refid="classresptr__detail_1_1TextureGetter_1a2f769c467304a4df7eeb5a4924ea9503" prot="public" virt="non-virtual"><scope>resptr_detail::TextureGetter</scope><name>getTexId</name></member>
+      <member refid="classresptr__detail_1_1TextureGetter_1a2a25372dde12265e40d63cb531cd24ff" prot="public" virt="non-virtual"><scope>resptr_detail::TextureGetter</scope><name>getVolTex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

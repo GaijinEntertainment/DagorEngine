@@ -1,0 +1,507 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dagor.system</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="dagor.system.file_handlers" href="dagor.system.file_handlers.html" />
+    <link rel="prev" title="dagor.shell" href="dagor.shell.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Quirrel Modules Docs</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Quirrel Gamelibs Native Modules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="DataBlock.html">DataBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="base64.html">base64</a></li>
+<li class="toctree-l4"><a class="reference internal" href="browser.html">browser</a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvasAPI.html">canvasAPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="console.html">console</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daEditorEmbedded.html">daEditorEmbedded</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.html">daRg</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.behaviors.html">daRg.behaviors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dacoll.trace.html">dacoll.trace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.clipboard.html">dagor.clipboard</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.debug.html">dagor.debug</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.folders.html">dagor.folders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.fs.html">dagor.fs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.fs.vrom.html">dagor.fs.vrom</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.http.html">dagor.http</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.iso8601.html">dagor.iso8601</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.localize.html">dagor.localize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.math.html">dagor.math</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.memtrace.html">dagor.memtrace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.perf.html">dagor.perf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.profiler.html">dagor.profiler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.random.html">dagor.random</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.shell.html">dagor.shell</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">dagor.system</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.system.file_handlers.html">dagor.system.file_handlers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.time.html">dagor.time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.workcycle.html">dagor.workcycle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dainput2.html">dainput2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dasevents.html">dasevents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="datacache.html">datacache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecs.html">ecs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecs.netevent.html">ecs.netevent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entity_editor.html">entity_editor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eventbus.html">eventbus</a></li>
+<li class="toctree-l4"><a class="reference internal" href="executable.html">executable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="frp.html">frp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hash.html">hash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="json.html">json</a></li>
+<li class="toctree-l4"><a class="reference internal" href="jwt.html">jwt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="lastInputMonitor.html">lastInputMonitor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nestdb.html">nestdb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="net.html">net</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pathfinder.html">pathfinder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="platform.html">platform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="regexp2.html">regexp2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sound.html">sound</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statsd.html">statsd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sysinfo.html">sysinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utf8.html">utf8</a></li>
+<li class="toctree-l4"><a class="reference internal" href="win.registry.html">win.registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="yupfile_parse.html">yupfile_parse</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../quirrel_daECS/index.html">Quirrel ECS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../darg_framework/index.html">daRG Framework</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../tools/dargbox/index.html">dargbox Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGameLibs/index.html">daNetGameLibs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGame/index.html">daNetGame</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../soundSystem/index.html">soundSystem</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Quirrel Modules Docs</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Quirrel Gamelibs Native Modules</a></li>
+      <li class="breadcrumb-item active">dagor.system</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/quirrel-modules/quirrel-modules/quirrel_gamelibs/dagor.system.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dagor-system">
+<h1>dagor.system<a class="headerlink" href="#dagor-system" title="Link to this heading"></a></h1>
+<p>module ‘dagor.system’</p>
+<p><em>Source files:</em></p>
+<p><em>prog/gameLibs/quirrel/bindQuirrelEx/dagorSystem.cpp</em></p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">let</span> <span class="p">{</span> <span class="n">dgs_get_settings</span><span class="p">,</span> <span class="n">exit</span><span class="p">,</span> <span class="n">get_arg_value_by_name</span><span class="p">,</span> <span class="n">get_log_directory</span><span class="p">,</span> <span class="n">get_all_arg_values_by_name</span><span class="p">,</span> <span class="n">get_primary_screen_info</span><span class="p">,</span> <span class="n">message_box</span><span class="p">,</span> <span class="n">set_app_window_title</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="n">DBGLEVEL</span><span class="p">,</span> <span class="n">SANITIZER</span><span class="p">,</span> <span class="n">ARCH_BITS</span><span class="p">,</span> <span class="n">MB_OK</span><span class="p">,</span> <span class="n">MB_OK_CANCEL</span><span class="p">,</span> <span class="n">MB_YES_NO</span><span class="p">,</span> <span class="n">MB_RETRY_CANCEL</span><span class="p">,</span> <span class="n">MB_ABORT_RETRY_IGNORE</span><span class="p">,</span> <span class="n">MB_YES_NO_CANCEL</span><span class="p">,</span> <span class="n">MB_CANCEL_TRY_CONTINUE</span><span class="p">,</span> <span class="n">MB_DEF_BUTTON_1</span><span class="p">,</span> <span class="n">MB_DEF_BUTTON_2</span><span class="p">,</span> <span class="n">MB_DEF_BUTTON_3</span><span class="p">,</span> <span class="n">MB_ICON_ERROR</span><span class="p">,</span> <span class="n">MB_ICON_WARNING</span><span class="p">,</span> <span class="n">MB_ICON_QUESTION</span><span class="p">,</span> <span class="n">MB_ICON_INFORMATION</span><span class="p">,</span> <span class="n">MB_TOPMOST</span><span class="p">,</span> <span class="n">MB_FOREGROUND</span><span class="p">,</span> <span class="n">MB_NATIVE_DLG</span><span class="p">,</span> <span class="n">MB_FAIL</span><span class="p">,</span> <span class="n">MB_CLOSE</span><span class="p">,</span> <span class="n">MB_BUTTON_1</span><span class="p">,</span> <span class="n">MB_BUTTON_2</span><span class="p">,</span> <span class="n">MB_BUTTON_3</span> <span class="p">}</span> <span class="o">=</span> <span class="n">require</span><span class="p">(</span><span class="s2">&quot;dagor.system&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="s2">&quot;dagor.system&quot;</span> <span class="kn">import</span><span class="w"> </span><span class="o">*</span>
+</pre></div>
+</div>
+<div class="highlight-sq notranslate"><div class="highlight"><pre><span></span><span class="c1">//&#39;dagor.system&#39; exports:</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">dgs_get_settings</span><span class="p">()</span><span class="o">:</span><span class="w">  </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">DataBlock</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">exit</span><span class="p">(</span><span class="nx">exit_code</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">integer</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_arg_value_by_name</span><span class="p">()</span><span class="o">:</span><span class="w">  </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">string</span><span class="o">|</span><span class="kc">null</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_log_directory</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_all_arg_values_by_name</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">array</span><span class="o">|</span><span class="kc">null</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">get_primary_screen_info</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">message_box</span><span class="p">(</span><span class="nx">mbx_title</span><span class="p">,</span><span class="w"> </span><span class="nx">mbx_text</span><span class="p">,</span><span class="w"> </span><span class="nx">mbx_level</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="p">,</span><span class="w"> </span><span class="nx">string</span><span class="p">,</span><span class="w"> </span><span class="nx">integer</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nx">_undocumented_</span>
+<span class="w">  </span><span class="kd">function</span><span class="w"> </span><span class="nx">set_app_window_title</span><span class="p">(</span><span class="nx">title</span><span class="p">,</span><span class="w"> </span><span class="nx">s</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">string</span><span class="p">,</span><span class="w"> </span><span class="nx">any_type</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">argv</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">DBGLEVEL</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">SANITIZER</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ARCH_BITS</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_OK</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_OK_CANCEL</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_YES_NO</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_RETRY_CANCEL</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_ABORT_RETRY_IGNORE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_YES_NO_CANCEL</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_CANCEL_TRY_CONTINUE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_DEF_BUTTON_1</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_DEF_BUTTON_2</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_DEF_BUTTON_3</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_ICON_ERROR</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_ICON_WARNING</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_ICON_QUESTION</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_ICON_INFORMATION</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_TOPMOST</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_FOREGROUND</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_NATIVE_DLG</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_FAIL</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_CLOSE</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_BUTTON_1</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_BUTTON_2</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MB_BUTTON_3</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function dgs_get_settings">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">dgs_get_settings</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function dgs_get_settings" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>datablock with game settings</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataBlock</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function exit">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">exit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exit_code</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function exit" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exit_code</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>null</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_arg_value_by_name">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_arg_value_by_name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function get_arg_value_by_name" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>null if no named argument provided</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>string|null</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_log_directory">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_log_directory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function get_log_directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_all_arg_values_by_name">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_all_arg_values_by_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function get_all_arg_values_by_name" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">string</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>returns null or list [value1, value2,…] of all command line arguments provided in -name:value1 -name2:value2</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>array|null</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>format</p>
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function get_primary_screen_info">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">get_primary_screen_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#function get_primary_screen_info" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function message_box">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">message_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mbx_title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mbx_text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mbx_level</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function message_box" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mbx_title</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>)</p></li>
+<li><p><strong>mbx_text</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>)</p></li>
+<li><p><strong>mbx_level</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">integer()</span></code></span>) – can be error, warning, info level</p></li>
+</ul>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">nparamscheck:-2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">typecheck</span> <span class="pre">mask:</span> <span class="pre">any_type,</span> <span class="pre">string,</span> <span class="pre">string,</span> <span class="pre">integer</span></code></p>
+</dd></dl>
+
+<dl class="sq function">
+<dt class="sig sig-object sq" id="function set_app_window_title">
+<span class="sig-name descname"><span class="pre">function</span> <span class="pre">set_app_window_title</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#function set_app_window_title" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>title</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">string()</span></code></span>)</p></li>
+<li><p><strong>s</strong> (<span><code class="xref sq sq-func docutils literal notranslate"><span class="pre">any_type()</span></code></span>) – title</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>null</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const argv">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">argv</span></span><a class="headerlink" href="#const argv" title="Link to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">array</span></code></p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const DBGLEVEL">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">DBGLEVEL</span></span><a class="headerlink" href="#const DBGLEVEL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SANITIZER">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">SANITIZER</span></span><a class="headerlink" href="#const SANITIZER" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ARCH_BITS">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ARCH_BITS</span></span><a class="headerlink" href="#const ARCH_BITS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_OK">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_OK</span></span><a class="headerlink" href="#const MB_OK" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_OK_CANCEL">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_OK_CANCEL</span></span><a class="headerlink" href="#const MB_OK_CANCEL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_YES_NO">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_YES_NO</span></span><a class="headerlink" href="#const MB_YES_NO" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_RETRY_CANCEL">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_RETRY_CANCEL</span></span><a class="headerlink" href="#const MB_RETRY_CANCEL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_ABORT_RETRY_IGNORE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_ABORT_RETRY_IGNORE</span></span><a class="headerlink" href="#const MB_ABORT_RETRY_IGNORE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_YES_NO_CANCEL">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_YES_NO_CANCEL</span></span><a class="headerlink" href="#const MB_YES_NO_CANCEL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_CANCEL_TRY_CONTINUE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_CANCEL_TRY_CONTINUE</span></span><a class="headerlink" href="#const MB_CANCEL_TRY_CONTINUE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_DEF_BUTTON_1">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_DEF_BUTTON_1</span></span><a class="headerlink" href="#const MB_DEF_BUTTON_1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_DEF_BUTTON_2">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_DEF_BUTTON_2</span></span><a class="headerlink" href="#const MB_DEF_BUTTON_2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_DEF_BUTTON_3">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_DEF_BUTTON_3</span></span><a class="headerlink" href="#const MB_DEF_BUTTON_3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_ICON_ERROR">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_ICON_ERROR</span></span><a class="headerlink" href="#const MB_ICON_ERROR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_ICON_WARNING">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_ICON_WARNING</span></span><a class="headerlink" href="#const MB_ICON_WARNING" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_ICON_QUESTION">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_ICON_QUESTION</span></span><a class="headerlink" href="#const MB_ICON_QUESTION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_ICON_INFORMATION">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_ICON_INFORMATION</span></span><a class="headerlink" href="#const MB_ICON_INFORMATION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_TOPMOST">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_TOPMOST</span></span><a class="headerlink" href="#const MB_TOPMOST" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_FOREGROUND">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_FOREGROUND</span></span><a class="headerlink" href="#const MB_FOREGROUND" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_NATIVE_DLG">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_NATIVE_DLG</span></span><a class="headerlink" href="#const MB_NATIVE_DLG" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_FAIL">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_FAIL</span></span><a class="headerlink" href="#const MB_FAIL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_CLOSE">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_CLOSE</span></span><a class="headerlink" href="#const MB_CLOSE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_BUTTON_1">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_BUTTON_1</span></span><a class="headerlink" href="#const MB_BUTTON_1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_BUTTON_2">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_BUTTON_2</span></span><a class="headerlink" href="#const MB_BUTTON_2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MB_BUTTON_3">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MB_BUTTON_3</span></span><a class="headerlink" href="#const MB_BUTTON_3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dagor.shell.html" class="btn btn-neutral float-left" title="dagor.shell" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dagor.system.file_handlers.html" class="btn btn-neutral float-right" title="dagor.system.file_handlers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

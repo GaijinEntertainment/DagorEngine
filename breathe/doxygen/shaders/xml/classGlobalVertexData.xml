@@ -1,0 +1,929 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGlobalVertexData" kind="class" language="C++" prot="public">
+    <compoundname>GlobalVertexData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classGlobalVertexData_1a2604e6cf547b5324f1b63b3399e1a3c3" prot="public" static="no" mutable="no">
+        <type>Vbuffer *</type>
+        <definition>Vbuffer* GlobalVertexData::vb</definition>
+        <argsstring></argsstring>
+        <name>vb</name>
+        <qualifiedname>GlobalVertexData::vb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="171" column="13" bodyfile="dag_shaderMesh.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1a79a277b0210f73f6eda11c7099f341ce" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* GlobalVertexData::vbMem</definition>
+        <argsstring></argsstring>
+        <name>vbMem</name>
+        <qualifiedname>GlobalVertexData::vbMem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="172" column="10" bodyfile="dag_shaderMesh.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1a771bf3181de7cbd41293225839ab7591" prot="public" static="no" mutable="no">
+        <type>Ibuffer *</type>
+        <definition>Ibuffer* GlobalVertexData::indices</definition>
+        <argsstring></argsstring>
+        <name>indices</name>
+        <qualifiedname>GlobalVertexData::indices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="176" column="13" bodyfile="dag_shaderMesh.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1a14cfc46ffb35e8f1a9f796ec1b5c9130" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* GlobalVertexData::ibMem</definition>
+        <argsstring></argsstring>
+        <name>ibMem</name>
+        <qualifiedname>GlobalVertexData::ibMem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="177" column="10" bodyfile="dag_shaderMesh.h" bodystart="177" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classGlobalVertexData_1a8adb11aac7d3ea854126fbf4655d9a63" prot="private" static="no" mutable="no">
+        <type>union <ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref></type>
+        <definition>union GlobalVertexData GlobalVertexData</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>GlobalVertexData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="173" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1a21d7169a25f88557e2759bb73a1ec37f" prot="private" static="no" mutable="no">
+        <type>union <ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref></type>
+        <definition>union GlobalVertexData GlobalVertexData</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>GlobalVertexData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="178" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1aa266ed5b3bb8518eb87891821f100ce0" prot="private" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t GlobalVertexData::vstride</definition>
+        <argsstring></argsstring>
+        <name>vstride</name>
+        <qualifiedname>GlobalVertexData::vstride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="179" column="12" bodyfile="dag_shaderMesh.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1af0667e46dba8b6bc2b1dcd7e486c2146" prot="private" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t GlobalVertexData::cflags</definition>
+        <argsstring></argsstring>
+        <name>cflags</name>
+        <qualifiedname>GlobalVertexData::cflags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="180" column="12" bodyfile="dag_shaderMesh.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1a59fac9c1183767a3894bf1adc0a6c4bc" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GlobalVertexData::vCnt</definition>
+        <argsstring></argsstring>
+        <name>vCnt</name>
+        <qualifiedname>GlobalVertexData::vCnt</qualifiedname>
+        <bitfield> 28</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="181" column="12" bodyfile="dag_shaderMesh.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1a3241416597a56d32bbe61507eb38ab3e" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GlobalVertexData::vbIdx</definition>
+        <argsstring></argsstring>
+        <name>vbIdx</name>
+        <qualifiedname>GlobalVertexData::vbIdx</qualifiedname>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="181" column="18" bodyfile="dag_shaderMesh.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1ac9a195fbd27233d970239a11b2a17520" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GlobalVertexData::iCnt</definition>
+        <argsstring></argsstring>
+        <name>iCnt</name>
+        <qualifiedname>GlobalVertexData::iCnt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="181" column="25" bodyfile="dag_shaderMesh.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1ad54468836b45888e24eb791f6112591a" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GlobalVertexData::vOfs</definition>
+        <argsstring></argsstring>
+        <name>vOfs</name>
+        <qualifiedname>GlobalVertexData::vOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="181" column="30" bodyfile="dag_shaderMesh.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1aab193db3e1a5675bb87503ecc78d1576" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GlobalVertexData::iOfs</definition>
+        <argsstring></argsstring>
+        <name>iOfs</name>
+        <qualifiedname>GlobalVertexData::iOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="181" column="35" bodyfile="dag_shaderMesh.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVertexData_1a7051ed6ae197fe81e8b9b4b2a7b9beef" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GlobalVertexData::iPackedSz</definition>
+        <argsstring></argsstring>
+        <name>iPackedSz</name>
+        <qualifiedname>GlobalVertexData::iPackedSz</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="182" column="12" bodyfile="dag_shaderMesh.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classGlobalVertexData_1a3f0b9923725c3f37d49aabaa106a79d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct unitedvdata::BufPool</definition>
+        <argsstring></argsstring>
+        <name>unitedvdata::BufPool</name>
+        <qualifiedname>GlobalVertexData::BufPool</qualifiedname>
+        <param>
+          <type><ref refid="structunitedvdata_1_1BufPool" kindref="compound">unitedvdata::BufPool</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="188" column="17" bodyfile="dag_shaderMesh.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classGlobalVertexData_1ad8f238d6fb0e80622403339efc754b43" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>typename A</type>
+          </param>
+          <param>
+            <type>bool</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class dag::Vector</definition>
+        <argsstring></argsstring>
+        <name>dag::Vector</name>
+        <qualifiedname>GlobalVertexData::Vector</qualifiedname>
+        <param>
+          <type>dag::Vector</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="190" column="16" bodyfile="dag_shaderMesh.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classGlobalVertexData_1a8b4936f1f15a387f2448a40aef80fe73" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</definition>
+        <argsstring></argsstring>
+        <name>ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</name>
+        <qualifiedname>GlobalVertexData::ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</qualifiedname>
+        <param>
+          <type><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref>&lt; RenderableInstanceLodsResource &gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="196" column="15" bodyfile="dag_shaderMesh.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classGlobalVertexData_1aa841a88908d0ffbcdf9adc1162810d2f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ShaderResUnitedVdata&lt; DynamicRenderableSceneLodsResource &gt;</definition>
+        <argsstring></argsstring>
+        <name>ShaderResUnitedVdata&lt; DynamicRenderableSceneLodsResource &gt;</name>
+        <qualifiedname>GlobalVertexData::ShaderResUnitedVdata&lt; DynamicRenderableSceneLodsResource &gt;</qualifiedname>
+        <param>
+          <type><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref>&lt; DynamicRenderableSceneLodsResource &gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="196" column="15" bodyfile="dag_shaderMesh.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classGlobalVertexData_1aee92004395d59100df8ca31e8b9b1e64" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>I</declname>
+            <defname>I</defname>
+          </param>
+        </templateparamlist>
+        <type>eastl::disable_if&lt; I, void &gt;::type</type>
+        <definition>eastl::disable_if&lt; I, void &gt;::type dag::small_vector_default_fill_n</definition>
+        <argsstring>(F first, size_t n)</argsstring>
+        <name>dag::small_vector_default_fill_n</name>
+        <qualifiedname>GlobalVertexData::small_vector_default_fill_n</qualifiedname>
+        <param>
+          <type>F</type>
+          <declname>first</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="192" column="44"/>
+      </memberdef>
+      <memberdef kind="friend" id="classGlobalVertexData_1ad261c6ead55887f7552f4b45c0fa02c8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void eastl::destruct_impl</definition>
+        <argsstring>(F, F, eastl::false_type)</argsstring>
+        <name>eastl::destruct_impl</name>
+        <qualifiedname>GlobalVertexData::destruct_impl</qualifiedname>
+        <param>
+          <type>F</type>
+        </param>
+        <param>
+          <type>F</type>
+        </param>
+        <param>
+          <type>eastl::false_type</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="194" column="15"/>
+      </memberdef>
+      <memberdef kind="friend" id="classGlobalVertexData_1af3372cf4d4c0eb1c3a60774fe427b912" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void eastl::destruct</definition>
+        <argsstring>(F *)</argsstring>
+        <name>eastl::destruct</name>
+        <qualifiedname>GlobalVertexData::destruct</qualifiedname>
+        <param>
+          <type>F *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="196" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGlobalVertexData_1aae855d6469b77c8708cf2cbfd5724174" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Vbuffer *</type>
+        <definition>Vbuffer * GlobalVertexData::getVB</definition>
+        <argsstring>() const</argsstring>
+        <name>getVB</name>
+        <qualifiedname>GlobalVertexData::getVB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="68" column="18" bodyfile="dag_shaderMesh.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1af9541f1e4930d868b5c9f576e2637a8c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * GlobalVertexData::getIBMem</definition>
+        <argsstring>() const</argsstring>
+        <name>getIBMem</name>
+        <qualifiedname>GlobalVertexData::getIBMem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="70" column="15" bodyfile="dag_shaderMesh.h" bodystart="70" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a26d72842e5c6e5a870cb30d8478042d0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Index</type>
+          </param>
+        </templateparamlist>
+        <type>const Index *</type>
+        <definition>const Index * GlobalVertexData::getIBMem</definition>
+        <argsstring>(unsigned si, unsigned numf) const</argsstring>
+        <name>getIBMem</name>
+        <qualifiedname>GlobalVertexData::getIBMem</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>si</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>numf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="76" column="22" bodyfile="dag_shaderMesh.h" bodystart="76" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a7fd757c426566d74c09bd8e86b4af4a9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * GlobalVertexData::getVBMem</definition>
+        <argsstring>() const</argsstring>
+        <name>getVBMem</name>
+        <qualifiedname>GlobalVertexData::getVBMem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="84" column="15" bodyfile="dag_shaderMesh.h" bodystart="84" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a4008aaa75ecb4e5d8c89288b268dfe5e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Vertex</type>
+          </param>
+        </templateparamlist>
+        <type>const Vertex *</type>
+        <definition>const Vertex * GlobalVertexData::getVBMem</definition>
+        <argsstring>(unsigned base_v, unsigned sv, unsigned numv) const</argsstring>
+        <name>getVBMem</name>
+        <qualifiedname>GlobalVertexData::getVBMem</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>base_v</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>sv</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>numv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="90" column="23" bodyfile="dag_shaderMesh.h" bodystart="90" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a1e231e25561afbba69fa1c509dcd75e5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Ibuffer *</type>
+        <definition>Ibuffer * GlobalVertexData::getIB</definition>
+        <argsstring>() const</argsstring>
+        <name>getIB</name>
+        <qualifiedname>GlobalVertexData::getIB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="98" column="18" bodyfile="dag_shaderMesh.h" bodystart="98" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1afd9e3157684fd1c1e4cd6f3ce6a94d2d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int GlobalVertexData::getStride</definition>
+        <argsstring>() const</argsstring>
+        <name>getStride</name>
+        <qualifiedname>GlobalVertexData::getStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="112" column="7" bodyfile="dag_shaderMesh.h" bodystart="112" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1ac110cf23eb71cc0f8420b6d2272e140b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned GlobalVertexData::getFlags</definition>
+        <argsstring>() const</argsstring>
+        <name>getFlags</name>
+        <qualifiedname>GlobalVertexData::getFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="113" column="12" bodyfile="dag_shaderMesh.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1afb49c91b6239bb375dadc5f44deb5b03" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned GlobalVertexData::testFlags</definition>
+        <argsstring>(unsigned f) const</argsstring>
+        <name>testFlags</name>
+        <qualifiedname>GlobalVertexData::testFlags</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="114" column="12" bodyfile="dag_shaderMesh.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a0a12e8cad586421961a7bb1b5f392a17" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned GlobalVertexData::getVbSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getVbSize</name>
+        <qualifiedname>GlobalVertexData::getVbSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="115" column="12" bodyfile="dag_shaderMesh.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a03b5fdaa9ab2da4a0743d444bdd727aa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned GlobalVertexData::getIbElemSz</definition>
+        <argsstring>() const</argsstring>
+        <name>getIbElemSz</name>
+        <qualifiedname>GlobalVertexData::getIbElemSz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="116" column="12" bodyfile="dag_shaderMesh.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1aa783a8c2979a01bbb5bd355259e951ca" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned GlobalVertexData::getIbSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getIbSize</name>
+        <qualifiedname>GlobalVertexData::getIbSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="117" column="12" bodyfile="dag_shaderMesh.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1af4cce84bba88984e965c7b1de6b82b6f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned GlobalVertexData::getIbPackedSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getIbPackedSize</name>
+        <qualifiedname>GlobalVertexData::getIbPackedSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="118" column="12" bodyfile="dag_shaderMesh.h" bodystart="118" bodyend="118"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a8a124813e9a8253cd78eb7da9b40c563" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned GlobalVertexData::getLodIndex</definition>
+        <argsstring>() const</argsstring>
+        <name>getLodIndex</name>
+        <qualifiedname>GlobalVertexData::getLodIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="119" column="12" bodyfile="dag_shaderMesh.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1ae5d587f07858c343499dea4539ad19ba" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GlobalVertexData::isRenderable</definition>
+        <argsstring>(bool &amp;has_indices) const</argsstring>
+        <name>isRenderable</name>
+        <qualifiedname>GlobalVertexData::isRenderable</qualifiedname>
+        <param>
+          <type>bool &amp;</type>
+          <declname>has_indices</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="121" column="8" bodyfile="dag_shaderMesh.h" bodystart="121" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a08c6564a12591231629c7bc622fa0915" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVertexData::initGvd</definition>
+        <argsstring>(const char *name, unsigned vNum, unsigned vStride, unsigned idxPacked, unsigned idxSize, unsigned flags, IGenLoad *crd, Tab&lt; uint8_t &gt; &amp;tmp_decoder_stor)</argsstring>
+        <name>initGvd</name>
+        <qualifiedname>GlobalVertexData::initGvd</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>vNum</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>vStride</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>idxPacked</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>idxSize</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IGenLoad *</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>Tab&lt; uint8_t &gt; &amp;</type>
+          <declname>tmp_decoder_stor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="128" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a469b3f3e620d721570a0714b5d4c8120" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVertexData::initGvdMem</definition>
+        <argsstring>(int vertNum, int vertStride, int idxSize, unsigned flags, const void *vb_data, const void *ib_data)</argsstring>
+        <name>initGvdMem</name>
+        <qualifiedname>GlobalVertexData::initGvdMem</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>vertNum</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vertStride</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idxSize</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>vb_data</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>ib_data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="131" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1ad988c43ae1782cae8f77df6d5aa888bf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVertexData::free</definition>
+        <argsstring>()</argsstring>
+        <name>free</name>
+        <qualifiedname>GlobalVertexData::free</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="134" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1aeeea551495e63a9740695fd32b231a7b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVertexData::setToDriver</definition>
+        <argsstring>() const</argsstring>
+        <name>setToDriver</name>
+        <qualifiedname>GlobalVertexData::setToDriver</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="137" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1ad303429c10a7d30880efa3e1eabe249c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GlobalVertexData::isEmpty</definition>
+        <argsstring>() const</argsstring>
+        <name>isEmpty</name>
+        <qualifiedname>GlobalVertexData::isEmpty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="140" column="8" bodyfile="dag_shaderMesh.h" bodystart="140" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1afd68d19d650ac0d402e256bb8e7be5a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVertexData::unpackToBuffers</definition>
+        <argsstring>(IGenLoad &amp;zcrd, bool update_ib_vb_only, Tab&lt; uint8_t &gt; &amp;buf_stor)</argsstring>
+        <name>unpackToBuffers</name>
+        <qualifiedname>GlobalVertexData::unpackToBuffers</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>zcrd</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>update_ib_vb_only</declname>
+        </param>
+        <param>
+          <type>Tab&lt; uint8_t &gt; &amp;</type>
+          <declname>buf_stor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="149" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1aa15b9585b649a5413b9322ecc2dfb120" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVertexData::unpackToSharedBuffer</definition>
+        <argsstring>(IGenLoad &amp;zcrd, Vbuffer *shared_vb, Ibuffer *shared_ib, int &amp;vb_byte_pos, int &amp;ib_byte_pos, Tab&lt; uint8_t &gt; &amp;buf_stor)</argsstring>
+        <name>unpackToSharedBuffer</name>
+        <qualifiedname>GlobalVertexData::unpackToSharedBuffer</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>zcrd</declname>
+        </param>
+        <param>
+          <type>Vbuffer *</type>
+          <declname>shared_vb</declname>
+        </param>
+        <param>
+          <type>Ibuffer *</type>
+          <declname>shared_ib</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>vb_byte_pos</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>ib_byte_pos</declname>
+        </param>
+        <param>
+          <type>Tab&lt; uint8_t &gt; &amp;</type>
+          <declname>buf_stor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="150" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1af3566e1f68c1aff6cf0a3d707c0f97c1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int GlobalVertexData::getVbIdx</definition>
+        <argsstring>() const</argsstring>
+        <name>getVbIdx</name>
+        <qualifiedname>GlobalVertexData::getVbIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="152" column="7" bodyfile="dag_shaderMesh.h" bodystart="152" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1ac5e09f17f4aed18b09e206205c9eb70d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVertexData::copyDescFrom</definition>
+        <argsstring>(const GlobalVertexData &amp;src)</argsstring>
+        <name>copyDescFrom</name>
+        <qualifiedname>GlobalVertexData::copyDescFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref> &amp;</type>
+          <declname>src</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="154" column="8" bodyfile="dag_shaderMesh.h" bodystart="154" bodyend="166"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classGlobalVertexData_1a6def5f142cbd4d5faa1f0d230f80e7d3" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GlobalVertexData::GlobalVertexData</definition>
+        <argsstring>()</argsstring>
+        <name>GlobalVertexData</name>
+        <qualifiedname>GlobalVertexData::GlobalVertexData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="185" column="3" bodyfile="dag_shaderMesh.h" bodystart="185" bodyend="185"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVertexData_1a7d6e05e8c1398437f2f9df25a6ea345d" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GlobalVertexData::~GlobalVertexData</definition>
+        <argsstring>()</argsstring>
+        <name>~GlobalVertexData</name>
+        <qualifiedname>GlobalVertexData::~GlobalVertexData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="186" column="3" bodyfile="dag_shaderMesh.h" bodystart="186" bodyend="186"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="64" column="1" bodyfile="dag_shaderMesh.h" bodystart="65" bodyend="199"/>
+    <listofallmembers>
+      <member refid="classGlobalVertexData_1af0667e46dba8b6bc2b1dcd7e486c2146" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>cflags</name></member>
+      <member refid="classGlobalVertexData_1ac5e09f17f4aed18b09e206205c9eb70d" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>copyDescFrom</name></member>
+      <member refid="classGlobalVertexData_1aee92004395d59100df8ca31e8b9b1e64" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>dag::small_vector_default_fill_n</name></member>
+      <member refid="classGlobalVertexData_1ad8f238d6fb0e80622403339efc754b43" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>dag::Vector</name></member>
+      <member refid="classGlobalVertexData_1af3372cf4d4c0eb1c3a60774fe427b912" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>eastl::destruct</name></member>
+      <member refid="classGlobalVertexData_1ad261c6ead55887f7552f4b45c0fa02c8" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>eastl::destruct_impl</name></member>
+      <member refid="classGlobalVertexData_1ad988c43ae1782cae8f77df6d5aa888bf" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>free</name></member>
+      <member refid="classGlobalVertexData_1ac110cf23eb71cc0f8420b6d2272e140b" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getFlags</name></member>
+      <member refid="classGlobalVertexData_1a1e231e25561afbba69fa1c509dcd75e5" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getIB</name></member>
+      <member refid="classGlobalVertexData_1a03b5fdaa9ab2da4a0743d444bdd727aa" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getIbElemSz</name></member>
+      <member refid="classGlobalVertexData_1af9541f1e4930d868b5c9f576e2637a8c" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getIBMem</name></member>
+      <member refid="classGlobalVertexData_1a26d72842e5c6e5a870cb30d8478042d0" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getIBMem</name></member>
+      <member refid="classGlobalVertexData_1af4cce84bba88984e965c7b1de6b82b6f" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getIbPackedSize</name></member>
+      <member refid="classGlobalVertexData_1aa783a8c2979a01bbb5bd355259e951ca" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getIbSize</name></member>
+      <member refid="classGlobalVertexData_1a8a124813e9a8253cd78eb7da9b40c563" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getLodIndex</name></member>
+      <member refid="classGlobalVertexData_1afd9e3157684fd1c1e4cd6f3ce6a94d2d" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getStride</name></member>
+      <member refid="classGlobalVertexData_1aae855d6469b77c8708cf2cbfd5724174" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getVB</name></member>
+      <member refid="classGlobalVertexData_1af3566e1f68c1aff6cf0a3d707c0f97c1" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getVbIdx</name></member>
+      <member refid="classGlobalVertexData_1a7fd757c426566d74c09bd8e86b4af4a9" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getVBMem</name></member>
+      <member refid="classGlobalVertexData_1a4008aaa75ecb4e5d8c89288b268dfe5e" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getVBMem</name></member>
+      <member refid="classGlobalVertexData_1a0a12e8cad586421961a7bb1b5f392a17" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>getVbSize</name></member>
+      <member refid="classGlobalVertexData_1a6def5f142cbd4d5faa1f0d230f80e7d3" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>GlobalVertexData</name></member>
+      <member refid="classGlobalVertexData_1a14cfc46ffb35e8f1a9f796ec1b5c9130" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>ibMem</name></member>
+      <member refid="classGlobalVertexData_1ac9a195fbd27233d970239a11b2a17520" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>iCnt</name></member>
+      <member refid="classGlobalVertexData_1a771bf3181de7cbd41293225839ab7591" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>indices</name></member>
+      <member refid="classGlobalVertexData_1a08c6564a12591231629c7bc622fa0915" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>initGvd</name></member>
+      <member refid="classGlobalVertexData_1a469b3f3e620d721570a0714b5d4c8120" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>initGvdMem</name></member>
+      <member refid="classGlobalVertexData_1aab193db3e1a5675bb87503ecc78d1576" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>iOfs</name></member>
+      <member refid="classGlobalVertexData_1a7051ed6ae197fe81e8b9b4b2a7b9beef" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>iPackedSz</name></member>
+      <member refid="classGlobalVertexData_1ad303429c10a7d30880efa3e1eabe249c" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>isEmpty</name></member>
+      <member refid="classGlobalVertexData_1ae5d587f07858c343499dea4539ad19ba" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>isRenderable</name></member>
+      <member refid="classGlobalVertexData_1aeeea551495e63a9740695fd32b231a7b" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>setToDriver</name></member>
+      <member refid="classGlobalVertexData_1aa841a88908d0ffbcdf9adc1162810d2f" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>ShaderResUnitedVdata&lt; DynamicRenderableSceneLodsResource &gt;</name></member>
+      <member refid="classGlobalVertexData_1a8b4936f1f15a387f2448a40aef80fe73" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</name></member>
+      <member refid="classGlobalVertexData_1afb49c91b6239bb375dadc5f44deb5b03" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>testFlags</name></member>
+      <member refid="classGlobalVertexData_1a3f0b9923725c3f37d49aabaa106a79d6" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>unitedvdata::BufPool</name></member>
+      <member refid="classGlobalVertexData_1afd68d19d650ac0d402e256bb8e7be5a8" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>unpackToBuffers</name></member>
+      <member refid="classGlobalVertexData_1aa15b9585b649a5413b9322ecc2dfb120" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>unpackToSharedBuffer</name></member>
+      <member refid="classGlobalVertexData_1a2604e6cf547b5324f1b63b3399e1a3c3" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>vb</name></member>
+      <member refid="classGlobalVertexData_1a3241416597a56d32bbe61507eb38ab3e" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>vbIdx</name></member>
+      <member refid="classGlobalVertexData_1a79a277b0210f73f6eda11c7099f341ce" prot="public" virt="non-virtual"><scope>GlobalVertexData</scope><name>vbMem</name></member>
+      <member refid="classGlobalVertexData_1a59fac9c1183767a3894bf1adc0a6c4bc" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>vCnt</name></member>
+      <member refid="classGlobalVertexData_1ad54468836b45888e24eb791f6112591a" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>vOfs</name></member>
+      <member refid="classGlobalVertexData_1aa266ed5b3bb8518eb87891821f100ce0" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>vstride</name></member>
+      <member refid="classGlobalVertexData_1a7d6e05e8c1398437f2f9df25a6ea345d" prot="private" virt="non-virtual"><scope>GlobalVertexData</scope><name>~GlobalVertexData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

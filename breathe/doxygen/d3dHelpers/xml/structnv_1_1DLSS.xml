@@ -1,0 +1,319 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1DLSS" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>nv::DLSS</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+    <innerclass refid="structnv_1_1DLSS_1_1OptimalSettings" prot="public">nv::DLSS::OptimalSettings</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95a" prot="public" static="no" strong="yes">
+        <type>int</type>
+        <name>State</name>
+        <qualifiedname>nv::DLSS::State</qualifiedname>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aa3e860a081575fc82cc7b6ed2ca602947" prot="public">
+          <name>NOT_IMPLEMENTED</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aaef8fdced38856787318885d74120e588" prot="public">
+          <name>NOT_CHECKED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aae73a62d90b515b95b0080a05f9f2b4b1" prot="public">
+          <name>NGX_INIT_ERROR_NO_APP_ID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aace5e88b067f3025e55301b9e7c8be9b2" prot="public">
+          <name>NGX_INIT_ERROR_UNKNOWN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aa6eaee79a7a018f1c03c1112c1986a928" prot="public">
+          <name>NOT_SUPPORTED_OUTDATED_VGA_DRIVER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aa5d60521ead09c633743101d1c6405148" prot="public">
+          <name>NOT_SUPPORTED_INCOMPATIBLE_HARDWARE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aa3de17f4ca00f606c399931b6f1090e9c" prot="public">
+          <name>NOT_SUPPORTED_32BIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aa055c1a591abb0e8cd86dc969727bcc0b" prot="public">
+          <name>DISABLED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aa38e00e00fd4b081268cb0d9083899116" prot="public">
+          <name>SUPPORTED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95aa2baa69eafc7204f3bd8648eba580c489" prot="public">
+          <name>READY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="129" column="3" bodyfile="dag_nvFeatures.h" bodystart="130" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="enum" id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245f" prot="public" static="no" strong="yes">
+        <type>int</type>
+        <name>Mode</name>
+        <qualifiedname>nv::DLSS::Mode</qualifiedname>
+        <enumvalue id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245fad15305d7a4e34e02489c74a5ef542f36" prot="public">
+          <name>Off</name>
+          <initializer>= -1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245fae68a7d40fb24f35e9af79c8a8a16ab4e" prot="public">
+          <name>MaxPerformance</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245fac6589f5236c0c434d0c63dc5f9a856f2" prot="public">
+          <name>Balanced</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245fa78183a468abfad57f1857a9132021ae9" prot="public">
+          <name>MaxQuality</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245faa5dbce8b5b2a944b06625b878ccf8bd8" prot="public">
+          <name>UltraPerformance</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245faf48bc1adf98a418c651e445897336a38" prot="public">
+          <name>UltraQuality</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245fa42251239b1f8e7e8dad49122039ae5f1" prot="public">
+          <name>DLAA</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="143" column="3" bodyfile="dag_nvFeatures.h" bodystart="144" bodyend="152"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1DLSS_1a588e2eedeba8359ed9364021ab47195a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::DLSS::isRR</definition>
+        <argsstring></argsstring>
+        <name>isRR</name>
+        <qualifiedname>nv::DLSS::isRR</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="173" column="8" bodyfile="dag_nvFeatures.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structnv_1_1DLSS_1aa65c72ece9c9e05969bebcc4dab95f1e" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual nv::DLSS::~DLSS</definition>
+        <argsstring>()=default</argsstring>
+        <name>~DLSS</name>
+        <qualifiedname>nv::DLSS::~DLSS</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="161" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSS_1a5ada9a260be640f0444df51b0db803eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool nv::DLSS::evaluate</definition>
+        <argsstring>(const nv::DlssParams&lt; void &gt; &amp;params, void *command_buffer)=0</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>nv::DLSS::evaluate</qualifiedname>
+        <param>
+          <type>const <ref refid="structnv_1_1DlssParams" kindref="compound">nv::DlssParams</ref>&lt; void &gt; &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>command_buffer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="163" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSS_1aad58245ba2f23fa096bcdf089cf129ec" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>eastl::optional&lt; <ref refid="structnv_1_1DLSS_1_1OptimalSettings" kindref="compound">OptimalSettings</ref> &gt;</type>
+        <definition>virtual eastl::optional&lt; OptimalSettings &gt; nv::DLSS::getOptimalSettings</definition>
+        <argsstring>(Mode mode, IPoint2 output_resolution) const =0</argsstring>
+        <name>getOptimalSettings</name>
+        <qualifiedname>nv::DLSS::getOptimalSettings</qualifiedname>
+        <param>
+          <type><ref refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245f" kindref="member">Mode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>output_resolution</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="164" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSS_1a1192c7d5770d723c3901d91fb157e862" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool nv::DLSS::setOptions</definition>
+        <argsstring>(Mode mode, IPoint2 output_resolution)=0</argsstring>
+        <name>setOptions</name>
+        <qualifiedname>nv::DLSS::setOptions</qualifiedname>
+        <param>
+          <type><ref refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245f" kindref="member">Mode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>output_resolution</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="165" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSS_1a87b832eaffe604c925d28ed11a417be5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95a" kindref="member">State</ref></type>
+        <definition>virtual State nv::DLSS::getState</definition>
+        <argsstring>()</argsstring>
+        <name>getState</name>
+        <qualifiedname>nv::DLSS::getState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="168" column="17" bodyfile="dag_nvFeatures.h" bodystart="168" bodyend="168"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSS_1ae805c9274664a814539d0b4012c47d64" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>dag::Expected&lt; eastl::string, <ref refid="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65" kindref="member">nv::SupportState</ref> &gt;</type>
+        <definition>virtual dag::Expected&lt; eastl::string, nv::SupportState &gt; nv::DLSS::getVersion</definition>
+        <argsstring>() const</argsstring>
+        <name>getVersion</name>
+        <qualifiedname>nv::DLSS::getVersion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="169" column="25" bodyfile="dag_nvFeatures.h" bodystart="169" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSS_1a1c94b012703eb8b2702c64eeb1c80f7a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void nv::DLSS::DeleteFeature</definition>
+        <argsstring>()</argsstring>
+        <name>DeleteFeature</name>
+        <qualifiedname>nv::DLSS::DeleteFeature</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="171" column="16" bodyfile="dag_nvFeatures.h" bodystart="171" bodyend="171"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="127" column="1" bodyfile="dag_nvFeatures.h" bodystart="128" bodyend="174"/>
+    <listofallmembers>
+      <member refid="structnv_1_1DLSS_1a1c94b012703eb8b2702c64eeb1c80f7a" prot="public" virt="virtual"><scope>nv::DLSS</scope><name>DeleteFeature</name></member>
+      <member refid="structnv_1_1DLSS_1a5ada9a260be640f0444df51b0db803eb" prot="public" virt="pure-virtual"><scope>nv::DLSS</scope><name>evaluate</name></member>
+      <member refid="structnv_1_1DLSS_1aad58245ba2f23fa096bcdf089cf129ec" prot="public" virt="pure-virtual"><scope>nv::DLSS</scope><name>getOptimalSettings</name></member>
+      <member refid="structnv_1_1DLSS_1a87b832eaffe604c925d28ed11a417be5" prot="public" virt="virtual"><scope>nv::DLSS</scope><name>getState</name></member>
+      <member refid="structnv_1_1DLSS_1ae805c9274664a814539d0b4012c47d64" prot="public" virt="virtual"><scope>nv::DLSS</scope><name>getVersion</name></member>
+      <member refid="structnv_1_1DLSS_1a588e2eedeba8359ed9364021ab47195a" prot="public" virt="non-virtual"><scope>nv::DLSS</scope><name>isRR</name></member>
+      <member refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245f" prot="public" virt="non-virtual"><scope>nv::DLSS</scope><name>Mode</name></member>
+      <member refid="structnv_1_1DLSS_1a1192c7d5770d723c3901d91fb157e862" prot="public" virt="pure-virtual"><scope>nv::DLSS</scope><name>setOptions</name></member>
+      <member refid="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95a" prot="public" virt="non-virtual"><scope>nv::DLSS</scope><name>State</name></member>
+      <member refid="structnv_1_1DLSS_1aa65c72ece9c9e05969bebcc4dab95f1e" prot="public" virt="virtual"><scope>nv::DLSS</scope><name>~DLSS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

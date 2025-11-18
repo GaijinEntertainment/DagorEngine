@@ -1,0 +1,151 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource" kind="struct" language="C++" prot="public">
+    <compoundname>DynamicAtlasFencedTexUpdater::FencedGPUResource</compoundname>
+    <includes refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a29710c667e4a26d3749dc2f7bb969d53" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+        <definition>Texture* DynamicAtlasFencedTexUpdater::FencedGPUResource::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::tex</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="558" column="13" bodyfile="dag_dynAtlas.h" bodystart="558" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a59042cb0b23eb3aa5c716340ae9a6677" prot="public" static="no" mutable="no">
+        <type>D3dEventQuery *</type>
+        <definition>D3dEventQuery* DynamicAtlasFencedTexUpdater::FencedGPUResource::writeCompeletionFence</definition>
+        <argsstring></argsstring>
+        <name>writeCompeletionFence</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::writeCompeletionFence</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="559" column="19" bodyfile="dag_dynAtlas.h" bodystart="559" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1aa9e564b3a0c049073c41300d777d41ad" prot="public" static="no" mutable="no">
+        <type>uint8_t *</type>
+        <definition>uint8_t* DynamicAtlasFencedTexUpdater::FencedGPUResource::texturePtr</definition>
+        <argsstring></argsstring>
+        <name>texturePtr</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::texturePtr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="560" column="13" bodyfile="dag_dynAtlas.h" bodystart="560" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a807a9dfd69c2aa63621de2df4fcacbc6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasFencedTexUpdater::FencedGPUResource::stride</definition>
+        <argsstring></argsstring>
+        <name>stride</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::stride</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="561" column="9" bodyfile="dag_dynAtlas.h" bodystart="561" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a5da8ec7c1344521df79a11635a15e32f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicAtlasFencedTexUpdater::FencedGPUResource::lock</definition>
+        <argsstring>()</argsstring>
+        <name>lock</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::lock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="563" column="10" bodyfile="dag_dynAtlas.h" bodystart="563" bodyend="577"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a786cef3d7695d88a142685ad0fe05493" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::FencedGPUResource::unlock</definition>
+        <argsstring>()</argsstring>
+        <name>unlock</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::unlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="579" column="10" bodyfile="dag_dynAtlas.h" bodystart="579" bodyend="585"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a47c9240b300ffe62c2dd40f6165fb6c6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::FencedGPUResource::init</definition>
+        <argsstring>(const IPoint2 &amp;sz, int tex_fmt=TEXFMT_R8)</argsstring>
+        <name>init</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::init</qualifiedname>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>sz</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tex_fmt</declname>
+          <defval>TEXFMT_R8</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="587" column="10" bodyfile="dag_dynAtlas.h" bodystart="587" bodyend="592"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1ac394a8af7529d85ca8723b95c30d4e4e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasFencedTexUpdater::FencedGPUResource::term</definition>
+        <argsstring>()</argsstring>
+        <name>term</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::FencedGPUResource::term</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="594" column="10" bodyfile="dag_dynAtlas.h" bodystart="594" bodyend="603"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynAtlas.h" line="556" column="3" bodyfile="dag_dynAtlas.h" bodystart="557" bodyend="604"/>
+    <listofallmembers>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a47c9240b300ffe62c2dd40f6165fb6c6" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>init</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a5da8ec7c1344521df79a11635a15e32f" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>lock</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a807a9dfd69c2aa63621de2df4fcacbc6" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>stride</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1ac394a8af7529d85ca8723b95c30d4e4e" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>term</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a29710c667e4a26d3749dc2f7bb969d53" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>tex</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1aa9e564b3a0c049073c41300d777d41ad" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>texturePtr</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a786cef3d7695d88a142685ad0fe05493" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>unlock</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1FencedGPUResource_1a59042cb0b23eb3aa5c716340ae9a6677" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::FencedGPUResource</scope><name>writeCompeletionFence</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

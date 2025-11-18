@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Substance Designer Mip Generator</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Projects" href="../../projects/index.html" />
+    <link rel="prev" title="Substance Designer Mip Generator" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Substance Designer Mip Generator</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Substance Designer Mip Generator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#initial-setup">Initial Setup</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#mip-adjustment">Mip Adjustment</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#enabling-custom-mips">Enabling Custom Mips</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Substance Designer Mip Generator</a></li>
+      <li class="breadcrumb-item active">Substance Designer Mip Generator</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/substance-designer/substance_designer.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="substance-designer-mip-generator">
+<h1>Substance Designer Mip Generator<a class="headerlink" href="#substance-designer-mip-generator" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>To avoid having to search for the node on your disk every time, you can add it
+to your custom library. To do this, go to <strong>Edit &gt; Preferences &gt; Projects &gt;
+Library &gt; “+”</strong>, and in the pop-up window, add the directory containing the
+node. For internal team members, the directory is located at:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;engine_root&gt;/tools/substance_library/
+</pre></div>
+</div>
+<p>If you already have a custom library, you can simply copy the node into it. Once
+added, the node will be available under the <strong>Filters &gt; Transforms</strong> tab and
+accessible via search.</p>
+<img alt="Mip generator node" class="image-center" src="../../_images/substance_designer_01.jpg" />
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p>To use the node, drag it into a new Substance Graph and connect your diffuse
+texture with an alpha channel to the <code class="docutils literal notranslate"><span class="pre">tex_d</span></code> input. The initial result
+(<code class="docutils literal notranslate"><span class="pre">tex_d_mips</span></code>) may not be perfect and could require further configuration. If it
+looks correct from the start, custom mips may not be necessary.</p>
+<section id="initial-setup">
+<h3>Initial Setup<a class="headerlink" href="#initial-setup" title="Link to this heading"></a></h3>
+<p>Let’s consider a less-than-ideal input example: a metallic grid of 7x13 cells,
+where the edges of the cells align with the edges of the texture.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is an exaggeratedly bad case, and ideally, most of these issues should be
+resolved during the texture creation process.</p>
+</div>
+<p>First, adjust the global offset. In the <strong>Main</strong> tab, enter the number of grid
+cells and set <strong>Half Cell Offset</strong> to <code class="docutils literal notranslate"><span class="pre">True</span></code>. Note that changing this parameter
+will generate a second output – <code class="docutils literal notranslate"><span class="pre">tex_d_offset</span></code>, which doesn’t contain mips.
+After configuring the diffuse, remember to connect the normal map input to apply
+the same offset.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../_images/substance_designer_02.jpg"><img alt="../../_images/substance_designer_02.jpg" class="image-gap" src="../../_images/substance_designer_02.jpg" style="height: 20em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/substance_designer_03.jpg"><img alt="../../_images/substance_designer_03.jpg" src="../../_images/substance_designer_03.jpg" style="height: 20em;" />
+</a>
+</div>
+</div>
+</div>
+</section>
+<section id="mip-adjustment">
+<h3>Mip Adjustment<a class="headerlink" href="#mip-adjustment" title="Link to this heading"></a></h3>
+<p>Now, let’s move on to configuring the mips. The settings are consistent across
+all mip levels. The first few mips likely won’t require modification. From left
+to right in the output image, the mips are ordered as 0, 1, 2, and so on. Once
+you find the first mip that looks unclear, start configuring the settings.</p>
+<p>For example, by mip level 2 (<code class="docutils literal notranslate"><span class="pre">mip02</span></code>), the lines may appear unclear. Initially,
+you can improve this by adjusting the contrast and midpoint sliders.</p>
+<p>However, at some point, the contrast will no longer be enough – the mip
+resolution will be too low to properly render the cells. This is where the
+<strong>cell count</strong> setting comes in handy.</p>
+<p>First, set the number of cells so that one complete cell is drawn per mip level.
+It’s easier to configure when the edges are aligned around the perimeter, so you
+may want to temporarily switch to half-cell offset for the zero mip.</p>
+<p>Then, reduce the number of cells, approximately to half the original count. You
+can experiment with a smaller reduction, but you’ll need to test in-game to
+ensure no noticeable flickering occurs due to line shifts rather than a
+reduction in cell count.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../_images/substance_designer_04.jpg"><img alt="../../_images/substance_designer_04.jpg" class="image-gap" src="../../_images/substance_designer_04.jpg" style="height: 20em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/substance_designer_05.jpg"><img alt="../../_images/substance_designer_05.jpg" src="../../_images/substance_designer_05.jpg" style="height: 20em;" />
+</a>
+</div>
+</div>
+</div>
+<p>For <code class="docutils literal notranslate"><span class="pre">mip05</span></code>, improving line clarity required reducing the <code class="docutils literal notranslate"><span class="pre">7x13</span></code> grid to <code class="docutils literal notranslate"><span class="pre">4x8</span></code>.</p>
+<p>If a significantly distinct area of the texture has been cropped out, you can
+reposition it with the offset tool. The step size corresponds to one grid cell.</p>
+<p>As the resolution decreases, the line thickness will inevitably increase in
+proportion since it can’t be thinner than a single pixel. However, if the lines
+remain two pixels thick on distant mips and contrast adjustments don’t help, you
+can manually enter a non-integer offset for problematic mips. Often, a value of
+<code class="docutils literal notranslate"><span class="pre">0.01</span></code> will suffice.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../_images/substance_designer_06.jpg"><img alt="../../_images/substance_designer_06.jpg" class="image-gap" src="../../_images/substance_designer_06.jpg" style="height: 15em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/substance_designer_07.jpg"><img alt="../../_images/substance_designer_07.jpg" src="../../_images/substance_designer_07.jpg" style="height: 15em;" />
+</a>
+</div>
+</div>
+</div>
+<p>Eventually, the texture will degrade into an unreadable cluster of pixels. To
+avoid manually adjusting the “midpoint” for every mip beyond this point, the
+<strong>Main</strong> tab allows you to replace the alpha channel in all subsequent mips with
+a solid fill – either fully transparent or fully opaque.</p>
+<p>The settings for these mips are hidden to keep the interface uncluttered and
+make it easier to navigate the list.</p>
+</section>
+</section>
+<section id="enabling-custom-mips">
+<h2>Enabling Custom Mips<a class="headerlink" href="#enabling-custom-mips" title="Link to this heading"></a></h2>
+<p>Simply modifying the texture in this way will break its display in both the
+<a class="reference internal" href="../asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset Viewer</span></a> and in-game. You
+must also specify that the texture contains custom mips, or the engine will
+misinterpret it.</p>
+<p>To do this, create a <code class="docutils literal notranslate"><span class="pre">.tex.blk</span></code> file named after the texture (without the
+extension) in the same directory as the texture itself. Inside this file,
+specify the texture name and include the appropriate block.</p>
+<p>For example, for the texture <code class="docutils literal notranslate"><span class="pre">barbwire_tex_d.tif</span></code>, the <code class="docutils literal notranslate"><span class="pre">barbwire_tex_d.tex.blk</span></code>
+file would look like this:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;barbwire_tex_d.tif&quot;</span>
+<span class="se">include</span> <span class="nf">&quot;#/develop/assets/_srgbx_with_mips.blk&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Substance Designer Mip Generator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../projects/index.html" class="btn btn-neutral float-right" title="Projects" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

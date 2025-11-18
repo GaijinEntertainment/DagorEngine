@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDataBlockParser_1_1SyntaxErrorException" kind="struct" language="C++" prot="public">
+    <compoundname>DataBlockParser::SyntaxErrorException</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDataBlockParser_1_1SyntaxErrorException_1a49c91030eaf5bc4d4b222060088d5ffd" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* DataBlockParser::SyntaxErrorException::msg</definition>
+        <argsstring></argsstring>
+        <name>msg</name>
+        <qualifiedname>DataBlockParser::SyntaxErrorException::msg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="41" column="16" bodyfile="datablk.cpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDataBlockParser_1_1SyntaxErrorException_1add5bc4b18506025c624102f81b33181b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DataBlockParser::SyntaxErrorException::SyntaxErrorException</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>SyntaxErrorException</name>
+        <qualifiedname>DataBlockParser::SyntaxErrorException::SyntaxErrorException</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="43" column="5" bodyfile="datablk.cpp" bodystart="43" bodyend="43"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="datablk.cpp" line="39" column="3" bodyfile="datablk.cpp" bodystart="40" bodyend="44"/>
+    <listofallmembers>
+      <member refid="structDataBlockParser_1_1SyntaxErrorException_1a49c91030eaf5bc4d4b222060088d5ffd" prot="public" virt="non-virtual"><scope>DataBlockParser::SyntaxErrorException</scope><name>msg</name></member>
+      <member refid="structDataBlockParser_1_1SyntaxErrorException_1add5bc4b18506025c624102f81b33181b" prot="public" virt="non-virtual"><scope>DataBlockParser::SyntaxErrorException</scope><name>SyntaxErrorException</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

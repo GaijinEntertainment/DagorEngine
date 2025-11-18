@@ -1,0 +1,199 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shAssumes_8cpp" kind="file" language="C++">
+    <compoundname>shAssumes.cpp</compoundname>
+    <includes refid="shAssumes_8h" local="yes">shAssumes.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includes refid="shErrorReporting_8h" local="yes">shErrorReporting.h</includes>
+    <incdepgraph>
+      <node id="3">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="1">
+        <label>shAssumes.cpp</label>
+        <link refid="shAssumes_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="12">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="10">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="7">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="13">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="11">
+        <label>shsyn.h</label>
+      </node>
+      <node id="14">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="6">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="4">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shAssumes_8h" kindref="compound">shAssumes.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shErrorReporting_8h" kindref="compound">shErrorReporting.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classShaderAssumesTable_1a8a6641ff334762ff56de6fcf78a310b8" kindref="member">ShaderAssumesTable::addAssume</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>val,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fallback,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/>Terminal<sp/>*t)</highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>key{name};</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(is_fallback)</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>valueMaybe<sp/>=<sp/><ref refid="classShaderAssumesTable_1a8279eb5b559bfac980d005b1f9832326" kindref="member">getAssumedVal</ref>(name,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1ab1481e3fe8354f93f6703076e615ee5e" kindref="member">report_debug_message</ref>(parser,<sp/>*t,</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;WARNING:<sp/>Will<sp/>not<sp/>override<sp/>(%s<sp/>(for<sp/>%s)<sp/>old=%g<sp/>-&gt;<sp/>new=%g)<sp/>in<sp/>&apos;assume_if_not_assumed&apos;<sp/>statement&quot;</highlight><highlight class="normal">,<sp/>name,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>debugName<sp/>?<sp/>debugName<sp/>:<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">,<sp/>*valueMaybe,<sp/>val);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*valueMaybe;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[it,<sp/>inserted]<sp/>=<sp/>assumes.emplace(key,<sp/>AssumeRecord{val,<sp/>is_fallback});</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!inserted)</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>same<sp/>assume<sp/>can<sp/>not<sp/>be<sp/>redeclared<sp/>with<sp/>a<sp/>different<sp/>val<sp/>at<sp/>a<sp/>given<sp/>scope,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>and<sp/>the<sp/>same<sp/>fallback<sp/>assume<sp/>can&apos;t<sp/>be<sp/>redeclared<sp/>either.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(it-&gt;second.isFallback<sp/>==<sp/>is_fallback<sp/>&amp;&amp;<sp/>it-&gt;second.val<sp/>!=<sp/>val)</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(is_fallback)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>t,<sp/></highlight><highlight class="stringliteral">&quot;Only<sp/>one<sp/>soft<sp/>override<sp/>of<sp/>%s<sp/>(for<sp/>%s)<sp/>with<sp/>&apos;assume_if_not_assumed&apos;<sp/>statement<sp/>is<sp/>allowed&quot;</highlight><highlight class="normal">,<sp/>name,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>debugName<sp/>?<sp/>debugName<sp/>:<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>t,<sp/></highlight><highlight class="stringliteral">&quot;Overriding<sp/>%s<sp/>(for<sp/>%s)<sp/>old=%g<sp/>-&gt;<sp/>new=%g<sp/>in<sp/>&apos;assume&apos;<sp/>statement<sp/>is<sp/>not<sp/>allowed&quot;</highlight><highlight class="normal">,<sp/>name,</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>debugName<sp/>?<sp/>debugName<sp/>:<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">,<sp/>it-&gt;second.val,<sp/>val);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>it-&gt;second.val;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!is_fallback)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>it-&gt;second<sp/>=<sp/>AssumeRecord{val,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>val;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classShaderAssumesTable_1aed503435493331a95c59aae9cd0fe3b6" kindref="member">ShaderAssumesTable::addIntervalAssume</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>&amp;interv_val,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fallback,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>Terminal<sp/>*t)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>val<sp/>=<sp/>(interv_val.<ref refid="classIntervalValue_1a046ff5db1dfb2593d0ea592d1a9ecf4d" kindref="member">getBounds</ref>().getMin()<sp/>+<sp/>interv_val.<ref refid="classIntervalValue_1a046ff5db1dfb2593d0ea592d1a9ecf4d" kindref="member">getBounds</ref>().getMax())<sp/>*<sp/>0.5;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderAssumesTable_1a8a6641ff334762ff56de6fcf78a310b8" kindref="member">addAssume</ref>(name,<sp/>val,<sp/>is_fallback,<sp/>parser,<sp/>t);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal">eastl::optional&lt;float&gt;<sp/><ref refid="classShaderAssumesTable_1a8279eb5b559bfac980d005b1f9832326" kindref="member">ShaderAssumesTable::getAssumedVal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*varname,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>var_is_global)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="54"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>key{varname};</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>eastl::optional&lt;float&gt;<sp/>localRes{};</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>it<sp/>=<sp/>assumes.find(key);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(it<sp/>!=<sp/>assumes.end())</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>localRes<sp/>=<sp/>it-&gt;second.val;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>localRes<sp/>=<sp/>getAssumedValFromConfig(varname);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(localRes<sp/>||<sp/>!var_is_global)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>localRes;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>parent<sp/>?<sp/>parent-&gt;<ref refid="classShaderAssumesTable_1a8279eb5b559bfac980d005b1f9832326" kindref="member">getAssumedVal</ref>(varname,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>:<sp/>localRes;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal">eastl::optional&lt;float&gt;<sp/>ShaderAssumesTable::getAssumedValFromConfig(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*varname)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="70"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx<sp/>=<sp/>config.findParam(varname);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(idx<sp/>==<sp/>-1)</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(config.getParamType(idx))</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>DataBlock::TYPE_INT:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal">)config.getInt(idx);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>DataBlock::TYPE_REAL:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>config.getReal(idx);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Assume<sp/>variables:<sp/>type<sp/>in<sp/>\&quot;%s\&quot;<sp/>is<sp/>neither<sp/>\&quot;real\&quot;<sp/>nor<sp/>\&quot;int\&quot;&quot;</highlight><highlight class="normal">,<sp/>varname);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="shAssumes.cpp"/>
+  </compounddef>
+</doxygen>

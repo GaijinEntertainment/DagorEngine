@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structProjPt" kind="struct" language="C++" prot="public">
+    <compoundname>ProjPt</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structProjPt_1ab0c7e0066484059a7fa4a417461baac7" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 ProjPt::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <qualifiedname>ProjPt::p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="198" column="10" bodyfile="util2.cpp" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structProjPt_1ad7d298c504ac329e929f9c1b7e5297ec" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ProjPt::mi</definition>
+        <argsstring></argsstring>
+        <name>mi</name>
+        <qualifiedname>ProjPt::mi</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="199" column="7" bodyfile="util2.cpp" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structProjPt_1ada4247c8df042a50bf201437b56765aa" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ProjPt::fi</definition>
+        <argsstring></argsstring>
+        <name>fi</name>
+        <qualifiedname>ProjPt::fi</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util2.cpp" line="199" column="10" bodyfile="util2.cpp" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="util2.cpp" line="196" column="1" bodyfile="util2.cpp" bodystart="197" bodyend="200"/>
+    <listofallmembers>
+      <member refid="structProjPt_1ada4247c8df042a50bf201437b56765aa" prot="public" virt="non-virtual"><scope>ProjPt</scope><name>fi</name></member>
+      <member refid="structProjPt_1ad7d298c504ac329e929f9c1b7e5297ec" prot="public" virt="non-virtual"><scope>ProjPt</scope><name>mi</name></member>
+      <member refid="structProjPt_1ab0c7e0066484059a7fa4a417461baac7" prot="public" virt="non-virtual"><scope>ProjPt</scope><name>p</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

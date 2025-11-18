@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceeditorcore__extapi" kind="namespace" language="C++">
+    <compoundname>editorcore_extapi</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceeditorcore__extapi_1af859ab3d46d32469014c9bd8e73705c0" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorRender" kindref="compound">IDagorRender</ref> *</type>
+        <definition>IDagorRender* editorcore_extapi::dagRender</definition>
+        <argsstring></argsstring>
+        <name>dagRender</name>
+        <qualifiedname>editorcore_extapi::dagRender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="550" column="21" declfile="ec_IEditorCore.h" declline="550" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceeditorcore__extapi_1a16d74037a369f3b01d672a33e3b9e0e6" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorGeom" kindref="compound">IDagorGeom</ref> *</type>
+        <definition>IDagorGeom* editorcore_extapi::dagGeom</definition>
+        <argsstring></argsstring>
+        <name>dagGeom</name>
+        <qualifiedname>editorcore_extapi::dagGeom</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="551" column="19" declfile="ec_IEditorCore.h" declline="551" declcolumn="19"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceeditorcore__extapi_1a651e881c8933a745ef8919174b7e8829" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorConsole" kindref="compound">IDagorConsole</ref> *</type>
+        <definition>IDagorConsole* editorcore_extapi::dagConsole</definition>
+        <argsstring></argsstring>
+        <name>dagConsole</name>
+        <qualifiedname>editorcore_extapi::dagConsole</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="552" column="22" declfile="ec_IEditorCore.h" declline="552" declcolumn="22"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceeditorcore__extapi_1adc71e760560b8613ade794f3d7fbf20a" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorInput" kindref="compound">IDagorInput</ref> *</type>
+        <definition>IDagorInput* editorcore_extapi::dagInput</definition>
+        <argsstring></argsstring>
+        <name>dagInput</name>
+        <qualifiedname>editorcore_extapi::dagInput</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="553" column="20" declfile="ec_IEditorCore.h" declline="553" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceeditorcore__extapi_1af7630484ea733552911865d0ac779450" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorTools" kindref="compound">IDagorTools</ref> *</type>
+        <definition>IDagorTools* editorcore_extapi::dagTools</definition>
+        <argsstring></argsstring>
+        <name>dagTools</name>
+        <qualifiedname>editorcore_extapi::dagTools</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="554" column="20" declfile="ec_IEditorCore.h" declline="554" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceeditorcore__extapi_1aab94f59ac097a9fe0dc938f106dbb102" prot="public" static="no" mutable="no">
+        <type><ref refid="classIDagorScene" kindref="compound">IDagorScene</ref> *</type>
+        <definition>IDagorScene* editorcore_extapi::dagScene</definition>
+        <argsstring></argsstring>
+        <name>dagScene</name>
+        <qualifiedname>editorcore_extapi::dagScene</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="555" column="20" declfile="ec_IEditorCore.h" declline="555" declcolumn="20"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceeditorcore__extapi_1a5e64ed0149e00532992ff82bcdd09ba0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String editorcore_extapi::make_full_start_path</definition>
+        <argsstring>(const char *rel_path)</argsstring>
+        <name>make_full_start_path</name>
+        <qualifiedname>editorcore_extapi::make_full_start_path</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>rel_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="556" column="8" declfile="ec_IEditorCore.h" declline="556" declcolumn="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="548" column="1"/>
+  </compounddef>
+</doxygen>

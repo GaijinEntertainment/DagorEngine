@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1RayDispatchIndirectArguments" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::RayDispatchIndirectArguments</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchIndirectArguments_1a45c81e7c592d4263978d54b4f5669cc6" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1RayDispatchGroupTableSet" kindref="compound">RayDispatchGroupTableSet</ref></type>
+        <definition>RayDispatchGroupTableSet raytrace::RayDispatchIndirectArguments::dispatchTableSet</definition>
+        <argsstring></argsstring>
+        <name>dispatchTableSet</name>
+        <qualifiedname>raytrace::RayDispatchIndirectArguments::dispatchTableSet</qualifiedname>
+        <briefdescription>
+<para>Dispatch table set that should be used by the indirect command. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="966" column="28" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="966" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchIndirectArguments_1ab0a95a39561fbb9d0233bf4fe1ded5d2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::RayDispatchIndirectArguments::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>raytrace::RayDispatchIndirectArguments::width</qualifiedname>
+        <briefdescription>
+<para>Dispatch grid width. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="968" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="968" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchIndirectArguments_1a0e9690829efdf806b889ea653f67cd77" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::RayDispatchIndirectArguments::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>raytrace::RayDispatchIndirectArguments::height</qualifiedname>
+        <briefdescription>
+<para>Dispatch grid height. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="970" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="970" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchIndirectArguments_1a89b166e88e623c48ddde1f8a2cccb071" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::RayDispatchIndirectArguments::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>raytrace::RayDispatchIndirectArguments::depth</qualifiedname>
+        <briefdescription>
+<para>Dispatch grid depth. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="972" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="972" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Describes the memory layout of a indirect dispatch command entry. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>raytrace::RayDispatchGroup</label>
+        <link refid="structraytrace_1_1RayDispatchGroup"/>
+      </node>
+      <node id="4">
+        <label>raytrace::RayDispatchGroupTable</label>
+        <link refid="structraytrace_1_1RayDispatchGroupTable"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::RayDispatchGroupTableSet</label>
+        <link refid="structraytrace_1_1RayDispatchGroupTableSet"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>rayGen</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>callable</edgelabel>
+          <edgelabel>hit</edgelabel>
+          <edgelabel>miss</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::RayDispatchIndirectArguments</label>
+        <link refid="structraytrace_1_1RayDispatchIndirectArguments"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>dispatchTableSet</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="963" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="964" bodyend="973"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1RayDispatchIndirectArguments_1a89b166e88e623c48ddde1f8a2cccb071" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectArguments</scope><name>depth</name></member>
+      <member refid="structraytrace_1_1RayDispatchIndirectArguments_1a45c81e7c592d4263978d54b4f5669cc6" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectArguments</scope><name>dispatchTableSet</name></member>
+      <member refid="structraytrace_1_1RayDispatchIndirectArguments_1a0e9690829efdf806b889ea653f67cd77" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectArguments</scope><name>height</name></member>
+      <member refid="structraytrace_1_1RayDispatchIndirectArguments_1ab0a95a39561fbb9d0233bf4fe1ded5d2" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectArguments</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

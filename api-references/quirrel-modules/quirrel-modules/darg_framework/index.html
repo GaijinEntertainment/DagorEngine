@@ -1,0 +1,397 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daRG Framework</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="canvasAPI" href="canvasAPI.html" />
+    <link rel="prev" title="net" href="../quirrel_daECS/net.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Quirrel Modules Docs</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../quirrel_gamelibs/index.html">Quirrel Gamelibs Native Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../quirrel_daECS/index.html">Quirrel ECS</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">daRG Framework</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#core-principles">Core Principles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#separation-of-concerns">Separation of Concerns</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#immediate-vs-retained-mode">Immediate vs Retained Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#explicit-state">Explicit State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#core-concepts">Core Concepts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#interoperability-with-native-code">Interoperability with Native Code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#observables-watched">Observables (Watched)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#component-reference">Component Reference</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="canvasAPI.html">canvasAPI</a></li>
+<li class="toctree-l5"><a class="reference internal" href="daRg.html">daRg</a></li>
+<li class="toctree-l5"><a class="reference internal" href="daRg.behaviors.html">daRg.behaviors</a></li>
+<li class="toctree-l5"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../tools/dargbox/index.html">dargbox Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGameLibs/index.html">daNetGameLibs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGame/index.html">daNetGame</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../soundSystem/index.html">soundSystem</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Quirrel Modules Docs</a></li>
+      <li class="breadcrumb-item active">daRG Framework</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/quirrel-modules/quirrel-modules/darg_framework/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="darg-framework">
+<h1>daRG Framework<a class="headerlink" href="#darg-framework" title="Link to this heading"></a></h1>
+<p>Docs for daRG - Dagor Reactive GUI framework, based on Quirrel language and Functional Reactive Programming (FRP).</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>daRG (Dagor Reactive GUI) is a reactive GUI framework integrated into the Dagor
+Engine. It is significantly inspired by React JS and React Native from Facebook,
+as well as frameworks like Flutter.</p>
+<p>Documentation and examples are available in the viewer located at:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>dagor2/tools/dargbox/
+</pre></div>
+</div>
+<p>You can run the examples using:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>dargbox-64-dev.exe<span class="w"> </span>-config<span class="se">\:</span>script<span class="se">\:</span><span class="nv">t</span><span class="o">=</span>samples_prog/_basic/layout/basic_layout.ui.nut
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">s.bat</span></code> to launch the example browser. The examples themselves are located
+at:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>prog/tools/dargbox/gamebase
+</pre></div>
+</div>
+<p>The author and conceptual designer of daRG is Vasiliy Ryabtsev. Current
+maintainers: Alexey Borisov, Alexey Volynskov.</p>
+</section>
+<section id="core-principles">
+<h2>Core Principles<a class="headerlink" href="#core-principles" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Reactivity</strong>: Code executes only when changes occur.</p></li>
+<li><p><strong>Portability</strong>: UI logic and markup are written in the interpreted language
+Quirrel, ensuring compatibility across multiple platforms (consoles, mobile
+devices) without requiring code submission. This facilitates easy modding.</p></li>
+<li><p><strong>Responsiveness and Performance</strong>: Interfaces must quickly and efficiently
+respond to user interactions.</p></li>
+<li><p><strong>Native and Simple Animations</strong>: Animations should be straightforward to
+create and perform efficiently.</p></li>
+<li><p><strong>Explicit State Management</strong>: The UI explicitly reflects visible state
+changes, simplifying debugging and reducing state-related errors common in
+traditional approaches.</p></li>
+<li><p><strong>VR Support</strong>: Full support for 3D interfaces.</p></li>
+</ul>
+<p>In daRG, all UI elements are created using a single language (Quirrel), unlike
+traditional web stacks (HTML, CSS, JS) or daGUI (blk, css, quirrel).</p>
+</section>
+<section id="separation-of-concerns">
+<h2>Separation of Concerns<a class="headerlink" href="#separation-of-concerns" title="Link to this heading"></a></h2>
+<p>Traditional technologies (HTML, CSS, JS) do not effectively separate
+responsibilities. In daRG, separation is based on responsibilities rather than
+technologies. Each UI component is self-contained, reusable, and maintained
+independently. Components explicitly state their dependencies, ensuring
+consistency across different interface instances.</p>
+</section>
+<section id="immediate-vs-retained-mode">
+<h2>Immediate vs Retained Mode<a class="headerlink" href="#immediate-vs-retained-mode" title="Link to this heading"></a></h2>
+<p>Working with daRG can feel like using Immediate Mode GUI—code seemingly executes
+each frame. However, in practice, daRG only executes scripts when the relevant
+state changes, thus optimizing performance. You describe UI rendering logic, and
+daRG selectively updates components affected by state changes, providing
+significant performance optimizations.</p>
+</section>
+<section id="explicit-state">
+<h2>Explicit State<a class="headerlink" href="#explicit-state" title="Link to this heading"></a></h2>
+<p>All state in daRG is entirely explicit, eliminating hidden states (e.g.,
+checkbox values). The state is a clearly defined model, changing explicitly and
+triggering UI updates accordingly. This approach simplifies debugging and
+facilitates advanced debugging features like a state history (“time machine”),
+assuming state adheres to certain contracts. The <code class="docutils literal notranslate"><span class="pre">persist</span></code> function can save
+the state, allowing restoration upon reload.</p>
+</section>
+<section id="core-concepts">
+<h2>Core Concepts<a class="headerlink" href="#core-concepts" title="Link to this heading"></a></h2>
+<p><strong>Component</strong>
+A description of UI element in form of a table with properties or a function that generates such a table.
+This description maps a logical state into an interactive representation.</p>
+<p><strong>Element</strong>
+A current interactive piece of an UI scene that may be rendered, may define visual layout, and may process input and other events.</p>
+<p><strong>Behaviors</strong>
+A Behavior is a reusable unit of UI logic implemented in C++ and exposed to Quirrel scripts.
+It encapsulates event handling, state management, and interaction patterns for UI elements.
+A behavior instance is usually attached to a UI element in markup and can react to events such as pointer movement, clicks, keyboard input, or custom signals.
+Behaviors can modify element properties directly, call user-defined callback functions, or update reactive variables to trigger UI updates.
+They provide the equivalent of a “controller” in other UI frameworks and allow complex interactivity to be implemented once and reused across multiple views.
+Common behaviors include: Button, Slider, TextInput, TextArea, Pannable, MoveResize, DragAndDrop and others.</p>
+<p><strong>Render Objects</strong>
+Render objects are the low-level drawing primitives in daRG.
+A render object represents something that can be drawn on screen: an image, a piece of text, a shape, or anything else visual.
+They are implemented in C++ and are processed by the C++ rendering pipeline.
+Common render objects include: ROBJ_SOLID, ROBJ_IMAGE, ROBJ_TEXT, ROBJ_INSCRIPTION, ROBJ_FRAME, ROBJ_BOX, ROBJ_MOVIE and others.</p>
+<p><strong>Watch Fields (FRP Observables)</strong>
+Watch fields are reactive variables that automatically propagate changes to any dependent computations or bound UI properties.
+They implement a form of Functional Reactive Programming (FRP) in which UI state is expressed as a network of dependencies.
+When a watch field changes value, all computations that depend on it are invalidated and recomputed, any dependent UI components are recalculated, and scene elements are rebuild to reflect the changes.
+This eliminates the need for explicit update calls, as the data flow is declarative.
+Watch fields can be combined, transformed, or computed from other watch fields, allowing complex state to be derived without manual synchronization.</p>
+<p><strong>Events and Input Handling</strong>
+The UI layer processes events from multiple sources (mouse, touch, gamepad, keyboard, VR input devices) and routes them to the relevant behaviors of elements.
+Event propagation follows a tree structure matching the UI hierarchy. Behaviors can inform the subsequent behaviors about whether these events were consumed earlier.</p>
+<p><strong>Layout and Composition</strong>
+UI elements in daRG use a flexible layout model inspired by CSS flexbox and flow layouts.
+Elements can size themselves based on content, fill available space, align and flow relative to parent containers, or use fixed positioning.
+Layouts are recomputed automatically when relevant state changes occur.</p>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>Here is a sample daRG component (<code class="docutils literal notranslate"><span class="pre">introduction.nut</span></code>):</p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="k">return</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_SOLID</span>
+<span class="w">  </span><span class="nx">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Color</span><span class="p">(</span><span class="mf">30</span><span class="p">,</span><span class="mf">40</span><span class="p">,</span><span class="mf">50</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">flex</span><span class="p">()</span>
+<span class="w">  </span><span class="nx">gap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">sh</span><span class="p">(</span><span class="mf">2</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">flow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">FLOW_HORIZONTAL</span>
+<span class="w">  </span><span class="nx">halign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_CENTER</span>
+<span class="w">  </span><span class="nx">valign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_MIDDLE</span>
+<span class="w">  </span><span class="nx">children</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="nx">sh</span><span class="p">(</span><span class="mf">5</span><span class="p">),</span><span class="w"> </span><span class="nx">sh</span><span class="p">(</span><span class="mf">5</span><span class="p">)]</span>
+<span class="w">      </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_IMAGE</span>
+<span class="w">      </span><span class="nx">image</span><span class="o">=</span><span class="w"> </span><span class="nx">Picture</span><span class="p">(</span><span class="s2">&quot;ui/image.png&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_TEXT</span>
+<span class="w">      </span><span class="nx">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Hello World!&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="interoperability-with-native-code">
+<h2>Interoperability with Native Code<a class="headerlink" href="#interoperability-with-native-code" title="Link to this heading"></a></h2>
+<p>daRG offers three main methods to interface with native (game) code:</p>
+<ul class="simple">
+<li><p><strong>ECS</strong>: Quirrel bindings provide access to ECS world data.</p></li>
+<li><p><strong>Watch/Observables</strong>: Native observables or callback registration from native
+code.</p></li>
+<li><p><strong>Behavior.RtPropUpdate</strong>: A method for updating properties every frame if
+necessary (this won’t be fast). It is more performant than frequently updating
+observable values and is used primarily for animations or real-time UI
+updates.</p></li>
+</ul>
+</section>
+<section id="observables-watched">
+<h2>Observables (Watched)<a class="headerlink" href="#observables-watched" title="Link to this heading"></a></h2>
+<p>The Observable pattern (<code class="docutils literal notranslate"><span class="pre">Watched</span></code>) works as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.get()</span></code>: Retrieve the object’s value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.set(some_value)</span></code> / <code class="docutils literal notranslate"><span class="pre">watched.modify(callback,</span> <span class="pre">called</span> <span class="pre">with</span> <span class="pre">current</span> <span class="pre">value,</span> <span class="pre">and</span> <span class="pre">should</span> <span class="pre">return</span> <span class="pre">new</span> <span class="pre">value)</span></code>: Set a new value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.mutate(callback)</span></code>: Modify content within the object (e.g., arrays
+or tables).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.subscribe(callback)</span></code>: Subscribe to object changes, triggering
+callbacks post-change.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.unsubscribe(callback)</span></code>: Unsubscribe callback</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.trigger()</span></code>: Manually invoke all subscribers of an observable
+object.</p></li>
+</ul>
+<p>Example counter component (<code class="docutils literal notranslate"><span class="pre">counter.ui.nut</span></code>):</p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;daRg&quot;</span><span class="w"> </span><span class="kr">import</span><span class="w"> </span><span class="o">*</span>
+<span class="kr">from</span><span class="w"> </span><span class="s2">&quot;frp&quot;</span><span class="w"> </span><span class="kr">import</span><span class="w"> </span><span class="o">*</span>
+
+<span class="kd">let</span><span class="w"> </span><span class="nx">counter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Watched</span><span class="p">(</span><span class="mf">0</span><span class="p">)</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">increment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">@</span><span class="p">()</span><span class="w"> </span><span class="nx">counter</span><span class="p">.</span><span class="nx">modify</span><span class="p">(</span><span class="o">@</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="nx">v</span><span class="o">+</span><span class="mf">1</span><span class="p">)</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">decrement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">@</span><span class="p">()</span><span class="w"> </span><span class="nx">counter</span><span class="p">.</span><span class="nx">modify</span><span class="p">(</span><span class="o">@</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="nx">v</span><span class="o">-</span><span class="mf">1</span><span class="p">)</span>
+
+<span class="k">return</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_SOLID</span>
+<span class="w">  </span><span class="nx">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Color</span><span class="p">(</span><span class="mf">30</span><span class="p">,</span><span class="mf">40</span><span class="p">,</span><span class="mf">50</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">flex</span><span class="p">()</span>
+<span class="w">  </span><span class="nx">gap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">sh</span><span class="p">(</span><span class="mf">5</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">flow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">FLOW_VERTICAL</span>
+<span class="w">  </span><span class="nx">halign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_CENTER</span>
+<span class="w">  </span><span class="nx">valign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_CENTER</span>
+<span class="w">  </span><span class="nx">children</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nx">button</span><span class="p">(</span><span class="s2">&quot;Increment&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">increment</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;^I&quot;</span><span class="p">),</span>
+<span class="w">    </span><span class="o">@</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_TEXT</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">=</span><span class="nx">$</span><span class="s2">&quot;Counter value = {counter.get()}&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">watch</span><span class="o">=</span><span class="nx">counter</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nx">button</span><span class="p">(</span><span class="s2">&quot;Decrement&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">decrement</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;^D&quot;</span><span class="p">)</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This approach emphasizes clarity, explicit state, and high performance.</p>
+</section>
+<section id="component-reference">
+<h2>Component Reference<a class="headerlink" href="#component-reference" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="canvasAPI.html">canvasAPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daRg.html">daRg</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-lottieanimation-extends-picture">class LottieAnimation extends Picture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-guiscene">class GuiScene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-sceneconfig">class SceneConfig</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-elementref">class ElementRef</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-fonts">class Fonts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#enum-animprop">enum AnimProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-scrollhandler">class ScrollHandler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-joystickaxisobservable">class JoystickAxisObservable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-elemgroup">class ElemGroup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-behavior">class Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-picture">class Picture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-pictureimmediate-extends-picture">class PictureImmediate extends Picture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-formattedtext">class FormattedText</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-igenvideoplayer">class IGenVideoPlayer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-igensound">class IGenSound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-draganddropstate">class DragAndDropState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-eventdatarect">class EventDataRect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-mouseclickeventdata">class MouseClickEventData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-hotkeyeventdata">class HotkeyEventData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-hovereventdata">class HoverEventData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-transitall">class TransitAll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-movetoareatarget">class MoveToAreaTarget</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daRg.behaviors.html">daRg.behaviors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../quirrel_daECS/net.html" class="btn btn-neutral float-left" title="net" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="canvasAPI.html" class="btn btn-neutral float-right" title="canvasAPI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

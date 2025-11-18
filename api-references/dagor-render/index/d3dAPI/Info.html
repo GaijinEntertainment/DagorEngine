@@ -1,0 +1,833 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Info API</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="GPU Related Locks" href="Lock.html" />
+    <link rel="prev" title="Heaps" href="Heap.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Driver Info API</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv410APISupport"><code class="docutils literal notranslate"><span class="pre">APISupport</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10APISupport12FULL_SUPPORTE"><code class="docutils literal notranslate"><span class="pre">APISupport::FULL_SUPPORT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10APISupport11OUTDATED_OSE"><code class="docutils literal notranslate"><span class="pre">APISupport::OUTDATED_OS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10APISupport15OUTDATED_DRIVERE"><code class="docutils literal notranslate"><span class="pre">APISupport::OUTDATED_DRIVER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10APISupport18BLACKLISTED_DRIVERE"><code class="docutils literal notranslate"><span class="pre">APISupport::BLACKLISTED_DRIVER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10APISupport19INSUFFICIENT_DEVICEE"><code class="docutils literal notranslate"><span class="pre">APISupport::INSUFFICIENT_DEVICE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10APISupport15NO_DEVICE_FOUNDE"><code class="docutils literal notranslate"><span class="pre">APISupport::NO_DEVICE_FOUND</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420Driver3dInitCallback"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback20NeedStereoRenderFuncE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::NeedStereoRenderFunc</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback25StereoRenderDimensionFuncE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::StereoRenderDimensionFunc</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback26StereoRenderExtensionsFuncE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::StereoRenderExtensionsFunc</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback24StereoRenderVersionsFuncE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::StereoRenderVersionsFunc</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback23StereoRenderAdapterFuncE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::StereoRenderAdapterFunc</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback24verifyResolutionSettingsERiRiiib"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::verifyResolutionSettings()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback12validateDescER12Driver3dDesc"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::validateDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback11compareDescER12Driver3dDescR12Driver3dDesc"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::compareDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback19desiredStereoRenderEv"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::desiredStereoRender()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback14desiredAdapterEv"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::desiredAdapter()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback19desiredRendererSizeEv"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::desiredRendererSize()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback31desiredRendererDeviceExtensionsEv"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::desiredRendererDeviceExtensions()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback33desiredRendererInstanceExtensionsEv"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::desiredRendererInstanceExtensions()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK20Driver3dInitCallback27desiredRendererVersionRangeEv"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::desiredRendererVersionRange()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback10RenderSizeE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::RenderSize</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback10RenderSize5widthE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::RenderSize::width</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback10RenderSize6heightE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::RenderSize::height</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback12VersionRangeE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::VersionRange</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback12VersionRange10minVersionE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::VersionRange::minVersion</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback12VersionRange10maxVersionE"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback::VersionRange::maxVersion</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d16guess_gpu_vendorEP6StringP8uint32_tP13DagorDateTimeP8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::guess_gpu_vendor()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d19get_gpu_driver_dateE9GpuVendor"><code class="docutils literal notranslate"><span class="pre">d3d::get_gpu_driver_date()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d32get_dedicated_gpu_memory_size_kbEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_dedicated_gpu_memory_size_kb()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d37get_free_dedicated_gpu_memory_size_kbEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_free_dedicated_gpu_memory_size_kb()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d25get_current_gpu_memory_kbEP8uint32_tP8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::get_current_gpu_memory_kb()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12get_gpu_freqER6String"><code class="docutils literal notranslate"><span class="pre">d3d::get_gpu_freq()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d19get_gpu_temperatureEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_gpu_temperature()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d20get_video_vendor_strER6String"><code class="docutils literal notranslate"><span class="pre">d3d::get_video_vendor_str()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17get_display_scaleEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_display_scale()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d11disable_sliEv"><code class="docutils literal notranslate"><span class="pre">d3d::disable_sli()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d15get_driver_nameEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_driver_name()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d15get_driver_codeEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_driver_code()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d14is_stub_driverEv"><code class="docutils literal notranslate"><span class="pre">d3d::is_stub_driver()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d25get_device_driver_versionEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_device_driver_version()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d15get_device_nameEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_device_name()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d14get_last_errorEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_last_error()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d19get_last_error_codeEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_last_error_code()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10get_deviceEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_device()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d11get_contextEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_context()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d15get_driver_descEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_driver_desc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d22is_in_device_reset_nowEv"><code class="docutils literal notranslate"><span class="pre">d3d::is_in_device_reset_now()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d18is_window_occludedEv"><code class="docutils literal notranslate"><span class="pre">d3d::is_window_occluded()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d39should_use_compute_for_image_processingENSt16initializer_listIjEE"><code class="docutils literal notranslate"><span class="pre">d3d::should_use_compute_for_image_processing()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Driver Info API</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/Info.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="driver-info-api">
+<h1>Driver Info API<a class="headerlink" href="#driver-info-api" title="Link to this heading"></a></h1>
+<p>This file contains the API that allows the user to get different information
+about the driver, its current state and the hardware it is running on.</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv410APISupport">
+<span id="_CPPv310APISupport"></span><span id="_CPPv210APISupport"></span><span class="target" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">APISupport</span></span></span><a class="headerlink" href="#_CPPv410APISupport" title="Link to this definition"></a><br /></dt>
+<dd><p>Enum representing the level of API support for a current hardware. Currently it is only used to check DX12 support with a fallback on DX11 if the support is not full. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10APISupport12FULL_SUPPORTE">
+<span id="_CPPv3N10APISupport12FULL_SUPPORTE"></span><span id="_CPPv2N10APISupport12FULL_SUPPORTE"></span><span class="target" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a31e2893df9689fb3ec7b4aec04147dba"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FULL_SUPPORT</span></span></span><a class="headerlink" href="#_CPPv4N10APISupport12FULL_SUPPORTE" title="Link to this definition"></a><br /></dt>
+<dd><p>Full support for the API. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10APISupport11OUTDATED_OSE">
+<span id="_CPPv3N10APISupport11OUTDATED_OSE"></span><span id="_CPPv2N10APISupport11OUTDATED_OSE"></span><span class="target" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a9697ad96ac5a570178a560858c2b8a0d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OUTDATED_OS</span></span></span><a class="headerlink" href="#_CPPv4N10APISupport11OUTDATED_OSE" title="Link to this definition"></a><br /></dt>
+<dd><p>The Windows version is outdated. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10APISupport15OUTDATED_DRIVERE">
+<span id="_CPPv3N10APISupport15OUTDATED_DRIVERE"></span><span id="_CPPv2N10APISupport15OUTDATED_DRIVERE"></span><span class="target" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a99b9645e007f1600b6c8fcd6006d9930"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OUTDATED_DRIVER</span></span></span><a class="headerlink" href="#_CPPv4N10APISupport15OUTDATED_DRIVERE" title="Link to this definition"></a><br /></dt>
+<dd><p>The driver is outdated. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10APISupport18BLACKLISTED_DRIVERE">
+<span id="_CPPv3N10APISupport18BLACKLISTED_DRIVERE"></span><span id="_CPPv2N10APISupport18BLACKLISTED_DRIVERE"></span><span class="target" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00aab395f22254f5a6204aa9ace0b1cf2f6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BLACKLISTED_DRIVER</span></span></span><a class="headerlink" href="#_CPPv4N10APISupport18BLACKLISTED_DRIVERE" title="Link to this definition"></a><br /></dt>
+<dd><p>The driver is blacklisted (we know about bugs in the driver) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10APISupport19INSUFFICIENT_DEVICEE">
+<span id="_CPPv3N10APISupport19INSUFFICIENT_DEVICEE"></span><span id="_CPPv2N10APISupport19INSUFFICIENT_DEVICEE"></span><span class="target" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a612c6e175d1237be2fa33ce6854637e9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INSUFFICIENT_DEVICE</span></span></span><a class="headerlink" href="#_CPPv4N10APISupport19INSUFFICIENT_DEVICEE" title="Link to this definition"></a><br /></dt>
+<dd><p>The GPU doesn’t support all required features. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10APISupport15NO_DEVICE_FOUNDE">
+<span id="_CPPv3N10APISupport15NO_DEVICE_FOUNDE"></span><span id="_CPPv2N10APISupport15NO_DEVICE_FOUNDE"></span><span class="target" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00abc2e878c5c49cfffadeec85f4a0f8124"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NO_DEVICE_FOUND</span></span></span><a class="headerlink" href="#_CPPv4N10APISupport15NO_DEVICE_FOUNDE" title="Link to this definition"></a><br /></dt>
+<dd><p>No compatible device found. </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv420Driver3dInitCallback">
+<span id="_CPPv320Driver3dInitCallback"></span><span id="_CPPv220Driver3dInitCallback"></span><span id="Driver3dInitCallback"></span><span class="target" id="classDriver3dInitCallback"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Driver3dInitCallback</span></span></span><a class="headerlink" href="#_CPPv420Driver3dInitCallback" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_info.h&gt;</em></div>
+<p>Callback class for initializing the 3D driver. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback20NeedStereoRenderFuncE">
+<span id="_CPPv3N20Driver3dInitCallback20NeedStereoRenderFuncE"></span><span id="_CPPv2N20Driver3dInitCallback20NeedStereoRenderFuncE"></span><span class="target" id="classDriver3dInitCallback_1a50e534eb871e9d46ccd905245f50f623"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NeedStereoRenderFunc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback20NeedStereoRenderFuncE" title="Link to this definition"></a><br /></dt>
+<dd><p>Function pointer type for checking if stereo rendering is needed. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback25StereoRenderDimensionFuncE">
+<span id="_CPPv3N20Driver3dInitCallback25StereoRenderDimensionFuncE"></span><span id="_CPPv2N20Driver3dInitCallback25StereoRenderDimensionFuncE"></span><span class="target" id="classDriver3dInitCallback_1a5b4417a63e5158253cc04a076a2d8835"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StereoRenderDimensionFunc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback25StereoRenderDimensionFuncE" title="Link to this definition"></a><br /></dt>
+<dd><p>Function pointer type for getting the dimension of stereo rendering. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback26StereoRenderExtensionsFuncE">
+<span id="_CPPv3N20Driver3dInitCallback26StereoRenderExtensionsFuncE"></span><span id="_CPPv2N20Driver3dInitCallback26StereoRenderExtensionsFuncE"></span><span class="target" id="classDriver3dInitCallback_1a16d1f90ca9e461c5272c3df6e073739e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StereoRenderExtensionsFunc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback26StereoRenderExtensionsFuncE" title="Link to this definition"></a><br /></dt>
+<dd><p>Function pointer type for getting the extensions for stereo rendering. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback24StereoRenderVersionsFuncE">
+<span id="_CPPv3N20Driver3dInitCallback24StereoRenderVersionsFuncE"></span><span id="_CPPv2N20Driver3dInitCallback24StereoRenderVersionsFuncE"></span><span class="target" id="classDriver3dInitCallback_1a808702219d8677ec25a3450f90681226"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StereoRenderVersionsFunc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback12VersionRangeE" title="Driver3dInitCallback::VersionRange"><span class="n"><span class="pre">VersionRange</span></span></a><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback24StereoRenderVersionsFuncE" title="Link to this definition"></a><br /></dt>
+<dd><p>Function pointer type for getting the supported versions for stereo rendering </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback23StereoRenderAdapterFuncE">
+<span id="_CPPv3N20Driver3dInitCallback23StereoRenderAdapterFuncE"></span><span id="_CPPv2N20Driver3dInitCallback23StereoRenderAdapterFuncE"></span><span class="target" id="classDriver3dInitCallback_1aabaeb84dc61ae04d98df5bb00d018f4e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StereoRenderAdapterFunc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback23StereoRenderAdapterFuncE" title="Link to this definition"></a><br /></dt>
+<dd><p>Function pointer type for getting the adapter for stereo rendering. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback24verifyResolutionSettingsERiRiiib">
+<span id="_CPPv3NK20Driver3dInitCallback24verifyResolutionSettingsERiRiiib"></span><span id="_CPPv2NK20Driver3dInitCallback24verifyResolutionSettingsERiRiiib"></span><span id="Driver3dInitCallback::verifyResolutionSettings__iR.iR.i.i.bC"></span><span class="target" id="classDriver3dInitCallback_1a2e5d34c5e7366950f7a8caa1966193db"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">verifyResolutionSettings</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ref_scr_wdt</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ref_scr_hgt</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">base_scr_wdt</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">base_scr_hgt</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">window_mode</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback24verifyResolutionSettingsERiRiiib" title="Link to this definition"></a><br /></dt>
+<dd><p>Verifies the resolution settings. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref_scr_wdt</strong> – The reference screen width </p></li>
+<li><p><strong>ref_scr_hgt</strong> – The reference screen height </p></li>
+<li><p><strong>base_scr_wdt</strong> – The base screen width </p></li>
+<li><p><strong>base_scr_hgt</strong> – The base screen height </p></li>
+<li><p><strong>window_mode</strong> – Flag indicating if the window mode is enabled </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback12validateDescER12Driver3dDesc">
+<span id="_CPPv3NK20Driver3dInitCallback12validateDescER12Driver3dDesc"></span><span id="_CPPv2NK20Driver3dInitCallback12validateDescER12Driver3dDesc"></span><span id="Driver3dInitCallback::validateDesc__Driver3dDescRC"></span><span class="target" id="classDriver3dInitCallback_1a1b92d98c1d83a6256a52b0111626f9cd"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">validateDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="constants.html#_CPPv412Driver3dDesc" title="Driver3dDesc"><span class="n"><span class="pre">Driver3dDesc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">desc</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback12validateDescER12Driver3dDesc" title="Link to this definition"></a><br /></dt>
+<dd><p>Validates the driver description. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>This fucntion is not used anywhere. Remove it? </p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>desc</strong> – The driver description to validate </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>something </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback11compareDescER12Driver3dDescR12Driver3dDesc">
+<span id="_CPPv3NK20Driver3dInitCallback11compareDescER12Driver3dDescR12Driver3dDesc"></span><span id="_CPPv2NK20Driver3dInitCallback11compareDescER12Driver3dDescR12Driver3dDesc"></span><span id="Driver3dInitCallback::compareDesc__Driver3dDescR.Driver3dDescRC"></span><span class="target" id="classDriver3dInitCallback_1a91d3767e5a09998a39df239c2a1c10a7"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">compareDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="constants.html#_CPPv412Driver3dDesc" title="Driver3dDesc"><span class="n"><span class="pre">Driver3dDesc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">A</span></span>, <a class="reference internal" href="constants.html#_CPPv412Driver3dDesc" title="Driver3dDesc"><span class="n"><span class="pre">Driver3dDesc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">B</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback11compareDescER12Driver3dDescR12Driver3dDesc" title="Link to this definition"></a><br /></dt>
+<dd><p>Compares two driver descriptions. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>This fucntion is not used anywhere. Remove it? </p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> – The first driver description </p></li>
+<li><p><strong>B</strong> – The second driver description </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>something </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback19desiredStereoRenderEv">
+<span id="_CPPv3NK20Driver3dInitCallback19desiredStereoRenderEv"></span><span id="_CPPv2NK20Driver3dInitCallback19desiredStereoRenderEv"></span><span id="Driver3dInitCallback::desiredStereoRenderC"></span><span class="target" id="classDriver3dInitCallback_1a8606db2ff329b00fc9b9ac9e222c04ad"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">desiredStereoRender</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback19desiredStereoRenderEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if stereo rendering is desired. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if stereo rendering is desired, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback14desiredAdapterEv">
+<span id="_CPPv3NK20Driver3dInitCallback14desiredAdapterEv"></span><span id="_CPPv2NK20Driver3dInitCallback14desiredAdapterEv"></span><span id="Driver3dInitCallback::desiredAdapterC"></span><span class="target" id="classDriver3dInitCallback_1aca402b6c7c233a0aa0829972751f820d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">desiredAdapter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback14desiredAdapterEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the desired adapter. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The desired adapter ID </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback19desiredRendererSizeEv">
+<span id="_CPPv3NK20Driver3dInitCallback19desiredRendererSizeEv"></span><span id="_CPPv2NK20Driver3dInitCallback19desiredRendererSizeEv"></span><span id="Driver3dInitCallback::desiredRendererSizeC"></span><span class="target" id="classDriver3dInitCallback_1a52a81bfd69ccafa9d2142975f6a66cb7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback10RenderSizeE" title="Driver3dInitCallback::RenderSize"><span class="n"><span class="pre">RenderSize</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">desiredRendererSize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback19desiredRendererSizeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the desired size of the renderer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The desired size of the renderer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback31desiredRendererDeviceExtensionsEv">
+<span id="_CPPv3NK20Driver3dInitCallback31desiredRendererDeviceExtensionsEv"></span><span id="_CPPv2NK20Driver3dInitCallback31desiredRendererDeviceExtensionsEv"></span><span id="Driver3dInitCallback::desiredRendererDeviceExtensionsC"></span><span class="target" id="classDriver3dInitCallback_1a1c363db6ad1c9f32d1e34ae76093f0d8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">desiredRendererDeviceExtensions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback31desiredRendererDeviceExtensionsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the desired device extensions for the renderer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The desired device extensions for the renderer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback33desiredRendererInstanceExtensionsEv">
+<span id="_CPPv3NK20Driver3dInitCallback33desiredRendererInstanceExtensionsEv"></span><span id="_CPPv2NK20Driver3dInitCallback33desiredRendererInstanceExtensionsEv"></span><span id="Driver3dInitCallback::desiredRendererInstanceExtensionsC"></span><span class="target" id="classDriver3dInitCallback_1aa5a16ccdee2d51eb82e15df65b99208d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">desiredRendererInstanceExtensions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback33desiredRendererInstanceExtensionsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the desired instance extensions for the renderer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The desired instance extensions for the renderer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20Driver3dInitCallback27desiredRendererVersionRangeEv">
+<span id="_CPPv3NK20Driver3dInitCallback27desiredRendererVersionRangeEv"></span><span id="_CPPv2NK20Driver3dInitCallback27desiredRendererVersionRangeEv"></span><span id="Driver3dInitCallback::desiredRendererVersionRangeC"></span><span class="target" id="classDriver3dInitCallback_1a13a56405168898a0170c4fcfc40e7c1d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N20Driver3dInitCallback12VersionRangeE" title="Driver3dInitCallback::VersionRange"><span class="n"><span class="pre">VersionRange</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">desiredRendererVersionRange</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20Driver3dInitCallback27desiredRendererVersionRangeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the desired version range for the renderer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The desired version range for the renderer </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback10RenderSizeE">
+<span id="_CPPv3N20Driver3dInitCallback10RenderSizeE"></span><span id="_CPPv2N20Driver3dInitCallback10RenderSizeE"></span><span id="Driver3dInitCallback::RenderSize"></span><span class="target" id="structDriver3dInitCallback_1_1RenderSize"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderSize</span></span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback10RenderSizeE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_info.h&gt;</em></div>
+<p>Struct representing the size of the render area. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback10RenderSize5widthE">
+<span id="_CPPv3N20Driver3dInitCallback10RenderSize5widthE"></span><span id="_CPPv2N20Driver3dInitCallback10RenderSize5widthE"></span><span id="Driver3dInitCallback::RenderSize::width__i"></span><span class="target" id="structDriver3dInitCallback_1_1RenderSize_1a56e85ce940d574ce8a6eb781589270a2"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback10RenderSize5widthE" title="Link to this definition"></a><br /></dt>
+<dd><p>The width of the render area. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback10RenderSize6heightE">
+<span id="_CPPv3N20Driver3dInitCallback10RenderSize6heightE"></span><span id="_CPPv2N20Driver3dInitCallback10RenderSize6heightE"></span><span id="Driver3dInitCallback::RenderSize::height__i"></span><span class="target" id="structDriver3dInitCallback_1_1RenderSize_1a2a826ae26910f509edc9cecc4b923ed0"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback10RenderSize6heightE" title="Link to this definition"></a><br /></dt>
+<dd><p>The height of the render area. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback12VersionRangeE">
+<span id="_CPPv3N20Driver3dInitCallback12VersionRangeE"></span><span id="_CPPv2N20Driver3dInitCallback12VersionRangeE"></span><span id="Driver3dInitCallback::VersionRange"></span><span class="target" id="structDriver3dInitCallback_1_1VersionRange"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VersionRange</span></span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback12VersionRangeE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_info.h&gt;</em></div>
+<p>Struct representing a range of driver versions. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback12VersionRange10minVersionE">
+<span id="_CPPv3N20Driver3dInitCallback12VersionRange10minVersionE"></span><span id="_CPPv2N20Driver3dInitCallback12VersionRange10minVersionE"></span><span id="Driver3dInitCallback::VersionRange::minVersion__uint64_t"></span><span class="target" id="structDriver3dInitCallback_1_1VersionRange_1a6c9b11dfec09f18c814704ccbb3f2e72"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">minVersion</span></span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback12VersionRange10minVersionE" title="Link to this definition"></a><br /></dt>
+<dd><p>The minimum driver version. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20Driver3dInitCallback12VersionRange10maxVersionE">
+<span id="_CPPv3N20Driver3dInitCallback12VersionRange10maxVersionE"></span><span id="_CPPv2N20Driver3dInitCallback12VersionRange10maxVersionE"></span><span id="Driver3dInitCallback::VersionRange::maxVersion__uint64_t"></span><span class="target" id="structDriver3dInitCallback_1_1VersionRange_1a4445ead727482a8d37cbba5b4c35686e"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">maxVersion</span></span></span><a class="headerlink" href="#_CPPv4N20Driver3dInitCallback12VersionRange10maxVersionE" title="Link to this definition"></a><br /></dt>
+<dd><p>The maximum driver version. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d16guess_gpu_vendorEP6StringP8uint32_tP13DagorDateTimeP8uint32_t">
+<span id="_CPPv3N3d3d16guess_gpu_vendorEP6StringP8uint32_tP13DagorDateTimeP8uint32_t"></span><span id="_CPPv2N3d3d16guess_gpu_vendorEP6StringP8uint32_tP13DagorDateTimeP8uint32_t"></span><span id="d3d::guess_gpu_vendor__StringP.uint32_tP.DagorDateTimeP.uint32_tP"></span><span class="target" id="namespaced3d_1a977eb698e038dbce493bfa50f8e9672d"></span><a class="reference internal" href="constants.html#_CPPv49GpuVendor" title="GpuVendor"><span class="n"><span class="pre">GpuVendor</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">guess_gpu_vendor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out_gpu_desc</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out_drv_ver</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span>, <span class="n"><span class="pre">DagorDateTime</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out_drv_date</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">device_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d16guess_gpu_vendorEP6StringP8uint32_tP13DagorDateTimeP8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Guesses and returns the GPU vendor ID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>out_gpu_desc</strong> – Pointer to store the GPU description </p></li>
+<li><p><strong>out_drv_ver</strong> – Pointer to store the driver version </p></li>
+<li><p><strong>out_drv_date</strong> – Pointer to store the driver date </p></li>
+<li><p><strong>device_id</strong> – Pointer to store the device ID </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The GPU vendor ID enum </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d19get_gpu_driver_dateE9GpuVendor">
+<span id="_CPPv3N3d3d19get_gpu_driver_dateE9GpuVendor"></span><span id="_CPPv2N3d3d19get_gpu_driver_dateE9GpuVendor"></span><span id="d3d::get_gpu_driver_date__GpuVendor"></span><span class="target" id="namespaced3d_1aeeb66c0721220f7b0c5d411838e09dbe"></span><span class="n"><span class="pre">DagorDateTime</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gpu_driver_date</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="constants.html#_CPPv49GpuVendor" title="GpuVendor"><span class="n"><span class="pre">GpuVendor</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vendor</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d19get_gpu_driver_dateE9GpuVendor" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the driver date for the GPU vendor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vendor</strong> – The GPU vendor ID </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The driver date for the GPU vendor </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d32get_dedicated_gpu_memory_size_kbEv">
+<span id="_CPPv3N3d3d32get_dedicated_gpu_memory_size_kbEv"></span><span id="_CPPv2N3d3d32get_dedicated_gpu_memory_size_kbEv"></span><span id="d3d::get_dedicated_gpu_memory_size_kb"></span><span class="target" id="namespaced3d_1ae63838606341034873324244d9d71e39"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_dedicated_gpu_memory_size_kb</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d32get_dedicated_gpu_memory_size_kbEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Determines and returns the size of the dedicated GPU memory in KB. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The size of the dedicated GPU memory in KB </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d37get_free_dedicated_gpu_memory_size_kbEv">
+<span id="_CPPv3N3d3d37get_free_dedicated_gpu_memory_size_kbEv"></span><span id="_CPPv2N3d3d37get_free_dedicated_gpu_memory_size_kbEv"></span><span id="d3d::get_free_dedicated_gpu_memory_size_kb"></span><span class="target" id="namespaced3d_1a04c24178edc3e0c1c08755dc09b77de9"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_free_dedicated_gpu_memory_size_kb</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d37get_free_dedicated_gpu_memory_size_kbEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Determines and returns the size of the free dedicated GPU memory in KB. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The size of the free dedicated GPU memory in KB </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d25get_current_gpu_memory_kbEP8uint32_tP8uint32_t">
+<span id="_CPPv3N3d3d25get_current_gpu_memory_kbEP8uint32_tP8uint32_t"></span><span id="_CPPv2N3d3d25get_current_gpu_memory_kbEP8uint32_tP8uint32_t"></span><span id="d3d::get_current_gpu_memory_kb__uint32_tP.uint32_tP"></span><span class="target" id="namespaced3d_1ac6a266cd5cc54fc658a1ed7d1013f2d6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_current_gpu_memory_kb</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dedicated_total</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dedicated_free</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d25get_current_gpu_memory_kbEP8uint32_tP8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the current GPU memory during the game (supports only Nvidia GPUs). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dedicated_total</strong> – Pointer to store the total dedicated GPU memory </p></li>
+<li><p><strong>dedicated_free</strong> – Pointer to store the free dedicated GPU memory </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12get_gpu_freqER6String">
+<span id="_CPPv3N3d3d12get_gpu_freqER6String"></span><span id="_CPPv2N3d3d12get_gpu_freqER6String"></span><span id="d3d::get_gpu_freq__StringR"></span><span class="target" id="namespaced3d_1a6b5adf1b8beef212655c6871a43889a3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gpu_freq</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_freq</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12get_gpu_freqER6String" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the GPU frequency. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function works only for Nvidia GPUs </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out_freq</strong> – String to store the GPU frequency </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the GPU frequency was successfully retrieved, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d19get_gpu_temperatureEv">
+<span id="_CPPv3N3d3d19get_gpu_temperatureEv"></span><span id="_CPPv2N3d3d19get_gpu_temperatureEv"></span><span id="d3d::get_gpu_temperature"></span><span class="target" id="namespaced3d_1af8aba3fbbe0f22e6edd1b7c623e8bd52"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gpu_temperature</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d19get_gpu_temperatureEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the GPU temperature. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function works only for Nvidia GPUs </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The GPU temperature </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d20get_video_vendor_strER6String">
+<span id="_CPPv3N3d3d20get_video_vendor_strER6String"></span><span id="_CPPv2N3d3d20get_video_vendor_strER6String"></span><span id="d3d::get_video_vendor_str__StringR"></span><span class="target" id="namespaced3d_1a529097a5c69e0c91d60782e134b8abe9"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_video_vendor_str</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_str</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d20get_video_vendor_strER6String" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the video vendor string. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out_str</strong> – String to store the video vendor string </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17get_display_scaleEv">
+<span id="_CPPv3N3d3d17get_display_scaleEv"></span><span id="_CPPv2N3d3d17get_display_scaleEv"></span><span id="d3d::get_display_scale"></span><span class="target" id="namespaced3d_1a2f75542849c38587ca473e6eb7846ad7"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_display_scale</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17get_display_scaleEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the display scale. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display scale </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11disable_sliEv">
+<span id="_CPPv3N3d3d11disable_sliEv"></span><span id="_CPPv2N3d3d11disable_sliEv"></span><span id="d3d::disable_sli"></span><span class="target" id="namespaced3d_1a46605b89457725fff67d81c99b65d806"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable_sli</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d11disable_sliEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Disables SLI settings for the profile. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>Remove. We don’t support SLI anymore </p>
+</dd></dl>
+
+</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d15get_driver_nameEv">
+<span id="_CPPv3N3d3d15get_driver_nameEv"></span><span id="_CPPv2N3d3d15get_driver_nameEv"></span><span id="d3d::get_driver_name"></span><span class="target" id="namespaced3d_1aab86e692e33ff6230f6ec0f3b19c5948"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_driver_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d15get_driver_nameEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the driver name. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The driver name </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d15get_driver_codeEv">
+<span id="_CPPv3N3d3d15get_driver_codeEv"></span><span id="_CPPv2N3d3d15get_driver_codeEv"></span><span id="d3d::get_driver_code"></span><span class="target" id="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44"></span><a class="reference internal" href="DriverCodeMatcherTemplates.html#_CPPv410DriverCode" title="DriverCode"><span class="n"><span class="pre">DriverCode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_driver_code</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d15get_driver_codeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the driver code. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The driver code </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d14is_stub_driverEv">
+<span id="_CPPv3N3d3d14is_stub_driverEv"></span><span id="_CPPv2N3d3d14is_stub_driverEv"></span><span id="d3d::is_stub_driver"></span><span class="target" id="namespaced3d_1ad8d6d2a2d84da0378951a7c7cb8bc230"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_stub_driver</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d14is_stub_driverEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if the d3d-stub driver is used. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the d3d-stub driver is used, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d25get_device_driver_versionEv">
+<span id="_CPPv3N3d3d25get_device_driver_versionEv"></span><span id="_CPPv2N3d3d25get_device_driver_versionEv"></span><span id="d3d::get_device_driver_version"></span><span class="target" id="namespaced3d_1af3c651ec5a44f212cb11839f858b7078"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_device_driver_version</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d25get_device_driver_versionEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the device driver version. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Work only for Vulkan. On other platforms returns “1.0” </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The device driver version </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d15get_device_nameEv">
+<span id="_CPPv3N3d3d15get_device_nameEv"></span><span id="_CPPv2N3d3d15get_device_nameEv"></span><span id="d3d::get_device_name"></span><span class="target" id="namespaced3d_1a0e90a369055af49b9fc0c1e59a1e3d56"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_device_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d15get_device_nameEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the device name. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The device name </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d14get_last_errorEv">
+<span id="_CPPv3N3d3d14get_last_errorEv"></span><span id="_CPPv2N3d3d14get_last_errorEv"></span><span id="d3d::get_last_error"></span><span class="target" id="namespaced3d_1a3a19ab84bf228b6159d2cb80f38e2257"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_last_error</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d14get_last_errorEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the last error message. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The last error message </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d19get_last_error_codeEv">
+<span id="_CPPv3N3d3d19get_last_error_codeEv"></span><span id="_CPPv2N3d3d19get_last_error_codeEv"></span><span id="d3d::get_last_error_code"></span><span class="target" id="namespaced3d_1a4e626e71a4181517c8a0c2376456a6b2"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_last_error_code</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d19get_last_error_codeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the last error code. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The last error code </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10get_deviceEv">
+<span id="_CPPv3N3d3d10get_deviceEv"></span><span id="_CPPv2N3d3d10get_deviceEv"></span><span id="d3d::get_device"></span><span class="target" id="namespaced3d_1aa8a97ee7684c0f6ddab1ca3fc441ebb4"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_device</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10get_deviceEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the raw pointer to the device interface (implementation and platform specific). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The raw pointer to the device interface </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11get_contextEv">
+<span id="_CPPv3N3d3d11get_contextEv"></span><span id="_CPPv2N3d3d11get_contextEv"></span><span id="d3d::get_context"></span><span class="target" id="namespaced3d_1a3568fb69665cbc114194ba9c83854c85"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_context</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d11get_contextEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the raw pointer to the device context (implementation and platform specific). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The raw pointer to the device context </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d15get_driver_descEv">
+<span id="_CPPv3N3d3d15get_driver_descEv"></span><span id="_CPPv2N3d3d15get_driver_descEv"></span><span id="d3d::get_driver_desc"></span><span class="target" id="namespaced3d_1a767cfb3d1ee6f65970fd4391b2a2df36"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv412Driver3dDesc" title="Driver3dDesc"><span class="n"><span class="pre">Driver3dDesc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_driver_desc</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d15get_driver_descEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the driver description. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The driver description </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d22is_in_device_reset_nowEv">
+<span id="_CPPv3N3d3d22is_in_device_reset_nowEv"></span><span id="_CPPv2N3d3d22is_in_device_reset_nowEv"></span><span id="d3d::is_in_device_reset_now"></span><span class="target" id="namespaced3d_1a08f6ae41faad34082ea4333463861403"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_in_device_reset_now</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d22is_in_device_reset_nowEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if the device is in device reset or being reset. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the device is in device reset or being reset, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d18is_window_occludedEv">
+<span id="_CPPv3N3d3d18is_window_occludedEv"></span><span id="_CPPv2N3d3d18is_window_occludedEv"></span><span id="d3d::is_window_occluded"></span><span class="target" id="namespaced3d_1a76601ecfcb78e566326c4e233a9828ba"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_window_occluded</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d18is_window_occludedEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if the game rendering window is completely occluded. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the game rendering window is completely occluded, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d39should_use_compute_for_image_processingENSt16initializer_listIjEE">
+<span id="_CPPv3N3d3d39should_use_compute_for_image_processingENSt16initializer_listIjEE"></span><span id="_CPPv2N3d3d39should_use_compute_for_image_processingENSt16initializer_listIjEE"></span><span id="d3d::should_use_compute_for_image_processing__std::initializer_list:unsigned:"></span><span class="target" id="namespaced3d_1ac648d85b061093c02270e382100668ff"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">should_use_compute_for_image_processing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">formats</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d39should_use_compute_for_image_processingENSt16initializer_listIjEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if compute commands should be preferred for image processing. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Implemented only for DX11 </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>formats</strong> – The list of image formats </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if compute commands should be preferred, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Heap.html" class="btn btn-neutral float-left" title="Heaps" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Lock.html" class="btn btn-neutral float-right" title="GPU Related Locks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

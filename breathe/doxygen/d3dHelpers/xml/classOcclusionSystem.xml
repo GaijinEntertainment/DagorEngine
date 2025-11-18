@@ -1,0 +1,758 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classOcclusionSystem" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>OcclusionSystem</compoundname>
+    <includes refid="dag__occlusionSystem_8h" local="no">dag_occlusionSystem.h</includes>
+      <sectiondef kind="protected-type">
+      <memberdef kind="enum" id="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81a" prot="protected" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>OcclusionSystem</qualifiedname>
+        <enumvalue id="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aa7228212f3398bfb807a98b8c7630ff83" prot="protected">
+          <name>WIDTH</name>
+          <initializer>= OCCLUSION_W</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aaa5ec4c809aebc87936d01af5578341b9" prot="protected">
+          <name>HEIGHT</name>
+          <initializer>= OCCLUSION_H</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="26" column="3" bodyfile="dag_occlusionSystem.h" bodystart="27" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebc" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>OcclusionSystem</qualifiedname>
+        <enumvalue id="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcad975ad15693ba25374f680e3907dc637" prot="public">
+          <name>CULL_FRUSTUM</name>
+          <initializer>= OcclusionTest&lt;WIDTH, HEIGHT&gt;::CULL_FRUSTUM</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcaea6311ae6d50d900b9bca430fd6a7f43" prot="public">
+          <name>VISIBLE</name>
+          <initializer>= OcclusionTest&lt;WIDTH, HEIGHT&gt;::VISIBLE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcae6d0cba0b9a8188b671f15be435817f6" prot="public">
+          <name>CULL_OCCLUSION</name>
+          <initializer>= OcclusionTest&lt;WIDTH, HEIGHT&gt;::CULL_OCCLUSION</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="81" column="3" bodyfile="dag_occlusionSystem.h" bodystart="82" bodyend="86"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classOcclusionSystem_1ac33e7b49477d39baa83147adcf04357e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int OcclusionSystem::DEFAULT_MAX_TEST_MIP</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_MAX_TEST_MIP</name>
+        <qualifiedname>OcclusionSystem::DEFAULT_MAX_TEST_MIP</qualifiedname>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="55" column="24" bodyfile="dag_occlusionSystem.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classOcclusionSystem_1aa7d15739cd2818d8791c7dcc9e7ff317" prot="protected" static="no" mutable="no">
+        <type>OcclusionTest&lt; <ref refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aa7228212f3398bfb807a98b8c7630ff83" kindref="member">WIDTH</ref>, <ref refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aaa5ec4c809aebc87936d01af5578341b9" kindref="member">HEIGHT</ref> &gt;</type>
+        <definition>OcclusionTest&lt;WIDTH, HEIGHT&gt; OcclusionSystem::occlusionTest</definition>
+        <argsstring></argsstring>
+        <name>occlusionTest</name>
+        <qualifiedname>OcclusionSystem::occlusionTest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="89" column="17" bodyfile="dag_occlusionSystem.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classOcclusionSystem_1a1e0f87d13e91ee63e8a4c4fdf68653cc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual OcclusionSystem::~OcclusionSystem</definition>
+        <argsstring>()</argsstring>
+        <name>~OcclusionSystem</name>
+        <qualifiedname>OcclusionSystem::~OcclusionSystem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="33" column="11" bodyfile="dag_occlusionSystem.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1aac2faeff1c73cfad51f525cf44cfc306" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::init</definition>
+        <argsstring>(const char *hzb_tex_name=&quot;hzb&quot;)=0</argsstring>
+        <name>init</name>
+        <qualifiedname>OcclusionSystem::init</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>hzb_tex_name</declname>
+          <defval>&quot;hzb&quot;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="35" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a6e8b1d87dfd3f4ecf32e42bf5ce76bd4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::close</definition>
+        <argsstring>()=0</argsstring>
+        <name>close</name>
+        <qualifiedname>OcclusionSystem::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="36" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a2a4927555ed8cef218c0fe2f6ec9f2ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::reset</definition>
+        <argsstring>()=0</argsstring>
+        <name>reset</name>
+        <qualifiedname>OcclusionSystem::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="37" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a5a2cc108429a92da99439840a3a8fa76" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool OcclusionSystem::hasGPUFrame</definition>
+        <argsstring>() const =0</argsstring>
+        <name>hasGPUFrame</name>
+        <qualifiedname>OcclusionSystem::hasGPUFrame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="38" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1af3a3a34cfc293833ef2434abcde4674a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::readGPUframe</definition>
+        <argsstring>()=0</argsstring>
+        <name>readGPUframe</name>
+        <qualifiedname>OcclusionSystem::readGPUframe</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="39" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a9c0dff29ed71c6156f03d2458e7b7217" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::clear</definition>
+        <argsstring>()=0</argsstring>
+        <name>clear</name>
+        <qualifiedname>OcclusionSystem::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="40" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a8c11c0bb0bb4160e7f410bb7939699b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::prepareGPUDepthFrame</definition>
+        <argsstring>(vec3f pos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float cockpit_distance, CockpitReprojectionMode cockpit_mode, const mat44f &amp;cockpit_anim)=0</argsstring>
+        <name>prepareGPUDepthFrame</name>
+        <qualifiedname>OcclusionSystem::prepareGPUDepthFrame</qualifiedname>
+        <param>
+          <type>vec3f</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>view</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>proj</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>viewProj</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>cockpit_distance</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104" kindref="member">CockpitReprojectionMode</ref></type>
+          <declname>cockpit_mode</declname>
+        </param>
+        <param>
+          <type>const mat44f &amp;</type>
+          <declname>cockpit_anim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="44" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a240d22fb6425efc973db4eac89d6c6fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::buildMips</definition>
+        <argsstring>()=0</argsstring>
+        <name>buildMips</name>
+        <qualifiedname>OcclusionSystem::buildMips</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="46" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a7298d1e027ff95a3a4c7203fc901bc27" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::prepareDebug</definition>
+        <argsstring>()=0</argsstring>
+        <name>prepareDebug</name>
+        <qualifiedname>OcclusionSystem::prepareDebug</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="47" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a7fd8fcf1597ae979d433fc187d60f08c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::prepareNextFrame</definition>
+        <argsstring>(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf, TextureIDPair mipped_depth, Texture *depth=nullptr)=0</argsstring>
+        <name>prepareNextFrame</name>
+        <qualifiedname>OcclusionSystem::prepareNextFrame</qualifiedname>
+        <param>
+          <type>vec3f</type>
+          <declname>view_pos</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>view</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>proj</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>view_proj</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zn</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zf</declname>
+        </param>
+        <param>
+          <type><ref refid="classTextureIDPair" kindref="compound">TextureIDPair</ref></type>
+          <declname>mipped_depth</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+          <declname>depth</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="48" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a2f53cdd873f2a034564db0422c59e257" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::prepareNextFrame</definition>
+        <argsstring>(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf, TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index)=0</argsstring>
+        <name>prepareNextFrame</name>
+        <qualifiedname>OcclusionSystem::prepareNextFrame</qualifiedname>
+        <param>
+          <type>vec3f</type>
+          <declname>view_pos</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>view</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>proj</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>view_proj</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zn</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zf</declname>
+        </param>
+        <param>
+          <type><ref refid="classTextureIDPair" kindref="compound">TextureIDPair</ref></type>
+          <declname>mipped_depth</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+          <declname>depth</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8" kindref="member">StereoIndex</ref></type>
+          <declname>stereo_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="50" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1affcdff5463f53877f82323d3f1c32fd3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::setReprojectionUseCameraTranslatedSpace</definition>
+        <argsstring>(bool enabled)=0</argsstring>
+        <name>setReprojectionUseCameraTranslatedSpace</name>
+        <qualifiedname>OcclusionSystem::setReprojectionUseCameraTranslatedSpace</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>enabled</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="52" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1aca61cdc1fa0633c6d57a7a2677575f50" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool OcclusionSystem::getReprojectionUseCameraTranslatedSpace</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getReprojectionUseCameraTranslatedSpace</name>
+        <qualifiedname>OcclusionSystem::getReprojectionUseCameraTranslatedSpace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="53" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1aaf25fb8c155345f9dd871cbf50f69bfd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>VECTORCALL __forceinline int</type>
+        <definition>VECTORCALL __forceinline int OcclusionSystem::testVisibility</definition>
+        <argsstring>(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip, int mip=DEFAULT_MAX_TEST_MIP)</argsstring>
+        <name>testVisibility</name>
+        <qualifiedname>OcclusionSystem::testVisibility</qualifiedname>
+        <param>
+          <type>vec3f</type>
+          <declname>bmin</declname>
+        </param>
+        <param>
+          <type>vec3f</type>
+          <declname>bmax</declname>
+        </param>
+        <param>
+          <type>vec3f</type>
+          <declname>threshold</declname>
+        </param>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>clip</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mip</declname>
+          <defval><ref refid="classOcclusionSystem_1ac33e7b49477d39baa83147adcf04357e" kindref="member">DEFAULT_MAX_TEST_MIP</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="59" column="32" bodyfile="dag_occlusionSystem.h" bodystart="59" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1ac2459a789118fa7e72b4a8234a3e4a6e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::initSWRasterization</definition>
+        <argsstring>()=0</argsstring>
+        <name>initSWRasterization</name>
+        <qualifiedname>OcclusionSystem::initSWRasterization</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="65" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1aa50532c27e0674051c443232e357a05b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::startRasterization</definition>
+        <argsstring>(float zn)=0</argsstring>
+        <name>startRasterization</name>
+        <qualifiedname>OcclusionSystem::startRasterization</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>zn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="66" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1ad3b12ed88a62f07bdfa8accf2550967f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::rasterizeBoxes</definition>
+        <argsstring>(mat44f_cref viewproj, const bbox3f *box, const mat43f *mat, int cnt)=0</argsstring>
+        <name>rasterizeBoxes</name>
+        <qualifiedname>OcclusionSystem::rasterizeBoxes</qualifiedname>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>viewproj</declname>
+        </param>
+        <param>
+          <type>const bbox3f *</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>const mat43f *</type>
+          <declname>mat</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="67" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a6f9f85ebe6fcbd552eb7d6d2f1c00d76" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::rasterizeBoxes</definition>
+        <argsstring>(mat44f_cref viewproj, const bbox3f *box, const mat44f *mat, int cnt)=0</argsstring>
+        <name>rasterizeBoxes</name>
+        <qualifiedname>OcclusionSystem::rasterizeBoxes</qualifiedname>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>viewproj</declname>
+        </param>
+        <param>
+          <type>const bbox3f *</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>const mat44f *</type>
+          <declname>mat</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="68" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a739a878047bf225adcab4378fd1c9119" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::rasterizeQuads</definition>
+        <argsstring>(mat44f_cref viewproj, const vec4f *verts, int cnt)=0</argsstring>
+        <name>rasterizeQuads</name>
+        <qualifiedname>OcclusionSystem::rasterizeQuads</qualifiedname>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>viewproj</declname>
+        </param>
+        <param>
+          <type>const vec4f *</type>
+          <declname>verts</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="69" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1ab2b659371f1404ca7d8ddb9af027b867" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::rasterizeMesh</definition>
+        <argsstring>(mat44f_cref viewproj, vec3f bmin, vec3f bmax, const vec4f *verts, int vert_cnt, const unsigned short *faces, int tri_count)=0</argsstring>
+        <name>rasterizeMesh</name>
+        <qualifiedname>OcclusionSystem::rasterizeMesh</qualifiedname>
+        <param>
+          <type>mat44f_cref</type>
+          <declname>viewproj</declname>
+        </param>
+        <param>
+          <type>vec3f</type>
+          <declname>bmin</declname>
+        </param>
+        <param>
+          <type>vec3f</type>
+          <declname>bmax</declname>
+        </param>
+        <param>
+          <type>const vec4f *</type>
+          <declname>verts</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vert_cnt</declname>
+        </param>
+        <param>
+          <type>const unsigned short *</type>
+          <declname>faces</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tri_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="70" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1a0cff771fc5a991ead1f7bb160ad70b60" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::combineWithSWRasterization</definition>
+        <argsstring>()=0</argsstring>
+        <name>combineWithSWRasterization</name>
+        <qualifiedname>OcclusionSystem::combineWithSWRasterization</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="73" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1ab7f25ed0b001b962389a5c652139962b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::prepareDebugSWRasterization</definition>
+        <argsstring>()=0</argsstring>
+        <name>prepareDebugSWRasterization</name>
+        <qualifiedname>OcclusionSystem::prepareDebugSWRasterization</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="74" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1af1153bd5ddaca71bacd66f48c36a9654" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::mergeOcclusionsZmin</definition>
+        <argsstring>(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile)=0</argsstring>
+        <name>mergeOcclusionsZmin</name>
+        <qualifiedname>OcclusionSystem::mergeOcclusionsZmin</qualifiedname>
+        <param>
+          <type><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref> **</type>
+          <declname>another_occl</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>occl_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_tile</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>last_tile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="75" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1aaf5913a766adf2a54e5c1bb67c22f103" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void OcclusionSystem::getMaskedResolution</definition>
+        <argsstring>(uint32_t &amp;width, uint32_t &amp;height) const =0</argsstring>
+        <name>getMaskedResolution</name>
+        <qualifiedname>OcclusionSystem::getMaskedResolution</qualifiedname>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>height</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="77" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classOcclusionSystem_1ac87fe3b4962e0946f5b85b5cedc6ba20" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>OcclusionTest&lt; <ref refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aa7228212f3398bfb807a98b8c7630ff83" kindref="member">WIDTH</ref>, <ref refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aaa5ec4c809aebc87936d01af5578341b9" kindref="member">HEIGHT</ref> &gt; &amp;</type>
+        <definition>OcclusionTest&lt; WIDTH, HEIGHT &gt; &amp; OcclusionSystem::getOcclusionTest</definition>
+        <argsstring>()</argsstring>
+        <name>getOcclusionTest</name>
+        <qualifiedname>OcclusionSystem::getOcclusionTest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="79" column="17" bodyfile="dag_occlusionSystem.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classOcclusionSystem_1a358641b2ee8d1a5e9c3d1f5f25d9a279" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classOcclusionSystem" kindref="compound">OcclusionSystem</ref> *</type>
+        <definition>static OcclusionSystem * OcclusionSystem::create</definition>
+        <argsstring>()</argsstring>
+        <name>create</name>
+        <qualifiedname>OcclusionSystem::create</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="34" column="26"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_occlusionSystem.h" line="23" column="1" bodyfile="dag_occlusionSystem.h" bodystart="24" bodyend="90"/>
+    <listofallmembers>
+      <member refid="classOcclusionSystem_1a240d22fb6425efc973db4eac89d6c6fd" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>buildMips</name></member>
+      <member refid="classOcclusionSystem_1a9c0dff29ed71c6156f03d2458e7b7217" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>clear</name></member>
+      <member refid="classOcclusionSystem_1a6e8b1d87dfd3f4ecf32e42bf5ce76bd4" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>close</name></member>
+      <member refid="classOcclusionSystem_1a0cff771fc5a991ead1f7bb160ad70b60" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>combineWithSWRasterization</name></member>
+      <member refid="classOcclusionSystem_1a358641b2ee8d1a5e9c3d1f5f25d9a279" prot="public" virt="non-virtual"><scope>OcclusionSystem</scope><name>create</name></member>
+      <member refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcad975ad15693ba25374f680e3907dc637" prot="public" virt="non-virtual"><scope>OcclusionSystem</scope><name>CULL_FRUSTUM</name></member>
+      <member refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcae6d0cba0b9a8188b671f15be435817f6" prot="public" virt="non-virtual"><scope>OcclusionSystem</scope><name>CULL_OCCLUSION</name></member>
+      <member refid="classOcclusionSystem_1ac33e7b49477d39baa83147adcf04357e" prot="public" virt="non-virtual"><scope>OcclusionSystem</scope><name>DEFAULT_MAX_TEST_MIP</name></member>
+      <member refid="classOcclusionSystem_1aaf5913a766adf2a54e5c1bb67c22f103" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>getMaskedResolution</name></member>
+      <member refid="classOcclusionSystem_1ac87fe3b4962e0946f5b85b5cedc6ba20" prot="public" virt="non-virtual"><scope>OcclusionSystem</scope><name>getOcclusionTest</name></member>
+      <member refid="classOcclusionSystem_1aca61cdc1fa0633c6d57a7a2677575f50" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>getReprojectionUseCameraTranslatedSpace</name></member>
+      <member refid="classOcclusionSystem_1a5a2cc108429a92da99439840a3a8fa76" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>hasGPUFrame</name></member>
+      <member refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aaa5ec4c809aebc87936d01af5578341b9" prot="protected" virt="non-virtual"><scope>OcclusionSystem</scope><name>HEIGHT</name></member>
+      <member refid="classOcclusionSystem_1aac2faeff1c73cfad51f525cf44cfc306" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>init</name></member>
+      <member refid="classOcclusionSystem_1ac2459a789118fa7e72b4a8234a3e4a6e" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>initSWRasterization</name></member>
+      <member refid="classOcclusionSystem_1af1153bd5ddaca71bacd66f48c36a9654" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>mergeOcclusionsZmin</name></member>
+      <member refid="classOcclusionSystem_1aa7d15739cd2818d8791c7dcc9e7ff317" prot="protected" virt="non-virtual"><scope>OcclusionSystem</scope><name>occlusionTest</name></member>
+      <member refid="classOcclusionSystem_1a7298d1e027ff95a3a4c7203fc901bc27" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>prepareDebug</name></member>
+      <member refid="classOcclusionSystem_1ab7f25ed0b001b962389a5c652139962b" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>prepareDebugSWRasterization</name></member>
+      <member refid="classOcclusionSystem_1a8c11c0bb0bb4160e7f410bb7939699b8" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>prepareGPUDepthFrame</name></member>
+      <member refid="classOcclusionSystem_1a7fd8fcf1597ae979d433fc187d60f08c" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>prepareNextFrame</name></member>
+      <member refid="classOcclusionSystem_1a2f53cdd873f2a034564db0422c59e257" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>prepareNextFrame</name></member>
+      <member refid="classOcclusionSystem_1ad3b12ed88a62f07bdfa8accf2550967f" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>rasterizeBoxes</name></member>
+      <member refid="classOcclusionSystem_1a6f9f85ebe6fcbd552eb7d6d2f1c00d76" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>rasterizeBoxes</name></member>
+      <member refid="classOcclusionSystem_1ab2b659371f1404ca7d8ddb9af027b867" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>rasterizeMesh</name></member>
+      <member refid="classOcclusionSystem_1a739a878047bf225adcab4378fd1c9119" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>rasterizeQuads</name></member>
+      <member refid="classOcclusionSystem_1af3a3a34cfc293833ef2434abcde4674a" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>readGPUframe</name></member>
+      <member refid="classOcclusionSystem_1a2a4927555ed8cef218c0fe2f6ec9f2ee" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>reset</name></member>
+      <member refid="classOcclusionSystem_1affcdff5463f53877f82323d3f1c32fd3" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>setReprojectionUseCameraTranslatedSpace</name></member>
+      <member refid="classOcclusionSystem_1aa50532c27e0674051c443232e357a05b" prot="public" virt="pure-virtual"><scope>OcclusionSystem</scope><name>startRasterization</name></member>
+      <member refid="classOcclusionSystem_1aaf25fb8c155345f9dd871cbf50f69bfd" prot="public" virt="non-virtual"><scope>OcclusionSystem</scope><name>testVisibility</name></member>
+      <member refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcaea6311ae6d50d900b9bca430fd6a7f43" prot="public" virt="non-virtual"><scope>OcclusionSystem</scope><name>VISIBLE</name></member>
+      <member refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aa7228212f3398bfb807a98b8c7630ff83" prot="protected" virt="non-virtual"><scope>OcclusionSystem</scope><name>WIDTH</name></member>
+      <member refid="classOcclusionSystem_1a1e0f87d13e91ee63e8a4c4fdf68653cc" prot="public" virt="virtual"><scope>OcclusionSystem</scope><name>~OcclusionSystem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

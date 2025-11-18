@@ -1,0 +1,1183 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Documentation Style Guide</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Contributing to Documentation" href="contributing_to_docs.html" />
+    <link rel="prev" title="How to Build Documentation Locally" href="how_to_build_docs_locally.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Home</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../dagor_engine.html">About Dagor</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Documentation</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="how_to_build_docs_locally.html">How to Build Documentation Locally</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Dagor Documentation Style Guide</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#about-this-guide">About This Guide</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#voice-and-tone">Voice and Tone</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#word-list">Word List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#product-names">Product Names</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#text-formatting">Text Formatting</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#bold">Bold</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#italic">Italic</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#underline">Underline</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#code-font">Code Font</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#font-type-size-and-color">Font Type, Size, and Color</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#other-punctuation-conventions">Other Punctuation Conventions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#units-of-measurement">Units of Measurement</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#headings">Headings</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#capitalization">Capitalization</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#capitalization-of-product-names">Capitalization of Product Names</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#capitalization-in-titles-and-headings">Capitalization in Titles and Headings</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#capitalization-in-references-to-titles-and-headings">Capitalization in References to Titles and Headings</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#capitalization-for-figures-and-tables">Capitalization for Figures and Tables</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#capitalization-and-end-punctuation">Capitalization and End Punctuation</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#numbered-lettered-and-bulleted-lists">Numbered, Lettered, and Bulleted Lists</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#description-lists-that-use-run-in-headings">Description Lists that Use Run-in Headings</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#capitalization-in-hyphenated-words">Capitalization in Hyphenated Words</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#capitalization-and-colons">Capitalization and Colons</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#language">Language</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#abbreviations">Abbreviations</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#key-guidelines-for-abbreviation-usage">Key Guidelines for Abbreviation Usage</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#when-to-spell-out-a-term">When to Spell Out a Term</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#commonly-accepted-abbreviations">Commonly Accepted Abbreviations</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#articles">Articles</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#using-the">Using <em>The</em></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#when-to-use-the">When to Use <em>The</em></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#when-not-to-use-the">When Not to Use <em>The</em></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#omitting-articles-in-headings-and-titles">Omitting Articles in Headings and Titles</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#linking">Linking</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#cross-references">Cross-references</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#formatting-cross-references">Formatting Cross-references</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#links-to-sections-on-the-same-page">Links to Sections on the Same Page</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#links-to-sections-on-another-page">Links to Sections on Another Page</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#punctuation-with-links">Punctuation with Links</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#punctuation">Punctuation</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#hyphen-dash-and-minus-sign">Hyphen, Dash, and Minus Sign</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#hyphen">Hyphen (-)</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#en-dash">En Dash (–)</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#em-dash">Em Dash (—)</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#minus-sign">Minus Sign</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="contributing_to_docs.html">Contributing to Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qdox_user_guide.html">QDox User Guide</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Home</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Documentation</a></li>
+      <li class="breadcrumb-item active">Dagor Documentation Style Guide</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-home/documentation/dagor_documentation_style_guide.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-documentation-style-guide">
+<h1>Dagor Documentation Style Guide<a class="headerlink" href="#dagor-documentation-style-guide" title="Link to this heading"></a></h1>
+<section id="about-this-guide">
+<h2>About This Guide<a class="headerlink" href="#about-this-guide" title="Link to this heading"></a></h2>
+<p>This style guide outlines editorial guidelines for creating clear, consistent,
+and accurate technical documentation intended for software developers and other
+technical professionals. It is designed to ensure consistency across all
+documentation related to Dagor Engine.</p>
+<p>This guide is the primary reference for creating Dagor Engine documentation. If
+the guidelines provided here do not cover specific scenarios, refer to the
+following editorial resources:</p>
+<ul class="simple">
+<li><p><strong>Spelling:</strong>	<a class="reference external" href="https://www.merriam-webster.com/">Merriam-Webster</a>.</p></li>
+<li><p><strong>Non-technical style:</strong> <a class="reference external" href="https://www.chicagomanualofstyle.org/home.html"><em>The Chicago Manual of Style Online</em></a>.</p></li>
+<li><p><strong>Technical style:</strong> <a class="reference external" href="https://developers.google.com/style">Google developer documentation style guide</a>.</p></li>
+</ul>
+</section>
+<section id="voice-and-tone">
+<h2>Voice and Tone<a class="headerlink" href="#voice-and-tone" title="Link to this heading"></a></h2>
+<p>Adopt a voice and tone that is professional yet approachable – clear,
+respectful, and free from slang or excessive informality. The goal is to sound
+like a knowledgeable guide who understands the developer’s needs, providing
+helpful insights without being overly formal or condescending.</p>
+<p>While a conversational tone is encouraged, avoid writing exactly as you speak.
+Strike a balance between clarity and relatability to keep the content engaging
+but focused.</p>
+<p>Avoid being overly entertaining or excessively dry. The primary purpose of the
+documentation is to convey information efficiently to readers who may be seeking
+answers under time constraints.</p>
+<p>Keep in mind that the audience may include readers from diverse cultural
+backgrounds and varying levels of proficiency in English. Writing in simple,
+consistent language enhances readability and facilitates easier translation into
+other languages.</p>
+</section>
+<section id="word-list">
+<h2>Word List<a class="headerlink" href="#word-list" title="Link to this heading"></a></h2>
+<dl class="simple myst">
+<dt>3ds Max</dt><dd><p>Always capitalize <em>Max</em>.</p>
+</dd>
+<dt>add-on vs. add on</dt><dd><p>Not <em>addon</em>.</p>
+<p>Use <em>add-on</em> as a noun or adjective.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The game includes a new add-on for additional levels.</p>
+<p>Use <em>add on</em> as a verb.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The developer plans to add on more content next update.</p>
+</dd>
+<dt>Asset Viewer</dt><dd><p>Capitalize each word.</p>
+</dd>
+<dt>Blender</dt><dd><p>Always capitalize.</p>
+</dd>
+<dt>BLK format</dt><dd><p>When referring to a format in general.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">.blk</span></code> files</dt><dd><p>When referring to specific files with the BLK format. File extensions are
+formatted with a <a class="reference internal" href="#code-font">code font</a>.</p>
+</dd>
+<dt>Building Resources</dt><dd><p>Use <em>Building Resources</em> when referring to the title or heading.</p>
+<p>Use <em>resource building process</em> (or similar) when describing the act of
+compiling resources.</p>
+</dd>
+<dt>button</dt><dd><p>You <em>click</em> on-screen buttons and mouse buttons, and <em>press</em> keys on the
+keyboard.</p>
+</dd>
+<dt>changelog</dt><dd><p>Not <em>changeLog</em> or <em>ChangeLog</em>.</p>
+<p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>checkbox</dt><dd><p>Use <em>check</em>/<em>uncheck</em> for clear and specific checkbox actions.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Check the <strong>Enable Ray Tracing</strong> box to activate
+advanced lighting effects in your scene.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Uncheck the <strong>Enable Shadows</strong> box to disable shadow
+rendering and improve performance.</p>
+<p>Avoid ambiguity by clarifying the checkbox’s effect.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Check the <strong>Dynamic Lighting</strong> box to apply real-time
+lighting changes during gameplay.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Enable the box for dynamic lighting. (Unclear: What does
+“enable the box” mean? Does it turn on the feature or just make the checkbox
+switchable?)</p>
+</dd>
+<dt>D3D, Direct3D, DirectX</dt><dd><p>Always capitalize.</p>
+</dd>
+<dt>daBuild</dt><dd><p>Retain the exact casing as defined by the development team. If possible,
+revise the sentence to avoid starting with a lowercase
+<a class="reference internal" href="#product-names"><span class="std std-ref">product name</span></a>.</p>
+</dd>
+<dt>daEditor, daEditorX</dt><dd><p>Retain the exact casing as defined by the development team. If possible,
+revise the sentence to avoid starting with a lowercase
+<a class="reference internal" href="#product-names"><span class="std std-ref">product name</span></a>.</p>
+</dd>
+<dt>daGI</dt><dd><p>Expand the abbreviation on first mention: Dagor Global Illumination (daGI).</p>
+</dd>
+<dt>Dagor Engine</dt><dd><p>Capitalize each word.</p>
+</dd>
+<dt>daNetGame</dt><dd><p>Retain the exact casing as defined by the development team. If possible,
+revise the sentence to avoid starting with a lowercase
+<a class="reference internal" href="#product-names"><span class="std std-ref">product name</span></a>.</p>
+</dd>
+<dt>daNetGame-based, daNetGame-like</dt><dd><p>Not <em>daNetGame based</em> or <em>daNetGame like</em>.</p>
+</dd>
+<dt>daRG</dt><dd><p>Expand the abbreviation on first mention: Dagor Reactive GUI (daRG).</p>
+</dd>
+<dt>dynmodel</dt><dd><p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>ECS</dt><dd><p>All caps. Expand the abbreviation on first mention: Entity-Component-System
+(ECS). When expanded, capitalize each word and hyphenate to form a compound
+noun.</p>
+</dd>
+<dt>FAR</dt><dd><p>All caps.</p>
+</dd>
+<dt>gameobj</dt><dd><p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>ID</dt><dd><p>Not <em>Id</em> or <em>id</em>, except in string literals or enums.</p>
+</dd>
+<dt>Impostor Baker</dt><dd><p>Capitalize each word.</p>
+</dd>
+<dt>in-game vs. in game</dt><dd><p>Not <em>ingame</em>.</p>
+<p>Use <em>in-game</em> as an adjective.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> View your in-game settings.</p>
+<p>Use <em>in game</em> only when <em>in</em> is a preposition followed by the noun <em>game</em>.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> That feature isn’t available in game.</p>
+</dd>
+<dt>internet</dt><dd><p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>LOD, LODs</dt><dd><p>All caps. Expand the abbreviation on first mention: Level of Detail (LOD).</p>
+</dd>
+<dt>login vs. log in</dt><dd><p>Not <em>log-in</em>.</p>
+<p>Use <em>login</em> as a noun or adjective.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Enter your login credentials.</p>
+<p>Use <em>log in</em> as a verb.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> You need to log in to view your achievements.</p>
+</dd>
+<dt>microdetails</dt><dd><p>Not <em>micro-details</em>.</p>
+<p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>parent-child or parent/child</dt><dd><p>Not <em>parent – child</em> or <em>parent—child</em>.</p>
+</dd>
+<dt>per</dt><dd><p>To express a rate, use <em>per</em> instead of the division slash (<code class="docutils literal notranslate"><span class="pre">/</span></code>).</p>
+</dd>
+<dt>please</dt><dd><p>Do not use <em>please</em> in the normal course of explaining how to use a product.</p>
+<p>Use <em>please</em> only when you’re asking for permission or forgiveness. For
+example, when what you’re asking for inconveniences a reader, or suggests a
+potential issue with a product.</p>
+</dd>
+<dt>plugin vs. plug-in vs. plug in</dt><dd><p>Use <em>plugin</em> as a noun.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> This audio plugin improves spatial sound processing.</p>
+<p>Use <em>plug-in</em> as an adjective.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Enable the plug-in module for particle effects.</p>
+<p>Use <em>plug in</em> as a verb.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Please plug in the VR headset to continue.</p>
+</dd>
+<dt>pop-up window, pop-up menu</dt><dd><p>Use <em>pop-up window</em> to describe a window that appears over the main interface
+to provide additional information, request input, or display notifications.</p>
+<p>Use <em>pop-up menu</em> to describe the menu that appears when a user right-clicks
+an item.</p>
+</dd>
+<dt>prebuilt</dt><dd><p>Not <em>pre-built</em>.</p>
+</dd>
+<dt>prefab</dt><dd><p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>read-only</dt><dd><p>Not <em>read only</em>.</p>
+</dd>
+<dt>real-time vs. real time</dt><dd><p>Use <em>real-time</em> with a hyphen when used as an adjective:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> real-time updates, real-time communication</p>
+<p>Use <em>real time</em> without a hyphen when used as a noun.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The system operates in real time.</p>
+</dd>
+<dt>rendinst</dt><dd><p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>riExtra</dt><dd><p>Lowercase except at the beginning of a sentence, heading, or list item. Always
+capitalize <em>Extra</em>.</p>
+</dd>
+<dt>screenshot</dt><dd><p>Not <em>screen shot</em>.</p>
+</dd>
+<dt>sign-in vs. sign in</dt><dd><p>Use <em>sign-in</em> as a noun or adjective.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The sign-in process includes two-factor authentication.</p>
+<p>Use <em>sign in</em> as a verb.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Players must sign in with their account before
+accessing online services.</p>
+</dd>
+<dt>sign-out vs. sign out</dt><dd><p>Use <em>sign-out</em> as a noun or adjective.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The sign-out option is in the settings menu.</p>
+<p>Use <em>sign out</em> as a verb.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The game automatically signs out inactive users.</p>
+</dd>
+<dt>subdirectory</dt><dd><p>Not <em>sub-directory</em>.</p>
+</dd>
+<dt>toolkit</dt><dd><p>Not <em>tool-kit</em> or <em>tool kit</em>.</p>
+</dd>
+<dt>utilize</dt><dd><p>Do not use <em>utilize</em> when you mean <em>use</em>.</p>
+<p>Use <em>utilize</em> or <em>utilization</em> when referring to the quantity of a resource
+being used.</p>
+</dd>
+<dt>vromfs</dt><dd><p>Lowercase except at the beginning of a sentence, heading, or list item.</p>
+</dd>
+<dt>War Thunder</dt><dd><p>Capitalize each word.</p>
+</dd>
+<dt>War Thunder-based, War Thunder-like</dt><dd><p>Not <em>WarThunder-based</em> or <em>War-Thunder-based</em>.</p>
+</dd>
+</dl>
+</section>
+<section id="product-names">
+<h2>Product Names<a class="headerlink" href="#product-names" title="Link to this heading"></a></h2>
+<p>This section describes how to use product names.</p>
+<ul>
+<li><p><strong>Capitalize Product Names.</strong> When you write about any product, follow the
+official capitalization for the names of brands, companies, software,
+products, services, features, and terms defined by companies and open source
+communities. If an official name begins with a lowercase letter, then put it
+in lowercase even at the start of a sentence. But it’s better to revise the
+sentence to avoid putting a lowercase word at the start, if possible.</p></li>
+<li><p><strong>Feature Names.</strong> When you write about a feature, don’t capitalize it unless
+the name is officially capitalized. If you’re unsure, follow the precedent
+that’s set by other documents that describe the feature.</p></li>
+<li><p><strong>Shorten Product Names.</strong> Use the full trademarked product name. Don’t
+abbreviate product names, except in cases where you’re matching a UI label.</p></li>
+<li><p><strong>Use <em>The</em> with Product Names.</strong> Use <em>the</em> with product names when referring
+to specific instances, roles, or modified versions. Avoid <em>the</em> when the name
+functions as a standalone proper noun or appears in branding.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="#using-the">Use <em>The</em></a>.</p>
+</div>
+</li>
+</ul>
+</section>
+<section id="text-formatting">
+<h2>Text Formatting<a class="headerlink" href="#text-formatting" title="Link to this heading"></a></h2>
+<p>Text-formatting summary for many of the general conventions covered elsewhere in
+the style guide.</p>
+<section id="bold">
+<h3>Bold<a class="headerlink" href="#bold" title="Link to this heading"></a></h3>
+<p>Use bold formatting, for UI elements, run-in headings and in special cases to
+emphasize important phrases in a sentence.</p>
+</section>
+<section id="italic">
+<h3>Italic<a class="headerlink" href="#italic" title="Link to this heading"></a></h3>
+<p>Use italics formatting, when drawing attention to a specific word or phrase,
+such as when defining terms or using words as words.</p>
+</section>
+<section id="underline">
+<h3>Underline<a class="headerlink" href="#underline" title="Link to this heading"></a></h3>
+<p>Do not underline.</p>
+</section>
+<section id="code-font">
+<h3>Code Font<a class="headerlink" href="#code-font" title="Link to this heading"></a></h3>
+<p>Use code font for:</p>
+<ul class="simple">
+<li><p>Filenames, filename extensions, and paths</p></li>
+<li><p>Folders and directories</p></li>
+<li><p>Parameter names and values</p></li>
+<li><p>Placeholder variables</p></li>
+<li><p>Text input</p></li>
+<li><p>Console output</p></li>
+<li><p>Key names and mouse button labels</p></li>
+<li><p>Code in text, inline code, and code samples</p></li>
+</ul>
+<p><strong>Items to put in ordinary (non-code) font:</strong></p>
+<ul class="simple">
+<li><p>IP addresses</p></li>
+<li><p>URLs</p></li>
+<li><p>Domain names</p></li>
+<li><p>Names of products, services, and organizations</p></li>
+</ul>
+</section>
+<section id="font-type-size-and-color">
+<h3>Font Type, Size, and Color<a class="headerlink" href="#font-type-size-and-color" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Do not override global styles for font type, size, or color.</p></li>
+<li><p>Use different text colors in examples only when it is the most effective
+method to clarify a concept.</p></li>
+</ul>
+</section>
+<section id="other-punctuation-conventions">
+<h3>Other Punctuation Conventions<a class="headerlink" href="#other-punctuation-conventions" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Do not use ampersands (<code class="docutils literal notranslate"><span class="pre">&amp;</span></code>) as conjunctions or shorthand for <em>and</em>. Use <em>and</em>
+instead.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">&amp;</span></code> in cases where you need to refer to a UI element or the name that uses
+<code class="docutils literal notranslate"><span class="pre">&amp;</span></code>.</p></li>
+<li><p>Do not use an exclamation mark.</p></li>
+</ul>
+</section>
+<section id="units-of-measurement">
+<h3>Units of Measurement<a class="headerlink" href="#units-of-measurement" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Put a nonbreaking space <code class="docutils literal notranslate"><span class="pre">&amp;nbsp;</span></code> between the number and the unit.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 120 GB</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> 120GB</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 5 m</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> 5m</p>
+</li>
+<li><p>If the unit of measure is money or percent or degrees of an angle, do not use
+a space.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> $20</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 50%</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 90°</p>
+</li>
+<li><p>In a range of numbers, repeat the unit for each number. Use the word <em>to</em>
+between the numbers, rather than a hyphen.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 0° to 90°</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> 0-90°</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 5 m to 10 m</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> 5-10 m</p>
+</li>
+</ul>
+</section>
+<section id="headings">
+<h3>Headings<a class="headerlink" href="#headings" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Each file should contain a single topic article.</p></li>
+<li><p>The article may have one top-level heading, and subsequent headings should
+follow a sequential order, without skipping any levels.</p></li>
+<li><p>If the main heading of an article is defined using other tools, section
+headings within the file should begin at the second level.</p></li>
+</ul>
+</section>
+<section id="capitalization">
+<h3>Capitalization<a class="headerlink" href="#capitalization" title="Link to this heading"></a></h3>
+<p>Follow the standard capitalization rules for American English. Additionally, do
+the following:</p>
+<ul>
+<li><p>Do not use unnecessary capitalization.</p></li>
+<li><p>Do not use all-uppercase, except in the following contexts: in official names,
+in abbreviations that are always written in all-caps, or when referring to
+code that uses all-caps.</p></li>
+<li><p>Do not use camel case, except in official names or when referring to code that
+uses camel case.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For information about how to capitalize specific words, see
+<a class="reference internal" href="#word-list">Word List</a>.</p>
+</div>
+</li>
+</ul>
+<section id="capitalization-of-product-names">
+<h4>Capitalization of Product Names<a class="headerlink" href="#capitalization-of-product-names" title="Link to this heading"></a></h4>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information about how to capitalize product names, see
+<a class="reference internal" href="#product-names">Product Names</a>.</p>
+</div>
+</section>
+<section id="capitalization-in-titles-and-headings">
+<h4>Capitalization in Titles and Headings<a class="headerlink" href="#capitalization-in-titles-and-headings" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>In document titles and headings, use <strong>title case</strong>. That is, capitalize the
+first and last words of the title, as well as all major words such as nouns,
+pronouns, verbs, adjectives, adverbs, and proper nouns.</p></li>
+<li><p>Articles (<em>a</em>, <em>an</em>, <em>the</em>), conjunctions (<em>and</em>, <em>but</em>, <em>or</em>), and
+prepositions with fewer than four letters are not capitalized unless they
+appear as the first or last word of the title.</p></li>
+</ul>
+</section>
+<section id="capitalization-in-references-to-titles-and-headings">
+<h4>Capitalization in References to Titles and Headings<a class="headerlink" href="#capitalization-in-references-to-titles-and-headings" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>When referencing any title or heading from a document that follows this guide,
+use <strong>title case</strong>.</p></li>
+<li><p>For titles or headings from sources that do not follow this guide, retain the
+original capitalization.</p></li>
+</ul>
+</section>
+<section id="capitalization-for-figures-and-tables">
+<h4>Capitalization for Figures and Tables<a class="headerlink" href="#capitalization-for-figures-and-tables" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Use <strong>sentence case</strong> for labels, callouts, and other text in images and
+diagrams.</p></li>
+<li><p>Use <strong>sentence case</strong> for all the elements in a table: contents, headings,
+labels, and captions.</p></li>
+</ul>
+</section>
+<section id="capitalization-and-end-punctuation">
+<h4>Capitalization and End Punctuation<a class="headerlink" href="#capitalization-and-end-punctuation" title="Link to this heading"></a></h4>
+<section id="numbered-lettered-and-bulleted-lists">
+<h5>Numbered, Lettered, and Bulleted Lists<a class="headerlink" href="#numbered-lettered-and-bulleted-lists" title="Link to this heading"></a></h5>
+<p>Start each list item with a capital letter, unless case is an important part of
+the information conveyed by the list.</p>
+<p>End each list item with a period, except in the following cases:</p>
+<ul class="simple">
+<li><p>If the item consists of a single word.</p></li>
+<li><p>If the item doesn’t include a verb.</p></li>
+<li><p>If the item is entirely in code font.</p></li>
+<li><p>If the item is entirely link text or a document title.</p></li>
+</ul>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<p>The interface is organized into three main panels:</p>
+<ol class="arabic simple">
+<li><p>Control Panel</p></li>
+<li><p>Properties Panel</p></li>
+<li><p>Viewport Settings Panel</p></li>
+</ol>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<p>To export an animation, follow these steps:</p>
+<ol class="arabic simple">
+<li><p>Ensure Visibility.</p></li>
+<li><p>Export Settings.</p></li>
+<li><p>Add Note Tracks.</p></li>
+</ol>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<p>Environment textures:</p>
+<ul class="simple">
+<li><p>envi snapshot</p></li>
+<li><p>background texture</p></li>
+<li><p>paint details texture</p></li>
+<li><p>reflection texture</p></li>
+</ul>
+</section>
+<section id="description-lists-that-use-run-in-headings">
+<h5>Description Lists that Use Run-in Headings<a class="headerlink" href="#description-lists-that-use-run-in-headings" title="Link to this heading"></a></h5>
+<ul class="simple">
+<li><p>Start the run-in heading with a capital letter.</p></li>
+<li><p>End the run-in heading with a period or a colon, but be consistent within the
+list.</p></li>
+<li><p>You can decide whether to bold the punctuation that ends the heading based on
+factors such as on-page consistency.</p></li>
+<li><p>For the descriptions that follow the punctuation, capitalize the first letter
+as follows:</p>
+<ul>
+<li><p>If the text follows a period, start the text with a capital letter.</p></li>
+<li><p>If the text follows a colon, start the text with a lowercase letter.</p></li>
+</ul>
+</li>
+<li><p>To end the descriptive text, punctuate as follows:</p>
+<ul>
+<li><p>If the description follows a period, end the description with a period.</p></li>
+<li><p>If the description follows a colon, do one of the following:</p>
+<ul>
+<li><p>If the description is a list of items or short phrases without verbs, do
+not include a period.</p></li>
+<li><p>If the description includes a verb or expresses a standalone thought, end
+the description with a period.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Do not use a dash to set off a description from an item in a description list.</p></li>
+</ul>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<p>This property defines how the object interacts with landscape collision:</p>
+<ul class="simple">
+<li><p><strong>Ignore Collision:</strong> the object’s height matches its pivot point.</p></li>
+<li><p><strong>Place Pivot:</strong> the pivot point is placed directly on the collision surface.</p></li>
+<li><p><strong>Place Pivot and Use Normal:</strong> the object’s pivot aligns to the normal of the
+landscape.</p></li>
+<li><p><strong>Place 3-Point (bbox)</strong>: a bounding box is created around the object.</p></li>
+<li><p><strong>Place Foundation (bbox):</strong> all points of the bounding box base align with
+the collision surface.</p></li>
+</ul>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<p>There are three types of builds:</p>
+<ul class="simple">
+<li><p><strong>Full Build.</strong> Builds all resources.</p></li>
+<li><p><strong>Partial Pack Build.</strong> Builds the specific pack containing the resource you
+need.</p></li>
+<li><p><strong>Partial Package Build.</strong> Builds an entire package.</p></li>
+</ul>
+</section>
+</section>
+<section id="capitalization-in-hyphenated-words">
+<h4>Capitalization in Hyphenated Words<a class="headerlink" href="#capitalization-in-hyphenated-words" title="Link to this heading"></a></h4>
+<p>Capitalize all main words in hyphenated terms in titles and headings.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> High-Level Architecture Overview</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> High-level architecture overview</p>
+<p><strong>Exceptions:</strong></p>
+<ul>
+<li><p><strong>Hyphenated Words with Prefixes:</strong> do not capitalize prefixes in hyphenated
+words unless they start the title or heading.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Re-evaluation of System Processes</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Re-Evaluation of System Processes</p>
+</li>
+<li><p><strong>Hyphenated Words Beginning with Single Letters:</strong> do not capitalize the
+single letter at the start of a hyphenated term unless it begins the title or
+heading.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> X-ray Analysis Results</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> X-Ray Analysis Results</p>
+</li>
+<li><p><strong>Hyphenated Articles, Prepositions, and Coordinating Conjunctions:</strong> do not
+capitalize hyphenated articles, prepositions, or coordinating conjunctions
+unless they start the title or heading.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> End-to-end Encryption Setup</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> End-To-End Encryption Setup</p>
+</li>
+</ul>
+</section>
+<section id="capitalization-and-colons">
+<h4>Capitalization and Colons<a class="headerlink" href="#capitalization-and-colons" title="Link to this heading"></a></h4>
+<p>Use a lowercase letter to begin the first word of the text immediately following
+a colon unless the text falls into one of the exceptions.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The system processes data in three phases: input,
+processing, and output.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> The system processes data in three phases: Input, processing,
+and output.</p>
+<p><strong>Exceptions:</strong></p>
+<ul class="simple">
+<li><p><strong>Proper Noun:</strong> capitalize the first word if it is a proper noun.</p></li>
+<li><p><strong>Heading:</strong> capitalize the first word if the text following the colon is a
+heading.</p></li>
+<li><p><strong>Quotation:</strong> capitalize the first word if the text following the colon is a
+quotation.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="language">
+<h2>Language<a class="headerlink" href="#language" title="Link to this heading"></a></h2>
+<section id="abbreviations">
+<h3>Abbreviations<a class="headerlink" href="#abbreviations" title="Link to this heading"></a></h3>
+<section id="key-guidelines-for-abbreviation-usage">
+<h4>Key Guidelines for Abbreviation Usage<a class="headerlink" href="#key-guidelines-for-abbreviation-usage" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Use standard acronyms that improve readability and save the reader time.</p></li>
+<li><p>Spell out abbreviations on first reference.</p></li>
+<li><p>Avoid using specialized abbreviations that may be unfamiliar to your audience
+unless they are clearly defined.</p></li>
+</ul>
+</section>
+<section id="when-to-spell-out-a-term">
+<h4>When to Spell Out a Term<a class="headerlink" href="#when-to-spell-out-a-term" title="Link to this heading"></a></h4>
+<ul>
+<li><p>When an abbreviation is likely to be unfamiliar to the reader, spell it out
+upon first mention and include the abbreviation in parentheses immediately
+afterward. <em>Italicize</em> both the spelled-out term and its abbreviation.</p></li>
+<li><p>For all subsequent mentions of the term, use only the abbreviation.</p></li>
+<li><p>Capitalize the letters which are used directly in the abbreviated form.</p></li>
+<li><p>If the first mention of an abbreviation occurs in a heading or title, it is
+acceptable to use the abbreviation directly. Then, spell out and define the
+abbreviation in the first paragraph following the heading.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Level of Detail (LOD)</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Artificial Intelligence (AI)</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Game Engine Architecture (GEA)</p>
+</li>
+</ul>
+</section>
+<section id="commonly-accepted-abbreviations">
+<h4>Commonly Accepted Abbreviations<a class="headerlink" href="#commonly-accepted-abbreviations" title="Link to this heading"></a></h4>
+<p>The following abbreviations are widely recognized and generally do not need to
+be spelled out:</p>
+<ul class="simple">
+<li><p>API</p></li>
+<li><p>CPU, GPU, RAM</p></li>
+<li><p>FPS</p></li>
+<li><p>File formats such as PNG, JPEG, or OBJ</p></li>
+<li><p>GUI, UI</p></li>
+<li><p>Units of measurement like MB, GB, or TB</p></li>
+<li><p>URL</p></li>
+</ul>
+</section>
+</section>
+<section id="articles">
+<h3>Articles<a class="headerlink" href="#articles" title="Link to this heading"></a></h3>
+<section id="using-the">
+<h4>Using <em>The</em><a class="headerlink" href="#using-the" title="Link to this heading"></a></h4>
+<p>Using <em>the</em> with product names in documentation depends on whether the product
+name is treated as a proper noun or a general noun phrase.</p>
+<section id="when-to-use-the">
+<h5>When to Use <em>The</em><a class="headerlink" href="#when-to-use-the" title="Link to this heading"></a></h5>
+<ul>
+<li><p><strong>Generic References</strong>. Use <em>the</em> when referring to a specific instance,
+feature, or role of the product.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The Dagor Engine renderer supports advanced real-time
+lighting techniques.</p>
+</li>
+<li><p><strong>Functional Contexts</strong>. Use <em>the</em> when describing how the product functions
+or interacts in a specific scenario.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The Dagor Engine physics module excels in simulating
+large-scale destructible environments.</p>
+</li>
+<li><p><strong>With Modifiers</strong>. Use <em>the</em> when the product name is modified by an
+adjective, clause, or descriptive element.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The enhanced Dagor Engine API streamlines shader
+development.</p>
+</li>
+</ul>
+</section>
+<section id="when-not-to-use-the">
+<h5>When Not to Use <em>The</em><a class="headerlink" href="#when-not-to-use-the" title="Link to this heading"></a></h5>
+<ul>
+<li><p><strong>As a Standalone Proper Noun</strong>. Avoid <em>the</em> when the product name stands
+alone as a proper noun.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Dagor Engine integrates seamlessly with custom asset
+pipelines.</p>
+</li>
+<li><p><strong>In Branding or Titles</strong>. Do not use <em>the</em> when the product name appears in a
+title or branded term.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Explore new possibilities with Dagor Engine 6.</p>
+</li>
+</ul>
+<p><strong>Exceptions:</strong></p>
+<ul>
+<li><p>Some product names may inherently include <em>the</em> due to branding or established
+usage.</p></li>
+<li><p>In lists or general overviews, omitting <em>the</em> is acceptable for brevity:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Features include GPU-driven rendering, multi-threaded
+processing, and terrain optimization.</p>
+</li>
+</ul>
+</section>
+</section>
+<section id="omitting-articles-in-headings-and-titles">
+<h4>Omitting Articles in Headings and Titles<a class="headerlink" href="#omitting-articles-in-headings-and-titles" title="Link to this heading"></a></h4>
+<p>It is acceptable to omit articles (such as <em>a</em>, <em>an</em>, and <em>the</em>) in headings and
+titles for brevity and clarity. This helps maintain a clean and concise
+presentation of content, especially when space is limited or when the title
+needs to be more direct.</p>
+</section>
+</section>
+</section>
+<section id="linking">
+<h2>Linking<a class="headerlink" href="#linking" title="Link to this heading"></a></h2>
+<section id="cross-references">
+<h3>Cross-references<a class="headerlink" href="#cross-references" title="Link to this heading"></a></h3>
+<p>Cross-references are typically used to link to nonessential information that
+enhances the reader’s understanding. Whenever possible, provide contextual help
+rather than redirecting the reader elsewhere.</p>
+<p>Follow these guidelines when creating cross-references to other documents:</p>
+<ul class="simple">
+<li><p>When referring to a document that adheres to this style guide, place the
+reference in a separate paragraph using the documentation builder tools. If
+you are referencing the same document from multiple locations within the
+original document, it is acceptable to insert the link directly within the
+text, without placing it in a separate paragraph.</p></li>
+<li><p>When referencing third-party tools or products, linking to the relevant site
+is acceptable. Ensure that any linked site is reputable, reliable, and of high
+quality.</p></li>
+<li><p>Do not link to content that is behind a paywall or otherwise restricted. All
+linked materials must be freely accessible to the reader, with no additional
+access requirements.</p></li>
+</ul>
+</section>
+<section id="formatting-cross-references">
+<h3>Formatting Cross-references<a class="headerlink" href="#formatting-cross-references" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Introduce the link with the phrase <em>For more information, see</em> or <em>For more
+information about…, see</em>.</p></li>
+<li><p>Use <em>see</em> and <em>about</em> instead of <em>read</em> and <em>on</em> when referencing links and
+cross-references.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information about how to set up and start developing with the Dagor
+Engine, see
+<a class="reference internal" href="../../getting-started/index.html"><span class="std std-doc">Getting Started with Dagor</span></a>.</p>
+</div>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> For more information on assets, read
+<a class="reference internal" href="../../assets/about-assets/about_assets.html"><span class="std std-doc">Introduction to Assets</span></a>.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> See this
+<a class="reference internal" href="#"><span class="std std-doc">article</span></a>.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Click
+<a class="reference internal" href="#"><span class="std std-doc">here</span></a>.</p>
+</li>
+<li><p>When referencing a document title or heading from a document that follows this
+guide, use the full document title in <strong>title case</strong>.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="#capitalization-in-references-to-titles-and-headings">Capitalization in References to Titles and Headings</a>.</p>
+</div>
+</li>
+<li><p>If the link points to a downloadable file, clarify this in the link text and
+specify the file type and size if the file is large.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information about Dagor ECS, download Anton Yudintsev’s video lecture
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1Op_NELH6slRCGsbTPcNF-Tmx18ulnYjC/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">Gameplay-Architecture-and-Design.mp4,</span> <span class="pre">3.65</span> <span class="pre">GB</span></code></a>.</p>
+</div>
+</li>
+<li><p>When including a cross-reference as a link, avoid putting the link text in
+quotation marks.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../dagor-tools/blk/blk.html"><span class="std std-doc">BLK File Format</span></a>.</p>
+</div>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Not recommended:</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../dagor-tools/blk/blk.html"><span class="std std-doc">“BLK File Format”</span></a>.</p>
+</div>
+</li>
+<li><p>Do not use a URL as link text. Instead, use the page title or a description of
+the linked page. An exception may be made for certain legal documents (e.g.,
+Terms of Service), where URLs can be used as link text.</p></li>
+<li><p>If the link includes an abbreviation in parentheses, include both the full
+form and the abbreviation in the link text.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <a class="reference external" href="https://en.wikipedia.org/wiki/Physically_based_rendering">Physically based rendering (PBR)</a></p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> <a class="reference external" href="https://en.wikipedia.org/wiki/Physically_based_rendering">Physically based rendering</a> (PBR)</p>
+</li>
+<li><p>If the text includes a command or a code element typically represented in code
+font, include a description of the code element in the link text, unless it
+would be redundant or awkward.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> To set the current camera direction, run the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.html#camera-dir"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">camera.dir</span></code> command</span></a>.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The daEditor supports the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.html#list"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">list</span></code></span></a>,
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.html#help"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">help</span></code></span></a>,
+and
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.html#clear"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">clear</span></code></span></a>
+console commands.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> To configure the environment settings, run the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.html#envi-set"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">envi.set</span></code></span></a>
+command.</p>
+</li>
+<li><p>Do not place links in section headings.</p></li>
+<li><p>Do not use images as links.</p></li>
+</ul>
+</section>
+<section id="links-to-sections-on-the-same-page">
+<h3>Links to Sections on the Same Page<a class="headerlink" href="#links-to-sections-on-the-same-page" title="Link to this heading"></a></h3>
+<p>When linking to another section on the same page, indicate that the link will
+navigate to a different section of the same document.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see the
+<a class="reference internal" href="#formatting-cross-references">Formatting Cross-references</a> section of this document.</p>
+</div>
+</section>
+<section id="links-to-sections-on-another-page">
+<h3>Links to Sections on Another Page<a class="headerlink" href="#links-to-sections-on-another-page" title="Link to this heading"></a></h3>
+<p>When linking to a section on another page, format the link the same way as a
+standard cross-reference.</p>
+<p>If the section title on the destination page is identical to one on the source
+page, provide additional context for clarity.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Recommended:</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../api-references/dagor-ecs/dagor_ecs.html#basic-concepts"><span class="std std-ref">Basic concepts</span></a> in “Dagor ECS”.</p>
+</div>
+</section>
+<section id="punctuation-with-links">
+<h3>Punctuation with Links<a class="headerlink" href="#punctuation-with-links" title="Link to this heading"></a></h3>
+<p>When punctuation appears immediately before or after a link, place the
+punctuation outside the link tags where possible.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> For more information, see
+<a class="reference internal" href="../../getting-started/index.html"><span class="std std-doc">Getting Started with Dagor</span></a>.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> For more information, see
+<a class="reference internal" href="../../getting-started/index.html"><span class="std std-doc">Getting Started with Dagor.</span></a></p>
+</section>
+</section>
+<section id="punctuation">
+<h2>Punctuation<a class="headerlink" href="#punctuation" title="Link to this heading"></a></h2>
+<section id="hyphen-dash-and-minus-sign">
+<h3>Hyphen, Dash, and Minus Sign<a class="headerlink" href="#hyphen-dash-and-minus-sign" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="#em-dash">Em dashes (—)</a>, <a class="reference internal" href="#en-dash">en dashes (–)</a>, <a class="reference internal" href="#hyphen">hyphens
+(-)</a>, and <a class="reference internal" href="#minus-sign">minus signs (−)</a> are distinct and should be
+handled accordingly, with attention to their proper function.</p>
+<section id="hyphen">
+<h4>Hyphen (-)<a class="headerlink" href="#hyphen" title="Link to this heading"></a></h4>
+<p>Use the hyphen to join words or split them at the end of a line.</p>
+<p><strong>General Guidelines</strong></p>
+<p>Hyphenation depends on context, readability, and conventions:</p>
+<ul class="simple">
+<li><p><strong>Position</strong>: Does the term come before a noun or after a verb?</p></li>
+<li><p><strong>Clarity</strong>: Will the sentence be unclear without a hyphen?</p></li>
+<li><p><strong>Rules</strong>: Some terms must always or never be hyphenated, regardless of other
+factors.</p></li>
+</ul>
+<p>Exceptions are common. If unsure, check these sources in order:</p>
+<ol class="arabic simple">
+<li><p>Existing documentation conventions.</p></li>
+<li><p>This style guide’s <a class="reference internal" href="#word-list">Word List</a>.</p></li>
+<li><p><a class="reference external" href="https://www.merriam-webster.com/">Merriam-Webster dictionary</a>.</p></li>
+</ol>
+<p><strong>Use hyphen for:</strong></p>
+<ul>
+<li><p><strong>Compound Noun Modifiers</strong></p>
+<p>Use a hyphen between two or more words that work together to modify a noun
+<strong>before</strong> the noun, especially when:</p>
+<ul>
+<li><p><strong>Clarity requires it</strong></p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> floating-point texture</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> frame-by-frame playback</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> up-to-date build</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> frame by frame playback</p>
+</li>
+<li><p><strong>One word is a participle (-ed or -ing)</strong></p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> GPU-accelerated path</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> baked-in lighting</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> left-aligned text</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The text is left aligned. <em>(no hyphen after noun)</em></p>
+</li>
+<li><p><strong>The modifier includes a number or letter</strong></p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 3-point lighting</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 5-stage pipeline</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Y-based sorting</p>
+</li>
+</ul>
+<p>Avoid hyphens when the meaning is clear without them or the modifier comes
+after the noun.</p>
+<p>If a modifier has more than two words, try to rephrase. If rephrasing isn’t
+possible, hyphenate as needed for clarity.</p>
+<div class="warning admonition">
+<p class="admonition-title">Exceptions</p>
+<p>Don’t hyphenate <strong>-ly adverbs</strong> unless clarity suffers:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Publicly available assets</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Highly detailed mesh</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Visually rich environment</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Poorly-lit scene</p>
+<p>Don’t hyphenate terms that are <strong>commonly unhyphenated</strong>:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> A managed instance group</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> A machine learning model</p>
+<p>For <strong>number + unit</strong> modifiers, skip the hyphen unless needed:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 60 FPS animation</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 200 GB disk</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see <a class="reference internal" href="#units-of-measurement">Units of Measurement</a>.</p>
+</div>
+</div>
+</li>
+<li><p><strong>Suspended Compound Modifiers</strong></p>
+<p>Avoid <strong>suspended compound modifiers</strong>, such as:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> CPU- and GPU-bound tasks</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> left- and right-aligned elements</p>
+<p>These constructions can reduce clarity. Instead, spell out the full phrase:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> CPU-bound and GPU-bound tasks</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> left-aligned and right-aligned elements</p>
+<p>If you must use a suspended modifier due to space constraints (e.g. in UI or
+diagrams), include a hyphen after the first word and a space:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> mouse- or keyboard-based input</p>
+<p><strong>Don’t</strong> use suspension when dealing with <strong>simple one-word adjectives</strong>:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> high and low settings</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> high- and low settings</p>
+</li>
+<li><p><strong>Compound Numerals and Fractions</strong></p>
+<p>Use hyphens in <strong>compound numerals</strong> and <strong>fractions</strong> when they function as
+adjectives.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> a thirty-second frame</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> a one-third resolution scale</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> a sixty-four-bit architecture</p>
+<p>Don’t hyphenate if the fraction or number is used as a noun:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> The frame took one third of a millisecond.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Support for sixty four bit is deprecated.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Support for sixty-four-bit is deprecated.</p>
+</li>
+<li><p><strong>Compound Nouns</strong></p>
+<p>It’s preferable to use the <strong>closed (one-word)</strong> form for compound nouns
+whenever it’s standard in engine or toolchain usage:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> renderpass, framebuffer, toolchain</p>
+<p>If <a class="reference external" href="https://www.merriam-webster.com/">Merriam-Webster</a> lists a spaced or
+hyphenated form but the closed version is commonly used in game engine-related
+area or codebase, use the closed form.</p>
+<div class="warning admonition">
+<p class="admonition-title">Exceptions</p>
+<p>Use hyphens or spaces for established terms:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> multi-pass rendering, debug layer, camera rig, physics material</p>
+<p>Some words change form by usage:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <strong>set up</strong> (verb), <strong>setup</strong> (noun)</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <strong>log in</strong> (verb), <strong>login</strong> (noun)</p>
+<p>For compound units of measurement or units that multiply, use hyphens:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 120 render-thread-hours</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 10 AI-agent-hours</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 5 vCPU-hours</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 40 person-hours</p>
+</div>
+</li>
+<li><p><strong>Prefixes</strong></p>
+<p>Avoid creating new, nonstandard words by simply attaching a prefix to an
+existing word. If the resulting form isn’t widely recognized, rephrase for
+clarity.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> reinitialize the renderer</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> non-player entity</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> reinit renderer</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> noninteractiveable UI</p>
+<p>Use a hyphen between a prefix and a stem word:</p>
+<ul>
+<li><p>If a confusing or ambiguous word results without the hyphen:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <strong>re-sign</strong> (sign again) vs <strong>resign</strong> (quit a job)</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <strong>co-op</strong> (cooperative) vs <strong>coop</strong> (a cage for chickens)</p>
+</li>
+<li><p>If the stem word begins with a capital letter:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> non-XML, pre-IPv6</p>
+</li>
+</ul>
+<p>If the prefixed word is listed in
+<a class="reference external" href="https://www.merriam-webster.com/">Merriam-Webster</a> or the <a class="reference internal" href="#word-list">Word
+List</a>, you can use it. When in doubt, rewrite or hyphenate to
+improve readability.</p>
+<p>In general, don’t include a hyphen after the following prefixes unless
+omitting the hyphen could confuse the reader.</p>
+<ul class="simple">
+<li><p>auto-</p></li>
+<li><p>co-</p></li>
+<li><p>cyber-</p></li>
+<li><p>exa-, giga-, kilo-, mega-</p></li>
+<li><p>inter-, intra-</p></li>
+<li><p>macro-, micro-, mono-</p></li>
+<li><p>non-</p></li>
+<li><p>omni-</p></li>
+<li><p>pre-</p></li>
+<li><p>re-</p></li>
+<li><p>sub-</p></li>
+<li><p>tera-</p></li>
+<li><p>un-, uni-</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="en-dash">
+<h4>En Dash (–)<a class="headerlink" href="#en-dash" title="Link to this heading"></a></h4>
+<p><strong>Don’t use en dashes.</strong></p>
+<p>Use a hyphen or the word <em><strong>to</strong></em> instead.</p>
+<p>For ranges, use:</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <strong>60–120 FPS</strong> write as <strong>60 to 120 FPS</strong></p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <strong>GPU-bound tasks 1–4</strong> write as <strong>tasks 1 to 4</strong></p>
+<p><strong>Avoid using dashes with spaces</strong> (–, —, or -) to separate labels from
+descriptions. Use a colon or period instead.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Frame timing: Controls update frequency.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Example: Use renderpass to group draw calls.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Frame timing - Controls update frequency</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-x" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path></svg> Example — Use renderpass to group draw calls</p>
+</section>
+<section id="em-dash">
+<h4>Em Dash (—)<a class="headerlink" href="#em-dash" title="Link to this heading"></a></h4>
+<p><strong>Don’t use em dashes.</strong></p>
+<p>Em dashes can cause inconsistency in formatting, reduce readability in technical
+contexts, and create issues in code snippets, tooling, and localization.</p>
+<p>Instead, use:</p>
+<ul>
+<li><p>A <strong>colon (:)</strong> to introduce explanations or definitions.</p></li>
+<li><p>A <strong>hyphen (-)</strong> for compound terms.</p></li>
+<li><p>The word <em><strong>to</strong></em> for ranges.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Renderpass: Defines a sequence of draw calls</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Use a real-time rendering pipeline</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Set frame rate to 60 to 120 FPS</p>
+</li>
+</ul>
+<div class="important admonition">
+<p class="admonition-title">Why we avoid en/em dashes?</p>
+<p>To keep formatting consistent and machine-friendly, <strong>Dagor documentation does
+not use en (–) or em (—) dashes</strong>. Dashes can cause issues with readability,
+localization, and rendering across platforms. Instead, we prefer clear and
+stable alternatives:</p>
+<ul>
+<li><p>Use a <strong>colon (:)</strong> to introduce definitions or descriptions.</p></li>
+<li><p>Use the word <em><strong>to</strong></em> for numeric ranges.</p></li>
+<li><p>Use a <strong>hyphen (-)</strong> for compound terms.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> LOD: Level of Detail system</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> 60 to 120 FPS</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> GPU-bound rendering</p>
+</li>
+</ul>
+<p>This approach improves clarity and avoids formatting issues in tools, editors,
+and translations.</p>
+</div>
+</section>
+<section id="minus-sign">
+<h4>Minus Sign<a class="headerlink" href="#minus-sign" title="Link to this heading"></a></h4>
+<p>Use the minus sign (−) only for subtraction and negative numbers in formulas or
+code.</p>
+<p>Do <strong>not</strong> substitute an en dash (–) for the minus sign, as it can cause
+confusion and accessibility issues.</p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> <code class="docutils literal notranslate"><span class="pre">Health</span> <span class="pre">=</span> <span class="pre">MaxHealth</span> <span class="pre">−</span> <span class="pre">DamageTaken</span></code></p>
+<p><svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Velocity = −9.8 m/s² (gravity)</p>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="how_to_build_docs_locally.html" class="btn btn-neutral float-left" title="How to Build Documentation Locally" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="contributing_to_docs.html" class="btn btn-neutral float-right" title="Contributing to Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

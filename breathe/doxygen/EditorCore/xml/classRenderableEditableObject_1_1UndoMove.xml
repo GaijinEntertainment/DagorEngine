@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderableEditableObject_1_1UndoMove" kind="class" language="C++" prot="protected">
+    <compoundname>RenderableEditableObject::UndoMove</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UndoRedoObject</basecompoundref>
+    <includes refid="ec__rendEdObject_8h" local="no">ec_rendEdObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" prot="public" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &gt;</type>
+        <definition>Ptr&lt;RenderableEditableObject&gt; RenderableEditableObject::UndoMove::obj</definition>
+        <argsstring></argsstring>
+        <name>obj</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="370" column="9" bodyfile="ec_rendEdObject.h" bodystart="370" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoMove_1a8f0368b243355c0c4b2b87ef1771f928" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderableEditableObject::UndoMove::oldPos</definition>
+        <argsstring></argsstring>
+        <name>oldPos</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::oldPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="371" column="12" bodyfile="ec_rendEdObject.h" bodystart="371" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoMove_1aab9af9e8fe40fb3605c03b0ee4308d02" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RenderableEditableObject::UndoMove::redoPos</definition>
+        <argsstring></argsstring>
+        <name>redoPos</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::redoPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="371" column="19" bodyfile="ec_rendEdObject.h" bodystart="371" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMove_1aa8594a6566518e870e0f501bb0abb534" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderableEditableObject::UndoMove::UndoMove</definition>
+        <argsstring>(RenderableEditableObject *o)</argsstring>
+        <name>UndoMove</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::UndoMove</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> *</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="374" column="5" bodyfile="ec_rendEdObject.h" bodystart="374" bodyend="374"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMove_1a5f27350af39324c8d151532744a36256" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMove::restore</definition>
+        <argsstring>(bool save_redo) override</argsstring>
+        <name>restore</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::restore</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>save_redo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="376" column="10" bodyfile="ec_rendEdObject.h" bodystart="376" bodyend="381"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMove_1a2395e0ae8ca0bb84e39050ef38a79cee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMove::redo</definition>
+        <argsstring>() override</argsstring>
+        <name>redo</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="383" column="10" bodyfile="ec_rendEdObject.h" bodystart="383" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMove_1a68c6daf24d5dc2800beeebb463f58201" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t RenderableEditableObject::UndoMove::size</definition>
+        <argsstring>() override</argsstring>
+        <name>size</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="385" column="12" bodyfile="ec_rendEdObject.h" bodystart="385" bodyend="385"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMove_1a4d8946fc026368907c9b3dda3bb90b68" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMove::accepted</definition>
+        <argsstring>() override</argsstring>
+        <name>accepted</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::accepted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="386" column="10" bodyfile="ec_rendEdObject.h" bodystart="386" bodyend="386"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoMove_1a03ae037a748a77c2b8365ea1ce56fa07" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoMove::get_description</definition>
+        <argsstring>(String &amp;s) override</argsstring>
+        <name>get_description</name>
+        <qualifiedname>RenderableEditableObject::UndoMove::get_description</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="387" column="10" bodyfile="ec_rendEdObject.h" bodystart="387" bodyend="387"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>RenderableEditableObject::UndoMove</label>
+        <link refid="classRenderableEditableObject_1_1UndoMove"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>RenderableEditableObject::UndoMove</label>
+        <link refid="classRenderableEditableObject_1_1UndoMove"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_rendEdObject.h" line="367" column="3" bodyfile="ec_rendEdObject.h" bodystart="368" bodyend="388"/>
+    <listofallmembers>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1a4d8946fc026368907c9b3dda3bb90b68" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>accepted</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1a03ae037a748a77c2b8365ea1ce56fa07" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>get_description</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>obj</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1a8f0368b243355c0c4b2b87ef1771f928" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>oldPos</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1a2395e0ae8ca0bb84e39050ef38a79cee" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>redo</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1aab9af9e8fe40fb3605c03b0ee4308d02" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>redoPos</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1a5f27350af39324c8d151532744a36256" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>restore</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1a68c6daf24d5dc2800beeebb463f58201" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>size</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoMove_1aa8594a6566518e870e0f501bb0abb534" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoMove</scope><name>UndoMove</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

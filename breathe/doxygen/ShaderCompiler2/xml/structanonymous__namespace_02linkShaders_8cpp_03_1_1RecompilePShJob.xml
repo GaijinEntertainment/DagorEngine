@@ -1,0 +1,134 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob" kind="struct" language="C++" prot="public">
+    <compoundname>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</compoundname>
+    <basecompoundref refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase" prot="public" virt="non-virtual">anonymous_namespace{linkShaders.cpp}::RecompileJobBase</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1a167c9033a0dad55c0bd7e16682a9ae44" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{linkShaders.cpp}::RecompilePShJob::doJobBody</definition>
+        <argsstring>() override</argsstring>
+        <name>doJobBody</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::RecompilePShJob::doJobBody</qualifiedname>
+        <reimplements refid="structshc_1_1Job_1a511cbc0ba7e66ed3a03a31d195225e57">doJobBody</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="549" column="8" bodyfile="linkShaders.cpp" bodystart="549" bodyend="587"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1a9e5969e22ea7014a60e4dc844a4c9ff6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{linkShaders.cpp}::RecompilePShJob::releaseJobBody</definition>
+        <argsstring>() override</argsstring>
+        <name>releaseJobBody</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::RecompilePShJob::releaseJobBody</qualifiedname>
+        <reimplements refid="structshc_1_1Job_1af5ccf84f47357898495b7aa2a29d4971">releaseJobBody</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="588" column="8" bodyfile="linkShaders.cpp" bodystart="588" bodyend="588"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1ac23d299162f5aa9d118064b808f9add9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::RecompileJobBase</definition>
+        <argsstring>(size_t ct, shc::TargetContext &amp;cref)</argsstring>
+        <name>RecompileJobBase</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::RecompilePShJob::RecompileJobBase</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>ct</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>cref</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="547" column="3" bodyfile="linkShaders.cpp" bodystart="361" bodyend="361"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>anonymous_namespace{linkShaders.cpp}::RecompileJobBase</label>
+        <link refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</label>
+        <link refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>cpujobs::IJob</label>
+      </node>
+      <node id="3">
+        <label>shc::Job</label>
+        <link refid="structshc_1_1Job"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>anonymous_namespace{linkShaders.cpp}::RecompileJobBase</label>
+        <link refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</label>
+        <link refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>cpujobs::IJob</label>
+      </node>
+      <node id="3">
+        <label>shc::Job</label>
+        <link refid="structshc_1_1Job"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="linkShaders.cpp" line="545" column="1" bodyfile="linkShaders.cpp" bodystart="546" bodyend="589"/>
+    <listofallmembers>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1a349915ce2afb9c05aea5901910b701c8" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>compileTarget</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1aa7909fd438e69f0e31dbfe72ab0d08b9" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>ctx</name></member>
+      <member refid="structshc_1_1Job_1a0db61e3f075b115844f23da94bc912a0" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>doJob</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1a167c9033a0dad55c0bd7e16682a9ae44" prot="public" virt="virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>doJobBody</name></member>
+      <member refid="structshc_1_1Job_1a2f0e44530de43b280559dd4ff807d9dd" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>getJobName</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1ab4f4b1fcd9cb0d97ce85b80710b93980" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>ilHash</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1a39a1f6184027b3c6ce9986e434016cff" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>ilPath</name></member>
+      <member refid="structshc_1_1Job_1a52d7c6fb892f01ed0f54176dbc5d2930" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>Job</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1acb49ba36805eec5db6eb82ede1e88aae" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>load_cache</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1ac23d299162f5aa9d118064b808f9add9" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>RecompileJobBase</name></member>
+      <member refid="structshc_1_1Job_1a511710ba0cb8538630fd63b83396dc31" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>releaseJob</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompilePShJob_1a9e5969e22ea7014a60e4dc844a4c9ff6" prot="public" virt="virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>releaseJobBody</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1a245dcad7980bb618869cefdabd21845f" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompilePShJob</scope><name>store_cache</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

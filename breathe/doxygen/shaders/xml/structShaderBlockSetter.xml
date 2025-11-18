@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderBlockSetter" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderBlockSetter</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderBlockSetter_1a53857ba2397dd2916b7ce246384d8a0c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderBlockSetter::oldBlock</definition>
+        <argsstring></argsstring>
+        <name>oldBlock</name>
+        <qualifiedname>ShaderBlockSetter::oldBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="59" column="7" bodyfile="dag_shaderBlock.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderBlockSetter_1ac55880bb262174327e5774ec3001c735" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderBlockSetter::currentLayer</definition>
+        <argsstring></argsstring>
+        <name>currentLayer</name>
+        <qualifiedname>ShaderBlockSetter::currentLayer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="60" column="7" bodyfile="dag_shaderBlock.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderBlockSetter_1a003bc7ef97fb63a915412fb66bfd6367" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBlockSetter::ShaderBlockSetter</definition>
+        <argsstring>(int new_block, int layer)</argsstring>
+        <name>ShaderBlockSetter</name>
+        <qualifiedname>ShaderBlockSetter::ShaderBlockSetter</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>new_block</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="61" column="3" bodyfile="dag_shaderBlock.h" bodystart="61" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderBlockSetter_1adec58e27bb15f5b12a1a39461b30220f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBlockSetter::~ShaderBlockSetter</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderBlockSetter</name>
+        <qualifiedname>ShaderBlockSetter::~ShaderBlockSetter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="66" column="3" bodyfile="dag_shaderBlock.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderBlock.h" line="57" column="1" bodyfile="dag_shaderBlock.h" bodystart="58" bodyend="67"/>
+    <listofallmembers>
+      <member refid="structShaderBlockSetter_1ac55880bb262174327e5774ec3001c735" prot="public" virt="non-virtual"><scope>ShaderBlockSetter</scope><name>currentLayer</name></member>
+      <member refid="structShaderBlockSetter_1a53857ba2397dd2916b7ce246384d8a0c" prot="public" virt="non-virtual"><scope>ShaderBlockSetter</scope><name>oldBlock</name></member>
+      <member refid="structShaderBlockSetter_1a003bc7ef97fb63a915412fb66bfd6367" prot="public" virt="non-virtual"><scope>ShaderBlockSetter</scope><name>ShaderBlockSetter</name></member>
+      <member refid="structShaderBlockSetter_1adec58e27bb15f5b12a1a39461b30220f" prot="public" virt="non-virtual"><scope>ShaderBlockSetter</scope><name>~ShaderBlockSetter</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

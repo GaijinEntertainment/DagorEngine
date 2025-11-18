@@ -1,0 +1,443 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dear ImGui and ImPlot</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Impostor Baker" href="../impostor-baker/index.html" />
+    <link rel="prev" title="Dear ImGui and ImPlot" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Dear ImGui and ImPlot</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Dear ImGui and ImPlot</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-use">How to Use</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#mouse-input-tips">Mouse Input Tips</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#keyboard-navigation">Keyboard Navigation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#controller-navigation">Controller Navigation</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#adding-custom-functionality">Adding Custom Functionality</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#imgui-function-registration">ImGui Function Registration</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#imgui-windows">ImGui Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#custom-imgui-code">Custom ImGui Code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#finding-control-code-examples">Finding Control Code Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#suggestions">Suggestions</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#implemented-suggestions">Implemented Suggestions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dear ImGui and ImPlot</a></li>
+      <li class="breadcrumb-item active">Dear ImGui and ImPlot</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/dear-imgui/dear_imgui.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dear-imgui-and-implot">
+<h1>Dear ImGui and ImPlot<a class="headerlink" href="#dear-imgui-and-implot" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p><a class="reference external" href="https://github.com/ocornut/imgui">Dear ImGui</a> is an immediate-mode GUI library
+for C++ designed to facilitate rapid development of content creation and
+debugging tools. Unlike traditional GUI libraries aimed at general end-user
+applications, Dear ImGui focuses on simplicity and productivity for developers,
+making it ideal for creating in-game visualization, debugging, and tool
+interfaces.</p>
+<p><a class="reference external" href="https://github.com/epezent/implot">ImPlot</a>, built on top of Dear ImGui, is a
+library for real-time plotting and data visualization. It enables the creation
+of interactive plots, making it well-suited for visualizing program data and
+performance metrics.</p>
+<p>Both Dear ImGui and ImPlot are integrated into Dagor Engine (currently used
+exclusively by the Enlisted project), allowing you to develop custom tools to
+aid in your current development tasks or even create long-term tools for broader
+use.</p>
+<a class="reference internal image-reference" href="../../_images/dear_imgui_01.png"><img alt="../../_images/dear_imgui_01.png" class="align-center" src="../../_images/dear_imgui_01.png" style="width: 60em;" />
+</a>
+</section>
+<section id="how-to-use">
+<h2>How to Use<a class="headerlink" href="#how-to-use" title="Link to this heading"></a></h2>
+<p>Dear ImGui is only available in non-release builds, but it can be used on
+consoles as well.</p>
+<p>You can cycle through ImGui modes using the following hotkeys:</p>
+<ul class="simple">
+<li><p><strong>Keyboard</strong>: Press <code class="docutils literal notranslate"><span class="pre">F2</span></code> to switch between modes.</p></li>
+<li><p><strong>Controller</strong>: Press <code class="docutils literal notranslate"><span class="pre">LS</span></code> + <code class="docutils literal notranslate"><span class="pre">Dpad</span> <span class="pre">Down</span></code> to toggle modes.</p></li>
+</ul>
+<p>ImGui operates in three modes within the engine:</p>
+<ul class="simple">
+<li><p><strong>OFF</strong>: ImGui is disabled, allowing the game to run normally without any
+debug UI. This is the default state when the game launches.</p></li>
+<li><p><strong>ACTIVE</strong>: ImGui is enabled and active, and all input (keyboard, mouse, or
+controller) is consumed by ImGui.</p></li>
+<li><p><strong>OVERLAY</strong>: ImGui is enabled, but with more transparent window backgrounds.
+Input is passed through to the game, allowing debug values and visualizations
+to remain on-screen while playing.</p></li>
+</ul>
+<p>ImGui remembers the position and size of your opened windows by default, and our
+integration also saves their open/close state. This means that when you relaunch
+the game, your windows will return exactly to their previous position.</p>
+<section id="mouse-input-tips">
+<h3>Mouse Input Tips<a class="headerlink" href="#mouse-input-tips" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">LMB</span></code>: Directly edit the value of sliders and drag controls.</p></li>
+<li><p>Hold <code class="docutils literal notranslate"><span class="pre">Alt</span></code>: Adjust drag controls with finer precision.</p></li>
+<li><p>Hold <code class="docutils literal notranslate"><span class="pre">Shift</span></code>: Adjust drag controls more quickly, with less precision.</p></li>
+</ul>
+</section>
+<section id="keyboard-navigation">
+<h3>Keyboard Navigation<a class="headerlink" href="#keyboard-navigation" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Tab</span></code>: Cycle through open windows and the main menu bar.</p></li>
+<li><p>Arrow keys: Navigate within a window.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code>: Navigate to the menu bar within a window.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Enter</span></code>: Edit the selected item.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Space</span></code>: Activate, open, or toggle items.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + Arrow keys: Move focused windows around after using <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Tab</span></code>.</p></li>
+<li><p>Clipboard functionality is supported.</p></li>
+</ul>
+</section>
+<section id="controller-navigation">
+<h3>Controller Navigation<a class="headerlink" href="#controller-navigation" title="Link to this heading"></a></h3>
+<a class="reference internal image-reference" href="../../_images/dear_imgui_02.png"><img alt="../../_images/dear_imgui_02.png" class="align-center" src="../../_images/dear_imgui_02.png" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/dear_imgui_03.png"><img alt="../../_images/dear_imgui_03.png" class="align-center" src="../../_images/dear_imgui_03.png" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/dear_imgui_04.png"><img alt="../../_images/dear_imgui_04.png" class="align-center" src="../../_images/dear_imgui_04.png" style="width: 50em;" />
+</a>
+<p>Controller layout image source:
+<a class="reference download external" download="" href="https://drive.google.com/drive/folders/1fMqIuWck_PqdZ99nB_HHonl6s3YH5Dbr?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">download</span></code></a>.</p>
+</section>
+</section>
+<section id="adding-custom-functionality">
+<h2>Adding Custom Functionality<a class="headerlink" href="#adding-custom-functionality" title="Link to this heading"></a></h2>
+<p>You can extend the ImGui interface by adding your own functionality using the
+following methods:</p>
+<section id="imgui-function-registration">
+<h3>ImGui Function Registration<a class="headerlink" href="#imgui-function-registration" title="Link to this heading"></a></h3>
+<p>To add custom functions to the ImGui menu, register a function with a <code class="docutils literal notranslate"><span class="pre">void</span></code>
+return value and no parameters (or a non-capturing lambda with the same
+signature) via:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">REGISTER_IMGUI_FUNCTION(group,</span> <span class="pre">name,</span> <span class="pre">func)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REGISTER_IMGUI_FUNCTION_EX(group,</span> <span class="pre">name,</span> <span class="pre">hotkey,</span> <span class="pre">priority,</span> <span class="pre">func)</span></code></p></li>
+</ul>
+<p>These macros will add your function to the main menu bar under the specified
+<code class="docutils literal notranslate"><span class="pre">group</span></code>. The menu item will appear with the name <code class="docutils literal notranslate"><span class="pre">name</span></code>, and clicking the item
+will invoke the registered function.</p>
+<p>Additional parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hotkey</span></code>: This is a cosmetic hint for a hotkey that will be displayed
+alongside the menu item. It does not actually bind the hotkey. The default
+value is <code class="docutils literal notranslate"><span class="pre">nullptr</span></code>, indicating no hotkey.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">priority</span></code>: Controls the position of the function in the menu list. Functions
+with a lower priority will appear higher in the list. The default priority is
+<code class="docutils literal notranslate"><span class="pre">100</span></code>.</p></li>
+</ul>
+<p>To use these macros, include <code class="docutils literal notranslate"><span class="pre">gui/dag_imgui.h</span></code>.</p>
+<p><strong>Examples</strong>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">REGISTER_IMGUI_FUNCTION_EX</span><span class="p">(</span><span class="s">&quot;App&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Exit&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Alt+F4&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">999</span><span class="p">,</span><span class="w"> </span><span class="p">[]{</span><span class="w"> </span><span class="n">exit_game</span><span class="p">(</span><span class="s">&quot;exit_from_imgui_menu_bar&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<span class="n">REGISTER_IMGUI_FUNCTION_EX</span><span class="p">(</span><span class="s">&quot;Screencap&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Take screenshot&quot;</span><span class="p">,</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">[]{</span><span class="w"> </span><span class="n">screencap</span><span class="o">::</span><span class="n">schedule_screenshot</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<span class="n">REGISTER_IMGUI_FUNCTION_EX</span><span class="p">(</span><span class="s">&quot;Screencap&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Take screenshot (no GUI)&quot;</span><span class="p">,</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="p">[]{</span><span class="w"> </span><span class="n">screencap</span><span class="o">::</span><span class="n">schedule_screenshot</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+</pre></div>
+</div>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../_images/dear_imgui_05.png"><img alt="../../_images/dear_imgui_05.png" class="align-center" src="../../_images/dear_imgui_05.png" style="height: 7em;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../_images/dear_imgui_06.png"><img alt="../../_images/dear_imgui_06.png" class="align-center" src="../../_images/dear_imgui_06.png" style="height: 7em;" />
+</a>
+</div>
+</div>
+</div>
+</section>
+<section id="imgui-windows">
+<h3>ImGui Windows<a class="headerlink" href="#imgui-windows" title="Link to this heading"></a></h3>
+<p>To register your own ImGui window, use the following macros:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">REGISTER_IMGUI_WINDOW(group,</span> <span class="pre">name,</span> <span class="pre">func)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REGISTER_IMGUI_WINDOW_EX(group,</span> <span class="pre">name,</span> <span class="pre">hotkey,</span> <span class="pre">priority,</span> <span class="pre">func)</span></code></p></li>
+</ul>
+<p>These macros will add your function as a window in the <strong>Window</strong> menu on the
+main menu bar. A menu item will appear as <strong>Window/group/name</strong>, allowing you to
+open the corresponding window.</p>
+<p>Your function will be called every frame, and within it, you can add ImGui code
+to create the desired controls for your window.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">hotkey</span></code> and <code class="docutils literal notranslate"><span class="pre">priority</span></code> parameters work the same way as in the ImGui
+function registration. You can customize the shortcut for opening the window
+(hotkey) and control its position in the menu list (priority).</p>
+<p>To use these macros, include <code class="docutils literal notranslate"><span class="pre">gui/dag_imgui.h</span></code>.</p>
+<p><strong>Example</strong>:</p>
+<a class="reference internal image-reference" href="../../_images/dear_imgui_07.png"><img alt="../../_images/dear_imgui_07.png" class="align-center" src="../../_images/dear_imgui_07.png" style="width: 40em;" />
+</a>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-muted sd-bg-text-muted">
+DLSS settings window function code in <code class="docutils literal notranslate"><span class="pre">worldRenderer.cpp</span></code><div class="sd-summary-down docutils">
+<svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-down" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5.22 8.72a.75.75 0 000 1.06l6.25 6.25a.75.75 0 001.06 0l6.25-6.25a.75.75 0 00-1.06-1.06L12 14.44 6.28 8.72a.75.75 0 00-1.06 0z"></path></svg></div>
+<div class="sd-summary-up docutils">
+<svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-up" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M18.78 15.28a.75.75 0 000-1.06l-6.25-6.25a.75.75 0 00-1.06 0l-6.25 6.25a.75.75 0 101.06 1.06L12 9.56l5.72 5.72a.75.75 0 001.06 0z"></path></svg></div>
+</summary><div class="sd-summary-content sd-card-body docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">dlss_settings_imgui</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="n">WorldRenderer</span><span class="w"> </span><span class="o">*</span><span class="n">wr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">WorldRenderer</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">get_world_renderer</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">wr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">ImGui</span><span class="o">::</span><span class="n">Text</span><span class="p">(</span><span class="s">&quot;DLSS enabled: %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dlss</span><span class="p">.</span><span class="n">get</span><span class="p">()</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot;true&quot;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dlssQualityStrings</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;Off&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Ultra-Performance&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Performance&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Balanced&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Quality&quot;</span><span class="p">};</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w">   </span><span class="n">dlssQualityValues</span><span class="p">[]</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="mi">-1</span><span class="p">,</span><span class="w">                   </span><span class="mi">3</span><span class="p">,</span><span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w">           </span><span class="mi">1</span><span class="p">,</span><span class="w">         </span><span class="mi">2</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">selectedDlssQuality</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">eastl</span><span class="o">::</span><span class="n">find</span><span class="p">(</span><span class="n">eastl</span><span class="o">::</span><span class="n">begin</span><span class="p">(</span><span class="n">dlssQualityValues</span><span class="p">),</span><span class="w"> </span><span class="n">eastl</span><span class="o">::</span><span class="n">end</span><span class="p">(</span><span class="n">dlssQualityValues</span><span class="p">),</span><span class="w"> </span><span class="n">dlss_quality</span><span class="p">.</span><span class="n">get</span><span class="p">())</span><span class="w"> </span><span class="o">-</span>
+<span class="w">                            </span><span class="n">eastl</span><span class="o">::</span><span class="n">begin</span><span class="p">(</span><span class="n">dlssQualityValues</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ImGui</span><span class="o">::</span><span class="n">Combo</span><span class="p">(</span><span class="s">&quot;Quality preset&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">selectedDlssQuality</span><span class="p">,</span><span class="w"> </span><span class="n">dlssQualityStrings</span><span class="p">,</span><span class="w"> </span><span class="n">IM_ARRAYSIZE</span><span class="p">(</span><span class="n">dlssQualityStrings</span><span class="p">)))</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">dlss_quality</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">dlssQualityValues</span><span class="p">[</span><span class="n">selectedDlssQuality</span><span class="p">]);</span>
+
+<span class="w">    </span><span class="n">DataBlock</span><span class="w"> </span><span class="n">blk</span><span class="p">;</span>
+<span class="w">    </span><span class="n">blk</span><span class="p">.</span><span class="n">addBlock</span><span class="p">(</span><span class="s">&quot;video&quot;</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">setInt</span><span class="p">(</span><span class="s">&quot;dlssQuality&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dlss_quality</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+<span class="w">    </span><span class="o">::</span><span class="n">dgs_apply_config_blk</span><span class="p">(</span><span class="n">blk</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">FastNameMap</span><span class="w"> </span><span class="n">changed</span><span class="p">;</span>
+<span class="w">    </span><span class="n">changed</span><span class="p">.</span><span class="n">addNameId</span><span class="p">(</span><span class="s">&quot;video/dlssQuality&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">applyAfterResetDevice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="n">change_video_mode_request</span><span class="p">(</span><span class="n">applyAfterResetDevice</span><span class="p">);</span>
+<span class="w">    </span><span class="n">wr</span><span class="o">-&gt;</span><span class="n">onSettingsChanged</span><span class="p">(</span><span class="n">changed</span><span class="p">,</span><span class="w"> </span><span class="n">applyAfterResetDevice</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">mipBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlss_mip_bias</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ImGui</span><span class="o">::</span><span class="n">SliderFloat</span><span class="p">(</span><span class="s">&quot;Mip bias&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mipBias</span><span class="p">,</span><span class="w"> </span><span class="n">dlss_mip_bias</span><span class="p">.</span><span class="n">getMin</span><span class="p">(),</span><span class="w"> </span><span class="n">dlss_mip_bias</span><span class="p">.</span><span class="n">getMax</span><span class="p">());</span>
+<span class="w">  </span><span class="n">dlss_mip_bias</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">mipBias</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">mipBiasEpsilon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlss_mip_bias_epsilon</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">needSetResolution</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ImGui</span><span class="o">::</span><span class="n">SliderFloat</span><span class="p">(</span><span class="s">&quot;Mip bias epsilon&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mipBiasEpsilon</span><span class="p">,</span>
+<span class="w">                                              </span><span class="n">dlss_mip_bias_epsilon</span><span class="p">.</span><span class="n">getMin</span><span class="p">(),</span><span class="w"> </span><span class="n">dlss_mip_bias_epsilon</span><span class="p">.</span><span class="n">getMax</span><span class="p">());</span>
+<span class="w">  </span><span class="n">dlss_mip_bias_epsilon</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">mipBiasEpsilon</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">dlssAutomaticMipBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlss_automatic_mip_bias</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">needSetResolution</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">ImGui</span><span class="o">::</span><span class="n">Checkbox</span><span class="p">(</span><span class="s">&quot;Automatic mip bias&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dlssAutomaticMipBias</span><span class="p">);</span>
+<span class="w">  </span><span class="n">dlss_automatic_mip_bias</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">dlssAutomaticMipBias</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">dlssSubsamples</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlss_subsamples</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ImGui</span><span class="o">::</span><span class="n">SliderInt</span><span class="p">(</span><span class="s">&quot;Subsamples&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dlssSubsamples</span><span class="p">,</span><span class="w"> </span><span class="n">dlss_subsamples</span><span class="p">.</span><span class="n">getMin</span><span class="p">(),</span><span class="w"> </span><span class="n">dlss_subsamples</span><span class="p">.</span><span class="n">getMax</span><span class="p">(),</span><span class="w"> </span><span class="s">&quot;%d&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ImGuiSliderFlags_Logarithmic</span><span class="p">);</span>
+<span class="w">  </span><span class="n">dlss_subsamples</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="n">dlssSubsamples</span><span class="p">);</span>
+<span class="w">  </span><span class="n">needSetResolution</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">ImGui</span><span class="o">::</span><span class="n">Checkbox</span><span class="p">(</span><span class="s">&quot;Toggle&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dlss_toggle</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">needSetResolution</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">d3d</span><span class="o">::</span><span class="n">driver_command</span><span class="p">(</span><span class="n">DRV3D_COMMAND_ACQUIRE_OWNERSHIP</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<span class="w">    </span><span class="n">wr</span><span class="o">-&gt;</span><span class="n">setResolution</span><span class="p">();</span>
+<span class="w">    </span><span class="n">d3d</span><span class="o">::</span><span class="n">driver_command</span><span class="p">(</span><span class="n">DRV3D_COMMAND_RELEASE_OWNERSHIP</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">REGISTER_IMGUI_WINDOW</span><span class="p">(</span><span class="s">&quot;Render&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;DLSS settings&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dlss_settings_imgui</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</details></section>
+</section>
+<section id="custom-imgui-code">
+<h2>Custom ImGui Code<a class="headerlink" href="#custom-imgui-code" title="Link to this heading"></a></h2>
+<p>The provided macros for registering ImGui windows and functions are convenient,
+but you can also insert custom ImGui code manually without using them. Just
+ensure the following guidelines are met:</p>
+<ol class="arabic">
+<li><p>ImGui code runs every frame.</p></li>
+<li><p>ImGui code is only executed when <code class="docutils literal notranslate"><span class="pre">imgui_get_state()</span> <span class="pre">!=</span> <span class="pre">ImGuiState::OFF</span></code>.</p></li>
+<li><p>It should be placed between <code class="docutils literal notranslate"><span class="pre">imgui_update()</span></code> and <code class="docutils literal notranslate"><span class="pre">imgui_render()</span></code> (or
+<code class="docutils literal notranslate"><span class="pre">imgui_endframe()</span></code>).</p>
+<p>Every update and render code should be fine, as <code class="docutils literal notranslate"><span class="pre">imgui_update()</span></code> is called at
+the beginning of the <code class="docutils literal notranslate"><span class="pre">game_scene::update()</span></code> function in <code class="docutils literal notranslate"><span class="pre">app.cpp</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">imgui_render()</span></code> is called at the end of the <code class="docutils literal notranslate"><span class="pre">draw_scene()</span></code> function in
+<code class="docutils literal notranslate"><span class="pre">drawScene.cpp</span></code>.</p>
+</li>
+</ol>
+</section>
+<section id="finding-control-code-examples">
+<h2>Finding Control Code Examples<a class="headerlink" href="#finding-control-code-examples" title="Link to this heading"></a></h2>
+<p>Once you’re familiar with how to wire your ImGui code, you might want to add
+specific controls, like sliders or buttons. Luckily, ImGui and ImPlot provide
+example demo windows that showcase various controls.</p>
+<p>You can access these demos via the following menu items:</p>
+<ul class="simple">
+<li><p><strong>ImGui</strong> &gt; <strong>Dear ImGui Demo window</strong></p></li>
+<li><p><strong>ImGui</strong> &gt; <strong>ImPlot Demo window</strong></p></li>
+</ul>
+<p>The code for these windows can be found in the following files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">prog/3rdPartyLibs/imgui/imgui_demo.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prog/3rdPartyLibs/imgui/implot_demo.cpp</span></code></p></li>
+</ul>
+<p>However, if you need code for a specific control, there’s an even easier way to
+find it. Open the <strong>ImGui Metrics</strong> window from either of the demo windows. It
+includes an <strong>Item Picker</strong> tool that lets you click on a control in the window,
+and the corresponding code will break at the point where the control is defined.</p>
+<a class="reference internal image-reference" href="../../_images/dear_imgui_08.png"><img alt="../../_images/dear_imgui_08.png" class="align-center" src="../../_images/dear_imgui_08.png" style="width: 40em;" />
+</a>
+<p>To call ImGui and ImPlot functions, include the following headers:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">#include</span> <span class="pre">&lt;imgui/imgui.h&gt;</span></code> (for ImGui functions)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">#include</span> <span class="pre">&lt;imgui/implot.h&gt;</span></code> (for ImPlot functions)</p></li>
+</ul>
+<p>Make sure to add <code class="docutils literal notranslate"><span class="pre">$(Root)/prog/3rdPartyLibs</span></code> to your include directories.</p>
+</section>
+<section id="suggestions">
+<h2>Suggestions<a class="headerlink" href="#suggestions" title="Link to this heading"></a></h2>
+<p>We welcome any suggestions or issue reports. Feel free to contribute.</p>
+<section id="implemented-suggestions">
+<h3>Implemented Suggestions<a class="headerlink" href="#implemented-suggestions" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Added controller combination to cycle through ImGui modes.</p></li>
+<li><p>Saved the mouse position when switching from <strong>ACTIVE</strong> mode, restoring it
+upon re-entering <strong>ACTIVE</strong> mode (previously, it always started at the center
+of the screen).</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Dear ImGui and ImPlot" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../impostor-baker/index.html" class="btn btn-neutral float-right" title="Impostor Baker" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

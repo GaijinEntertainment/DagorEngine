@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="unionResourceClearValue" kind="union" language="C++" prot="public">
+    <compoundname>ResourceClearValue</compoundname>
+    <includes refid="dag__resource_8h" local="no">dag_resource.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionResourceClearValue_1aad4f2bb05d2d6bddb2ab55e32ab02ab5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceClearValue::asUint[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>asUint</name>
+        <qualifiedname>ResourceClearValue::asUint</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="11" column="14" bodyfile="dag_resource.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1a400a7512a285918d64b70ccb8b145b45" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref></type>
+        <definition>struct ResourceClearValue ResourceClearValue</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ResourceClearValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="12" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1a975ca8adf1aa4246abdb6ede72a3a5fe" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t ResourceClearValue::asInt[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>asInt</name>
+        <qualifiedname>ResourceClearValue::asInt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="15" column="13" bodyfile="dag_resource.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1ab6af513ff3c04176546bb76b477355d6" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref></type>
+        <definition>struct ResourceClearValue ResourceClearValue</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ResourceClearValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="16" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1a04a959c9cec083c3dbcb9343ed62b19e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ResourceClearValue::asFloat[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>asFloat</name>
+        <qualifiedname>ResourceClearValue::asFloat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="19" column="11" bodyfile="dag_resource.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1a558c8c8b770024c77f773e25a6825339" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref></type>
+        <definition>struct ResourceClearValue ResourceClearValue</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ResourceClearValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="20" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1aab4ceb61c7e108640fb94b5b72f9a5a8" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ResourceClearValue::asDepth</definition>
+        <argsstring></argsstring>
+        <name>asDepth</name>
+        <qualifiedname>ResourceClearValue::asDepth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="23" column="11" bodyfile="dag_resource.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1acadc2926673037b02d7e16b5c96a4236" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ResourceClearValue::asStencil</definition>
+        <argsstring></argsstring>
+        <name>asStencil</name>
+        <qualifiedname>ResourceClearValue::asStencil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="24" column="13" bodyfile="dag_resource.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionResourceClearValue_1ad936d7ac97b0f19efb8160fdca191a01" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="unionResourceClearValue" kindref="compound">ResourceClearValue</ref></type>
+        <definition>struct ResourceClearValue ResourceClearValue</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ResourceClearValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resource.h" line="25" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resource.h" line="7" column="1" bodyfile="dag_resource.h" bodystart="8" bodyend="26"/>
+    <listofallmembers>
+      <member refid="unionResourceClearValue_1aab4ceb61c7e108640fb94b5b72f9a5a8" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asDepth</name></member>
+      <member refid="unionResourceClearValue_1a04a959c9cec083c3dbcb9343ed62b19e" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asFloat</name></member>
+      <member refid="unionResourceClearValue_1a975ca8adf1aa4246abdb6ede72a3a5fe" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asInt</name></member>
+      <member refid="unionResourceClearValue_1acadc2926673037b02d7e16b5c96a4236" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asStencil</name></member>
+      <member refid="unionResourceClearValue_1aad4f2bb05d2d6bddb2ab55e32ab02ab5" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asUint</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

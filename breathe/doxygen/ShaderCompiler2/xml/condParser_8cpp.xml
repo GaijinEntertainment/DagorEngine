@@ -1,0 +1,928 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="condParser_8cpp" kind="file" language="C++">
+    <compoundname>condParser.cpp</compoundname>
+    <includes refid="shVarBool_8h" local="yes">shVarBool.h</includes>
+    <includes refid="shsem_8h" local="yes">shsem.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <incdepgraph>
+      <node id="89">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="82">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="74">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="71">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="90">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="65">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+      </node>
+      <node id="56">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+      </node>
+      <node id="88">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="70">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="71" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="63">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="22">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="83">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="64">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="92">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+      </node>
+      <node id="79">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="6">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="13">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="92" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="67">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shVarBool.h</label>
+        <link refid="shVarBool_8h"/>
+      </node>
+      <node id="62">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="69">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+      </node>
+      <node id="78">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="84">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="28">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="36">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="87">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="85">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="86">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="12">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="66">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="72">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="44">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="75">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="81">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="91">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="37">
+        <label>cstdint</label>
+      </node>
+      <node id="31">
+        <label>cstring</label>
+      </node>
+      <node id="27">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="26">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="80">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="43">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="68">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="60">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="34">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="35">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="48">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="24">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="30">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="53">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="57">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="58">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="73">
+        <label>memory</label>
+      </node>
+      <node id="39">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="76">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="42">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="51">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="40">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="41">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="46">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="38">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="4">
+        <label>shsyn.h</label>
+      </node>
+      <node id="45">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="25">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="23">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="77">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="55">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="50">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="8">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="condParser_8cpp_1a14aa48b4ce238b13c892b02249fc90af" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void patch_cond_tokens</definition>
+        <argsstring>(const char *stage, ShaderTerminal::bool_expr &amp;e)</argsstring>
+        <name>patch_cond_tokens</name>
+        <param>
+          <type>const char *</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="condParser.cpp" line="53" column="13" bodyfile="condParser.cpp" bodystart="53" bodyend="63" declfile="condParser.cpp" declline="7" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="condParser_8cpp_1ab12a90f484d72d5257cae5c6acb194ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool_expr *</type>
+        <definition>bool_expr * parse_pp_condition</definition>
+        <argsstring>(const char *stage, char *str, int len, const char *fname, int line, shc::TargetContext &amp;ctx)</argsstring>
+        <name>parse_pp_condition</name>
+        <param>
+          <type>const char *</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="condParser.cpp" line="9" column="11" bodyfile="condParser.cpp" bodystart="9" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="condParser_8cpp_1a3ff1752896ba975c88777e6b113a7313" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * mangle_bool_var</definition>
+        <argsstring>(const char *stage, const char *name)</argsstring>
+        <name>mangle_bool_var</name>
+        <param>
+          <type>const char *</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="condParser.cpp" line="20" column="12" bodyfile="condParser.cpp" bodystart="20" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="condParser_8cpp_1a0d88c761698c5850f6ad4e4c63afe307" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void patch_cond_tokens_value</definition>
+        <argsstring>(const char *stage, ShaderTerminal::bool_value &amp;e)</argsstring>
+        <name>patch_cond_tokens_value</name>
+        <param>
+          <type>const char *</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::bool_value &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="condParser.cpp" line="26" column="13" bodyfile="condParser.cpp" bodystart="26" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="condParser_8cpp_1ae4ff502af6ded2f3a47067bf6d0ecc48" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void patch_cond_tokens_bool_not</definition>
+        <argsstring>(const char *stage, ShaderTerminal::not_expr &amp;e)</argsstring>
+        <name>patch_cond_tokens_bool_not</name>
+        <param>
+          <type>const char *</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::not_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="condParser.cpp" line="34" column="13" bodyfile="condParser.cpp" bodystart="34" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="condParser_8cpp_1afd02c6d2ff83fa4503892daf3aa127f9" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void patch_cond_tokens_bool_and</definition>
+        <argsstring>(const char *stage, ShaderTerminal::and_expr &amp;e)</argsstring>
+        <name>patch_cond_tokens_bool_and</name>
+        <param>
+          <type>const char *</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::and_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="condParser.cpp" line="41" column="13" bodyfile="condParser.cpp" bodystart="41" bodyend="51"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shVarBool_8h" kindref="compound">shVarBool.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shsem_8h" kindref="compound">shsem.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patch_cond_tokens(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stage,<sp/>ShaderTerminal::bool_expr<sp/>&amp;e);</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal">bool_expr<sp/>*<ref refid="condParser_8cpp_1ab12a90f484d72d5257cae5c6acb194ad" kindref="member">parse_pp_condition</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stage,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*str,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/>bool_expr<sp/>*s<sp/>=<sp/><ref refid="namespaceShaderParser_1a1835341922f689756f9fe23a73c47e4e" kindref="member">ShaderParser::parse_condition</ref>(str,<sp/>len,<sp/>fname,<sp/>line,<sp/>ctx);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!s)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stage)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/>patch_cond_tokens(stage,<sp/>*s);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="condParser_8cpp_1a3ff1752896ba975c88777e6b113a7313" kindref="member">mangle_bool_var</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>String<sp/>new_ident(0,<sp/></highlight><highlight class="stringliteral">&quot;__hlsl_%s_%s&quot;</highlight><highlight class="normal">,<sp/>stage,<sp/>name);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>str_dup(new_ident,<sp/>BaseParNamespace::symbolsmem);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patch_cond_tokens_value(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stage,<sp/>ShaderTerminal::bool_value<sp/>&amp;e)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.bool_var)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>e.bool_var-&gt;text<sp/>=<sp/><ref refid="condParser_8cpp_1a3ff1752896ba975c88777e6b113a7313" kindref="member">mangle_bool_var</ref>(stage,<sp/>e.bool_var-&gt;text);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.maybe_bool_var)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>e.maybe_bool_var-&gt;text<sp/>=<sp/><ref refid="condParser_8cpp_1a3ff1752896ba975c88777e6b113a7313" kindref="member">mangle_bool_var</ref>(stage,<sp/>e.maybe_bool_var-&gt;text);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patch_cond_tokens_bool_not(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stage,<sp/>ShaderTerminal::not_expr<sp/>&amp;e)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.value-&gt;expr)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>patch_cond_tokens(stage,<sp/>*e.value-&gt;expr);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>patch_cond_tokens_value(stage,<sp/>*e.value);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patch_cond_tokens_bool_and(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stage,<sp/>ShaderTerminal::and_expr<sp/>&amp;e)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.value)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>patch_cond_tokens_bool_not(stage,<sp/>*e.value);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>patch_cond_tokens_bool_and(stage,<sp/>*e.a);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>patch_cond_tokens_bool_not(stage,<sp/>*e.b);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>patch_cond_tokens(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stage,<sp/>ShaderTerminal::bool_expr<sp/>&amp;e)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.value)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>patch_cond_tokens_bool_and(stage,<sp/>*e.value);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>patch_cond_tokens(stage,<sp/>*e.a);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>patch_cond_tokens_bool_and(stage,<sp/>*e.b);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="condParser.cpp"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,262 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTextureIDHolder" kind="class" language="C++" prot="public">
+    <compoundname>TextureIDHolder</compoundname>
+    <basecompoundref refid="classTextureIDPair" prot="public" virt="non-virtual">TextureIDPair</basecompoundref>
+    <includes refid="dag__textureIDHolder_8h" local="no">dag_textureIDHolder.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTextureIDHolder_1a7c2a30b03f71f6eedeb0eb17b1bec35f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolder::TextureIDHolder</definition>
+        <argsstring>()=default</argsstring>
+        <name>TextureIDHolder</name>
+        <qualifiedname>TextureIDHolder::TextureIDHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="53" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1a14c73acb8f1484cd9be5c74c661515e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolder::TextureIDHolder</definition>
+        <argsstring>(const TextureIDHolder &amp;)=delete</argsstring>
+        <name>TextureIDHolder</name>
+        <qualifiedname>TextureIDHolder::TextureIDHolder</qualifiedname>
+        <param>
+          <type>const <ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="54" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1a7e487b4545fca6b3599f304ea5f126d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref> &amp;</type>
+        <definition>TextureIDHolder &amp; TextureIDHolder::operator=</definition>
+        <argsstring>(const TextureIDHolder &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>TextureIDHolder::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="55" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1a065a0752f3cf997228f4fe12a0b3479d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolder::TextureIDHolder</definition>
+        <argsstring>(TextureIDHolder &amp;&amp;rhs)</argsstring>
+        <name>TextureIDHolder</name>
+        <qualifiedname>TextureIDHolder::TextureIDHolder</qualifiedname>
+        <param>
+          <type><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="56" column="3" bodyfile="dag_textureIDHolder.h" bodystart="56" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1a4a1848e5354d4e96bed41e0341360d2c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TextureIDHolder::~TextureIDHolder</definition>
+        <argsstring>()</argsstring>
+        <name>~TextureIDHolder</name>
+        <qualifiedname>TextureIDHolder::~TextureIDHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="63" column="3" bodyfile="dag_textureIDHolder.h" bodystart="63" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1afdc340be5fd6f990a60a017705c1366e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref> &amp;</type>
+        <definition>TextureIDHolder &amp; TextureIDHolder::operator=</definition>
+        <argsstring>(TextureIDHolder &amp;&amp;rhs)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>TextureIDHolder::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="65" column="19" bodyfile="dag_textureIDHolder.h" bodystart="65" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1a0324e2bb6b2c472f3f110a662d3a7aeb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolder::setRaw</definition>
+        <argsstring>(BaseTexture *tex_, TEXTUREID texId_)</argsstring>
+        <name>setRaw</name>
+        <qualifiedname>TextureIDHolder::setRaw</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex_</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texId_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="75" column="8" bodyfile="dag_textureIDHolder.h" bodystart="75" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1afaec1f430d758f742d23c0e4b3339c10" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolder::set</definition>
+        <argsstring>(BaseTexture *tex_, TEXTUREID texId_)</argsstring>
+        <name>set</name>
+        <qualifiedname>TextureIDHolder::set</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex_</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texId_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="80" column="8" bodyfile="dag_textureIDHolder.h" bodystart="80" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1acbb2783402411b4a19423539cc9cac3e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolder::set</definition>
+        <argsstring>(BaseTexture *tex_, const char *name)</argsstring>
+        <name>set</name>
+        <qualifiedname>TextureIDHolder::set</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex_</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="85" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1a6b226b3ad22021395c697db2ebec5e60" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolder::set</definition>
+        <argsstring>(BaseTexture *tex)</argsstring>
+        <name>set</name>
+        <qualifiedname>TextureIDHolder::set</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="86" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIDHolder_1a6d4b41b1d0d1064f6a7d92cd7d27b260" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIDHolder::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>TextureIDHolder::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_textureIDHolder.h" line="87" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>TextureIDHolder</label>
+        <link refid="classTextureIDHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TextureIDPair</label>
+        <link refid="classTextureIDPair"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>TextureIDHolder</label>
+        <link refid="classTextureIDHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TextureIDPair</label>
+        <link refid="classTextureIDPair"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_textureIDHolder.h" line="50" column="1" bodyfile="dag_textureIDHolder.h" bodystart="51" bodyend="88"/>
+    <listofallmembers>
+      <member refid="classTextureIDHolder_1a6d4b41b1d0d1064f6a7d92cd7d27b260" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>close</name></member>
+      <member refid="classTextureIDPair_1a6b29907ea98d057d3438e071e90f6838" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>getArrayTex</name></member>
+      <member refid="classTextureIDPair_1ae92575774e38f875361cecdf42088f5c" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>getCubeTex</name></member>
+      <member refid="classTextureIDPair_1a086c6eefb1f8b2b8048aaac6b48b1d8d" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>getId</name></member>
+      <member refid="classTextureIDPair_1a9613903099300a42299a6ef427e4664c" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>getTex</name></member>
+      <member refid="classTextureIDPair_1a2d7ae42965769905fbec8997e87cbf3e" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>getTex2D</name></member>
+      <member refid="classTextureIDPair_1a5c36e6a175d8ec422dd2ce8fc82e8ac0" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>getVolTex</name></member>
+      <member refid="classTextureIDPair_1a5e1e031ddca841383e69969e6da90a43" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>is_arrtex</name></member>
+      <member refid="classTextureIDPair_1a6537837d468889fa852302b1d8ee9e7f" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>is_cubetex</name></member>
+      <member refid="classTextureIDPair_1a18bd5c6b5e6cf0a9037534a24fa43dd3" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>is_tex2d</name></member>
+      <member refid="classTextureIDPair_1aee372de788c8f1b59de04ba37ae5f9cb" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>is_voltex</name></member>
+      <member refid="classTextureIDHolder_1a7e487b4545fca6b3599f304ea5f126d1" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>operator=</name></member>
+      <member refid="classTextureIDHolder_1afdc340be5fd6f990a60a017705c1366e" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>operator=</name></member>
+      <member refid="classTextureIDPair_1a02ce107d14ae93521489eae6fc38fa0d" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>releaseAndEvictTexId</name></member>
+      <member refid="classTextureIDHolder_1afaec1f430d758f742d23c0e4b3339c10" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>set</name></member>
+      <member refid="classTextureIDHolder_1acbb2783402411b4a19423539cc9cac3e" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>set</name></member>
+      <member refid="classTextureIDHolder_1a6b226b3ad22021395c697db2ebec5e60" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>set</name></member>
+      <member refid="classTextureIDHolder_1a0324e2bb6b2c472f3f110a662d3a7aeb" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>setRaw</name></member>
+      <member refid="classTextureIDPair_1ac7316da88e3081c83b4cad368e6717d9" prot="protected" virt="non-virtual"><scope>TextureIDHolder</scope><name>tex</name></member>
+      <member refid="classTextureIDPair_1a744425fb30b41e89ba1d42d95d0fa9eb" prot="protected" virt="non-virtual"><scope>TextureIDHolder</scope><name>texId</name></member>
+      <member refid="classTextureIDHolder_1a7c2a30b03f71f6eedeb0eb17b1bec35f" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>TextureIDHolder</name></member>
+      <member refid="classTextureIDHolder_1a14c73acb8f1484cd9be5c74c661515e8" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>TextureIDHolder</name></member>
+      <member refid="classTextureIDHolder_1a065a0752f3cf997228f4fe12a0b3479d" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>TextureIDHolder</name></member>
+      <member refid="classTextureIDPair_1a14af7563613687b08b755b83dd1cf555" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>TextureIDPair</name></member>
+      <member refid="classTextureIDHolder_1a4a1848e5354d4e96bed41e0341360d2c" prot="public" virt="non-virtual"><scope>TextureIDHolder</scope><name>~TextureIDHolder</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

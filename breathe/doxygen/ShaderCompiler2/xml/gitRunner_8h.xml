@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="gitRunner_8h" kind="file" language="C++">
+    <compoundname>gitRunner.h</compoundname>
+    <includes local="no">generic/dag_span.h</includes>
+    <includedby refid="gitRunner_8cpp" local="yes">gitRunner.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>gitRunner.h</label>
+        <link refid="gitRunner_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>generic/dag_span.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>gitRunner.cpp</label>
+        <link refid="gitRunner_8cpp"/>
+      </node>
+      <node id="1">
+        <label>gitRunner.h</label>
+        <link refid="gitRunner_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="gitRunner_8h_1a817f7fd0a115ed22da311cebd682b727" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int64_t</type>
+        <definition>int64_t get_git_files_last_commit_timestamp</definition>
+        <argsstring>(dag::ConstSpan&lt; SimpleString &gt; file_path)</argsstring>
+        <name>get_git_files_last_commit_timestamp</name>
+        <param>
+          <type>dag::ConstSpan&lt; SimpleString &gt;</type>
+          <declname>file_path</declname>
+        </param>
+        <briefdescription>
+<para>Get the timestamp of the most recent commit for list of files. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>file_paths</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The list of file paths </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The timestamp of the most recent commit </para>
+</simplesect>
+<simplesect kind="note"><para>The timestamp is in milliseconds </para>
+</simplesect>
+<simplesect kind="note"><para>If any of the files are locally modified or there are local commits not present in remote, the function will return 0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gitRunner.h" line="15" column="9" bodyfile="gitRunner.cpp" bodystart="231" bodyend="237" declfile="gitRunner.h" declline="15" declcolumn="9"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">SimpleString;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">int64_t<sp/><ref refid="gitRunner_8h_1a817f7fd0a115ed22da311cebd682b727" kindref="member">get_git_files_last_commit_timestamp</ref>(dag::ConstSpan&lt;SimpleString&gt;<sp/>file_path);</highlight></codeline>
+    </programlisting>
+    <location file="gitRunner.h"/>
+  </compounddef>
+</doxygen>

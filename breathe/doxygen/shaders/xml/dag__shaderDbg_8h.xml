@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderDbg_8h" kind="file" language="C++">
+    <compoundname>dag_shaderDbg.h</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaderDbg_8h_1a5ed188f3a8941825f6449c7c6cf32906" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_diffuse_mipmaps_debug</definition>
+        <argsstring>(bool en)</argsstring>
+        <name>enable_diffuse_mipmaps_debug</name>
+        <param>
+          <type>bool</type>
+          <declname>en</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderDbg.h" line="7" column="6" declfile="dag_shaderDbg.h" declline="7" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderDbg_8h_1ab6983b8d9e3270e086424b47fe8f699a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dump_unused_shader_variants</definition>
+        <argsstring>()</argsstring>
+        <name>dump_unused_shader_variants</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderDbg.h" line="8" column="6" declfile="dag_shaderDbg.h" declline="8" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderDbg_8h_1aa374450f18a4452600872bbb196d60cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dump_shader_statistics</definition>
+        <argsstring>(const char *filename)</argsstring>
+        <name>dump_shader_statistics</name>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderDbg.h" line="9" column="6" declfile="dag_shaderDbg.h" declline="9" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderDbg_8h_1a9f2d5e8399a56473b6867e1885d0775e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_assert_on_shader_mat_vars</definition>
+        <argsstring>(bool en)</argsstring>
+        <name>enable_assert_on_shader_mat_vars</name>
+        <param>
+          <type>bool</type>
+          <declname>en</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderDbg.h" line="10" column="6" declfile="dag_shaderDbg.h" declline="10" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderDbg_8h_1a9da9867803da303a4f92343f1c3cfaa4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dump_exec_stcode_time</definition>
+        <argsstring>()</argsstring>
+        <name>dump_exec_stcode_time</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderDbg.h" line="12" column="6" declfile="dag_shaderDbg.h" declline="12" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderDbg_8h_1a6349eb63027ede2c99d1e23db80f4478" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_overdraw_to_stencil</definition>
+        <argsstring>(bool enable)</argsstring>
+        <name>enable_overdraw_to_stencil</name>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderDbg.h" line="13" column="6" declfile="dag_shaderDbg.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderDbg_8h_1a675a123d910283c191ae021033d5aab2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_overdraw_to_stencil_enabled</definition>
+        <argsstring>()</argsstring>
+        <name>is_overdraw_to_stencil_enabled</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderDbg.h" line="14" column="6" declfile="dag_shaderDbg.h" declline="14" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_diffuse_mipmaps_debug(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>en);</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dump_unused_shader_variants();</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dump_shader_statistics(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename);</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_assert_on_shader_mat_vars(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>en);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dump_exec_stcode_time();</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_overdraw_to_stencil(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_overdraw_to_stencil_enabled();</highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderDbg.h"/>
+  </compounddef>
+</doxygen>

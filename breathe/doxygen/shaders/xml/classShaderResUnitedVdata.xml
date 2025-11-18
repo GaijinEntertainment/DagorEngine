@@ -1,0 +1,1207 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderResUnitedVdata" kind="class" language="C++" prot="public">
+    <compoundname>ShaderResUnitedVdata</compoundname>
+    <innerclass refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" prot="protected">ShaderResUnitedVdata::ReleaseUpdateDA</innerclass>
+    <innerclass refid="structShaderResUnitedVdata_1_1UpdateModelCtx" prot="protected">ShaderResUnitedVdata::UpdateModelCtx</innerclass>
+    <templateparamlist>
+      <param>
+        <type>class RES</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classShaderResUnitedVdata_1a971d5fde7df93abde8dce5e17c94ac86" prot="public" static="no">
+        <type>RES</type>
+        <definition>using ShaderResUnitedVdata&lt; RES &gt;::ResType =  RES</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>ShaderResUnitedVdata::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="122" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classShaderResUnitedVdata_1a34cadf55df9509b451de8576939e1ab1" prot="public" static="no">
+        <type>void(*</type>
+        <definition>typedef void(* ShaderResUnitedVdata&lt; RES &gt;::availableRElemsAccessorFct) (dag::Span&lt; RES * &gt;)</definition>
+        <argsstring>)(dag::Span&lt; RES * &gt;)</argsstring>
+        <name>availableRElemsAccessorFct</name>
+        <qualifiedname>ShaderResUnitedVdata::availableRElemsAccessorFct</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="176" column="11" bodyfile="dag_shaderResUnitedData.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1aba56b7ad08413e21aa9daf78cfb247f9" prot="public" static="yes" mutable="no">
+        <type>MulticastEvent&lt; void(const RES *, bool, int)&gt;</type>
+        <definition>MulticastEvent&lt;void(const RES *, bool , int )&gt; ShaderResUnitedVdata&lt; RES &gt;::on_mesh_relems_updated</definition>
+        <argsstring></argsstring>
+        <name>on_mesh_relems_updated</name>
+        <qualifiedname>ShaderResUnitedVdata::on_mesh_relems_updated</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="174" column="32" bodyfile="dag_shaderResUnitedData.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1ae289564265fc6f744fb3a5c2be562a55" prot="protected" static="no" mutable="no">
+        <type><ref refid="structunitedvdata_1_1BufPool" kindref="compound">unitedvdata::BufPool</ref></type>
+        <definition>unitedvdata::BufPool ShaderResUnitedVdata&lt; RES &gt;::buf</definition>
+        <argsstring></argsstring>
+        <name>buf</name>
+        <qualifiedname>ShaderResUnitedVdata::buf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="184" column="24" bodyfile="dag_shaderResUnitedData.h" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a640e0bb28a418e6ec4120319d7474236" prot="protected" static="no" mutable="no">
+        <type>PtrTab&lt; RES &gt;</type>
+        <definition>PtrTab&lt;RES&gt; ShaderResUnitedVdata&lt; RES &gt;::resList</definition>
+        <argsstring></argsstring>
+        <name>resList</name>
+        <qualifiedname>ShaderResUnitedVdata::resList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="185" column="10" bodyfile="dag_shaderResUnitedData.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a1e7b92c6957b13a9abfcf5fac1273bd3" prot="protected" static="no" mutable="no">
+        <type>std::mutex</type>
+        <definition>std::mutex ShaderResUnitedVdata&lt; RES &gt;::appendMutex</definition>
+        <argsstring></argsstring>
+        <name>appendMutex</name>
+        <qualifiedname>ShaderResUnitedVdata::appendMutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="186" column="14" bodyfile="dag_shaderResUnitedData.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a6ec5f286b5336b094bcade7f052f3097" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderResUnitedVdata&lt; RES &gt;::allowSepTightVdata</definition>
+        <argsstring></argsstring>
+        <name>allowSepTightVdata</name>
+        <qualifiedname>ShaderResUnitedVdata::allowSepTightVdata</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="187" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a1dac99e6532fcc52f610e1648cfcf793" prot="protected" static="no" mutable="no">
+        <type>volatile int</type>
+        <definition>volatile int ShaderResUnitedVdata&lt; RES &gt;::pendingRebuildCount</definition>
+        <argsstring></argsstring>
+        <name>pendingRebuildCount</name>
+        <qualifiedname>ShaderResUnitedVdata::pendingRebuildCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="188" column="16" bodyfile="dag_shaderResUnitedData.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a5133ee5a8d338699274e330cd90dbb9b" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; SmallTab&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">unitedvdata::BufChunk</ref>, MidmemAlloc &gt; &gt;</type>
+        <definition>Tab&lt;SmallTab&lt;unitedvdata::BufChunk, MidmemAlloc&gt; &gt; ShaderResUnitedVdata&lt; RES &gt;::resUsedChunks</definition>
+        <argsstring></argsstring>
+        <name>resUsedChunks</name>
+        <qualifiedname>ShaderResUnitedVdata::resUsedChunks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="189" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a2807ea104dc08e0b08447c8918794b45" prot="protected" static="no" mutable="no">
+        <type>int64_t</type>
+        <definition>int64_t ShaderResUnitedVdata&lt; RES &gt;::maxIbTotalUsed</definition>
+        <argsstring></argsstring>
+        <name>maxIbTotalUsed</name>
+        <qualifiedname>ShaderResUnitedVdata::maxIbTotalUsed</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="190" column="11" bodyfile="dag_shaderResUnitedData.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a0d13d705c45b1d3c2da9cba11cdfc35d" prot="protected" static="no" mutable="no">
+        <type>int64_t</type>
+        <definition>int64_t ShaderResUnitedVdata&lt; RES &gt;::maxVbTotalUsed</definition>
+        <argsstring></argsstring>
+        <name>maxVbTotalUsed</name>
+        <qualifiedname>ShaderResUnitedVdata::maxVbTotalUsed</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="190" column="27" bodyfile="dag_shaderResUnitedData.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a21e815086661d1a73e249694898f194d" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::reloadJobMgrId</definition>
+        <argsstring></argsstring>
+        <name>reloadJobMgrId</name>
+        <qualifiedname>ShaderResUnitedVdata::reloadJobMgrId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="191" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a9313e9f07e219711e5fb1d26b9d000cd" prot="protected" static="no" mutable="no">
+        <type>volatile int</type>
+        <definition>volatile int ShaderResUnitedVdata&lt; RES &gt;::vbSizeToFree</definition>
+        <argsstring></argsstring>
+        <name>vbSizeToFree</name>
+        <qualifiedname>ShaderResUnitedVdata::vbSizeToFree</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="192" column="16" bodyfile="dag_shaderResUnitedData.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1aee3b21ac942e6d8bd164e3d845382650" prot="protected" static="no" mutable="no">
+        <type>volatile int</type>
+        <definition>volatile int ShaderResUnitedVdata&lt; RES &gt;::ibSizeToFree</definition>
+        <argsstring></argsstring>
+        <name>ibSizeToFree</name>
+        <qualifiedname>ShaderResUnitedVdata::ibSizeToFree</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="192" column="30" bodyfile="dag_shaderResUnitedData.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a3272a1e032253ea63208ca24728845c6" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::uselessDiscardAttempts</definition>
+        <argsstring></argsstring>
+        <name>uselessDiscardAttempts</name>
+        <qualifiedname>ShaderResUnitedVdata::uselessDiscardAttempts</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="193" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a5a0e4594c25805f7fa2f9223946d31d6" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; RES * &gt;</type>
+        <definition>Tab&lt;RES *&gt; ShaderResUnitedVdata&lt; RES &gt;::failedVdataReloadResList</definition>
+        <argsstring></argsstring>
+        <name>failedVdataReloadResList</name>
+        <qualifiedname>ShaderResUnitedVdata::failedVdataReloadResList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="194" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a80e4d738fd29c5ecd16a1c15fcfbf7e9" prot="protected" static="no" mutable="no">
+        <type>volatile int</type>
+        <definition>volatile int ShaderResUnitedVdata&lt; RES &gt;::pendingVdataReloadResCount</definition>
+        <argsstring></argsstring>
+        <name>pendingVdataReloadResCount</name>
+        <qualifiedname>ShaderResUnitedVdata::pendingVdataReloadResCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="195" column="16" bodyfile="dag_shaderResUnitedData.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a5044fb5a2cce6fad2276babc8a69fe01" prot="protected" static="no" mutable="no">
+        <type><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">unitedvdata::BufConfig</ref></type>
+        <definition>unitedvdata::BufConfig ShaderResUnitedVdata&lt; RES &gt;::hints</definition>
+        <argsstring></argsstring>
+        <name>hints</name>
+        <qualifiedname>ShaderResUnitedVdata::hints</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="196" column="26" bodyfile="dag_shaderResUnitedData.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a2146790ddd657d4a306d4e1c35eb64fc" prot="protected" static="no" mutable="yes">
+        <type>std::mutex</type>
+        <definition>std::mutex ShaderResUnitedVdata&lt; RES &gt;::hintsMutex</definition>
+        <argsstring></argsstring>
+        <name>hintsMutex</name>
+        <qualifiedname>ShaderResUnitedVdata::hintsMutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="197" column="22" bodyfile="dag_shaderResUnitedData.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1acf3e8b5177ce6caeaeac94fc67addf73" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::noDiscardFrames</definition>
+        <argsstring></argsstring>
+        <name>noDiscardFrames</name>
+        <qualifiedname>ShaderResUnitedVdata::noDiscardFrames</qualifiedname>
+        <initializer>= 120</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="198" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a6fba5b88b699337c2c13e33749f8f95d" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::keepIfNeedLodFrames</definition>
+        <argsstring></argsstring>
+        <name>keepIfNeedLodFrames</name>
+        <qualifiedname>ShaderResUnitedVdata::keepIfNeedLodFrames</qualifiedname>
+        <initializer>= 600</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="199" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderResUnitedVdata_1a0ae121fcbc6cf83a699dd6e82859a6f1" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::requestLodsByDistanceFrames</definition>
+        <argsstring></argsstring>
+        <name>requestLodsByDistanceFrames</name>
+        <qualifiedname>ShaderResUnitedVdata::requestLodsByDistanceFrames</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="200" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a431b591a977f73f707e45dcb79088533" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderResUnitedVdata&lt; RES &gt;::ShaderResUnitedVdata</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderResUnitedVdata</name>
+        <qualifiedname>ShaderResUnitedVdata::ShaderResUnitedVdata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="124" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a16dfabe5f63eff8a4724bd4de0d66c90" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::setMaxVbSize</definition>
+        <argsstring>(int max_sz)</argsstring>
+        <name>setMaxVbSize</name>
+        <qualifiedname>ShaderResUnitedVdata::setMaxVbSize</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>max_sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="126" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a8171daf21999f461e09cf7ccd950cbc2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::setDelResAllowed</definition>
+        <argsstring>(bool allow)</argsstring>
+        <name>setDelResAllowed</name>
+        <qualifiedname>ShaderResUnitedVdata::setDelResAllowed</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>allow</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="127" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ab695495ff2f03b79b27d7fb087de41cd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::setSepTightVdataAllowed</definition>
+        <argsstring>(bool allow)</argsstring>
+        <name>setSepTightVdataAllowed</name>
+        <qualifiedname>ShaderResUnitedVdata::setSepTightVdataAllowed</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>allow</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="128" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="128" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a2126fa43ea39ca05e1597b83b1552d75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::setRebuildAllowed</definition>
+        <argsstring>(bool allow)</argsstring>
+        <name>setRebuildAllowed</name>
+        <qualifiedname>ShaderResUnitedVdata::setRebuildAllowed</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>allow</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="129" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="129" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1af06564e7bbca7dd45d348688433d775c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderResUnitedVdata&lt; RES &gt;::addRes</definition>
+        <argsstring>(dag::Span&lt; RES * &gt; res)</argsstring>
+        <name>addRes</name>
+        <qualifiedname>ShaderResUnitedVdata::addRes</qualifiedname>
+        <param>
+          <type>dag::Span&lt; RES * &gt;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="131" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a616e8a5e085ae4e481eea904170d8fd6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderResUnitedVdata&lt; RES &gt;::addRes</definition>
+        <argsstring>(RES *res)</argsstring>
+        <name>addRes</name>
+        <qualifiedname>ShaderResUnitedVdata::addRes</qualifiedname>
+        <param>
+          <type>RES *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="132" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="132" bodyend="132"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1aec7abe5c9238a5e6c80a2bd97efe1156" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderResUnitedVdata&lt; RES &gt;::delRes</definition>
+        <argsstring>(RES *res)</argsstring>
+        <name>delRes</name>
+        <qualifiedname>ShaderResUnitedVdata::delRes</qualifiedname>
+        <param>
+          <type>RES *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="133" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ac2d608ac41d5f512f2242188512a0c2e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderResUnitedVdata&lt; RES &gt;::reloadRes</definition>
+        <argsstring>(RES *res)</argsstring>
+        <name>reloadRes</name>
+        <qualifiedname>ShaderResUnitedVdata::reloadRes</qualifiedname>
+        <param>
+          <type>RES *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="135" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a5e4b5c16ada9155a43c9431151c85491" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::downgradeRes</definition>
+        <argsstring>(RES *res, int upper_lod)</argsstring>
+        <name>downgradeRes</name>
+        <qualifiedname>ShaderResUnitedVdata::downgradeRes</qualifiedname>
+        <param>
+          <type>RES *</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>upper_lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="136" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1af527121c12aa8f193d05f61c60faf0ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::discardUnusedResToFreeReqMem</definition>
+        <argsstring>()</argsstring>
+        <name>discardUnusedResToFreeReqMem</name>
+        <qualifiedname>ShaderResUnitedVdata::discardUnusedResToFreeReqMem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="137" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1abdc87c1a2494d7bc192d2b3a2913610a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::releaseUnusedBuffers</definition>
+        <argsstring>()</argsstring>
+        <name>releaseUnusedBuffers</name>
+        <qualifiedname>ShaderResUnitedVdata::releaseUnusedBuffers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="139" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a5b89a1720ec75045e3c6d94c6ea8da00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>ShaderResUnitedVdata::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="140" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a0434fbe2417f0f4f8cf35b1a241fbce2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::stopPendingJobs</definition>
+        <argsstring>()</argsstring>
+        <name>stopPendingJobs</name>
+        <qualifiedname>ShaderResUnitedVdata::stopPendingJobs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="141" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1aa120050d46eb63514c267416e83364d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::rebuildBuffersAfterReset</definition>
+        <argsstring>()</argsstring>
+        <name>rebuildBuffersAfterReset</name>
+        <qualifiedname>ShaderResUnitedVdata::rebuildBuffersAfterReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="142" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a740e84b64683a7b9810d26b033e1a926" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::onBeforeD3dReset</definition>
+        <argsstring>()</argsstring>
+        <name>onBeforeD3dReset</name>
+        <qualifiedname>ShaderResUnitedVdata::onBeforeD3dReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="144" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="144" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a3e4f3c7dbddcad39aa9fcf4434d346cd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::onAfterD3dReset</definition>
+        <argsstring>()</argsstring>
+        <name>onAfterD3dReset</name>
+        <qualifiedname>ShaderResUnitedVdata::onAfterD3dReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="149" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="149" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ab502225b99dc96f3f964761b28237abc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Ibuffer *</type>
+        <definition>Ibuffer * ShaderResUnitedVdata&lt; RES &gt;::getIB</definition>
+        <argsstring>() const</argsstring>
+        <name>getIB</name>
+        <qualifiedname>ShaderResUnitedVdata::getIB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="155" column="11" bodyfile="dag_shaderResUnitedData.h" bodystart="155" bodyend="155"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ad3f076ab09287b4091847cfcabe966b0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Vbuffer *</type>
+        <definition>Vbuffer * ShaderResUnitedVdata&lt; RES &gt;::getVB</definition>
+        <argsstring>(uint32_t vb_idx) const</argsstring>
+        <name>getVB</name>
+        <qualifiedname>ShaderResUnitedVdata::getVB</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>vb_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="156" column="11" bodyfile="dag_shaderResUnitedData.h" bodystart="156" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a7b0f59c980ea5d7ca66d039ab948f7c4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::getResCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getResCount</name>
+        <qualifiedname>ShaderResUnitedVdata::getResCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="158" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="158" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1afc4d578afdd1e1a864cbde0ea6190699" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::buildStatusStrNoLock</definition>
+        <argsstring>(String &amp;out_str, bool full_res_list, bool(*resolve_res_name)(String &amp;nm, const RES *r)=nullptr)</argsstring>
+        <name>buildStatusStrNoLock</name>
+        <qualifiedname>ShaderResUnitedVdata::buildStatusStrNoLock</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_str</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>full_res_list</declname>
+        </param>
+        <param>
+          <type>bool(*)(String &amp;nm, const RES *r)</type>
+          <declname>resolve_res_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="160" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1afea65f40ae8ac32dc0dac3acd890116e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::buildStatusStr</definition>
+        <argsstring>(String &amp;out_str, bool full_res_list, bool(*resolve_res_name)(String &amp;nm, const RES *r)=nullptr)</argsstring>
+        <name>buildStatusStr</name>
+        <qualifiedname>ShaderResUnitedVdata::buildStatusStr</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_str</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>full_res_list</declname>
+        </param>
+        <param>
+          <type>bool(*)(String &amp;nm, const RES *r)</type>
+          <declname>resolve_res_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="161" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="161" bodyend="165"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a539b0e1f45a8a0cf1095e647a27805ca" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::dumpMemBlocks</definition>
+        <argsstring>(String *out_str_summary=nullptr)</argsstring>
+        <name>dumpMemBlocks</name>
+        <qualifiedname>ShaderResUnitedVdata::dumpMemBlocks</qualifiedname>
+        <param>
+          <type>String *</type>
+          <declname>out_str_summary</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="166" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ad4e9e888d62fce2e2058fee2c3c8493a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::getPendingReloadResCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getPendingReloadResCount</name>
+        <qualifiedname>ShaderResUnitedVdata::getPendingReloadResCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="167" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="167" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1af613c5ad3236404822f0ec89d863dedd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::getFailedReloadResCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getFailedReloadResCount</name>
+        <qualifiedname>ShaderResUnitedVdata::getFailedReloadResCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="168" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="168" bodyend="168"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1af6e91e60297913403dc27edeb9352100" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::setHints</definition>
+        <argsstring>(const DataBlock &amp;hints_blk)</argsstring>
+        <name>setHints</name>
+        <qualifiedname>ShaderResUnitedVdata::setHints</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>hints_blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="169" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ace939f6612f2e040f82710f09a858610" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::availableRElemsAccessor</definition>
+        <argsstring>(availableRElemsAccessorFct access_cb)</argsstring>
+        <name>availableRElemsAccessor</name>
+        <qualifiedname>ShaderResUnitedVdata::availableRElemsAccessor</qualifiedname>
+        <param>
+          <type>availableRElemsAccessorFct</type>
+          <declname>access_cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="177" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1af03d6210b6dba979caffa76d21eaedda" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderResUnitedVdata&lt; RES &gt;::getRequestLodsByDistanceFrames</definition>
+        <argsstring>() const</argsstring>
+        <name>getRequestLodsByDistanceFrames</name>
+        <qualifiedname>ShaderResUnitedVdata::getRequestLodsByDistanceFrames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="179" column="14" bodyfile="dag_shaderResUnitedData.h" bodystart="179" bodyend="179"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ad810eb6b6ccd4a147c71e41a17973a40" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::setAllocationLimits</definition>
+        <argsstring>(int ibKb, int vbKb)</argsstring>
+        <name>setAllocationLimits</name>
+        <qualifiedname>ShaderResUnitedVdata::setAllocationLimits</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ibKb</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vbKb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="181" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ab741867496dfc3ec8c83d5d1ecd4ee95" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structunitedvdata_1_1BufConfig" kindref="compound">unitedvdata::BufConfig</ref></type>
+        <definition>unitedvdata::BufConfig ShaderResUnitedVdata&lt; RES &gt;::getHints</definition>
+        <argsstring>() const</argsstring>
+        <name>getHints</name>
+        <qualifiedname>ShaderResUnitedVdata::getHints</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="202" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1aa3afad579b557a88232f6c4ad11f0bf1" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::rebuildUnitedVdata</definition>
+        <argsstring>(dag::Span&lt; RES * &gt; res, bool in_d3d_reset)</argsstring>
+        <name>rebuildUnitedVdata</name>
+        <qualifiedname>ShaderResUnitedVdata::rebuildUnitedVdata</qualifiedname>
+        <param>
+          <type>dag::Span&lt; RES * &gt;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>in_d3d_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="204" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a797cd9223eb98bd16e1614a8381686a2" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">unitedvdata::BufChunk</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; unitedvdata::BufChunk &gt; ShaderResUnitedVdata&lt; RES &gt;::getBufChunks</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getBufChunks</name>
+        <qualifiedname>ShaderResUnitedVdata::getBufChunks</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="213" column="25" bodyfile="dag_shaderResUnitedData.h" bodystart="213" bodyend="216"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a25620e9028eda7aea764a5b9b013aefb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::updateLocalMaximum</definition>
+        <argsstring>(bool out_peak_to_debug)</argsstring>
+        <name>updateLocalMaximum</name>
+        <qualifiedname>ShaderResUnitedVdata::updateLocalMaximum</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>out_peak_to_debug</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="218" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a4f332026b60a9dd427fdf0d84003d95c" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::discardUnusedResToFreeReqMemNoLock</definition>
+        <argsstring>(bool forced)</argsstring>
+        <name>discardUnusedResToFreeReqMemNoLock</name>
+        <qualifiedname>ShaderResUnitedVdata::discardUnusedResToFreeReqMemNoLock</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>forced</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="219" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1aa91efc5e00788c3eb32cd83776e755df" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::initUpdateJob</definition>
+        <argsstring>(UpdateModelCtx &amp;ctx, RES *r)</argsstring>
+        <name>initUpdateJob</name>
+        <qualifiedname>ShaderResUnitedVdata::initUpdateJob</qualifiedname>
+        <param>
+          <type><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>RES *</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="252" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a3788c2a04f0d21de008cdc3de8b65bcc" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::doUpdateJob</definition>
+        <argsstring>(UpdateModelCtx &amp;ctx)</argsstring>
+        <name>doUpdateJob</name>
+        <qualifiedname>ShaderResUnitedVdata::doUpdateJob</qualifiedname>
+        <param>
+          <type><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="253" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1af791cc1280988afaa1bfebf9a9a03226" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::releaseUpdateJob</definition>
+        <argsstring>(UpdateModelCtx &amp;ctx)</argsstring>
+        <name>releaseUpdateJob</name>
+        <qualifiedname>ShaderResUnitedVdata::releaseUpdateJob</qualifiedname>
+        <param>
+          <type><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="254" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a98922399478e3357a646682fc4e6c074" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::ceaseUpdateJob</definition>
+        <argsstring>(UpdateModelCtx &amp;ctx)</argsstring>
+        <name>ceaseUpdateJob</name>
+        <qualifiedname>ShaderResUnitedVdata::ceaseUpdateJob</qualifiedname>
+        <param>
+          <type><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="255" column="15" bodyfile="dag_shaderResUnitedData.h" bodystart="255" bodyend="260"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-func">
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a3b046d47280e7f326fe458e679bc7604" prot="protected" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderResUnitedVdata&lt; RES &gt;::updateVdata</definition>
+        <argsstring>(RES *r, unitedvdata::BufPool &amp;buf, Tab&lt; int &gt; &amp;dviOfs_stor, Tab&lt; uint8_t &gt; &amp;buf_stor, dag::ConstSpan&lt; unitedvdata::BufChunk &gt; c)</argsstring>
+        <name>updateVdata</name>
+        <qualifiedname>ShaderResUnitedVdata::updateVdata</qualifiedname>
+        <param>
+          <type>RES *</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type><ref refid="structunitedvdata_1_1BufPool" kindref="compound">unitedvdata::BufPool</ref> &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>dviOfs_stor</declname>
+        </param>
+        <param>
+          <type>Tab&lt; uint8_t &gt; &amp;</type>
+          <declname>buf_stor</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">unitedvdata::BufChunk</ref> &gt;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="205" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a622a7e68e650dd168627d5e0fd786074" prot="protected" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderResUnitedVdata&lt; RES &gt;::prepareVdataBaseOfs</definition>
+        <argsstring>(dag::ConstSpan&lt; Ptr&lt; ShaderMatVdata &gt; &gt; smvd_list, Tab&lt; int &gt; &amp;dviOfs)</argsstring>
+        <name>prepareVdataBaseOfs</name>
+        <qualifiedname>ShaderResUnitedVdata::prepareVdataBaseOfs</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt; &gt;</type>
+          <declname>smvd_list</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>dviOfs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="208" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1ad321003c4dfffd534dd3446fb0a0799c" prot="protected" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderResUnitedVdata&lt; RES &gt;::updateVdata</definition>
+        <argsstring>(dag::ConstSpan&lt; Ptr&lt; ShaderMatVdata &gt; &gt; smvd_list, unitedvdata::BufPool &amp;buf, Tab&lt; uint8_t &gt; &amp;buf_stor, dag::ConstSpan&lt; unitedvdata::BufChunk &gt; c)</argsstring>
+        <name>updateVdata</name>
+        <qualifiedname>ShaderResUnitedVdata::updateVdata</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt; &gt;</type>
+          <declname>smvd_list</declname>
+        </param>
+        <param>
+          <type><ref refid="structunitedvdata_1_1BufPool" kindref="compound">unitedvdata::BufPool</ref> &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>Tab&lt; uint8_t &gt; &amp;</type>
+          <declname>buf_stor</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">unitedvdata::BufChunk</ref> &gt;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="209" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderResUnitedVdata_1a43a1c09bcb322c18262f5e8acf589302" prot="protected" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderResUnitedVdata&lt; RES &gt;::rebaseElemOfs</definition>
+        <argsstring>(const RES *r, dag::ConstSpan&lt; int &gt; dviOfs)</argsstring>
+        <name>rebaseElemOfs</name>
+        <qualifiedname>ShaderResUnitedVdata::rebaseElemOfs</qualifiedname>
+        <param>
+          <type>const RES *</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>dviOfs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="211" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderResUnitedVdata&lt; RES &gt;</label>
+        <link refid="classShaderResUnitedVdata"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buf</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>hints</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>unitedvdata::BufConfig</label>
+        <link refid="structunitedvdata_1_1BufConfig"/>
+      </node>
+      <node id="2">
+        <label>unitedvdata::BufPool</label>
+        <link refid="structunitedvdata_1_1BufPool"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shaderResUnitedData.h" line="119" column="1" bodyfile="dag_shaderResUnitedData.h" bodystart="120" bodyend="261"/>
+    <listofallmembers>
+      <member refid="classShaderResUnitedVdata_1af06564e7bbca7dd45d348688433d775c" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>addRes</name></member>
+      <member refid="classShaderResUnitedVdata_1a616e8a5e085ae4e481eea904170d8fd6" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>addRes</name></member>
+      <member refid="classShaderResUnitedVdata_1a6ec5f286b5336b094bcade7f052f3097" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>allowSepTightVdata</name></member>
+      <member refid="classShaderResUnitedVdata_1a1e7b92c6957b13a9abfcf5fac1273bd3" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>appendMutex</name></member>
+      <member refid="classShaderResUnitedVdata_1ace939f6612f2e040f82710f09a858610" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>availableRElemsAccessor</name></member>
+      <member refid="classShaderResUnitedVdata_1a34cadf55df9509b451de8576939e1ab1" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>availableRElemsAccessorFct</name></member>
+      <member refid="classShaderResUnitedVdata_1ae289564265fc6f744fb3a5c2be562a55" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>buf</name></member>
+      <member refid="classShaderResUnitedVdata_1afea65f40ae8ac32dc0dac3acd890116e" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>buildStatusStr</name></member>
+      <member refid="classShaderResUnitedVdata_1afc4d578afdd1e1a864cbde0ea6190699" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>buildStatusStrNoLock</name></member>
+      <member refid="classShaderResUnitedVdata_1a98922399478e3357a646682fc4e6c074" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>ceaseUpdateJob</name></member>
+      <member refid="classShaderResUnitedVdata_1a5b89a1720ec75045e3c6d94c6ea8da00" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>clear</name></member>
+      <member refid="classShaderResUnitedVdata_1aec7abe5c9238a5e6c80a2bd97efe1156" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>delRes</name></member>
+      <member refid="classShaderResUnitedVdata_1af527121c12aa8f193d05f61c60faf0ae" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>discardUnusedResToFreeReqMem</name></member>
+      <member refid="classShaderResUnitedVdata_1a4f332026b60a9dd427fdf0d84003d95c" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>discardUnusedResToFreeReqMemNoLock</name></member>
+      <member refid="classShaderResUnitedVdata_1a3788c2a04f0d21de008cdc3de8b65bcc" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>doUpdateJob</name></member>
+      <member refid="classShaderResUnitedVdata_1a5e4b5c16ada9155a43c9431151c85491" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>downgradeRes</name></member>
+      <member refid="classShaderResUnitedVdata_1a539b0e1f45a8a0cf1095e647a27805ca" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>dumpMemBlocks</name></member>
+      <member refid="classShaderResUnitedVdata_1a5a0e4594c25805f7fa2f9223946d31d6" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>failedVdataReloadResList</name></member>
+      <member refid="classShaderResUnitedVdata_1a797cd9223eb98bd16e1614a8381686a2" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getBufChunks</name></member>
+      <member refid="classShaderResUnitedVdata_1af613c5ad3236404822f0ec89d863dedd" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getFailedReloadResCount</name></member>
+      <member refid="classShaderResUnitedVdata_1ab741867496dfc3ec8c83d5d1ecd4ee95" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getHints</name></member>
+      <member refid="classShaderResUnitedVdata_1ab502225b99dc96f3f964761b28237abc" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getIB</name></member>
+      <member refid="classShaderResUnitedVdata_1ad4e9e888d62fce2e2058fee2c3c8493a" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getPendingReloadResCount</name></member>
+      <member refid="classShaderResUnitedVdata_1af03d6210b6dba979caffa76d21eaedda" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getRequestLodsByDistanceFrames</name></member>
+      <member refid="classShaderResUnitedVdata_1a7b0f59c980ea5d7ca66d039ab948f7c4" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getResCount</name></member>
+      <member refid="classShaderResUnitedVdata_1ad3f076ab09287b4091847cfcabe966b0" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>getVB</name></member>
+      <member refid="classShaderResUnitedVdata_1a5044fb5a2cce6fad2276babc8a69fe01" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>hints</name></member>
+      <member refid="classShaderResUnitedVdata_1a2146790ddd657d4a306d4e1c35eb64fc" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>hintsMutex</name></member>
+      <member refid="classShaderResUnitedVdata_1aee3b21ac942e6d8bd164e3d845382650" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>ibSizeToFree</name></member>
+      <member refid="classShaderResUnitedVdata_1aa91efc5e00788c3eb32cd83776e755df" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>initUpdateJob</name></member>
+      <member refid="classShaderResUnitedVdata_1a6fba5b88b699337c2c13e33749f8f95d" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>keepIfNeedLodFrames</name></member>
+      <member refid="classShaderResUnitedVdata_1a2807ea104dc08e0b08447c8918794b45" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>maxIbTotalUsed</name></member>
+      <member refid="classShaderResUnitedVdata_1a0d13d705c45b1d3c2da9cba11cdfc35d" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>maxVbTotalUsed</name></member>
+      <member refid="classShaderResUnitedVdata_1acf3e8b5177ce6caeaeac94fc67addf73" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>noDiscardFrames</name></member>
+      <member refid="classShaderResUnitedVdata_1aba56b7ad08413e21aa9daf78cfb247f9" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>on_mesh_relems_updated</name></member>
+      <member refid="classShaderResUnitedVdata_1a3e4f3c7dbddcad39aa9fcf4434d346cd" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>onAfterD3dReset</name></member>
+      <member refid="classShaderResUnitedVdata_1a740e84b64683a7b9810d26b033e1a926" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>onBeforeD3dReset</name></member>
+      <member refid="classShaderResUnitedVdata_1a1dac99e6532fcc52f610e1648cfcf793" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>pendingRebuildCount</name></member>
+      <member refid="classShaderResUnitedVdata_1a80e4d738fd29c5ecd16a1c15fcfbf7e9" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>pendingVdataReloadResCount</name></member>
+      <member refid="classShaderResUnitedVdata_1a622a7e68e650dd168627d5e0fd786074" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>prepareVdataBaseOfs</name></member>
+      <member refid="classShaderResUnitedVdata_1a43a1c09bcb322c18262f5e8acf589302" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>rebaseElemOfs</name></member>
+      <member refid="classShaderResUnitedVdata_1aa120050d46eb63514c267416e83364d4" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>rebuildBuffersAfterReset</name></member>
+      <member refid="classShaderResUnitedVdata_1aa3afad579b557a88232f6c4ad11f0bf1" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>rebuildUnitedVdata</name></member>
+      <member refid="classShaderResUnitedVdata_1abdc87c1a2494d7bc192d2b3a2913610a" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>releaseUnusedBuffers</name></member>
+      <member refid="classShaderResUnitedVdata_1af791cc1280988afaa1bfebf9a9a03226" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>releaseUpdateJob</name></member>
+      <member refid="classShaderResUnitedVdata_1a21e815086661d1a73e249694898f194d" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>reloadJobMgrId</name></member>
+      <member refid="classShaderResUnitedVdata_1ac2d608ac41d5f512f2242188512a0c2e" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>reloadRes</name></member>
+      <member refid="classShaderResUnitedVdata_1a0ae121fcbc6cf83a699dd6e82859a6f1" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>requestLodsByDistanceFrames</name></member>
+      <member refid="classShaderResUnitedVdata_1a640e0bb28a418e6ec4120319d7474236" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>resList</name></member>
+      <member refid="classShaderResUnitedVdata_1a971d5fde7df93abde8dce5e17c94ac86" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>ResType</name></member>
+      <member refid="classShaderResUnitedVdata_1a5133ee5a8d338699274e330cd90dbb9b" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>resUsedChunks</name></member>
+      <member refid="classShaderResUnitedVdata_1ad810eb6b6ccd4a147c71e41a17973a40" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>setAllocationLimits</name></member>
+      <member refid="classShaderResUnitedVdata_1a8171daf21999f461e09cf7ccd950cbc2" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>setDelResAllowed</name></member>
+      <member refid="classShaderResUnitedVdata_1af6e91e60297913403dc27edeb9352100" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>setHints</name></member>
+      <member refid="classShaderResUnitedVdata_1a16dfabe5f63eff8a4724bd4de0d66c90" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>setMaxVbSize</name></member>
+      <member refid="classShaderResUnitedVdata_1a2126fa43ea39ca05e1597b83b1552d75" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>setRebuildAllowed</name></member>
+      <member refid="classShaderResUnitedVdata_1ab695495ff2f03b79b27d7fb087de41cd" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>setSepTightVdataAllowed</name></member>
+      <member refid="classShaderResUnitedVdata_1a431b591a977f73f707e45dcb79088533" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>ShaderResUnitedVdata</name></member>
+      <member refid="classShaderResUnitedVdata_1a0434fbe2417f0f4f8cf35b1a241fbce2" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>stopPendingJobs</name></member>
+      <member refid="classShaderResUnitedVdata_1a25620e9028eda7aea764a5b9b013aefb" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>updateLocalMaximum</name></member>
+      <member refid="classShaderResUnitedVdata_1a3b046d47280e7f326fe458e679bc7604" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>updateVdata</name></member>
+      <member refid="classShaderResUnitedVdata_1ad321003c4dfffd534dd3446fb0a0799c" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>updateVdata</name></member>
+      <member refid="classShaderResUnitedVdata_1a3272a1e032253ea63208ca24728845c6" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>uselessDiscardAttempts</name></member>
+      <member refid="classShaderResUnitedVdata_1a9313e9f07e219711e5fb1d26b9d000cd" prot="protected" virt="non-virtual"><scope>ShaderResUnitedVdata</scope><name>vbSizeToFree</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

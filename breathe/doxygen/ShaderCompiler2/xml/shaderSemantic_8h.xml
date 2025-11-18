@@ -1,0 +1,965 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shaderSemantic_8h" kind="file" language="C++">
+    <compoundname>shaderSemantic.h</compoundname>
+    <includes refid="shShaderContext_8h" local="yes">shShaderContext.h</includes>
+    <includes refid="shVariantContext_8h" local="yes">shVariantContext.h</includes>
+    <includes refid="shErrorReporting_8h" local="yes">shErrorReporting.h</includes>
+    <includes refid="commonUtils_8h" local="yes">commonUtils.h</includes>
+    <includes refid="codeBlocks_8h" local="yes">codeBlocks.h</includes>
+    <includes refid="shsem_8h" local="yes">shsem.h</includes>
+    <includedby refid="shExprParser_8cpp" local="yes">shExprParser.cpp</includedby>
+    <includedby refid="shaderSemantic_8cpp" local="yes">shaderSemantic.cpp</includedby>
+    <includedby refid="shsem_8cpp" local="yes">shsem.cpp</includedby>
+    <includedby refid="variantSemantic_8cpp" local="yes">variantSemantic.cpp</includedby>
+    <incdepgraph>
+      <node id="88">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="81">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="104">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="97" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="73">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="70">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="89">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="64">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+      </node>
+      <node id="87">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="50">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="18">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="82">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="60">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="91">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="78">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="102">
+        <label>shLocVar.h</label>
+        <link refid="shLocVar_8h"/>
+      </node>
+      <node id="29">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="63">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="99">
+        <label>shMessages.h</label>
+        <link refid="shMessages_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+      </node>
+      <node id="100">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+      </node>
+      <node id="2">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="92" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="93" relation="include">
+        </childnode>
+        <childnode refid="97" relation="include">
+        </childnode>
+        <childnode refid="99" relation="include">
+        </childnode>
+        <childnode refid="95" relation="include">
+        </childnode>
+        <childnode refid="100" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="66">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="98">
+        <label>shVarBool.h</label>
+        <link refid="shVarBool_8h"/>
+      </node>
+      <node id="58">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="101">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="100" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="102" relation="include">
+        </childnode>
+        <childnode refid="103" relation="include">
+        </childnode>
+      </node>
+      <node id="68">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="104" relation="include">
+        </childnode>
+        <childnode refid="97" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="95">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="92">
+        <label>shaderVariantSrc.h</label>
+        <link refid="shaderVariantSrc_8h"/>
+      </node>
+      <node id="93">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="94" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="95" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="96" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="62">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="97">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="98" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+      </node>
+      <node id="77">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="83">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="24">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="32">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="86">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="84">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="85">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="65">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="71">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="40">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="74">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="80">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="90">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="33">
+        <label>cstdint</label>
+      </node>
+      <node id="27">
+        <label>cstring</label>
+      </node>
+      <node id="23">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="22">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="79">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="39">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="67">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="56">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="31">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="44">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="94">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="20">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="26">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="49">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="53">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="54">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="72">
+        <label>memory</label>
+      </node>
+      <node id="35">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="75">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="103">
+        <label>memory/dag_regionMemAlloc.h</label>
+      </node>
+      <node id="96">
+        <label>shaders/dag_shaderCommon.h</label>
+      </node>
+      <node id="38">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="47">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="36">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="37">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="42">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="34">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="61">
+        <label>shsyn.h</label>
+      </node>
+      <node id="41">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="21">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="76">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="51">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="46">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="7">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="3">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="5">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structsemantic_1_1BoolVarLookupRes" prot="public">semantic::BoolVarLookupRes</innerclass>
+    <innernamespace refid="namespacesemantic">semantic</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shShaderContext_8h" kindref="compound">shShaderContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shVariantContext_8h" kindref="compound">shVariantContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shErrorReporting_8h" kindref="compound">shErrorReporting.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="commonUtils_8h" kindref="compound">commonUtils.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="codeBlocks_8h" kindref="compound">codeBlocks.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shsem_8h" kindref="compound">shsem.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacesemantic" kindref="compound">semantic</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="structsemantic_1_1BoolVarLookupRes" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structsemantic_1_1BoolVarLookupRes" kindref="compound">BoolVarLookupRes</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17" refid="structsemantic_1_1BoolVarLookupRes_1a71374677a7a7c227ae79faba7c577bfa" refkind="member"><highlight class="normal"><sp/><sp/>ShaderTerminal::bool_expr<sp/>*<ref refid="structsemantic_1_1BoolVarLookupRes_1a71374677a7a7c227ae79faba7c577bfa" kindref="member">expr</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="18" refid="structsemantic_1_1BoolVarLookupRes_1aff8f97bc14c9f6a3b663b284b7af3c15" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structsemantic_1_1BoolVarLookupRes_1aff8f97bc14c9f6a3b663b284b7af3c15" kindref="member">isGlobal</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="19" refid="structsemantic_1_1BoolVarLookupRes_1a57afcc3ce9d5929ca0cd2a84bff1716b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structsemantic_1_1BoolVarLookupRes_1a57afcc3ce9d5929ca0cd2a84bff1716b" kindref="member">hasMultipleDeclarations</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="structsemantic_1_1BoolVarLookupRes_1a3ea6b6fdd99eef40cebae458fe2079ed" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structsemantic_1_1BoolVarLookupRes_1a71374677a7a7c227ae79faba7c577bfa" kindref="member">expr</ref><sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="namespacesemantic_1ae53a14963271647d198fdd5ecce705a4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structsemantic_1_1BoolVarLookupRes" kindref="compound">BoolVarLookupRes</ref><sp/><ref refid="namespacesemantic_1ae53a14963271647d198fdd5ecce705a4" kindref="member">get_bool_maybe</ref>(ShaderTerminal::SHTOK_ident<sp/>&amp;ident,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;locvar_ctx,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;tgt_ctx)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isGlobal<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref><sp/>*tbl<sp/>:<sp/>{&amp;locvar_ctx.localBoolVars(),<sp/>&amp;tgt_ctx.<ref refid="classshc_1_1TargetContext_1a328f404985f948f6e8038c5e4775149c" kindref="member">globBoolVars</ref>()})</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>found<sp/>=<sp/>tbl-&gt;tryGetExpr(ident))</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{found.<ref refid="structsemantic_1_1BoolVarLookupRes_1a71374677a7a7c227ae79faba7c577bfa" kindref="member">expr</ref>,<sp/>isGlobal,<sp/>found.hasBeenDeclaredMultipleTimes};</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>isGlobal<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="namespacesemantic_1ab76cb307b268e760be1f5a4e21cd2e60" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structsemantic_1_1BoolVarLookupRes" kindref="compound">BoolVarLookupRes</ref><sp/><ref refid="namespacesemantic_1ab76cb307b268e760be1f5a4e21cd2e60" kindref="member">get_bool_expr</ref>(ShaderTerminal::SHTOK_ident<sp/>&amp;ident,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;locvar_ctx,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;tgt_ctx)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>found<sp/>=<sp/><ref refid="namespacesemantic_1ae53a14963271647d198fdd5ecce705a4" kindref="member">get_bool_maybe</ref>(ident,<sp/>locvar_ctx,<sp/>tgt_ctx);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!found)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>&amp;ident,<sp/></highlight><highlight class="stringliteral">&quot;Bool<sp/>variable<sp/>&apos;%s&apos;<sp/>not<sp/>found&quot;</highlight><highlight class="normal">,<sp/>ident.text);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>found;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="namespacesemantic_1af8947c2c8c73e8adddfbc28ca1beccf9" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacesemantic_1af8947c2c8c73e8adddfbc28ca1beccf9" kindref="member">compare_shader</ref>(ShaderTerminal::bool_value<sp/>&amp;e,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>G_ASSERT(e.cmpop);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shname<sp/>=<sp/>ctx.<ref refid="classshc_1_1ShaderContext_1a62fb814941038645a59c2668a3b01e45" kindref="member">name</ref>();</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(e.cmpop-&gt;op-&gt;num)</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_eq:</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_assign:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>strcmp(shname,<sp/>e.shader-&gt;text)<sp/>==<sp/>0;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_noteq:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>strcmp(shname,<sp/>e.shader-&gt;text)<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacesemantic_1a12cb5a616e51a0afbd183d9a122b0dc1" kindref="member">initialize_debug_mode</ref>(<ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacesemantic_1a6010479c8e0bd3d4760a5022e4b3fa96" kindref="member">parse_hlsl_source_to_blocks</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPerHlslStage" kindref="compound">PerHlslStage&lt;CodeSourceBlocks *&gt;</ref><sp/>&amp;dst,<sp/><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderParser::ShaderBoolEvalCB</ref><sp/>&amp;boolCb,</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>semantic</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="shaderSemantic.h"/>
+  </compounddef>
+</doxygen>

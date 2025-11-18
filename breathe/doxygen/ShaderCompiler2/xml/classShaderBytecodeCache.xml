@@ -1,0 +1,283 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderBytecodeCache" kind="class" language="C++" prot="public">
+    <compoundname>ShaderBytecodeCache</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="no">shaderBytecodeCache.h</includes>
+    <innerclass refid="structShaderBytecodeCache_1_1LookupResult" prot="public">ShaderBytecodeCache::LookupResult</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderBytecodeCache_1a4759e9ebc01686488f48a58d23609d93" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderCacheEntry" kindref="compound">ShaderCacheEntry</ref> &gt;</type>
+        <definition>Tab&lt;ShaderCacheEntry&gt; ShaderBytecodeCache::cacheEntries</definition>
+        <argsstring></argsstring>
+        <name>cacheEntries</name>
+        <qualifiedname>ShaderBytecodeCache::cacheEntries</qualifiedname>
+        <initializer>{midmem_ptr()}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="93" column="7" bodyfile="shaderBytecodeCache.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderBytecodeCache_1a35cc827398182c82582e2c050cb88bbf" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCachedShader" kindref="compound">CachedShader</ref> &gt;</type>
+        <definition>Tab&lt;CachedShader&gt; ShaderBytecodeCache::cachedShadersList</definition>
+        <argsstring></argsstring>
+        <name>cachedShadersList</name>
+        <qualifiedname>ShaderBytecodeCache::cachedShadersList</qualifiedname>
+        <initializer>{midmem_ptr()}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="94" column="7" bodyfile="shaderBytecodeCache.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderBytecodeCache_1a8f4d12e2dac201e0124966841a77572a" prot="private" static="no" mutable="no">
+        <type><ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref>&lt; int &gt;</type>
+        <definition>PerHlslStage&lt;int&gt; ShaderBytecodeCache::codeCounts</definition>
+        <argsstring></argsstring>
+        <name>codeCounts</name>
+        <qualifiedname>ShaderBytecodeCache::codeCounts</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="95" column="16" bodyfile="shaderBytecodeCache.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderBytecodeCache_1a81c9d407ee45c94985ec4daeba85ba09" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> * &gt;</type>
+        <definition>Tab&lt;SemanticShaderPass *&gt; ShaderBytecodeCache::pendingShaderPasses</definition>
+        <argsstring></argsstring>
+        <name>pendingShaderPasses</name>
+        <qualifiedname>ShaderBytecodeCache::pendingShaderPasses</qualifiedname>
+        <initializer>{midmem_ptr()}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="97" column="7" bodyfile="shaderBytecodeCache.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classShaderBytecodeCache_1a308dbdc94392ab021694a7b4d59941a4" prot="private" static="yes" mutable="no">
+        <type>const <ref refid="structCachedShader" kindref="compound">CachedShader</ref></type>
+        <definition>const CachedShader ShaderBytecodeCache::EMPTY_CACHED_SHADER</definition>
+        <argsstring></argsstring>
+        <name>EMPTY_CACHED_SHADER</name>
+        <qualifiedname>ShaderBytecodeCache::EMPTY_CACHED_SHADER</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="99" column="36" bodyfile="shaderBytecodeCache.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderBytecodeCache_1a453ee9b1f6ad2705f851f1ca97b25529" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBytecodeCache::ShaderBytecodeCache</definition>
+        <argsstring>()=default</argsstring>
+        <name>ShaderBytecodeCache</name>
+        <qualifiedname>ShaderBytecodeCache::ShaderBytecodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="102" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1af216216203ab46297de3b1a85f0e303a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBytecodeCache::~ShaderBytecodeCache</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderBytecodeCache</name>
+        <qualifiedname>ShaderBytecodeCache::~ShaderBytecodeCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="103" column="3" bodyfile="shaderBytecodeCache.h" bodystart="103" bodyend="103"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1a04d2ca457de383dbae300721f9ee3fcb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBytecodeCache::PINNED_TYPE</definition>
+        <argsstring>(ShaderBytecodeCache)</argsstring>
+        <name>PINNED_TYPE</name>
+        <qualifiedname>ShaderBytecodeCache::PINNED_TYPE</qualifiedname>
+        <param>
+          <type><ref refid="classShaderBytecodeCache" kindref="compound">ShaderBytecodeCache</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="104" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1a8bd68a0f8c8fab2483d536e09d187fb3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderBytecodeCache::post</definition>
+        <argsstring>(ShaderCacheLevelIds c, const CompileResult &amp;result, HlslCompilationStage stage, const String &amp;compile_ctx)</argsstring>
+        <name>post</name>
+        <qualifiedname>ShaderBytecodeCache::post</qualifiedname>
+        <param>
+          <type><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structCompileResult" kindref="compound">CompileResult</ref> &amp;</type>
+          <declname>result</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>const String &amp;</type>
+          <declname>compile_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="112" column="8" bodyfile="shaderBytecodeCache.cpp" bodystart="19" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1a59f62e38c3b8d202eb7777a68247f4b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderBytecodeCache_1_1LookupResult" kindref="compound">LookupResult</ref></type>
+        <definition>ShaderBytecodeCache::LookupResult ShaderBytecodeCache::find</definition>
+        <argsstring>(const CryptoHash &amp;code_digest, const CryptoHash &amp;const_digest, const char *entry, const char *profile)</argsstring>
+        <name>find</name>
+        <qualifiedname>ShaderBytecodeCache::find</qualifiedname>
+        <param>
+          <type>const <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &amp;</type>
+          <declname>code_digest</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &amp;</type>
+          <declname>const_digest</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>entry</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="113" column="16" bodyfile="shaderBytecodeCache.cpp" bodystart="55" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1aae7fd205f02b77f3a46bd7820fb26018" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structCachedShader" kindref="compound">CachedShader</ref> &amp;</type>
+        <definition>const CachedShader &amp; ShaderBytecodeCache::resolveEntry</definition>
+        <argsstring>(ShaderCacheLevelIds c) const</argsstring>
+        <name>resolveEntry</name>
+        <qualifiedname>ShaderBytecodeCache::resolveEntry</qualifiedname>
+        <param>
+          <type><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="115" column="22" bodyfile="shaderBytecodeCache.h" bodystart="115" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1ae350c1069643f21cee52cb928aa80aa3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderBytecodeCache::markEntryAsPending</definition>
+        <argsstring>(ShaderCacheLevelIds c)</argsstring>
+        <name>markEntryAsPending</name>
+        <qualifiedname>ShaderBytecodeCache::markEntryAsPending</qualifiedname>
+        <param>
+          <type><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="121" column="8" bodyfile="shaderBytecodeCache.h" bodystart="121" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1a456942262603af909796d18e59c56d71" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderBytecodeCache::resolvePendingPasses</definition>
+        <argsstring>()</argsstring>
+        <name>resolvePendingPasses</name>
+        <qualifiedname>ShaderBytecodeCache::resolvePendingPasses</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="123" column="8" bodyfile="shaderBytecodeCache.cpp" bodystart="81" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBytecodeCache_1aeb96c34e97bf8b805ceceea6f3ea4d1c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderBytecodeCache::registerPendingPass</definition>
+        <argsstring>(SemanticShaderPass &amp;p)</argsstring>
+        <name>registerPendingPass</name>
+        <qualifiedname>ShaderBytecodeCache::registerPendingPass</qualifiedname>
+        <param>
+          <type><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="124" column="8" bodyfile="shaderBytecodeCache.cpp" bodystart="95" bodyend="99"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderBytecodeCache.h" line="91" column="1" bodyfile="shaderBytecodeCache.h" bodystart="92" bodyend="125"/>
+    <listofallmembers>
+      <member refid="classShaderBytecodeCache_1a35cc827398182c82582e2c050cb88bbf" prot="private" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>cachedShadersList</name></member>
+      <member refid="classShaderBytecodeCache_1a4759e9ebc01686488f48a58d23609d93" prot="private" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>cacheEntries</name></member>
+      <member refid="classShaderBytecodeCache_1a8f4d12e2dac201e0124966841a77572a" prot="private" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>codeCounts</name></member>
+      <member refid="classShaderBytecodeCache_1a308dbdc94392ab021694a7b4d59941a4" prot="private" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>EMPTY_CACHED_SHADER</name></member>
+      <member refid="classShaderBytecodeCache_1a59f62e38c3b8d202eb7777a68247f4b9" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>find</name></member>
+      <member refid="classShaderBytecodeCache_1ae350c1069643f21cee52cb928aa80aa3" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>markEntryAsPending</name></member>
+      <member refid="classShaderBytecodeCache_1a81c9d407ee45c94985ec4daeba85ba09" prot="private" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>pendingShaderPasses</name></member>
+      <member refid="classShaderBytecodeCache_1a04d2ca457de383dbae300721f9ee3fcb" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>PINNED_TYPE</name></member>
+      <member refid="classShaderBytecodeCache_1a8bd68a0f8c8fab2483d536e09d187fb3" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>post</name></member>
+      <member refid="classShaderBytecodeCache_1aeb96c34e97bf8b805ceceea6f3ea4d1c" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>registerPendingPass</name></member>
+      <member refid="classShaderBytecodeCache_1aae7fd205f02b77f3a46bd7820fb26018" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>resolveEntry</name></member>
+      <member refid="classShaderBytecodeCache_1a456942262603af909796d18e59c56d71" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>resolvePendingPasses</name></member>
+      <member refid="classShaderBytecodeCache_1a453ee9b1f6ad2705f851f1ca97b25529" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>ShaderBytecodeCache</name></member>
+      <member refid="classShaderBytecodeCache_1af216216203ab46297de3b1a85f0e303a" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache</scope><name>~ShaderBytecodeCache</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

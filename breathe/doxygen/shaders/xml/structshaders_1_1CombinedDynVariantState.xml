@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshaders_1_1CombinedDynVariantState" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::CombinedDynVariantState</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1CombinedDynVariantState_1a830a279a501c3e16b453eb5a9c956ed2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::CombinedDynVariantState::program</definition>
+        <argsstring></argsstring>
+        <name>program</name>
+        <qualifiedname>shaders::CombinedDynVariantState::program</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="69" column="12" bodyfile="dag_shaderVarsUtils.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1CombinedDynVariantState_1a9c6a960b70679d9fc8a9a44c91a74628" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::CombinedDynVariantState::variant</definition>
+        <argsstring></argsstring>
+        <name>variant</name>
+        <qualifiedname>shaders::CombinedDynVariantState::variant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="70" column="12" bodyfile="dag_shaderVarsUtils.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1CombinedDynVariantState_1a702cac4a0bb0395d754f812dd5d09c50" prot="public" static="no" mutable="no">
+        <type>ShaderStateBlockId</type>
+        <definition>ShaderStateBlockId shaders::CombinedDynVariantState::state_index</definition>
+        <argsstring></argsstring>
+        <name>state_index</name>
+        <qualifiedname>shaders::CombinedDynVariantState::state_index</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="71" column="22" bodyfile="dag_shaderVarsUtils.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1CombinedDynVariantState_1a7609ca1621e27eac2bcb87b7d5d306b0" prot="public" static="no" mutable="no">
+        <type>shaders::RenderStateId</type>
+        <definition>shaders::RenderStateId shaders::CombinedDynVariantState::render_state</definition>
+        <argsstring></argsstring>
+        <name>render_state</name>
+        <qualifiedname>shaders::CombinedDynVariantState::render_state</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="72" column="26" bodyfile="dag_shaderVarsUtils.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1CombinedDynVariantState_1af029acd3a9a05afcc1bf7a04edc46295" prot="public" static="no" mutable="no">
+        <type>shaders::ConstStateIdx</type>
+        <definition>shaders::ConstStateIdx shaders::CombinedDynVariantState::const_state</definition>
+        <argsstring></argsstring>
+        <name>const_state</name>
+        <qualifiedname>shaders::CombinedDynVariantState::const_state</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="73" column="26" bodyfile="dag_shaderVarsUtils.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1CombinedDynVariantState_1a8f92357af9be5af6bf5f638a5529d804" prot="public" static="no" mutable="no">
+        <type>shaders::TexStateIdx</type>
+        <definition>shaders::TexStateIdx shaders::CombinedDynVariantState::tex_state</definition>
+        <argsstring></argsstring>
+        <name>tex_state</name>
+        <qualifiedname>shaders::CombinedDynVariantState::tex_state</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="74" column="24" bodyfile="dag_shaderVarsUtils.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderVarsUtils.h" line="67" column="1" bodyfile="dag_shaderVarsUtils.h" bodystart="68" bodyend="75"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1CombinedDynVariantState_1af029acd3a9a05afcc1bf7a04edc46295" prot="public" virt="non-virtual"><scope>shaders::CombinedDynVariantState</scope><name>const_state</name></member>
+      <member refid="structshaders_1_1CombinedDynVariantState_1a830a279a501c3e16b453eb5a9c956ed2" prot="public" virt="non-virtual"><scope>shaders::CombinedDynVariantState</scope><name>program</name></member>
+      <member refid="structshaders_1_1CombinedDynVariantState_1a7609ca1621e27eac2bcb87b7d5d306b0" prot="public" virt="non-virtual"><scope>shaders::CombinedDynVariantState</scope><name>render_state</name></member>
+      <member refid="structshaders_1_1CombinedDynVariantState_1a702cac4a0bb0395d754f812dd5d09c50" prot="public" virt="non-virtual"><scope>shaders::CombinedDynVariantState</scope><name>state_index</name></member>
+      <member refid="structshaders_1_1CombinedDynVariantState_1a8f92357af9be5af6bf5f638a5529d804" prot="public" virt="non-virtual"><scope>shaders::CombinedDynVariantState</scope><name>tex_state</name></member>
+      <member refid="structshaders_1_1CombinedDynVariantState_1a9c6a960b70679d9fc8a9a44c91a74628" prot="public" virt="non-virtual"><scope>shaders::CombinedDynVariantState</scope><name>variant</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

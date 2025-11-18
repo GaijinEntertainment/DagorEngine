@@ -1,0 +1,395 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vertex and Index Buffer API</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="View and Scissor D3D API" href="ViewScissor.html" />
+    <link rel="prev" title="Variable Rate Shading API" href="VariableRateShading.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Vertex and Index Buffer API</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv47Ibuffer"><code class="docutils literal notranslate"><span class="pre">Ibuffer</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv47Vbuffer"><code class="docutils literal notranslate"><span class="pre">Vbuffer</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9create_vbEiiPKc"><code class="docutils literal notranslate"><span class="pre">d3d::create_vb()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9create_ibEiiPKc"><code class="docutils literal notranslate"><span class="pre">d3d::create_ib()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10setvsrc_exEiP7Sbufferii"><code class="docutils literal notranslate"><span class="pre">d3d::setvsrc_ex()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d7setvsrcEiP7Sbufferi"><code class="docutils literal notranslate"><span class="pre">d3d::setvsrc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d6setindEP7Sbuffer"><code class="docutils literal notranslate"><span class="pre">d3d::setind()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12create_vdeclEP7VSDTYPE"><code class="docutils literal notranslate"><span class="pre">d3d::create_vdecl()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12delete_vdeclE5VDECL"><code class="docutils literal notranslate"><span class="pre">d3d::delete_vdecl()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d8setvdeclE5VDECL"><code class="docutils literal notranslate"><span class="pre">d3d::setvdecl()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Vertex and Index Buffer API</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/VertexIndexBuffer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vertex-and-index-buffer-api">
+<h1>Vertex and Index Buffer API<a class="headerlink" href="#vertex-and-index-buffer-api" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv47Ibuffer">
+<span id="_CPPv37Ibuffer"></span><span id="_CPPv27Ibuffer"></span><span class="target" id="dag__vertexIndexBuffer_8h_1a49bbeebc7f2f6fa1c6d701bea3b9d55d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ibuffer</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><a class="headerlink" href="#_CPPv47Ibuffer" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv47Vbuffer">
+<span id="_CPPv37Vbuffer"></span><span id="_CPPv27Vbuffer"></span><span class="target" id="dag__vertexIndexBuffer_8h_1af6eb990d9d43c254ddaa5ffeed1140a4"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Vbuffer</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><a class="headerlink" href="#_CPPv47Vbuffer" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9create_vbEiiPKc">
+<span id="_CPPv3N3d3d9create_vbEiiPKc"></span><span id="_CPPv2N3d3d9create_vbEiiPKc"></span><span id="d3d::create_vb__i.i.cCP"></span><span class="target" id="namespaced3d_1ac53449f29d7d24cdcaf611d1b2f3daf7"></span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_vb</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9create_vbEiiPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a vertex buffer. </p>
+<p>This function creates a vertex buffer with the specified size and flags.</p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>Make the name parameter mandatory.</p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_bytes</strong> – The size of the vertex buffer in bytes. </p></li>
+<li><p><strong>flags</strong> – The creation flags. </p></li>
+<li><p><strong>name</strong> – The name of the vertex buffer (temporarily optional). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created vertex buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9create_ibEiiPKc">
+<span id="_CPPv3N3d3d9create_ibEiiPKc"></span><span id="_CPPv2N3d3d9create_ibEiiPKc"></span><span id="d3d::create_ib__i.i.cCP"></span><span class="target" id="namespaced3d_1abeb28f6ab9a52fb583f488e9ca9523d8"></span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ib</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stat_name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;ib&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9create_ibEiiPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates an index buffer. </p>
+<p>This function creates an index buffer with the specified size and flags.</p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>Make the name parameter mandatory.</p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_bytes</strong> – The size of the index buffer in bytes. </p></li>
+<li><p><strong>flags</strong> – The creation flags. </p></li>
+<li><p><strong>stat_name</strong> – The name of the index buffer (temporarily optional). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created index buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10setvsrc_exEiP7Sbufferii">
+<span id="_CPPv3N3d3d10setvsrc_exEiP7Sbufferii"></span><span id="_CPPv2N3d3d10setvsrc_exEiP7Sbufferii"></span><span id="d3d::setvsrc_ex__i.SbufferP.i.i"></span><span class="target" id="namespaced3d_1a2878cf32d25d141f658cc062f962e3d1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setvsrc_ex</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stream</span></span>, <a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">vb</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">offset</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stride_bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10setvsrc_exEiP7Sbufferii" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the vertex buffer as a stream source. </p>
+<p>This function sets the vertex buffer as a stream source for the specified stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stream</strong> – The stream index. </p></li>
+<li><p><strong>vb</strong> – A pointer to the vertex buffer. </p></li>
+<li><p><strong>offset</strong> – The offset in bytes from the start of the vertex buffer. </p></li>
+<li><p><strong>stride_bytes</strong> – The stride in bytes between vertices. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the vertex stream source was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7setvsrcEiP7Sbufferi">
+<span id="_CPPv3N3d3d7setvsrcEiP7Sbufferi"></span><span id="_CPPv2N3d3d7setvsrcEiP7Sbufferi"></span><span id="d3d::setvsrc__i.SbufferP.i"></span><span class="target" id="namespaced3d_1a660bc98865794cea404eda3bb6bbc25e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setvsrc</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stream</span></span>, <a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">vb</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stride_bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7setvsrcEiP7Sbufferi" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the vertex buffer as a stream source. </p>
+<p>This function sets the vertex buffer as a stream source for the specified stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stream</strong> – The stream index. </p></li>
+<li><p><strong>vb</strong> – A pointer to the vertex buffer. </p></li>
+<li><p><strong>stride_bytes</strong> – The stride in bytes between vertices. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the vertex stream source was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d6setindEP7Sbuffer">
+<span id="_CPPv3N3d3d6setindEP7Sbuffer"></span><span id="_CPPv2N3d3d6setindEP7Sbuffer"></span><span id="d3d::setind__SbufferP"></span><span class="target" id="namespaced3d_1ab4b7355eb67812759ebadfd7cb2836f8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setind</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ib</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d6setindEP7Sbuffer" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the index buffer. </p>
+<p>This function sets the index buffer for rendering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ib</strong> – A pointer to the index buffer. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the indices were set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12create_vdeclEP7VSDTYPE">
+<span id="_CPPv3N3d3d12create_vdeclEP7VSDTYPE"></span><span id="_CPPv2N3d3d12create_vdeclEP7VSDTYPE"></span><span id="d3d::create_vdecl__VSDTYPEP"></span><span class="target" id="namespaced3d_1a64de8a685d98bfcf5ab180aaf92eccab"></span><a class="reference internal" href="constants.html#_CPPv45VDECL" title="VDECL"><span class="n"><span class="pre">VDECL</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">create_vdecl</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="constants.html#_CPPv47VSDTYPE" title="VSDTYPE"><span class="n"><span class="pre">VSDTYPE</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">vsd</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12create_vdeclEP7VSDTYPE" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a DX8-style vertex declaration. </p>
+<p>This function creates a DX8-style vertex declaration based on the specified vertex shader declaration.</p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>Do we really need to support DX8-style vertex declarations? Maybe it’s time to look for a more modern solution.</p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vsd</strong> – The vertex shader declaration. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created vertex declaration, or BAD_VDECL on error. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12delete_vdeclE5VDECL">
+<span id="_CPPv3N3d3d12delete_vdeclE5VDECL"></span><span id="_CPPv2N3d3d12delete_vdeclE5VDECL"></span><span id="d3d::delete_vdecl__VDECL"></span><span class="target" id="namespaced3d_1a8b1ddd7c2d30e952ce9de7c92512a1c4"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">delete_vdecl</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="constants.html#_CPPv45VDECL" title="VDECL"><span class="n"><span class="pre">VDECL</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vdecl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12delete_vdeclE5VDECL" title="Link to this definition"></a><br /></dt>
+<dd><p>Deletes a vertex declaration. </p>
+<p>This function deletes a vertex declaration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vdecl</strong> – The vertex declaration to delete. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d8setvdeclE5VDECL">
+<span id="_CPPv3N3d3d8setvdeclE5VDECL"></span><span id="_CPPv2N3d3d8setvdeclE5VDECL"></span><span id="d3d::setvdecl__VDECL"></span><span class="target" id="namespaced3d_1a8cd95d3a91b01e1a9b67860e0b9004fa"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setvdecl</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="constants.html#_CPPv45VDECL" title="VDECL"><span class="n"><span class="pre">VDECL</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vdecl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d8setvdeclE5VDECL" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the current vertex declaration. </p>
+<p>This function sets the current vertex declaration for rendering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vdecl</strong> – The vertex declaration to set. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the vertex declaration was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="VariableRateShading.html" class="btn btn-neutral float-left" title="Variable Rate Shading API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ViewScissor.html" class="btn btn-neutral float-right" title="View and Scissor D3D API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

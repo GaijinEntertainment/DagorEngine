@@ -1,0 +1,496 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1VirtualPassRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::VirtualPassRequest</compoundname>
+    <includes refid="virtualPassRequest_8h" local="no">virtualPassRequest.h</includes>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdafg_1_1VirtualPassRequest_1a4d7fc0368009ea8601996a72a735c693" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dafg::VirtualPassRequest::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <qualifiedname>dafg::VirtualPassRequest::RRP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="139" column="3" bodyfile="virtualPassRequest.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classdafg_1_1VirtualPassRequest_1a2feb8b1e53a038bdaab79be0a7b987ce" prot="public" static="no">
+        <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Readonly|RRP::Optional|RRP::History|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dafg::VirtualPassRequest::RwVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Readonly | RRP::Optional | RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>RwVirtualAttachmentRequest</name>
+        <qualifiedname>dafg::VirtualPassRequest::RwVirtualAttachmentRequest</qualifiedname>
+        <briefdescription>
+<para>Resolve and RW depth cannot be readonly, optional or history requests. Usage should not have been specified yet. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="146" column="3" bodyfile="virtualPassRequest.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1VirtualPassRequest_1a1be30db7ab23e8bdd4c38da457535af1" prot="public" static="no">
+        <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Readonly|RRP::History|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dafg::VirtualPassRequest::ColorRwVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Readonly | RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>ColorRwVirtualAttachmentRequest</name>
+        <qualifiedname>dafg::VirtualPassRequest::ColorRwVirtualAttachmentRequest</qualifiedname>
+        <briefdescription>
+<para>Color requests may be optional, but cannot be readonly or history. Usage is specified later. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="152" column="3" bodyfile="virtualPassRequest.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1VirtualPassRequest_1a14cafdb7603ce87690ba53dc19ebf3de" prot="public" static="no">
+        <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Optional|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dafg::VirtualPassRequest::DepthRoVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Optional | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>DepthRoVirtualAttachmentRequest</name>
+        <qualifiedname>dafg::VirtualPassRequest::DepthRoVirtualAttachmentRequest</qualifiedname>
+        <briefdescription>
+<para>RO depth is not allowed to be optional, as it doesn&apos;t seem useful (may be changed later). Usage will be determined by us. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="158" column="3" bodyfile="virtualPassRequest.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1VirtualPassRequest_1ab67be3ccca032ac99939c2bdf910902e" prot="public" static="no">
+        <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Optional|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dafg::VirtualPassRequest::DepthRoAndSvBindVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Optional | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>DepthRoAndSvBindVirtualAttachmentRequest</name>
+        <qualifiedname>dafg::VirtualPassRequest::DepthRoAndSvBindVirtualAttachmentRequest</qualifiedname>
+        <briefdescription>
+<para>For RO depth that is also sampled through a shader var (SV), we also prohibit optional requests and while the usage type is determined by us (simultaneous depth+sampling), stage should be provided separately. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="166" column="3" bodyfile="virtualPassRequest.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1VirtualPassRequest_1a0870e7ee76f1016100627f2e15357df8" prot="public" static="no">
+        <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::History|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dafg::VirtualPassRequest::RoVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>RoVirtualAttachmentRequest</name>
+        <qualifiedname>dafg::VirtualPassRequest::RoVirtualAttachmentRequest</qualifiedname>
+        <briefdescription>
+<para>Input attachments are not allowed to be history, as renderpasses cannot span frame boundaries. Usage is determined by us. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="171" column="3" bodyfile="virtualPassRequest.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1VirtualPassRequest_1aedb2789854f5275ab99af99cb586bcfa" prot="public" static="no">
+        <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Readonly|RRP::History|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dafg::VirtualPassRequest::RwVirtualClearRequest =  detail::VirtualAttachmentRequest&lt;RRP::Readonly | RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>RwVirtualClearRequest</name>
+        <qualifiedname>dafg::VirtualPassRequest::RwVirtualClearRequest</qualifiedname>
+        <briefdescription>
+<para>Clear requests can be optional, but cannot be readonly or history. Usage should not have been specified yet. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="177" column="3" bodyfile="virtualPassRequest.h" bodystart="178" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1VirtualPassRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <qualifiedname>dafg::VirtualPassRequest::Registry</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="136" column="16" bodyfile="virtualPassRequest.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdafg_1_1VirtualPassRequest_1a0aa6c7dc12b380d60e59470e96c34160" prot="private" static="no" mutable="no">
+        <type>NodeNameId</type>
+        <definition>NodeNameId dafg::VirtualPassRequest::nodeId</definition>
+        <argsstring></argsstring>
+        <name>nodeId</name>
+        <qualifiedname>dafg::VirtualPassRequest::nodeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="286" column="14" bodyfile="virtualPassRequest.h" bodystart="286" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1VirtualPassRequest_1acb682e3ec82735814fe34a3078900d38" prot="private" static="no" mutable="no">
+        <type>InternalRegistry *</type>
+        <definition>InternalRegistry* dafg::VirtualPassRequest::registry</definition>
+        <argsstring></argsstring>
+        <name>registry</name>
+        <qualifiedname>dafg::VirtualPassRequest::registry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="287" column="20" bodyfile="virtualPassRequest.h" bodystart="287" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a3c5f1d65ae308a759497775ff21aad99" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dafg::VirtualPassRequest::VirtualPassRequest</definition>
+        <argsstring>(NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>VirtualPassRequest</name>
+        <qualifiedname>dafg::VirtualPassRequest::VirtualPassRequest</qualifiedname>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="137" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1ab6ef8919b2ccd6cc47049a45eaeaffd8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>disallowPolicies</declname>
+            <defname>disallowPolicies</defname>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>requirePolicies</declname>
+            <defname>requirePolicies</defname>
+          </param>
+        </templateparamlist>
+        <type>detail::ResUid</type>
+        <definition>detail::ResUid dafg::VirtualPassRequest::getResUidForAttachment</definition>
+        <argsstring>(detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt; attachment)</argsstring>
+        <name>getResUidForAttachment</name>
+        <qualifiedname>dafg::VirtualPassRequest::getResUidForAttachment</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; disallowPolicies, requirePolicies &gt;</type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="281" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1abd8c19b66f232a883c932407d523bc6c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::VirtualPassRequest::blobClearImpl</definition>
+        <argsstring>(RwVirtualClearRequest attachment, ResourceSubtypeTag projectee, const char *blob, detail::TypeErasedProjector projector)</argsstring>
+        <name>blobClearImpl</name>
+        <qualifiedname>dafg::VirtualPassRequest::blobClearImpl</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest_1aedb2789854f5275ab99af99cb586bcfa" kindref="member">RwVirtualClearRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <param>
+          <type>ResourceSubtypeTag</type>
+          <declname>projectee</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>blob</declname>
+        </param>
+        <param>
+          <type>detail::TypeErasedProjector</type>
+          <declname>projector</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="283" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a4523b510aef5dce6c6308e308b5f5170" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::VirtualPassRequest::color</definition>
+        <argsstring>(std::initializer_list&lt; ColorRwVirtualAttachmentRequest &gt; attachments) &amp;&amp;</argsstring>
+        <name>color</name>
+        <qualifiedname>dafg::VirtualPassRequest::color</qualifiedname>
+        <param>
+          <type>std::initializer_list&lt; <ref refid="classdafg_1_1VirtualPassRequest_1a1be30db7ab23e8bdd4c38da457535af1" kindref="member">ColorRwVirtualAttachmentRequest</ref> &gt;</type>
+          <declname>attachments</declname>
+        </param>
+        <briefdescription>
+<para>Specifies color attachments for this virtual pass, which will be bound in the order specified here. A color attachment is a synonym for &quot;render target&quot;. Call this with a braced list of either request objects or resource names, and optionally mip/layer numbers grouped with an object or name using braces. E.g. <computeroutput>{{&quot;cube&quot;, 0, 1}, &quot;normals&quot;, prevFrameMotionRequest}</computeroutput> </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachments</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of attachments to use as color ones. This method should be usable without understanding the internals of <ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref> most of the time. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="193" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a5eb9b53b5ffa6fbebf15fd91fd1abc81" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::VirtualPassRequest::depthRw</definition>
+        <argsstring>(RwVirtualAttachmentRequest attachment) &amp;&amp;</argsstring>
+        <name>depthRw</name>
+        <qualifiedname>dafg::VirtualPassRequest::depthRw</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest_1a2feb8b1e53a038bdaab79be0a7b987ce" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the depth attachment for this virtual pass and enables depth write. The specified resource request MUST be a modify request. Call this with either a resource request object or an object name. You can also optionally specify mip/layer using braces: <computeroutput>{&quot;cube&quot;, 0, 1}</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to use as depth. This method should be usable without understanding the internals of <ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref> most of the time. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="207" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a5c18085f821e89efffe0a8200cc781d9" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::VirtualPassRequest::depthRo</definition>
+        <argsstring>(DepthRoVirtualAttachmentRequest attachment) &amp;&amp;</argsstring>
+        <name>depthRo</name>
+        <qualifiedname>dafg::VirtualPassRequest::depthRo</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest_1a14cafdb7603ce87690ba53dc19ebf3de" kindref="member">DepthRoVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="210" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a1520136e11affb2cd013eac7827e23d3" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::VirtualPassRequest::depthRoAndBindToShaderVars</definition>
+        <argsstring>(DepthRoAndSvBindVirtualAttachmentRequest attachment, std::initializer_list&lt; const char * &gt; shader_var_names) &amp;&amp;</argsstring>
+        <name>depthRoAndBindToShaderVars</name>
+        <qualifiedname>dafg::VirtualPassRequest::depthRoAndBindToShaderVars</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest_1ab67be3ccca032ac99939c2bdf910902e" kindref="member">DepthRoAndSvBindVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>shader_var_names</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the depth attachment for this virtual pass, disables depth write and binds it to several shader variable for sampling inside a shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This can only be called with a resource request object and not a string name, due to requiring <computeroutput>stage</computeroutput> to be specified as all stages where these shader vars will be used.</para>
+<para>Note however that the resource request may be either read or modify, which will determine the ordering for this node.</para>
+<para>This is is only multi-usage API in daFG, an exception to the one usage per node guideline.</para>
+<para>Warning: switching between RO and RW depth requires decompression and recompression on AMD hardware, which is expensive.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource request for the depth attachment. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>shader_var_names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of shader var names to be bound. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="233" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a13dd6dbf34de1b34affb4e9f0fb94fec" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::VirtualPassRequest::resolve</definition>
+        <argsstring>(RwVirtualAttachmentRequest from, RwVirtualAttachmentRequest to) &amp;&amp;</argsstring>
+        <name>resolve</name>
+        <qualifiedname>dafg::VirtualPassRequest::resolve</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest_1a2feb8b1e53a038bdaab79be0a7b987ce" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest_1a2feb8b1e53a038bdaab79be0a7b987ce" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+<para>Specifies that the attachment <computeroutput>from</computeroutput> is a MSAA texture that should be resolved to the texture <computeroutput>to</computeroutput> at the end of this pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>The resource <computeroutput>from</computeroutput> must have been previously requested as either a color or a depth attachment.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>from</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to resolve. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>to</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource to resolve it to. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="245" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a8cd120a2f798bd55213344f2900ae037" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::VirtualPassRequest::vrsRate</definition>
+        <argsstring>(RoVirtualAttachmentRequest attachment) &amp;&amp;</argsstring>
+        <name>vrsRate</name>
+        <qualifiedname>dafg::VirtualPassRequest::vrsRate</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest_1a0870e7ee76f1016100627f2e15357df8" kindref="member">RoVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the VRS rate texture attachment for this virtual pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The specified resource request MUST be a read. See \inlinerst :cpp:func:<computeroutput>d3d::set_variable_rate_shading_texture</computeroutput> \endrst for further details. Call this with either a resource request object or an object name. You can also optionally specify mip/layer using braces: <computeroutput>{&quot;cube&quot;, 0, 1}</computeroutput>. <simplesect kind="warning"><para>Currently, no driver supports mips/layers for VRS textures.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to use as a VRS rate. This method should be usable without understanding the internals of <ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref> most of the time. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="261" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualPassRequest_1a6240dba0395a43fb128383c1891ed61f" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::VirtualPassRequest::area</definition>
+        <argsstring>(IPoint2 from, IPoint2 to) &amp;&amp;</argsstring>
+        <name>area</name>
+        <qualifiedname>dafg::VirtualPassRequest::area</qualifiedname>
+        <param>
+          <type>IPoint2</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="273" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Requests this node to be inside a render pass with specified attachments. It is a virtual pass, as FG will merge these virtual passes into a single physical pass where possible. This class must be used to further specify the details of a virtual pass. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Attachments is a term that includes both render targets, depth targets and some other mobile-specific stuff. Note that methods that specify attachments take a special helper class, <ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref>. It is not necessary to understand how this class works, just call these methods either with a resource request or a string resource name, or even a {request/name, mip, layer} initializer list for tricky cases like cube maps. </para>
+    </detaileddescription>
+    <location file="virtualPassRequest.h" line="134" column="1" bodyfile="virtualPassRequest.h" bodystart="135" bodyend="288"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1VirtualPassRequest_1a6240dba0395a43fb128383c1891ed61f" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>area</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1abd8c19b66f232a883c932407d523bc6c" prot="private" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>blobClearImpl</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a4523b510aef5dce6c6308e308b5f5170" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>color</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a1be30db7ab23e8bdd4c38da457535af1" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>ColorRwVirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a5c18085f821e89efffe0a8200cc781d9" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>depthRo</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a1520136e11affb2cd013eac7827e23d3" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>depthRoAndBindToShaderVars</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1ab67be3ccca032ac99939c2bdf910902e" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>DepthRoAndSvBindVirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a14cafdb7603ce87690ba53dc19ebf3de" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>DepthRoVirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a5eb9b53b5ffa6fbebf15fd91fd1abc81" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>depthRw</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1ab6ef8919b2ccd6cc47049a45eaeaffd8" prot="private" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>getResUidForAttachment</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a0aa6c7dc12b380d60e59470e96c34160" prot="private" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>nodeId</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1acb682e3ec82735814fe34a3078900d38" prot="private" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>registry</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>Registry</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a13dd6dbf34de1b34affb4e9f0fb94fec" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>resolve</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a0870e7ee76f1016100627f2e15357df8" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>RoVirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a4d7fc0368009ea8601996a72a735c693" prot="private" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>RRP</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a2feb8b1e53a038bdaab79be0a7b987ce" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>RwVirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1aedb2789854f5275ab99af99cb586bcfa" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>RwVirtualClearRequest</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a3c5f1d65ae308a759497775ff21aad99" prot="private" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>VirtualPassRequest</name></member>
+      <member refid="classdafg_1_1VirtualPassRequest_1a8cd120a2f798bd55213344f2900ae037" prot="public" virt="non-virtual"><scope>dafg::VirtualPassRequest</scope><name>vrsRate</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

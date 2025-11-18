@@ -1,0 +1,490 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGizmoClient" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGizmoClient</compoundname>
+    <derivedcompoundref refid="classObjectEditor" prot="public" virt="non-virtual">ObjectEditor</derivedcompoundref>
+    <includes refid="ec__interface_8h" local="no">ec_interface.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Methods called by Gizmo to get its own coordinates, angles, scaling.</header>
+      <memberdef kind="function" id="classIGizmoClient_1a9b0dcd87c76d4b8b1521a8df8b9cd579" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>Point3</type>
+        <definition>virtual Point3 IGizmoClient::getPt</definition>
+        <argsstring>()=0</argsstring>
+        <name>getPt</name>
+        <qualifiedname>IGizmoClient::getPt</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a477e7a53898fb7307bdb67389b9778b6">getPt</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current Gizmo position <simplesect kind="return"><para>Gizmo position </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="372" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1ae1a6e3c9cb601ed63bd2cf3ccc780e5d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IGizmoClient::getRot</definition>
+        <argsstring>(Point3 &amp;p)</argsstring>
+        <name>getRot</name>
+        <qualifiedname>IGizmoClient::getRot</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a82b1fd5601c397b62132bd1360648cc3">getRot</reimplementedby>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current Gizmo Euler angles. Used to set values in proper toolbar fields. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Euler angles </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if the function succeeds, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="378" column="16" bodyfile="ec_interface.h" bodystart="378" bodyend="378"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1ac2c4651d3d1c13c3ab33b3ef5849fd9b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IGizmoClient::getScl</definition>
+        <argsstring>(Point3 &amp;p)</argsstring>
+        <name>getScl</name>
+        <qualifiedname>IGizmoClient::getScl</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a1e8fede5542e90cf265871ca5ada0d6b">getScl</reimplementedby>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current Gizmo scaling in X,Y,Z dimensions. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>X,Y,Z</bold> scaling ratio </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if the function succeeds, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="383" column="16" bodyfile="ec_interface.h" bodystart="383" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a8e2c3d7b7cd98c89ef1c9d534940453f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IGizmoClient::getAxes</definition>
+        <argsstring>(Point3 &amp;ax, Point3 &amp;ay, Point3 &amp;az)</argsstring>
+        <name>getAxes</name>
+        <qualifiedname>IGizmoClient::getAxes</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a6b1866cdee249940bc89bf267211647a">getAxes</reimplementedby>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>ax</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>ay</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>az</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current Gizmo X,Y,Z axes <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">ax</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>X axis</bold> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">ay</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>Y axis</bold> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">az</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>Z axis</bold> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if the function succeeds, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="390" column="16" bodyfile="ec_interface.h" bodystart="390" bodyend="396"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1abe1b9ac78fbf20fe1f5f688525c9e4ff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IGizmoClient::shouldComputeDeltaFromStartPos</definition>
+        <argsstring>()</argsstring>
+        <name>shouldComputeDeltaFromStartPos</name>
+        <qualifiedname>IGizmoClient::shouldComputeDeltaFromStartPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Switch between relative and absolute deltas passed to <ref refid="classIGizmoClient_1a4b915618bd8b4db6890d213536a24d52" kindref="member">changed()</ref> <simplesect kind="return"><para><bold>true</bold> to make <ref refid="classIGizmoClient_1a4b915618bd8b4db6890d213536a24d52" kindref="member">changed()</ref> calls receive total delta since startGizmo() </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="401" column="16" bodyfile="ec_interface.h" bodystart="401" bodyend="401"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Methods called by Gizmo to inform client code about Gizmo&apos;s changes.</header>
+      <memberdef kind="function" id="classIGizmoClient_1a4b915618bd8b4db6890d213536a24d52" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoClient::changed</definition>
+        <argsstring>(const Point3 &amp;delta)=0</argsstring>
+        <name>changed</name>
+        <qualifiedname>IGizmoClient::changed</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1adfeec534f935c186c61a32e98a4900d6">changed</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>delta</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><bold>Gizmo changed</bold> event handler. Called when Gizmo changed its coordinates, axes, scaling etc <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Gizmo changing (depends on mode):<linebreak/>
+<itemizedlist>
+<listitem><para><bold>Move</bold> - position relative to last call of <ref refid="classIGizmoClient_1a9b0dcd87c76d4b8b1521a8df8b9cd579" kindref="member">getPt()</ref><linebreak/>
+</para>
+</listitem><listitem><para><bold>Rotation</bold> - current Euler angles<linebreak/>
+</para>
+</listitem><listitem><para><bold>Scale</bold> - current scale </para>
+</listitem></itemizedlist>
+</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="412" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a6f72ecfe086c98e3a4de175bd24aed51" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoClient::gizmoStarted</definition>
+        <argsstring>()=0</argsstring>
+        <name>gizmoStarted</name>
+        <qualifiedname>IGizmoClient::gizmoStarted</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1ab6e4f45ba89afdd76f911d50b6b5fc34">gizmoStarted</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called when user clicks any Gizmo axis. i.e. at the begining of changing Gizmo&apos;s position, axes, etc </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="416" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a00280a60624802ce853614fb24ad0bfa" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoClient::gizmoEnded</definition>
+        <argsstring>(bool apply)=0</argsstring>
+        <name>gizmoEnded</name>
+        <qualifiedname>IGizmoClient::gizmoEnded</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1ad1cebd3a2558d3831c97de062b724fbc">gizmoEnded</reimplementedby>
+        <param>
+          <type>bool</type>
+          <declname>apply</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called at the end of Gizmo&apos;s changing <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">apply</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> - apply changes that take place in interval between <ref refid="classIGizmoClient_1a6f72ecfe086c98e3a4de175bd24aed51" kindref="member">gizmoStarted()</ref> and <ref refid="classIGizmoClient_1a00280a60624802ce853614fb24ad0bfa" kindref="member">gizmoEnded()</ref> <linebreak/>
+ <bold>false</bold> - do not apply changes </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="422" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a2fbfc02bcd0e5fc38b1dab17cead846d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoClient::release</definition>
+        <argsstring>()=0</argsstring>
+        <name>release</name>
+        <qualifiedname>IGizmoClient::release</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1af6682851baeeacc56ab248b115cb785b">release</reimplementedby>
+        <briefdescription>
+<para>Called at the moment of destroying Gizmo. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="425" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a7f3927ba11c461bae033305dce99de5b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGizmoClient::canStartChangeAt</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int gizmo_sel)=0</argsstring>
+        <name>canStartChangeAt</name>
+        <qualifiedname>IGizmoClient::canStartChangeAt</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a7d00cdf5657f968a7ed0b03cba040625">canStartChangeAt</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>gizmo_sel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Informs Gizmo that it can begin changing. Called when user presses left mouse button. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window (where user clicks) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates where user clicks </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">gizmo_sel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- axes flags (what axes selected) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> - method <ref refid="classIGizmoClient_1a6f72ecfe086c98e3a4de175bd24aed51" kindref="member">gizmoStarted()</ref> will be called and normal work with Gizmo begins<linebreak/>
+ <bold>false</bold> - no actions </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="438" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1aa681e668a976b14549aeae038bdae538" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGizmoClient::isMouseOver</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y)=0</argsstring>
+        <name>isMouseOver</name>
+        <qualifiedname>IGizmoClient::isMouseOver</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a5a09bf026de3a580ab4d8948c51d3936">isMouseOver</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether mouse cursor is on the object. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window (where user clicks) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates where user clicks </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if mouse cursor is on the object, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="445" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a6dcc4680640ea838ada836d40341bc04" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int IGizmoClient::getAvailableTypes</definition>
+        <argsstring>()</argsstring>
+        <name>getAvailableTypes</name>
+        <qualifiedname>IGizmoClient::getAvailableTypes</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a4235397614653fd9e402fd02b9eb6d2b">getAvailableTypes</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns flags which informs Gizmo about modes supported by plugin <simplesect kind="return"><para>flags representing types of modes supported by plugin </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="449" column="15" bodyfile="ec_interface.h" bodystart="449" bodyend="449"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a2a740b53e6a9e0b2c0f3474602d7f2a0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IGizmoClient::usesRendinstPlacement</definition>
+        <argsstring>() const</argsstring>
+        <name>usesRendinstPlacement</name>
+        <qualifiedname>IGizmoClient::usesRendinstPlacement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="451" column="16" bodyfile="ec_interface.h" bodystart="451" bodyend="451"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1ad06c6e1b5b2258f04c0c4173a9ed0bac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoClient::saveNormalOnSelection</definition>
+        <argsstring>(const Point3 &amp;)</argsstring>
+        <name>saveNormalOnSelection</name>
+        <qualifiedname>IGizmoClient::saveNormalOnSelection</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1ad382fa16d8ef22bb0c0a5d3e83555255">saveNormalOnSelection</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="452" column="16" bodyfile="ec_interface.h" bodystart="452" bodyend="452"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a7067e3fa0826b9849fad45769789d6a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoClient::setCollisionIgnoredOnSelection</definition>
+        <argsstring>()</argsstring>
+        <name>setCollisionIgnoredOnSelection</name>
+        <qualifiedname>IGizmoClient::setCollisionIgnoredOnSelection</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1afc1b603cdeb07e1be5b6dc958a4047a7">setCollisionIgnoredOnSelection</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="453" column="16" bodyfile="ec_interface.h" bodystart="453" bodyend="453"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoClient_1a991f4676571bab95e8decbc1c4577bcc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoClient::resetCollisionIgnoredOnSelection</definition>
+        <argsstring>()</argsstring>
+        <name>resetCollisionIgnoredOnSelection</name>
+        <qualifiedname>IGizmoClient::resetCollisionIgnoredOnSelection</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a87a6b1577754df841101c292e5cb146c">resetCollisionIgnoredOnSelection</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="454" column="16" bodyfile="ec_interface.h" bodystart="454" bodyend="454"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Interface class to Gizmo. Used to receive messages from Gizmo. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="2">
+        <label>ObjectEditor</label>
+        <link refid="classObjectEditor"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="ec_interface.h" line="364" column="1" bodyfile="ec_interface.h" bodystart="365" bodyend="455"/>
+    <listofallmembers>
+      <member refid="classIGizmoClient_1a7f3927ba11c461bae033305dce99de5b" prot="public" virt="pure-virtual"><scope>IGizmoClient</scope><name>canStartChangeAt</name></member>
+      <member refid="classIGizmoClient_1a4b915618bd8b4db6890d213536a24d52" prot="public" virt="pure-virtual"><scope>IGizmoClient</scope><name>changed</name></member>
+      <member refid="classIGizmoClient_1a6dcc4680640ea838ada836d40341bc04" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>getAvailableTypes</name></member>
+      <member refid="classIGizmoClient_1a8e2c3d7b7cd98c89ef1c9d534940453f" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>getAxes</name></member>
+      <member refid="classIGizmoClient_1a9b0dcd87c76d4b8b1521a8df8b9cd579" prot="public" virt="pure-virtual"><scope>IGizmoClient</scope><name>getPt</name></member>
+      <member refid="classIGizmoClient_1ae1a6e3c9cb601ed63bd2cf3ccc780e5d" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>getRot</name></member>
+      <member refid="classIGizmoClient_1ac2c4651d3d1c13c3ab33b3ef5849fd9b" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>getScl</name></member>
+      <member refid="classIGizmoClient_1a00280a60624802ce853614fb24ad0bfa" prot="public" virt="pure-virtual"><scope>IGizmoClient</scope><name>gizmoEnded</name></member>
+      <member refid="classIGizmoClient_1a6f72ecfe086c98e3a4de175bd24aed51" prot="public" virt="pure-virtual"><scope>IGizmoClient</scope><name>gizmoStarted</name></member>
+      <member refid="classIGizmoClient_1aa681e668a976b14549aeae038bdae538" prot="public" virt="pure-virtual"><scope>IGizmoClient</scope><name>isMouseOver</name></member>
+      <member refid="classIGizmoClient_1a2fbfc02bcd0e5fc38b1dab17cead846d" prot="public" virt="pure-virtual"><scope>IGizmoClient</scope><name>release</name></member>
+      <member refid="classIGizmoClient_1a991f4676571bab95e8decbc1c4577bcc" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>resetCollisionIgnoredOnSelection</name></member>
+      <member refid="classIGizmoClient_1ad06c6e1b5b2258f04c0c4173a9ed0bac" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>saveNormalOnSelection</name></member>
+      <member refid="classIGizmoClient_1a7067e3fa0826b9849fad45769789d6a5" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>setCollisionIgnoredOnSelection</name></member>
+      <member refid="classIGizmoClient_1abe1b9ac78fbf20fe1f5f688525c9e4ff" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>shouldComputeDeltaFromStartPos</name></member>
+      <member refid="classIGizmoClient_1a2a740b53e6a9e0b2c0f3474602d7f2a0" prot="public" virt="virtual"><scope>IGizmoClient</scope><name>usesRendinstPlacement</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

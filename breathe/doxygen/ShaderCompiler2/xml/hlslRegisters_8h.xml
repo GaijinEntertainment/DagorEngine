@@ -1,0 +1,1362 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="hlslRegisters_8h" kind="file" language="C++">
+    <compoundname>hlslRegisters.h</compoundname>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includes refid="commonUtils_8h" local="yes">commonUtils.h</includes>
+    <includes local="no">generic/dag_enumerate.h</includes>
+    <includes local="no">dag/dag_vector.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includes local="no">generic/dag_expected.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">EASTL/array.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">cstdint</includes>
+    <includedby refid="cppStcodeAssembly_8h" local="yes">cppStcodeAssembly.h</includedby>
+    <includedby refid="hlslRegisters_8cpp" local="yes">hlslRegisters.cpp</includedby>
+    <includedby refid="hwSemantic_8h" local="yes">hwSemantic.h</includedby>
+    <includedby refid="namedConst_8h" local="yes">namedConst.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="14">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="7">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="15">
+        <label>cstdint</label>
+      </node>
+      <node id="10">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="11">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="9">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="12">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="13">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="4">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="3">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="21">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="7">
+        <label>cppStcode.cpp</label>
+        <link refid="cppStcode_8cpp"/>
+      </node>
+      <node id="6">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="2">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="42">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="60">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="30">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>globalConfig.cpp</label>
+        <link refid="globalConfig_8cpp"/>
+      </node>
+      <node id="12">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>hlslRegisters.cpp</label>
+        <link refid="hlslRegisters_8cpp"/>
+      </node>
+      <node id="1">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="16">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="58">
+        <label>hwSemantic.h</label>
+        <link refid="hwSemantic_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="35">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="34">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="38">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="5">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="61">
+        <label>makeShBinDump.h</label>
+        <link refid="makeShBinDump_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="18">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="19">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="57">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>shCompilationInfo.cpp</label>
+        <link refid="shCompilationInfo_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="51">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="25">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="36">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="40">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="56">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+      </node>
+      <node id="33">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="26">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="24">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="48">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="50">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="27">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="53">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="29">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="44">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="46">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structHlslRegRange" prot="public">HlslRegRange</innerclass>
+    <innerclass refid="classHlslRegAllocator" prot="public">HlslRegAllocator</innerclass>
+    <innerclass refid="structHlslRegAllocator_1_1Policy" prot="public">HlslRegAllocator::Policy</innerclass>
+    <innerclass refid="structHlslRegAllocator_1_1Slot" prot="private">HlslRegAllocator::Slot</innerclass>
+    <innerclass refid="structHlslRegAllocator_1_1ReserveSuccess" prot="public">HlslRegAllocator::ReserveSuccess</innerclass>
+    <innerclass refid="structHlslRegAllocator_1_1ReserveFailure" prot="public">HlslRegAllocator::ReserveFailure</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" prot="public" static="no" strong="no">
+        <type>uint8_t</type>
+        <name>HlslRegisterSpace</name>
+        <enumvalue id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba16f0a59091cbba744554f42db492e9bd" prot="public">
+          <name>HLSL_RSPACE_T</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bab0f240d14a78569ec3d3b8586fa8b0c6" prot="public">
+          <name>HLSL_RSPACE_S</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bae4c03c06cbf9b4ae8c9407282006de68" prot="public">
+          <name>HLSL_RSPACE_C</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba9fe0c656e8e41cbd90248ecf23eee87e" prot="public">
+          <name>HLSL_RSPACE_U</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba4cd052468cc61d0e1fc36dfbea99f7ba" prot="public">
+          <name>HLSL_RSPACE_B</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" prot="public">
+          <name>HLSL_RSPACE_COUNT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bad5745a160a89af61c690124ec02558c2" prot="public">
+          <name>HLSL_RSPACE_INVALID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="20" column="1" bodyfile="hlslRegisters.h" bodystart="21" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="enum" id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>HlslSlotSemantic</name>
+        <enumvalue id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a3bd3560ef2b34fbdace988abac0bedc8" prot="public">
+          <name>ALLOCATED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aade830d4224961228de2c289c1f010ef" prot="public">
+          <name>HARDCODED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a83c7f2aa8c3ac10ed8beb75cad162827" prot="public">
+          <name>RESERVED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aa2994adffd74adbc9010225b3271721c" prot="public">
+          <name>RESERVED_FOR_PREDEFINES</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aff97b218ef108a694dfa86cdb1a816f8" prot="public">
+          <name>RESERVED_FOR_IMPLICIT_CONST_CBUF</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42afcf492f1625211cdff5cd89157422a93" prot="public">
+          <name>RESERVED_FOR_GLOBAL_CONST_CBUF</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42afa1a5e2ec35e986f5eb459ef29647b1a" prot="public">
+          <name>RESERVED_FOR_MATERIAL_PARAMS_CBUF</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="70" column="1" bodyfile="hlslRegisters.h" bodystart="71" bodyend="80"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="hlslRegisters_8h_1a4fb27e18e21802b3affa2a924beed19c" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr eastl::array&lt; <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref>, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>constexpr eastl::array&lt;HlslRegisterSpace, HLSL_RSPACE_COUNT&gt; HLSL_RSPACE_ALL_LIST</definition>
+        <argsstring></argsstring>
+        <name>HLSL_RSPACE_ALL_LIST</name>
+        <initializer>= {
+  <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba16f0a59091cbba744554f42db492e9bd" kindref="member">HLSL_RSPACE_T</ref>,
+  <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bab0f240d14a78569ec3d3b8586fa8b0c6" kindref="member">HLSL_RSPACE_S</ref>,
+  <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bae4c03c06cbf9b4ae8c9407282006de68" kindref="member">HLSL_RSPACE_C</ref>,
+  <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba9fe0c656e8e41cbd90248ecf23eee87e" kindref="member">HLSL_RSPACE_U</ref>,
+  <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba4cd052468cc61d0e1fc36dfbea99f7ba" kindref="member">HLSL_RSPACE_B</ref>,
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="32" column="31" bodyfile="hlslRegisters.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="hlslRegisters_8h_1adc4a886adf388efcf7611ee59238badb" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr eastl::array&lt; const char *, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>constexpr eastl::array&lt;const char *, HLSL_RSPACE_COUNT&gt; HLSL_RSPACE_ALL_NAMES</definition>
+        <argsstring></argsstring>
+        <name>HLSL_RSPACE_ALL_NAMES</name>
+        <initializer>= {
+  &quot;texture&quot;,
+  &quot;sampler&quot;,
+  &quot;constant&quot;,
+  &quot;uav&quot;,
+  &quot;constbuffer&quot;,
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="40" column="31" bodyfile="hlslRegisters.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="hlslRegisters_8h_1a917909bca1e293eb098449d6379e471c" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr eastl::array&lt; char, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>constexpr eastl::array&lt;char, HLSL_RSPACE_COUNT&gt; HLSL_RSPACE_ALL_SYMBOLS</definition>
+        <argsstring></argsstring>
+        <name>HLSL_RSPACE_ALL_SYMBOLS</name>
+        <initializer>= {
+  &apos;t&apos;,
+  &apos;s&apos;,
+  &apos;c&apos;,
+  &apos;u&apos;,
+  &apos;b&apos;,
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="48" column="31" bodyfile="hlslRegisters.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="hlslRegisters_8h_1a802c347459e530a935ebdc2ea2672422" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void for_each_hlsl_reg_space</definition>
+        <argsstring>(auto &amp;&amp;cb)</argsstring>
+        <name>for_each_hlsl_reg_space</name>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="56" column="13" bodyfile="hlslRegisters.h" bodystart="56" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="hlslRegisters_8h_1abcfc1bed2aa032f36290e608ed657165" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+        <definition>HlslRegisterSpace symbol_to_hlsl_reg_space</definition>
+        <argsstring>(char sym)</argsstring>
+        <name>symbol_to_hlsl_reg_space</name>
+        <param>
+          <type>char</type>
+          <declname>sym</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="62" column="26" bodyfile="hlslRegisters.h" bodystart="62" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="hlslRegisters_8h_1acf1cf57da1840c1811c3195d05ea03b8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange update_range</definition>
+        <argsstring>(HlslRegRange range, int32_t reg)</argsstring>
+        <name>update_range</name>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>range</declname>
+        </param>
+        <param>
+          <type>int32_t</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="87" column="21" bodyfile="hlslRegisters.h" bodystart="87" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="hlslRegisters_8h_1a2065d9137fe62bf65a74eb2d0b38a231" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange update_range</definition>
+        <argsstring>(HlslRegRange range, HlslRegRange other)</argsstring>
+        <name>update_range</name>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>range</declname>
+        </param>
+        <param>
+          <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="93" column="21" bodyfile="hlslRegisters.h" bodystart="93" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="hlslRegisters_8h_1afd8a77eba3a0edc222131d1646e3113c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::array&lt; <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref>, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>eastl::array&lt; HlslRegAllocator, HLSL_RSPACE_COUNT &gt; make_default_hlsl_reg_allocators</definition>
+        <argsstring>(int max_const_count)</argsstring>
+        <name>make_default_hlsl_reg_allocators</name>
+        <param>
+          <type>int</type>
+          <declname>max_const_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="313" column="14" bodyfile="hlslRegisters.cpp" bodystart="51" bodyend="64" declfile="hlslRegisters.h" declline="313" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="hlslRegisters_8h_1abb0e59f2c06ad028c08d95e56509ea0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></type>
+        <definition>HlslRegAllocator make_default_cbuf_reg_allocator</definition>
+        <argsstring>()</argsstring>
+        <name>make_default_cbuf_reg_allocator</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="314" column="18" bodyfile="hlslRegisters.cpp" bodystart="66" bodyend="66" declfile="hlslRegisters.h" declline="314" declcolumn="18"/>
+      </memberdef>
+      <memberdef kind="function" id="hlslRegisters_8h_1ac174b405cead4faedd2791ca1c8bbc1a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string get_reg_alloc_dump</definition>
+        <argsstring>(const HlslRegAllocator &amp;alloc, HlslRegisterSpace rspace, auto &amp;&amp;info_provider)</argsstring>
+        <name>get_reg_alloc_dump</name>
+        <param>
+          <type>const <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;</type>
+          <declname>alloc</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>rspace</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>info_provider</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="316" column="22" bodyfile="hlslRegisters.h" bodystart="316" bodyend="327"/>
+      </memberdef>
+      <memberdef kind="function" id="hlslRegisters_8h_1ab7aa4d43a1a7da5a09a35cb23d5a2771" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void report_reg_reserve_failed</definition>
+        <argsstring>(const char *name, int reg, int count, HlslRegisterSpace rspace, HlslSlotSemantic desired_semantic, HlslRegAllocator::ReserveFailure failure, const HlslRegAllocator &amp;alloc, auto &amp;&amp;info_provider)</argsstring>
+        <name>report_reg_reserve_failed</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>rspace</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+          <declname>desired_semantic</declname>
+        </param>
+        <param>
+          <type><ref refid="structHlslRegAllocator_1_1ReserveFailure" kindref="compound">HlslRegAllocator::ReserveFailure</ref></type>
+          <declname>failure</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;</type>
+          <declname>alloc</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>info_provider</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="329" column="13" bodyfile="hlslRegisters.h" bodystart="329" bodyend="350"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="commonUtils_8h" kindref="compound">commonUtils.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_enumerate.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_expected.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba16f0a59091cbba744554f42db492e9bd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba16f0a59091cbba744554f42db492e9bd" kindref="member">HLSL_RSPACE_T</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="23" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bab0f240d14a78569ec3d3b8586fa8b0c6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bab0f240d14a78569ec3d3b8586fa8b0c6" kindref="member">HLSL_RSPACE_S</ref>,</highlight></codeline>
+<codeline lineno="24" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bae4c03c06cbf9b4ae8c9407282006de68" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bae4c03c06cbf9b4ae8c9407282006de68" kindref="member">HLSL_RSPACE_C</ref>,</highlight></codeline>
+<codeline lineno="25" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba9fe0c656e8e41cbd90248ecf23eee87e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba9fe0c656e8e41cbd90248ecf23eee87e" kindref="member">HLSL_RSPACE_U</ref>,</highlight></codeline>
+<codeline lineno="26" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba4cd052468cc61d0e1fc36dfbea99f7ba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba4cd052468cc61d0e1fc36dfbea99f7ba" kindref="member">HLSL_RSPACE_B</ref>,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HLSL_RSPACE_COUNT</ref>,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bad5745a160a89af61c690124ec02558c2" kindref="member">HLSL_RSPACE_INVALID</ref></highlight></codeline>
+<codeline lineno="30" refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bad5745a160a89af61c690124ec02558c2" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="hlslRegisters_8h_1a4fb27e18e21802b3affa2a924beed19c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>eastl::array&lt;HlslRegisterSpace,<sp/>HLSL_RSPACE_COUNT&gt;<sp/><ref refid="hlslRegisters_8h_1a4fb27e18e21802b3affa2a924beed19c" kindref="member">HLSL_RSPACE_ALL_LIST</ref><sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba16f0a59091cbba744554f42db492e9bd" kindref="member">HLSL_RSPACE_T</ref>,</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bab0f240d14a78569ec3d3b8586fa8b0c6" kindref="member">HLSL_RSPACE_S</ref>,</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bae4c03c06cbf9b4ae8c9407282006de68" kindref="member">HLSL_RSPACE_C</ref>,</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba9fe0c656e8e41cbd90248ecf23eee87e" kindref="member">HLSL_RSPACE_U</ref>,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9ba4cd052468cc61d0e1fc36dfbea99f7ba" kindref="member">HLSL_RSPACE_B</ref>,</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="hlslRegisters_8h_1adc4a886adf388efcf7611ee59238badb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>eastl::array&lt;const<sp/>char<sp/>*,<sp/>HLSL_RSPACE_COUNT&gt;<sp/><ref refid="hlslRegisters_8h_1adc4a886adf388efcf7611ee59238badb" kindref="member">HLSL_RSPACE_ALL_NAMES</ref><sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="stringliteral">&quot;texture&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="stringliteral">&quot;sampler&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="stringliteral">&quot;constant&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="stringliteral">&quot;uav&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="stringliteral">&quot;constbuffer&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="hlslRegisters_8h_1a917909bca1e293eb098449d6379e471c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>eastl::array&lt;char,<sp/>HLSL_RSPACE_COUNT&gt;<sp/><ref refid="hlslRegisters_8h_1a917909bca1e293eb098449d6379e471c" kindref="member">HLSL_RSPACE_ALL_SYMBOLS</ref><sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="charliteral">&apos;t&apos;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="charliteral">&apos;s&apos;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="charliteral">&apos;c&apos;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="charliteral">&apos;u&apos;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="charliteral">&apos;b&apos;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="hlslRegisters_8h_1a802c347459e530a935ebdc2ea2672422" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="hlslRegisters_8h_1a802c347459e530a935ebdc2ea2672422" kindref="member">for_each_hlsl_reg_space</ref>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;cb)</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(<ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>space<sp/>:<sp/><ref refid="hlslRegisters_8h_1a4fb27e18e21802b3affa2a924beed19c" kindref="member">HLSL_RSPACE_ALL_LIST</ref>)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>cb(space);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="hlslRegisters_8h_1abcfc1bed2aa032f36290e608ed657165" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/><ref refid="hlslRegisters_8h_1abcfc1bed2aa032f36290e608ed657165" kindref="member">symbol_to_hlsl_reg_space</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>sym)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>c]<sp/>:<sp/>enumerate(<ref refid="hlslRegisters_8h_1a917909bca1e293eb098449d6379e471c" kindref="member">HLSL_RSPACE_ALL_SYMBOLS</ref>))</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c<sp/>==<sp/>sym)</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bad5745a160a89af61c690124ec02558c2" kindref="member">HLSL_RSPACE_INVALID</ref>;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="71"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a3bd3560ef2b34fbdace988abac0bedc8" kindref="member">ALLOCATED</ref>,</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aade830d4224961228de2c289c1f010ef" kindref="member">HARDCODED</ref>,</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a83c7f2aa8c3ac10ed8beb75cad162827" kindref="member">RESERVED</ref>,</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aa2994adffd74adbc9010225b3271721c" kindref="member">RESERVED_FOR_PREDEFINES</ref>,</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aff97b218ef108a694dfa86cdb1a816f8" kindref="member">RESERVED_FOR_IMPLICIT_CONST_CBUF</ref>,</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42afcf492f1625211cdff5cd89157422a93" kindref="member">RESERVED_FOR_GLOBAL_CONST_CBUF</ref>,</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42afa1a5e2ec35e986f5eb459ef29647b1a" kindref="member">RESERVED_FOR_MATERIAL_PARAMS_CBUF</ref>,</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="structHlslRegRange" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></highlight></codeline>
+<codeline lineno="83"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84" refid="structHlslRegRange_1af93398b7274fb7adb3ec8152f8c79eec" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="structHlslRegRange_1ae853c9e105fc8f8f29a15c0558c4ef11" kindref="member">min</ref><sp/>=<sp/>INT32_MAX,<sp/><ref refid="structHlslRegRange_1af93398b7274fb7adb3ec8152f8c79eec" kindref="member">cap</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="hlslRegisters_8h_1acf1cf57da1840c1811c3195d05ea03b8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="hlslRegisters_8h_1acf1cf57da1840c1811c3195d05ea03b8" kindref="member">update_range</ref>(<ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/>range,<sp/>int32_t<sp/>reg)</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/>G_ASSERT(reg<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{min(range.<ref refid="structHlslRegRange_1ae853c9e105fc8f8f29a15c0558c4ef11" kindref="member">min</ref>,<sp/>reg),<sp/>max(range.<ref refid="structHlslRegRange_1af93398b7274fb7adb3ec8152f8c79eec" kindref="member">cap</ref>,<sp/>reg<sp/>+<sp/>1)};</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="hlslRegisters_8h_1a2065d9137fe62bf65a74eb2d0b38a231" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="hlslRegisters_8h_1acf1cf57da1840c1811c3195d05ea03b8" kindref="member">update_range</ref>(<ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/>range,<sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/>other)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{min(range.<ref refid="structHlslRegRange_1ae853c9e105fc8f8f29a15c0558c4ef11" kindref="member">min</ref>,<sp/>other.<ref refid="structHlslRegRange_1ae853c9e105fc8f8f29a15c0558c4ef11" kindref="member">min</ref>),<sp/>max(range.<ref refid="structHlslRegRange_1af93398b7274fb7adb3ec8152f8c79eec" kindref="member">cap</ref>,<sp/>other.<ref refid="structHlslRegRange_1af93398b7274fb7adb3ec8152f8c79eec" kindref="member">cap</ref>)};</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="classHlslRegAllocator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></highlight></codeline>
+<codeline lineno="99"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">allocator_scan_routine_t<sp/>=<sp/>int32_t<sp/>(*)(<ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/>&amp;,<sp/>uint32_t);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="103" refid="classHlslRegAllocator_1a3c256ab602da1b81c9ac95382a592c99" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classHlslRegAllocator_1a3c256ab602da1b81c9ac95382a592c99" kindref="member">SLOT_SEMANTIC_DESCS</ref>[]{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;allocated&quot;</highlight><highlight class="normal">,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ALLOCATED</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;hardcoded&quot;</highlight><highlight class="normal">,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>HARDCODED</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;supp<sp/>blk&quot;</highlight><highlight class="normal">,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>RESERVED</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;predefined&quot;</highlight><highlight class="normal">,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>RESERVED_FOR_PREDEFINES</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;implicit<sp/>const<sp/>buf&quot;</highlight><highlight class="normal">,<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>RESERVED_FOR_IMPLICIT_CONST_CBUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;global<sp/>const<sp/>buf&quot;</highlight><highlight class="normal">,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>RESERVED_FOR_GLOBAL_CONST_CBUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;material<sp/>params<sp/>const<sp/>buf&quot;</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">//<sp/>RESERVED_FOR_MATERIAL_PARAMS_CBUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113" refid="classHlslRegAllocator_1a0a0fb25b42e5cd874779eac543d809ab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>allocator_scan_routine_t<sp/><ref refid="classHlslRegAllocator_1ab7e50b1fbb35f345fa3e8790fcc327b4" kindref="member">DEFAULT_SCAN</ref>,<sp/><ref refid="classHlslRegAllocator_1a0a0fb25b42e5cd874779eac543d809ab" kindref="member">BACKWARDS_SCAN</ref>;</highlight></codeline>
+<codeline lineno="114" refid="structHlslRegAllocator_1_1Policy" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structHlslRegAllocator_1_1Policy" kindref="compound">Policy</ref></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="116" refid="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" kindref="member">base</ref><sp/>=<sp/>0,<sp/><ref refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" kindref="member">cap</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="117" refid="structHlslRegAllocator_1_1Policy_1a154a28ad78232541a89745ff80487d41" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>allocator_scan_routine_t<sp/><ref refid="structHlslRegAllocator_1_1Policy_1a154a28ad78232541a89745ff80487d41" kindref="member">scanner</ref><sp/>=<sp/><ref refid="classHlslRegAllocator_1ab7e50b1fbb35f345fa3e8790fcc327b4" kindref="member">DEFAULT_SCAN</ref>;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Slot</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>used<sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref><sp/>:<sp/>7<sp/>=<sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a3bd3560ef2b34fbdace988abac0bedc8" kindref="member">HlslSlotSemantic::ALLOCATED</ref>;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(Slot)<sp/>==<sp/>1);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>dag::Vector&lt;Slot&gt;<sp/>slots{};</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>uint32_t<sp/>minUsed,<sp/>usedCap;<sp/></highlight><highlight class="comment">//<sp/>min<sp/>&gt;=<sp/>cap<sp/>means<sp/>none<sp/>are<sp/>used</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>Policy<sp/>policy{};</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="134" refid="classHlslRegAllocator_1aab1c9b85f985e42d33cb8793ee0112c3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classHlslRegAllocator_1aab1c9b85f985e42d33cb8793ee0112c3" kindref="member">HlslRegAllocator</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="135" refid="classHlslRegAllocator_1affc189483f4372c4aad958b0794fcab1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1affc189483f4372c4aad958b0794fcab1" kindref="member">HlslRegAllocator</ref>(<ref refid="structHlslRegAllocator_1_1Policy" kindref="compound">Policy</ref><sp/>policy)<sp/>:<sp/>policy{policy},<sp/>minUsed{policy.base<sp/>+<sp/>policy.cap},<sp/>usedCap{policy.base}<sp/>{}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137" refid="classHlslRegAllocator_1ad48e48287af0f5531520eca71219f336" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="classHlslRegAllocator_1ad48e48287af0f5531520eca71219f336" kindref="member">maxAllowedRange</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{int32_t(policy.<ref refid="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" kindref="member">base</ref>),<sp/>int32_t(policy.<ref refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" kindref="member">cap</ref>)};<sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139" refid="classHlslRegAllocator_1af6f2fc8f858abd7ecdeaa771294f823a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="classHlslRegAllocator_1af6f2fc8f858abd7ecdeaa771294f823a" kindref="member">getRange</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="140"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classHlslRegAllocator_1a964d2f652f250019bdd65c09d8ccf81c" kindref="member">hasRegs</ref>())</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{int32_t(minUsed),<sp/>int32_t(usedCap)};</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{0,<sp/>0};</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="146" refid="classHlslRegAllocator_1afe86acad3aaa2bae5ac69ed533331407" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="classHlslRegAllocator_1afe86acad3aaa2bae5ac69ed533331407" kindref="member">getRange</ref>(<ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="147"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1a51f162dc23109f59a616326795e2f4a9" kindref="member">getRangeImpl</ref>([<ref refid="namespacesemantic" kindref="compound">semantic</ref>](Slot<sp/>s)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s.used<sp/>&amp;&amp;<sp/>s.semantic<sp/>==<sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>;<sp/>});</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151" refid="classHlslRegAllocator_1a964d2f652f250019bdd65c09d8ccf81c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1a964d2f652f250019bdd65c09d8ccf81c" kindref="member">hasRegs</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>usedCap<sp/>&gt;<sp/>minUsed;<sp/>}</highlight></codeline>
+<codeline lineno="152" refid="classHlslRegAllocator_1a79166c20bb4690775d53a027ecc896e3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1a79166c20bb4690775d53a027ecc896e3" kindref="member">hasRegs</ref>(<ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="153"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[min,<sp/>cap]<sp/>=<sp/><ref refid="classHlslRegAllocator_1af6f2fc8f858abd7ecdeaa771294f823a" kindref="member">getRange</ref>(<ref refid="namespacesemantic" kindref="compound">semantic</ref>);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cap<sp/>&gt;<sp/>min;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158" refid="classHlslRegAllocator_1a2b029b0d7921e51c2a6f6294cc0decd7" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="classHlslRegAllocator_1a2b029b0d7921e51c2a6f6294cc0decd7" kindref="member">allocate</ref>(uint32_t<sp/>count<sp/>=<sp/>1)</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(count<sp/>&gt;<sp/>0);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/>int32_t<sp/>reg<sp/>=<sp/>(*policy.<ref refid="structHlslRegAllocator_1_1Policy_1a154a28ad78232541a89745ff80487d41" kindref="member">scanner</ref>)(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>count);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reg<sp/>&gt;=<sp/>0)</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(reg<sp/>&gt;=<sp/>policy.<ref refid="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" kindref="member">base</ref>);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(reg<sp/>+<sp/>count<sp/>&lt;=<sp/>policy.<ref refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" kindref="member">cap</ref>);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>reg;<sp/>i<sp/>&lt;<sp/>reg<sp/>+<sp/>count;<sp/>++i)</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(!slots[i].used);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>slots[i].used<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>slots[i].semantic<sp/>=<sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a3bd3560ef2b34fbdace988abac0bedc8" kindref="member">HlslSlotSemantic::ALLOCATED</ref>;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classHlslRegAllocator_1a2a8e5684e751841f652a48800144d1a5" kindref="member">updateRange</ref>(reg,<sp/>count);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>reg;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>do<sp/>the<sp/>void<sp/>specialization<sp/>for<sp/>Expected!</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="structHlslRegAllocator_1_1ReserveSuccess" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structHlslRegAllocator_1_1ReserveSuccess" kindref="compound">ReserveSuccess</ref></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/>{};</highlight></codeline>
+<codeline lineno="180" refid="structHlslRegAllocator_1_1ReserveFailure" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structHlslRegAllocator_1_1ReserveFailure" kindref="compound">ReserveFailure</ref></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182" refid="structHlslRegAllocator_1_1ReserveFailure_1af3a404a0e0428a3f21b297367fe805df" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structHlslRegAllocator_1_1ReserveFailure_1af3a404a0e0428a3f21b297367fe805df" kindref="member">outOfRange</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="183" refid="structHlslRegAllocator_1_1ReserveFailure_1af4e9951c47b11d5ff94022265bb0fee1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>int32_t<sp/><ref refid="structHlslRegAllocator_1_1ReserveFailure_1af4e9951c47b11d5ff94022265bb0fee1" kindref="member">conflictReg</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="184" refid="structHlslRegAllocator_1_1ReserveFailure_1aa4b3c39ccfa407f77f95ba7cb78d8ea5" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/><ref refid="structHlslRegAllocator_1_1ReserveFailure_1aa4b3c39ccfa407f77f95ba7cb78d8ea5" kindref="member">conflictSemantic</ref>;</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187" refid="classHlslRegAllocator_1ac1c6103f9dbb6412948245937d360883" refkind="member"><highlight class="normal"><sp/><sp/>eastl::optional&lt;HlslSlotSemantic&gt;<sp/><ref refid="classHlslRegAllocator_1ac1c6103f9dbb6412948245937d360883" kindref="member">peekSlotSemantic</ref>(int32_t<sp/>reg)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="188"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reg<sp/>&gt;=<sp/>slots.size()<sp/>||<sp/>!slots[reg].used)</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>slots[reg].semantic;</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="classHlslRegAllocator_1af3285ba44deadaf1f86ab4e24eda80d1" refkind="member"><highlight class="normal"><sp/><sp/>dag::Expected&lt;ReserveSuccess,<sp/>ReserveFailure&gt;<sp/><ref refid="classHlslRegAllocator_1af3285ba44deadaf1f86ab4e24eda80d1" kindref="member">reserve</ref>(<ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>,<sp/>int32_t<sp/>reg,<sp/>uint32_t<sp/>count<sp/>=<sp/>1)</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(reg<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERTF(<ref refid="namespacesemantic" kindref="compound">semantic</ref><sp/>!=<sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a3bd3560ef2b34fbdace988abac0bedc8" kindref="member">HlslSlotSemantic::ALLOCATED</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Can&apos;t<sp/>reserve<sp/>a<sp/>register<sp/>as<sp/>if<sp/>it<sp/>were<sp/>allocated&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((reg<sp/>&lt;<sp/>policy.base<sp/>||<sp/>reg<sp/>&gt;<sp/>policy.<ref refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" kindref="member">cap</ref><sp/>-<sp/>count)<sp/>&amp;&amp;<sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref><sp/>!=<sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aa2994adffd74adbc9010225b3271721c" kindref="member">HlslSlotSemantic::RESERVED_FOR_PREDEFINES</ref>)</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dag::Unexpected{<ref refid="structHlslRegAllocator_1_1ReserveFailure" kindref="compound">ReserveFailure</ref>{.<ref refid="structHlslRegAllocator_1_1ReserveFailure_1af3a404a0e0428a3f21b297367fe805df" kindref="member">outOfRange</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">}};</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>reg;<sp/>i<sp/>&lt;<sp/>min(uint32_t(reg)<sp/>+<sp/>count,<sp/>uint32_t(slots.size()));<sp/>++i)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Slot<sp/>&amp;dest<sp/>=<sp/>slots[i];</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dest.used)</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>@NOTE:<sp/>this<sp/>allows<sp/>aliasing<sp/>hardcoding<sp/>registers,<sp/>which<sp/>is<sp/>a<sp/>real<sp/>use-case</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dest.semantic<sp/>==<sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a3bd3560ef2b34fbdace988abac0bedc8" kindref="member">HlslSlotSemantic::ALLOCATED</ref><sp/>||<sp/>dest.semantic<sp/>!=<sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>)</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dag::Unexpected{<ref refid="structHlslRegAllocator_1_1ReserveFailure" kindref="compound">ReserveFailure</ref>{.<ref refid="structHlslRegAllocator_1_1ReserveFailure_1af4e9951c47b11d5ff94022265bb0fee1" kindref="member">conflictReg</ref><sp/>=<sp/>i,<sp/>.conflictSemantic<sp/>=<sp/>dest.semantic}};</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reg<sp/>+<sp/>count<sp/>&gt;<sp/>slots.size())</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>slots.resize(reg<sp/>+<sp/>count);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>reg;<sp/>i<sp/>&lt;<sp/>reg<sp/>+<sp/>count;<sp/>++i)</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>slots[i].used<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>slots[i].semantic<sp/>=<sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classHlslRegAllocator_1a2a8e5684e751841f652a48800144d1a5" kindref="member">updateRange</ref>(reg,<sp/>count);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structHlslRegAllocator_1_1ReserveSuccess" kindref="compound">ReserveSuccess</ref>{};</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221" refid="classHlslRegAllocator_1a5e73451984c98b704710b577882c8d72" refkind="member"><highlight class="normal"><sp/><sp/>dag::Expected&lt;ReserveSuccess,<sp/>Tab&lt;ReserveFailure&gt;&gt;<sp/><ref refid="classHlslRegAllocator_1a5e73451984c98b704710b577882c8d72" kindref="member">reserveAllFrom</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/>&amp;supp)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(policy.<ref refid="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" kindref="member">base</ref><sp/>==<sp/>supp.policy.<ref refid="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" kindref="member">base</ref>);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(policy.<ref refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" kindref="member">cap</ref><sp/>==<sp/>supp.policy.<ref refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" kindref="member">cap</ref>);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(slots.size()<sp/>&lt;<sp/>supp.slots.size())</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>slots.resize(supp.slots.size());</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;ReserveFailure&gt;<sp/>failedReserves{};</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>slot]<sp/>:<sp/>enumerate(supp.slots))</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(slot.used)</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>result<sp/>=<sp/><ref refid="classHlslRegAllocator_1af3285ba44deadaf1f86ab4e24eda80d1" kindref="member">reserve</ref>(max(<ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42a83c7f2aa8c3ac10ed8beb75cad162827" kindref="member">HlslSlotSemantic::RESERVED</ref>,<sp/>slot.semantic),<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>!result)</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>failedReserves.push_back(result.error());</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(failedReserves.empty())</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structHlslRegAllocator_1_1ReserveSuccess" kindref="compound">ReserveSuccess</ref>{};</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dag::Unexpected{eastl::move(failedReserves)};</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@HACK:<sp/>in<sp/>order<sp/>to<sp/>undo<sp/>__static_cbuf<sp/>in<sp/>shaders<sp/>if<sp/>no<sp/>buffered<sp/>consts<sp/>are<sp/>used</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="243" refid="classHlslRegAllocator_1a6a3fcec872163e786ff567a8be13d748" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1a6a3fcec872163e786ff567a8be13d748" kindref="member">unreserveIfUsed</ref>(<ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>,<sp/>int32_t<sp/>reg,<sp/>uint32_t<sp/>count<sp/>=<sp/>1)</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(reg<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespacesemantic" kindref="compound">semantic</ref><sp/>&lt;=<sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42aade830d4224961228de2c289c1f010ef" kindref="member">HlslSlotSemantic::HARDCODED</ref>)</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reg<sp/>&lt;<sp/>policy.base<sp/>||<sp/>reg<sp/>&gt;<sp/>policy.<ref refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" kindref="member">cap</ref><sp/>-<sp/>count)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cap<sp/>=<sp/>min(uint32_t(reg)<sp/>+<sp/>count,<sp/>uint32_t(slots.size()));</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>reg;<sp/>i<sp/>&lt;<sp/>cap;<sp/>++i)</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(slots[i].used<sp/>&amp;&amp;<sp/>slots[i].<ref refid="namespacesemantic" kindref="compound">semantic</ref><sp/>==<sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>)</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>slots[i].used<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classHlslRegAllocator_1a44dd526b3083a1a4ccdbfdc055b13f5e" kindref="member">recalculateRange</ref>();</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260" refid="classHlslRegAllocator_1aa79dbcec7d04fbdd6bab3e6ca2bd0e22" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1aa79dbcec7d04fbdd6bab3e6ca2bd0e22" kindref="member">dumpUsage</ref>(<ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>space,<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;logger,<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;info_provider)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="261"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[min,<sp/>cap]<sp/>=<sp/><ref refid="classHlslRegAllocator_1ad48e48287af0f5531520eca71219f336" kindref="member">maxAllowedRange</ref>();</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/>logger(</highlight><highlight class="stringliteral">&quot;Used<sp/>registers<sp/>in<sp/>allowed<sp/>range<sp/>[%d,<sp/>%d]:&quot;</highlight><highlight class="normal">,<sp/>min,<sp/>cap<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>skip<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[ind,<sp/>slot]<sp/>:<sp/>enumerate(slots))</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(skip<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>--skip;</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(slot.used)</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[name,<sp/>size]<sp/>=<sp/>info_provider(ind);</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>logger(</highlight><highlight class="stringliteral">&quot;<sp/><sp/>%c%-3d<sp/>%-5s:<sp/>%s,<sp/>%s&quot;</highlight><highlight class="normal">,<sp/><ref refid="hlslRegisters_8h_1a917909bca1e293eb098449d6379e471c" kindref="member">HLSL_RSPACE_ALL_SYMBOLS</ref>[space],<sp/>ind,<sp/>size<sp/>==<sp/>1<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal"><sp/>:<sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;[%d]&quot;</highlight><highlight class="normal">,<sp/>size).c_str(),</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>name.c_str(),<sp/><ref refid="classHlslRegAllocator_1a3c256ab602da1b81c9ac95382a592c99" kindref="member">SLOT_SEMANTIC_DESCS</ref>[size_t(slot.semantic)]);</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>skip<sp/>=<sp/>size<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>TPred&gt;</highlight></codeline>
+<codeline lineno="280" refid="classHlslRegAllocator_1a51f162dc23109f59a616326795e2f4a9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref><sp/><ref refid="classHlslRegAllocator_1a51f162dc23109f59a616326795e2f4a9" kindref="member">getRangeImpl</ref>(TPred<sp/>&amp;&amp;pred)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="281"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>begin<sp/>=<sp/>0,<sp/>cap<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>slots.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(pred(slots[i]))</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>begin<sp/>=<sp/>i;</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>slots.size()<sp/>-<sp/>1;<sp/>i<sp/>!=<sp/>uint32_t(-1);<sp/>--i)</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(pred(slots[i]))</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cap<sp/>=<sp/>i<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{int32_t(begin),<sp/>int32_t(cap)};</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"></highlight></codeline>
+<codeline lineno="299" refid="classHlslRegAllocator_1a2a8e5684e751841f652a48800144d1a5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1a2a8e5684e751841f652a48800144d1a5" kindref="member">updateRange</ref>(int32_t<sp/>reg,<sp/>uint32_t<sp/>count<sp/>=<sp/>1)</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(reg<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>count<sp/>&gt;<sp/>0);</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/>minUsed<sp/>=<sp/>min(uint32_t(reg),<sp/>minUsed);</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/>usedCap<sp/>=<sp/>max(uint32_t(reg)<sp/>+<sp/>count,<sp/>usedCap);</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="305" refid="classHlslRegAllocator_1a44dd526b3083a1a4ccdbfdc055b13f5e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator_1a44dd526b3083a1a4ccdbfdc055b13f5e" kindref="member">recalculateRange</ref>()</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[min,<sp/>cap]<sp/>=<sp/><ref refid="classHlslRegAllocator_1a51f162dc23109f59a616326795e2f4a9" kindref="member">getRangeImpl</ref>([](Slot<sp/>s)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s.used;<sp/>});</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/>minUsed<sp/>=<sp/>uint32_t(min);</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/>usedCap<sp/>=<sp/>uint32_t(cap);</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="311"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"></highlight></codeline>
+<codeline lineno="313"><highlight class="normal">eastl::array&lt;HlslRegAllocator,<sp/>HLSL_RSPACE_COUNT&gt;<sp/><ref refid="hlslRegisters_8h_1afd8a77eba3a0edc222131d1646e3113c" kindref="member">make_default_hlsl_reg_allocators</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_const_count);</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/><ref refid="hlslRegisters_8h_1abb0e59f2c06ad028c08d95e56509ea0c" kindref="member">make_default_cbuf_reg_allocator</ref>();</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"></highlight></codeline>
+<codeline lineno="316" refid="hlslRegisters_8h_1ac174b405cead4faedd2791ca1c8bbc1a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>eastl::string<sp/><ref refid="hlslRegisters_8h_1ac174b405cead4faedd2791ca1c8bbc1a" kindref="member">get_reg_alloc_dump</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/>&amp;alloc,<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>rspace,<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;info_provider)</highlight></codeline>
+<codeline lineno="317"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/>eastl::string<sp/>usageDump{};</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/>alloc.<ref refid="classHlslRegAllocator_1aa79dbcec7d04fbdd6bab3e6ca2bd0e22" kindref="member">dumpUsage</ref>(</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/><sp/><sp/>rspace,</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><sp/><sp/>[&amp;usageDump]&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal">...<sp/>Ts&gt;(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/>Ts<sp/>&amp;&amp;...args)<sp/>{</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>usageDump.append_sprintf(fmt,<sp/>eastl::forward&lt;Ts&gt;(args)...);</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>usageDump.push_back(</highlight><highlight class="charliteral">&apos;\n&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/>},</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><sp/><sp/>info_provider);</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>usageDump;</highlight></codeline>
+<codeline lineno="327"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"></highlight></codeline>
+<codeline lineno="329" refid="hlslRegisters_8h_1ab7aa4d43a1a7da5a09a35cb23d5a2771" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="hlslRegisters_8h_1ab7aa4d43a1a7da5a09a35cb23d5a2771" kindref="member">report_reg_reserve_failed</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count,<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>rspace,</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/>desired_semantic,<sp/><ref refid="structHlslRegAllocator_1_1ReserveFailure" kindref="compound">HlslRegAllocator::ReserveFailure</ref><sp/>failure,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/>&amp;alloc,<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;info_provider)</highlight></codeline>
+<codeline lineno="331"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/>eastl::string<sp/>collisionInfo{};</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(failure.<ref refid="structHlslRegAllocator_1_1ReserveFailure_1af3a404a0e0428a3f21b297367fe805df" kindref="member">outOfRange</ref>)</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[minAllowed,<sp/>capAllowed]<sp/>=<sp/>alloc.<ref refid="classHlslRegAllocator_1ad48e48287af0f5531520eca71219f336" kindref="member">maxAllowedRange</ref>();</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/><sp/><sp/>collisionInfo.sprintf(</highlight><highlight class="stringliteral">&quot;out<sp/>of<sp/>range<sp/>[%d,<sp/>%d]<sp/>allowed<sp/>for<sp/>space<sp/>&apos;%c&apos;&quot;</highlight><highlight class="normal">,<sp/>minAllowed,<sp/>capAllowed<sp/>-<sp/>1,<sp/><ref refid="hlslRegisters_8h_1a917909bca1e293eb098449d6379e471c" kindref="member">HLSL_RSPACE_ALL_SYMBOLS</ref>[rspace]);</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[name,<sp/>_]<sp/>=<sp/>info_provider(failure.<ref refid="structHlslRegAllocator_1_1ReserveFailure_1af4e9951c47b11d5ff94022265bb0fee1" kindref="member">conflictReg</ref>);</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>nameRef<sp/>=<sp/>name.empty()<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal"><sp/>:<sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;<sp/>(%s)&quot;</highlight><highlight class="normal">,<sp/>name.c_str());</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/>collisionInfo.sprintf(</highlight><highlight class="stringliteral">&quot;already<sp/>occupied<sp/>by<sp/>a<sp/>%s<sp/>param%s&quot;</highlight><highlight class="normal">,<sp/><ref refid="classHlslRegAllocator_1a3c256ab602da1b81c9ac95382a592c99" kindref="member">HlslRegAllocator::SLOT_SEMANTIC_DESCS</ref>[</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal">(failure.<ref refid="structHlslRegAllocator_1_1ReserveFailure_1aa4b3c39ccfa407f77f95ba7cb78d8ea5" kindref="member">conflictSemantic</ref>)],</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>nameRef.c_str());</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"></highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>nameRef<sp/>=<sp/>name<sp/>?<sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>name)<sp/>:<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Trying<sp/>to<sp/>reserve<sp/>a<sp/>%s<sp/>param%s<sp/>with<sp/>register<sp/>&apos;%c%d&apos;<sp/>of<sp/>size<sp/>%d,<sp/>which<sp/>is<sp/>%s\n%s&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classHlslRegAllocator_1a3c256ab602da1b81c9ac95382a592c99" kindref="member">HlslRegAllocator::SLOT_SEMANTIC_DESCS</ref>[</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal">(desired_semantic)],<sp/>nameRef.c_str(),<sp/><ref refid="hlslRegisters_8h_1a917909bca1e293eb098449d6379e471c" kindref="member">HLSL_RSPACE_ALL_SYMBOLS</ref>[rspace],<sp/>reg,<sp/>count,</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/>collisionInfo.c_str(),<sp/><ref refid="hlslRegisters_8h_1ac174b405cead4faedd2791ca1c8bbc1a" kindref="member">get_reg_alloc_dump</ref>(alloc,<sp/>rspace,<sp/>info_provider).c_str());</highlight></codeline>
+<codeline lineno="350"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="hlslRegisters.h"/>
+  </compounddef>
+</doxygen>

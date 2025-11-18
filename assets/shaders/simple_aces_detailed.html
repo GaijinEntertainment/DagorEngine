@@ -1,0 +1,242 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>simple_aces_detailed</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Shader Family: rendinst_layered" href="rendinst_layered_family.html" />
+    <link rel="prev" title="rendinst_simple_emissive" href="rendinst_simple_emissive.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#textures">Textures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameters">Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dng-shaders/index.html">daNetGame-based Shaders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/shaders/simple_aces_detailed.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="simple-aces-detailed">
+<h1><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code><a class="headerlink" href="#simple-aces-detailed" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This shader is designed for prefabs and render instances with additional
+detailing, including a normal map.</p>
+</section>
+<section id="textures">
+<h2>Textures<a class="headerlink" href="#textures" title="Link to this heading"></a></h2>
+<p>In <em>3ds Max</em>, the shader’s class name is <code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code>. It uses the
+following texture slots:</p>
+<ul class="simple">
+<li><p><strong>Slot 1</strong> – Base texture (colormap)</p></li>
+<li><p><strong>Slot 3</strong> – Normal map for the base texture</p></li>
+<li><p><strong>Slot 4</strong> – Normal map for the detail texture</p></li>
+<li><p><strong>Slot 8</strong> – Detail texture, with tiling controlled by the parameters
+<code class="docutils literal notranslate"><span class="pre">detail_scale_u=8</span></code> and <code class="docutils literal notranslate"><span class="pre">detail_scale_v=8</span></code></p></li>
+</ul>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<p>For example, in the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file, the material configuration appears as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">material</span><span class="p">{</span>
+  <span class="n">name</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;19 – Default&quot;</span>
+  <span class="n">class</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;simple_aces_detailed&quot;</span>
+  <span class="n">tex16support</span><span class="p">:</span><span class="n">b</span><span class="o">=</span><span class="n">yes</span>
+  <span class="n">twosided</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+  <span class="n">amb</span><span class="p">:</span><span class="n">ip3</span><span class="o">=</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span>
+  <span class="n">diff</span><span class="p">:</span><span class="n">ip3</span><span class="o">=</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span>
+  <span class="n">spec</span><span class="p">:</span><span class="n">ip3</span><span class="o">=</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span>
+  <span class="n">emis</span><span class="p">:</span><span class="n">ip3</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+  <span class="n">power</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">32</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;real_two_sided=no&quot;</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_scale_u=8&quot;</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_scale_v=8&quot;</span>
+  <span class="n">tex0</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;./karelia_cliff_a_b_tex_d.tif&quot;</span>
+  <span class="n">tex2</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;./karelia_cliff_a_b_tex_n.tif&quot;</span>
+  <span class="n">tex3</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;./rock_detail_a_tex_n.tif&quot;</span>
+  <span class="n">tex7</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;./rock_detail_a_tex_d.tif&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Explanation of Key Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name:t=&quot;19</span> <span class="pre">–</span> <span class="pre">Default&quot;</span></code> – The material’s name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">class:t=&quot;simple_aces_detailed&quot;</span></code> – The shader class being used for the
+material.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex16support:b=yes</span></code> – Enables support for 16-bit textures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">twosided:i=0</span></code> – Determines whether the material is rendered double-sided. In
+this case, <code class="docutils literal notranslate"><span class="pre">0</span></code> means it’s single-sided.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">amb:ip3=255,</span> <span class="pre">255,</span> <span class="pre">255</span></code> – Ambient color (RGB: 255, 255, 255).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">diff:ip3=255,</span> <span class="pre">255,</span> <span class="pre">255</span></code> – Diffuse color (RGB: 255, 255, 255).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">spec:ip3=255,</span> <span class="pre">255,</span> <span class="pre">255</span></code> – Specular color (RGB: 255, 255, 255).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">emis:ip3=0,</span> <span class="pre">0,</span> <span class="pre">0</span></code> – Emission color (RGB: 0, 0, 0), meaning no
+self-illumination.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">power:r=32</span></code> – Specular power (shininess).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;real_two_sided=no&quot;</span></code> – Explicitly disables double-sided rendering.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail_scale_u=8&quot;</span></code> – Sets the tiling scale for the detail texture
+along the U axis (horizontal).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail_scale_v=8&quot;</span></code> – Sets the tiling scale for the detail texture
+along the V axis (vertical).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex0:t=&quot;./karelia_cliff_a_b_tex_d.tif&quot;</span></code> – Path to the base texture
+(colormap).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex2:t=&quot;./karelia_cliff_a_b_tex_n.tif&quot;</span></code> – Path to the normal map for the base
+texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex3:t=&quot;./rock_detail_a_tex_n.tif&quot;</span></code> – Path to the normal map for the detail
+texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex7:t=&quot;./rock_detail_a_tex_d.tif&quot;</span></code> – Path to the detail texture.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_simple_emissive.html" class="btn btn-neutral float-left" title="rendinst_simple_emissive" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rendinst_layered_family.html" class="btn btn-neutral float-right" title="Shader Family: rendinst_layered" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

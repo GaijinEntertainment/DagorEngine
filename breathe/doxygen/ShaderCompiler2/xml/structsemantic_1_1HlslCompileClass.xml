@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1HlslCompileClass" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::HlslCompileClass</compoundname>
+    <includes refid="hwSemantic_8h" local="no">hwSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1HlslCompileClass_1a8f1bf3ad011afd5c45f5583b28ca5b0b" prot="public" static="no" mutable="no">
+        <type>eastl::variant&lt; <ref refid="structsemantic_1_1HlslCompileDirective" kindref="compound">HlslCompileDirective</ref>, <ref refid="structsemantic_1_1HlslSetDefaultTargetDirective" kindref="compound">HlslSetDefaultTargetDirective</ref>, <ref refid="structsemantic_1_1HlslNullCompileDirective" kindref="compound">HlslNullCompileDirective</ref> &gt;</type>
+        <definition>eastl::variant&lt;HlslCompileDirective, HlslSetDefaultTargetDirective, HlslNullCompileDirective&gt; semantic::HlslCompileClass::directive</definition>
+        <argsstring></argsstring>
+        <name>directive</name>
+        <qualifiedname>semantic::HlslCompileClass::directive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="40" column="18" bodyfile="hwSemantic.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1HlslCompileClass_1a56396c8ab24f1a2f799dba5562ef5f5b" prot="public" static="no" mutable="no">
+        <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+        <definition>HlslCompilationStage semantic::HlslCompileClass::stage</definition>
+        <argsstring></argsstring>
+        <name>stage</name>
+        <qualifiedname>semantic::HlslCompileClass::stage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="41" column="24" bodyfile="hwSemantic.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemantic_1_1HlslCompileClass_1a82e2ed4f2903659e9bf25d85db6a2c1a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>semantic::HlslCompileClass::HlslCompileClass</definition>
+        <argsstring>()</argsstring>
+        <name>HlslCompileClass</name>
+        <qualifiedname>semantic::HlslCompileClass::HlslCompileClass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="43" column="3" bodyfile="hwSemantic.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1HlslCompileClass_1af2fc0e0bd7ddde62ac649eb5fdc66cad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>semantic::HlslCompileClass::HlslCompileClass</definition>
+        <argsstring>(auto &amp;&amp;directive, HlslCompilationStage stage)</argsstring>
+        <name>HlslCompileClass</name>
+        <qualifiedname>semantic::HlslCompileClass::HlslCompileClass</qualifiedname>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>directive</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="44" column="3" bodyfile="hwSemantic.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1HlslCompileClass_1ad6f2b6aae25267d75d9826c1c54fd8e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structsemantic_1_1HlslCompileDirective" kindref="compound">HlslCompileDirective</ref> *</type>
+        <definition>HlslCompileDirective * semantic::HlslCompileClass::tryGetCompile</definition>
+        <argsstring>()</argsstring>
+        <name>tryGetCompile</name>
+        <qualifiedname>semantic::HlslCompileClass::tryGetCompile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="46" column="24" bodyfile="hwSemantic.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1HlslCompileClass_1ab890a6f0fe04566163ac6b2745e7a5fb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structsemantic_1_1HlslSetDefaultTargetDirective" kindref="compound">HlslSetDefaultTargetDirective</ref> *</type>
+        <definition>HlslSetDefaultTargetDirective * semantic::HlslCompileClass::tryGetDefaultTarget</definition>
+        <argsstring>()</argsstring>
+        <name>tryGetDefaultTarget</name>
+        <qualifiedname>semantic::HlslCompileClass::tryGetDefaultTarget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="47" column="33" bodyfile="hwSemantic.h" bodystart="47" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1HlslCompileClass_1ac634ab1835bc18a3ea816d18f4b9de16" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::HlslCompileClass::isNullCompile</definition>
+        <argsstring>() const</argsstring>
+        <name>isNullCompile</name>
+        <qualifiedname>semantic::HlslCompileClass::isNullCompile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="48" column="8" bodyfile="hwSemantic.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hwSemantic.h" line="38" column="1" bodyfile="hwSemantic.h" bodystart="39" bodyend="49"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1HlslCompileClass_1a8f1bf3ad011afd5c45f5583b28ca5b0b" prot="public" virt="non-virtual"><scope>semantic::HlslCompileClass</scope><name>directive</name></member>
+      <member refid="structsemantic_1_1HlslCompileClass_1a82e2ed4f2903659e9bf25d85db6a2c1a" prot="public" virt="non-virtual"><scope>semantic::HlslCompileClass</scope><name>HlslCompileClass</name></member>
+      <member refid="structsemantic_1_1HlslCompileClass_1af2fc0e0bd7ddde62ac649eb5fdc66cad" prot="public" virt="non-virtual"><scope>semantic::HlslCompileClass</scope><name>HlslCompileClass</name></member>
+      <member refid="structsemantic_1_1HlslCompileClass_1ac634ab1835bc18a3ea816d18f4b9de16" prot="public" virt="non-virtual"><scope>semantic::HlslCompileClass</scope><name>isNullCompile</name></member>
+      <member refid="structsemantic_1_1HlslCompileClass_1a56396c8ab24f1a2f799dba5562ef5f5b" prot="public" virt="non-virtual"><scope>semantic::HlslCompileClass</scope><name>stage</name></member>
+      <member refid="structsemantic_1_1HlslCompileClass_1ad6f2b6aae25267d75d9826c1c54fd8e8" prot="public" virt="non-virtual"><scope>semantic::HlslCompileClass</scope><name>tryGetCompile</name></member>
+      <member refid="structsemantic_1_1HlslCompileClass_1ab890a6f0fe04566163ac6b2745e7a5fb" prot="public" virt="non-virtual"><scope>semantic::HlslCompileClass</scope><name>tryGetDefaultTarget</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

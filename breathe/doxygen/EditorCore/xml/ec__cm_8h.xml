@@ -1,0 +1,894 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__cm_8h" kind="file" language="C++">
+    <compoundname>ec_cm.h</compoundname>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9" prot="public" static="no" strong="no">
+        <type></type>
+        <name>EditorCoreCM</name>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a069b0e3ee6c4d1d1f6ef5b8b219d01c2" prot="public">
+          <name>CM_FILE</name>
+          <initializer>= 99</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5fcf12ff3e1adc6aa870546032412692" prot="public">
+          <name>CM_FILE_NEW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1dedcdbf20ace7d3a17c95677862e56a" prot="public">
+          <name>CM_FILE_OPEN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad647d47bcf523896e494c6c9c646a7d3" prot="public">
+          <name>CM_FILE_SAVE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a994d39355034adab23e62f99a535fe7a" prot="public">
+          <name>CM_FILE_RECENT_BASE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a42421b3e1b4aace8f97e6222d2a2b458" prot="public">
+          <name>CM_FILE_RECENT_LAST</name>
+          <initializer>= CM_FILE_RECENT_BASE + 20</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad673ffcc71535a8aca8b921ada8d9401" prot="public">
+          <name>CM_VIEWPORT_LAYOUT_4</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b8834ec54e44f91b01896b11a768a69" prot="public">
+          <name>CM_VIEWPORT_LAYOUT_2HOR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab04cd4c2ad1b34cfbd2e6dc5764cb28a" prot="public">
+          <name>CM_VIEWPORT_LAYOUT_2VERT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a43b58f00a9c0bd32c6e859eb688bf6da" prot="public">
+          <name>CM_VIEWPORT_LAYOUT_1</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a75b30d47b534d7ae2f66429f1fac88c5" prot="public">
+          <name>CM_VIEW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2161f718e23b80079c14bb20c15e1ea5" prot="public">
+          <name>CM_VIEW_PERSPECTIVE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a31ffdf887075639fdee257925e858291" prot="public">
+          <name>CM_VIEW_FRONT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9affb6c219e6a39c8e2c736478db3648f4" prot="public">
+          <name>CM_VIEW_BACK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9e1309d18112b809dc7f82930ffaec02" prot="public">
+          <name>CM_VIEW_TOP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9e9f3f309ae41390f440ac2315d906b4" prot="public">
+          <name>CM_VIEW_BOTTOM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a35aace341bad14c67fa255402b557347" prot="public">
+          <name>CM_VIEW_LEFT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1d059fc3385cd757a7e683acb31eeea7" prot="public">
+          <name>CM_VIEW_RIGHT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2ed7bcdec4668d7b7775b654fa556c7f" prot="public">
+          <name>CM_VIEW_CUSTOM_ORTHOGONAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4d680556c816ef41cb9d00c736dc4ba4" prot="public">
+          <name>CM_VIEW_CUSTOM_CAMERA</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a787c3b552ee37235f6d86ccac63ec59b" prot="public">
+          <name>CM_VIEW_WIREFRAME</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad756d933d35549e7aa614dd7cde3c1ac" prot="public">
+          <name>CM_VIEW_VIEWPORT_AXIS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a59ac0397c5ba7452366c24e2fc83a86c" prot="public">
+          <name>CM_VIEW_EDGED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9008d54bcccf13ec265e4f7f9b51a007" prot="public">
+          <name>CM_VIEW_GIZMO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9add4bee74b0931ab85493045b4cf360e7" prot="public">
+          <name>CM_VIEW_GRID_SHOW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7a166b00da422dae86e50b57c12e21f3" prot="public">
+          <name>CM_VIEW_GRID_INC_STEP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6fbb3d466d1f9d79c50ebdaf72efcda5" prot="public">
+          <name>CM_VIEW_GRID_DEC_STEP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a00cc275779fc560b80b8ed1429154ce4" prot="public">
+          <name>CM_VIEW_GRID_MOVE_SNAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a03fc3c3f98f25d7de028233d3d2c0d74" prot="public">
+          <name>CM_VIEW_GRID_ANGLE_SNAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5f22dddf87e341d6b26362aa12e10296" prot="public">
+          <name>CM_VIEW_GRID_SCALE_SNAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1a1231febc87f8cd5d34deb0766debbe" prot="public">
+          <name>CM_VIEW_SHOW_STATS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2ffdc484f0fa9eef23f6ac05ab2519b9" prot="public">
+          <name>CM_VIEW_STAT3D_OPAQUE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6dcbd59210edfd12a018c626042cebf8" prot="public">
+          <name>CM_VIEW_STAT3D_COLOR_HISTORGAM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a029f05abbe676c726693ab23a1b1f0af" prot="public">
+          <name>CM_VIEW_STAT3D_BRIGHTNESS_HISTORGAM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a33a465f29c641140bb18bd8c4b2e4e3e" prot="public">
+          <name>CM_GROUP_GRID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab38888c083834c6639a8394d7ea013bd" prot="public">
+          <name>CM_GROUP_CLIPPING</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a0830291b7e58573187097918fc693ca4" prot="public">
+          <name>CM_GROUP_STATS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9abe16bcc0a611db06a5b47007fe7e380c" prot="public">
+          <name>CM_CAMERAS_FREE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a26e6154e70194e32e34cceb6a6ba698d" prot="public">
+          <name>CM_CAMERAS_FPS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad11a15246e81dda9785c6c1f49b4f0da" prot="public">
+          <name>CM_CAMERAS_TPS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad473825e7c1221ddbd26f149e8512788" prot="public">
+          <name>CM_CAMERAS_CAR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a51cb3990ad7a93bb0b262434e1d92ae6" prot="public">
+          <name>CM_CAMERA_MOVE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad73060eb193b7fc899dacf0f53af21f1" prot="public">
+          <name>CM_PLUGIN_FIRST_CAMERA</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4a3c9d429183d79dd08d5b9f25dec36a" prot="public">
+          <name>CM_PLUGIN_LAST_CAMERA</name>
+          <initializer>= CM_PLUGIN_FIRST_CAMERA + 200</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4103855e4557b21b7c96f8c5d704de7e" prot="public">
+          <name>CM_OPTIONS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2434c789d66e08232a2fea6982ba384e" prot="public">
+          <name>CM_OPTIONS_CAMERAS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1748950326773d99827cce4056e2413a" prot="public">
+          <name>CM_OPTIONS_GRID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa23db7b3c989cd608e5007f54a35c6c2" prot="public">
+          <name>CM_OPTIONS_SCREENSHOT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9af52f7d74517b4d823a42f44f83eb0926" prot="public">
+          <name>CM_OPTIONS_STAT_DISPLAY_SETTINGS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad373d6289bfe3f3bef5ffd2bd500defc" prot="public">
+          <name>CM_TOOLS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9af12cc7fe3ea65a23add9e35731d98014" prot="public">
+          <name>CM_CREATE_SCREENSHOT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac16f2a5e823ca1db1dce1bf83705c552" prot="public">
+          <name>CM_CREATE_CUBE_SCREENSHOT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad1f2fc3155b116190c3549eee85d3404" prot="public">
+          <name>CM_CREATE_ORTHOGONAL_SCREENSHOT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a05da745de196feab18aa50d3aeb864f9" prot="public">
+          <name>CM_UPSCALE_HEIGHTMAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7606776baa7af2621e51a50291cd3cdf" prot="public">
+          <name>CM_EXIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa27780e0f8db4568af9e4ad4b16efbd8" prot="public">
+          <name>CM_EDIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a712df3db95f4a21a5bade2774716577f" prot="public">
+          <name>CM_UNDO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b6decc88bb76e61e9e6e1ca18c80d40" prot="public">
+          <name>CM_REDO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8e246f2a0c59c763643c389a6df9c0d3" prot="public">
+          <name>CM_SELECT_ALL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac77d82a29c62fd6ac00b9f20f1b80a25" prot="public">
+          <name>CM_DESELECT_ALL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5db7e8aabe5dd83db563a2186908e0d4" prot="public">
+          <name>CM_GIZMO_X</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4f55a4e43b245da914c1870fdccc3ae5" prot="public">
+          <name>CM_GIZMO_Y</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a513b594f7e7daa50467440786713b0f1" prot="public">
+          <name>CM_GIZMO_Z</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a846fdc4e0ef177e602830c1fa9a258ec" prot="public">
+          <name>CM_GIZMO_BASIS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab17dddfc5b0dd7a3d24adfe052b2fcf5" prot="public">
+          <name>CM_GIZMO_CENTER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9d1454db017f70662071a82788fc1ce0" prot="public">
+          <name>CM_ROTATE_CENTER_AND_OBJ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5bf74cdce62be30fe1867f3c3219a58c" prot="public">
+          <name>CM_ZOOM_AND_CENTER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1dce936f9c46029c2f2f61f565709ae8" prot="public">
+          <name>CM_NAVIGATE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a87c46ae66179f44cd2b9e0b6b059f3e8" prot="public">
+          <name>CM_STATS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a15b9debb843dc072d9cea8320a1f893e" prot="public">
+          <name>CM_CHANGE_VIEWPORT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac9a593b840d90d2a864f49645b088257" prot="public">
+          <name>CM_CHANGE_FOV</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a900c11ac270aff883e9a6a0469f7c1ca" prot="public">
+          <name>CM_ENVIRONMENT_SETTINGS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7e92b7ceade39c975d4da4ffe6d69615" prot="public">
+          <name>CM_CONSOLE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab30b6d0e655e65b1b1b1da214302382d" prot="public">
+          <name>CM_PALETTE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1078cc5e0bfa1625641ce7d3b8e31124" prot="public">
+          <name>CM_VR_ENABLE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a518b30a9418344cadfc2dc8636ede548" prot="public">
+          <name>CM_THEME_TOGGLE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8f7b1a5f1e2e06e3214cdca5e54cd3fc" prot="public">
+          <name>CM_STATS_SETTINGS_TREE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a0dfbbf5d82647ff4c22fea7d76dd94cf" prot="public">
+          <name>CM_STATS_SETTINGS_STAT3D_GROUP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a911c3ba9c64d8da8995ce001695474bf" prot="public">
+          <name>CM_STATS_SETTINGS_STAT3D_ITEM0</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2281eb9c73630f181e5004c98d9bd0d4" prot="public">
+          <name>CM_STATS_SETTINGS_STAT3D_ITEM_LAST</name>
+          <initializer>= CM_STATS_SETTINGS_STAT3D_ITEM0 + 100</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8a76f7457ea31c9d093d5f9a7404a33b" prot="public">
+          <name>CM_STATS_SETTINGS_CAMERA_GROUP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a660c9343e4b3662bc1e15fdd39050cd0" prot="public">
+          <name>CM_STATS_SETTINGS_CAMERA_POS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a04d99d04f28cba830b919e72c978789d" prot="public">
+          <name>CM_STATS_SETTINGS_CAMERA_DIST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a15c5faadea235e740a9a5f1f8c4f2063" prot="public">
+          <name>CM_STATS_SETTINGS_CAMERA_FOV</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aacb9b5ae0fc2e9054c95b6c13c7d63c7" prot="public">
+          <name>CM_STATS_SETTINGS_CAMERA_SPEED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a74776aecd69ff3f94632af7b9d718626" prot="public">
+          <name>CM_STATS_SETTINGS_CAMERA_TURBO_SPEED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8a65b9ca820959fca3a9a90dbc47387e" prot="public">
+          <name>CM_OBJED_FIRST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2c13ffbf205eed85c8d7f2b8461edbb0" prot="public">
+          <name>CM_OBJED_MODE_SELECT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a13e38fc2ba6050aecf5b7bb3881c083a" prot="public">
+          <name>CM_OBJED_MODE_MOVE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3230a9d1acc45eb2eed51b6497362efa" prot="public">
+          <name>CM_OBJED_MODE_SURF_MOVE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b60fef897d9b0ce0b26f5d2d79aa93d" prot="public">
+          <name>CM_OBJED_MODE_ROTATE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6bc48449145ddb2faed3b190c8021c1d" prot="public">
+          <name>CM_OBJED_MODE_SCALE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa4ba83379ca89d80e1feb60cc7d1819b" prot="public">
+          <name>CM_OBJED_DROP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4bb8509b54e29868f0520746a2bd7f5c" prot="public">
+          <name>CM_OBJED_OBJPROP_PANEL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9adc218ccb2599374b76b3fd879c7ac685" prot="public">
+          <name>CM_OBJED_SELECT_BY_NAME</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aef72f08c1fc66860e0dacd15446a5c54" prot="public">
+          <name>CM_OBJED_SELECT_FILTER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa55d87134db51a82cf0267bc3383194d" prot="public">
+          <name>CM_OBJED_DELETE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9acf417a6d4cc28384c211ef08fbf64477" prot="public">
+          <name>CM_OBJED_CANCEL_GIZMO_TRANSFORM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3201f6720437fe48d2fccae25bbe23d3" prot="public">
+          <name>CM_OBJED_LAST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3c8324e7900dcfe2f7df33e7d9fb822c" prot="public">
+          <name>CM_SAVE_ACTIVE_VIEW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a493fb337818bc6de93bf6623108eb156" prot="public">
+          <name>CM_RESTORE_ACTIVE_VIEW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9adf244f9f7360289acf05a4aa036d6c6e" prot="public">
+          <name>CM_SET_VIEWPORT_CLIPPING</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5dfccca06971a5840b5e0684741c9c80" prot="public">
+          <name>CM_SET_DEFAULT_VIEWPORT_CLIPPING</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab82f78fde4dcb1bccd54f85dfa26e8fa" prot="public">
+          <name>CM__LAST_USED_BY_CORE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="4" column="1" bodyfile="ec_cm.h" bodystart="5" bodyend="136"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9" kindref="member">EditorCoreCM</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>menu<sp/>items</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a069b0e3ee6c4d1d1f6ef5b8b219d01c2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a069b0e3ee6c4d1d1f6ef5b8b219d01c2" kindref="member">CM_FILE</ref><sp/>=<sp/>99,</highlight></codeline>
+<codeline lineno="8" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5fcf12ff3e1adc6aa870546032412692" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5fcf12ff3e1adc6aa870546032412692" kindref="member">CM_FILE_NEW</ref>,</highlight></codeline>
+<codeline lineno="9" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1dedcdbf20ace7d3a17c95677862e56a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1dedcdbf20ace7d3a17c95677862e56a" kindref="member">CM_FILE_OPEN</ref>,</highlight></codeline>
+<codeline lineno="10" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad647d47bcf523896e494c6c9c646a7d3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad647d47bcf523896e494c6c9c646a7d3" kindref="member">CM_FILE_SAVE</ref>,</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a994d39355034adab23e62f99a535fe7a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a994d39355034adab23e62f99a535fe7a" kindref="member">CM_FILE_RECENT_BASE</ref>,</highlight></codeline>
+<codeline lineno="13" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a42421b3e1b4aace8f97e6222d2a2b458" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a42421b3e1b4aace8f97e6222d2a2b458" kindref="member">CM_FILE_RECENT_LAST</ref><sp/>=<sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a994d39355034adab23e62f99a535fe7a" kindref="member">CM_FILE_RECENT_BASE</ref><sp/>+<sp/>20,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad673ffcc71535a8aca8b921ada8d9401" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad673ffcc71535a8aca8b921ada8d9401" kindref="member">CM_VIEWPORT_LAYOUT_4</ref>,</highlight></codeline>
+<codeline lineno="16" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b8834ec54e44f91b01896b11a768a69" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b8834ec54e44f91b01896b11a768a69" kindref="member">CM_VIEWPORT_LAYOUT_2HOR</ref>,</highlight></codeline>
+<codeline lineno="17" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab04cd4c2ad1b34cfbd2e6dc5764cb28a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab04cd4c2ad1b34cfbd2e6dc5764cb28a" kindref="member">CM_VIEWPORT_LAYOUT_2VERT</ref>,</highlight></codeline>
+<codeline lineno="18" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a43b58f00a9c0bd32c6e859eb688bf6da" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a43b58f00a9c0bd32c6e859eb688bf6da" kindref="member">CM_VIEWPORT_LAYOUT_1</ref>,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a75b30d47b534d7ae2f66429f1fac88c5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a75b30d47b534d7ae2f66429f1fac88c5" kindref="member">CM_VIEW</ref>,</highlight></codeline>
+<codeline lineno="21" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2161f718e23b80079c14bb20c15e1ea5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2161f718e23b80079c14bb20c15e1ea5" kindref="member">CM_VIEW_PERSPECTIVE</ref>,</highlight></codeline>
+<codeline lineno="22" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a31ffdf887075639fdee257925e858291" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a31ffdf887075639fdee257925e858291" kindref="member">CM_VIEW_FRONT</ref>,</highlight></codeline>
+<codeline lineno="23" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9affb6c219e6a39c8e2c736478db3648f4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9affb6c219e6a39c8e2c736478db3648f4" kindref="member">CM_VIEW_BACK</ref>,</highlight></codeline>
+<codeline lineno="24" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9e1309d18112b809dc7f82930ffaec02" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9e1309d18112b809dc7f82930ffaec02" kindref="member">CM_VIEW_TOP</ref>,</highlight></codeline>
+<codeline lineno="25" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9e9f3f309ae41390f440ac2315d906b4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9e9f3f309ae41390f440ac2315d906b4" kindref="member">CM_VIEW_BOTTOM</ref>,</highlight></codeline>
+<codeline lineno="26" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a35aace341bad14c67fa255402b557347" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a35aace341bad14c67fa255402b557347" kindref="member">CM_VIEW_LEFT</ref>,</highlight></codeline>
+<codeline lineno="27" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1d059fc3385cd757a7e683acb31eeea7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1d059fc3385cd757a7e683acb31eeea7" kindref="member">CM_VIEW_RIGHT</ref>,</highlight></codeline>
+<codeline lineno="28" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2ed7bcdec4668d7b7775b654fa556c7f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2ed7bcdec4668d7b7775b654fa556c7f" kindref="member">CM_VIEW_CUSTOM_ORTHOGONAL</ref>,</highlight></codeline>
+<codeline lineno="29" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4d680556c816ef41cb9d00c736dc4ba4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4d680556c816ef41cb9d00c736dc4ba4" kindref="member">CM_VIEW_CUSTOM_CAMERA</ref>,</highlight></codeline>
+<codeline lineno="30" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a787c3b552ee37235f6d86ccac63ec59b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a787c3b552ee37235f6d86ccac63ec59b" kindref="member">CM_VIEW_WIREFRAME</ref>,</highlight></codeline>
+<codeline lineno="31" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad756d933d35549e7aa614dd7cde3c1ac" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad756d933d35549e7aa614dd7cde3c1ac" kindref="member">CM_VIEW_VIEWPORT_AXIS</ref>,</highlight></codeline>
+<codeline lineno="32" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a59ac0397c5ba7452366c24e2fc83a86c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a59ac0397c5ba7452366c24e2fc83a86c" kindref="member">CM_VIEW_EDGED</ref>,</highlight></codeline>
+<codeline lineno="33" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9008d54bcccf13ec265e4f7f9b51a007" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9008d54bcccf13ec265e4f7f9b51a007" kindref="member">CM_VIEW_GIZMO</ref>,</highlight></codeline>
+<codeline lineno="34" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9add4bee74b0931ab85493045b4cf360e7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9add4bee74b0931ab85493045b4cf360e7" kindref="member">CM_VIEW_GRID_SHOW</ref>,</highlight></codeline>
+<codeline lineno="35" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7a166b00da422dae86e50b57c12e21f3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7a166b00da422dae86e50b57c12e21f3" kindref="member">CM_VIEW_GRID_INC_STEP</ref>,</highlight></codeline>
+<codeline lineno="36" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6fbb3d466d1f9d79c50ebdaf72efcda5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6fbb3d466d1f9d79c50ebdaf72efcda5" kindref="member">CM_VIEW_GRID_DEC_STEP</ref>,</highlight></codeline>
+<codeline lineno="37" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a00cc275779fc560b80b8ed1429154ce4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a00cc275779fc560b80b8ed1429154ce4" kindref="member">CM_VIEW_GRID_MOVE_SNAP</ref>,</highlight></codeline>
+<codeline lineno="38" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a03fc3c3f98f25d7de028233d3d2c0d74" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a03fc3c3f98f25d7de028233d3d2c0d74" kindref="member">CM_VIEW_GRID_ANGLE_SNAP</ref>,</highlight></codeline>
+<codeline lineno="39" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5f22dddf87e341d6b26362aa12e10296" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5f22dddf87e341d6b26362aa12e10296" kindref="member">CM_VIEW_GRID_SCALE_SNAP</ref>,</highlight></codeline>
+<codeline lineno="40" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1a1231febc87f8cd5d34deb0766debbe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1a1231febc87f8cd5d34deb0766debbe" kindref="member">CM_VIEW_SHOW_STATS</ref>,</highlight></codeline>
+<codeline lineno="41" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2ffdc484f0fa9eef23f6ac05ab2519b9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2ffdc484f0fa9eef23f6ac05ab2519b9" kindref="member">CM_VIEW_STAT3D_OPAQUE</ref>,</highlight></codeline>
+<codeline lineno="42" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6dcbd59210edfd12a018c626042cebf8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6dcbd59210edfd12a018c626042cebf8" kindref="member">CM_VIEW_STAT3D_COLOR_HISTORGAM</ref>,</highlight></codeline>
+<codeline lineno="43" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a029f05abbe676c726693ab23a1b1f0af" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a029f05abbe676c726693ab23a1b1f0af" kindref="member">CM_VIEW_STAT3D_BRIGHTNESS_HISTORGAM</ref>,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a33a465f29c641140bb18bd8c4b2e4e3e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a33a465f29c641140bb18bd8c4b2e4e3e" kindref="member">CM_GROUP_GRID</ref>,</highlight></codeline>
+<codeline lineno="46" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab38888c083834c6639a8394d7ea013bd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab38888c083834c6639a8394d7ea013bd" kindref="member">CM_GROUP_CLIPPING</ref>,</highlight></codeline>
+<codeline lineno="47" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a0830291b7e58573187097918fc693ca4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a0830291b7e58573187097918fc693ca4" kindref="member">CM_GROUP_STATS</ref>,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9abe16bcc0a611db06a5b47007fe7e380c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9abe16bcc0a611db06a5b47007fe7e380c" kindref="member">CM_CAMERAS_FREE</ref>,</highlight></codeline>
+<codeline lineno="50" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a26e6154e70194e32e34cceb6a6ba698d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a26e6154e70194e32e34cceb6a6ba698d" kindref="member">CM_CAMERAS_FPS</ref>,</highlight></codeline>
+<codeline lineno="51" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad11a15246e81dda9785c6c1f49b4f0da" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad11a15246e81dda9785c6c1f49b4f0da" kindref="member">CM_CAMERAS_TPS</ref>,</highlight></codeline>
+<codeline lineno="52" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad473825e7c1221ddbd26f149e8512788" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad473825e7c1221ddbd26f149e8512788" kindref="member">CM_CAMERAS_CAR</ref>,</highlight></codeline>
+<codeline lineno="53" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a51cb3990ad7a93bb0b262434e1d92ae6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a51cb3990ad7a93bb0b262434e1d92ae6" kindref="member">CM_CAMERA_MOVE</ref>,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad73060eb193b7fc899dacf0f53af21f1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad73060eb193b7fc899dacf0f53af21f1" kindref="member">CM_PLUGIN_FIRST_CAMERA</ref>,</highlight></codeline>
+<codeline lineno="56" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4a3c9d429183d79dd08d5b9f25dec36a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4a3c9d429183d79dd08d5b9f25dec36a" kindref="member">CM_PLUGIN_LAST_CAMERA</ref><sp/>=<sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad73060eb193b7fc899dacf0f53af21f1" kindref="member">CM_PLUGIN_FIRST_CAMERA</ref><sp/>+<sp/>200,</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4103855e4557b21b7c96f8c5d704de7e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4103855e4557b21b7c96f8c5d704de7e" kindref="member">CM_OPTIONS</ref>,</highlight></codeline>
+<codeline lineno="59" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2434c789d66e08232a2fea6982ba384e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2434c789d66e08232a2fea6982ba384e" kindref="member">CM_OPTIONS_CAMERAS</ref>,</highlight></codeline>
+<codeline lineno="60" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1748950326773d99827cce4056e2413a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1748950326773d99827cce4056e2413a" kindref="member">CM_OPTIONS_GRID</ref>,</highlight></codeline>
+<codeline lineno="61" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa23db7b3c989cd608e5007f54a35c6c2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa23db7b3c989cd608e5007f54a35c6c2" kindref="member">CM_OPTIONS_SCREENSHOT</ref>,</highlight></codeline>
+<codeline lineno="62" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9af52f7d74517b4d823a42f44f83eb0926" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9af52f7d74517b4d823a42f44f83eb0926" kindref="member">CM_OPTIONS_STAT_DISPLAY_SETTINGS</ref>,</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad373d6289bfe3f3bef5ffd2bd500defc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad373d6289bfe3f3bef5ffd2bd500defc" kindref="member">CM_TOOLS</ref>,</highlight></codeline>
+<codeline lineno="65" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9af12cc7fe3ea65a23add9e35731d98014" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9af12cc7fe3ea65a23add9e35731d98014" kindref="member">CM_CREATE_SCREENSHOT</ref>,</highlight></codeline>
+<codeline lineno="66" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac16f2a5e823ca1db1dce1bf83705c552" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac16f2a5e823ca1db1dce1bf83705c552" kindref="member">CM_CREATE_CUBE_SCREENSHOT</ref>,</highlight></codeline>
+<codeline lineno="67" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad1f2fc3155b116190c3549eee85d3404" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ad1f2fc3155b116190c3549eee85d3404" kindref="member">CM_CREATE_ORTHOGONAL_SCREENSHOT</ref>,</highlight></codeline>
+<codeline lineno="68" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a05da745de196feab18aa50d3aeb864f9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a05da745de196feab18aa50d3aeb864f9" kindref="member">CM_UPSCALE_HEIGHTMAP</ref>,</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7606776baa7af2621e51a50291cd3cdf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7606776baa7af2621e51a50291cd3cdf" kindref="member">CM_EXIT</ref>,</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa27780e0f8db4568af9e4ad4b16efbd8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa27780e0f8db4568af9e4ad4b16efbd8" kindref="member">CM_EDIT</ref>,</highlight></codeline>
+<codeline lineno="73" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a712df3db95f4a21a5bade2774716577f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a712df3db95f4a21a5bade2774716577f" kindref="member">CM_UNDO</ref>,</highlight></codeline>
+<codeline lineno="74" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b6decc88bb76e61e9e6e1ca18c80d40" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b6decc88bb76e61e9e6e1ca18c80d40" kindref="member">CM_REDO</ref>,</highlight></codeline>
+<codeline lineno="75" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8e246f2a0c59c763643c389a6df9c0d3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8e246f2a0c59c763643c389a6df9c0d3" kindref="member">CM_SELECT_ALL</ref>,</highlight></codeline>
+<codeline lineno="76" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac77d82a29c62fd6ac00b9f20f1b80a25" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac77d82a29c62fd6ac00b9f20f1b80a25" kindref="member">CM_DESELECT_ALL</ref>,</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5db7e8aabe5dd83db563a2186908e0d4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5db7e8aabe5dd83db563a2186908e0d4" kindref="member">CM_GIZMO_X</ref>,</highlight></codeline>
+<codeline lineno="79" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4f55a4e43b245da914c1870fdccc3ae5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4f55a4e43b245da914c1870fdccc3ae5" kindref="member">CM_GIZMO_Y</ref>,</highlight></codeline>
+<codeline lineno="80" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a513b594f7e7daa50467440786713b0f1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a513b594f7e7daa50467440786713b0f1" kindref="member">CM_GIZMO_Z</ref>,</highlight></codeline>
+<codeline lineno="81" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a846fdc4e0ef177e602830c1fa9a258ec" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a846fdc4e0ef177e602830c1fa9a258ec" kindref="member">CM_GIZMO_BASIS</ref>,</highlight></codeline>
+<codeline lineno="82" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab17dddfc5b0dd7a3d24adfe052b2fcf5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab17dddfc5b0dd7a3d24adfe052b2fcf5" kindref="member">CM_GIZMO_CENTER</ref>,</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9d1454db017f70662071a82788fc1ce0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a9d1454db017f70662071a82788fc1ce0" kindref="member">CM_ROTATE_CENTER_AND_OBJ</ref>,</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5bf74cdce62be30fe1867f3c3219a58c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5bf74cdce62be30fe1867f3c3219a58c" kindref="member">CM_ZOOM_AND_CENTER</ref>,</highlight></codeline>
+<codeline lineno="87" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1dce936f9c46029c2f2f61f565709ae8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1dce936f9c46029c2f2f61f565709ae8" kindref="member">CM_NAVIGATE</ref>,</highlight></codeline>
+<codeline lineno="88" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a87c46ae66179f44cd2b9e0b6b059f3e8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a87c46ae66179f44cd2b9e0b6b059f3e8" kindref="member">CM_STATS</ref>,</highlight></codeline>
+<codeline lineno="89" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a15b9debb843dc072d9cea8320a1f893e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a15b9debb843dc072d9cea8320a1f893e" kindref="member">CM_CHANGE_VIEWPORT</ref>,</highlight></codeline>
+<codeline lineno="90" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac9a593b840d90d2a864f49645b088257" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ac9a593b840d90d2a864f49645b088257" kindref="member">CM_CHANGE_FOV</ref>,</highlight></codeline>
+<codeline lineno="91" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a900c11ac270aff883e9a6a0469f7c1ca" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a900c11ac270aff883e9a6a0469f7c1ca" kindref="member">CM_ENVIRONMENT_SETTINGS</ref>,</highlight></codeline>
+<codeline lineno="92" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7e92b7ceade39c975d4da4ffe6d69615" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a7e92b7ceade39c975d4da4ffe6d69615" kindref="member">CM_CONSOLE</ref>,</highlight></codeline>
+<codeline lineno="93" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab30b6d0e655e65b1b1b1da214302382d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab30b6d0e655e65b1b1b1da214302382d" kindref="member">CM_PALETTE</ref>,</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1078cc5e0bfa1625641ce7d3b8e31124" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a1078cc5e0bfa1625641ce7d3b8e31124" kindref="member">CM_VR_ENABLE</ref>,</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a518b30a9418344cadfc2dc8636ede548" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a518b30a9418344cadfc2dc8636ede548" kindref="member">CM_THEME_TOGGLE</ref>,</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8f7b1a5f1e2e06e3214cdca5e54cd3fc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8f7b1a5f1e2e06e3214cdca5e54cd3fc" kindref="member">CM_STATS_SETTINGS_TREE</ref>,</highlight></codeline>
+<codeline lineno="100" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a0dfbbf5d82647ff4c22fea7d76dd94cf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a0dfbbf5d82647ff4c22fea7d76dd94cf" kindref="member">CM_STATS_SETTINGS_STAT3D_GROUP</ref>,</highlight></codeline>
+<codeline lineno="101" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a911c3ba9c64d8da8995ce001695474bf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a911c3ba9c64d8da8995ce001695474bf" kindref="member">CM_STATS_SETTINGS_STAT3D_ITEM0</ref>,</highlight></codeline>
+<codeline lineno="102" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2281eb9c73630f181e5004c98d9bd0d4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2281eb9c73630f181e5004c98d9bd0d4" kindref="member">CM_STATS_SETTINGS_STAT3D_ITEM_LAST</ref><sp/>=<sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a911c3ba9c64d8da8995ce001695474bf" kindref="member">CM_STATS_SETTINGS_STAT3D_ITEM0</ref><sp/>+<sp/>100,</highlight></codeline>
+<codeline lineno="103" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8a76f7457ea31c9d093d5f9a7404a33b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8a76f7457ea31c9d093d5f9a7404a33b" kindref="member">CM_STATS_SETTINGS_CAMERA_GROUP</ref>,</highlight></codeline>
+<codeline lineno="104" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a660c9343e4b3662bc1e15fdd39050cd0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a660c9343e4b3662bc1e15fdd39050cd0" kindref="member">CM_STATS_SETTINGS_CAMERA_POS</ref>,</highlight></codeline>
+<codeline lineno="105" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a04d99d04f28cba830b919e72c978789d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a04d99d04f28cba830b919e72c978789d" kindref="member">CM_STATS_SETTINGS_CAMERA_DIST</ref>,</highlight></codeline>
+<codeline lineno="106" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a15c5faadea235e740a9a5f1f8c4f2063" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a15c5faadea235e740a9a5f1f8c4f2063" kindref="member">CM_STATS_SETTINGS_CAMERA_FOV</ref>,</highlight></codeline>
+<codeline lineno="107" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aacb9b5ae0fc2e9054c95b6c13c7d63c7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aacb9b5ae0fc2e9054c95b6c13c7d63c7" kindref="member">CM_STATS_SETTINGS_CAMERA_SPEED</ref>,</highlight></codeline>
+<codeline lineno="108" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a74776aecd69ff3f94632af7b9d718626" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a74776aecd69ff3f94632af7b9d718626" kindref="member">CM_STATS_SETTINGS_CAMERA_TURBO_SPEED</ref>,</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ObjectEditor<sp/>commands.<sp/>Put<sp/>it<sp/>between<sp/>CM_OBJED_FIRST<sp/>and<sp/>CM_OBJED_LAST<sp/>enum<sp/>keys.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8a65b9ca820959fca3a9a90dbc47387e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a8a65b9ca820959fca3a9a90dbc47387e" kindref="member">CM_OBJED_FIRST</ref>,</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2c13ffbf205eed85c8d7f2b8461edbb0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a2c13ffbf205eed85c8d7f2b8461edbb0" kindref="member">CM_OBJED_MODE_SELECT</ref>,</highlight></codeline>
+<codeline lineno="114" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a13e38fc2ba6050aecf5b7bb3881c083a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a13e38fc2ba6050aecf5b7bb3881c083a" kindref="member">CM_OBJED_MODE_MOVE</ref>,</highlight></codeline>
+<codeline lineno="115" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3230a9d1acc45eb2eed51b6497362efa" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3230a9d1acc45eb2eed51b6497362efa" kindref="member">CM_OBJED_MODE_SURF_MOVE</ref>,</highlight></codeline>
+<codeline lineno="116" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b60fef897d9b0ce0b26f5d2d79aa93d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3b60fef897d9b0ce0b26f5d2d79aa93d" kindref="member">CM_OBJED_MODE_ROTATE</ref>,</highlight></codeline>
+<codeline lineno="117" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6bc48449145ddb2faed3b190c8021c1d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a6bc48449145ddb2faed3b190c8021c1d" kindref="member">CM_OBJED_MODE_SCALE</ref>,</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa4ba83379ca89d80e1feb60cc7d1819b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa4ba83379ca89d80e1feb60cc7d1819b" kindref="member">CM_OBJED_DROP</ref>,</highlight></codeline>
+<codeline lineno="120" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4bb8509b54e29868f0520746a2bd7f5c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a4bb8509b54e29868f0520746a2bd7f5c" kindref="member">CM_OBJED_OBJPROP_PANEL</ref>,</highlight></codeline>
+<codeline lineno="121" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9adc218ccb2599374b76b3fd879c7ac685" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9adc218ccb2599374b76b3fd879c7ac685" kindref="member">CM_OBJED_SELECT_BY_NAME</ref>,</highlight></codeline>
+<codeline lineno="122" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aef72f08c1fc66860e0dacd15446a5c54" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aef72f08c1fc66860e0dacd15446a5c54" kindref="member">CM_OBJED_SELECT_FILTER</ref>,</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa55d87134db51a82cf0267bc3383194d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9aa55d87134db51a82cf0267bc3383194d" kindref="member">CM_OBJED_DELETE</ref>,</highlight></codeline>
+<codeline lineno="125" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9acf417a6d4cc28384c211ef08fbf64477" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9acf417a6d4cc28384c211ef08fbf64477" kindref="member">CM_OBJED_CANCEL_GIZMO_TRANSFORM</ref>,</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3201f6720437fe48d2fccae25bbe23d3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3201f6720437fe48d2fccae25bbe23d3" kindref="member">CM_OBJED_LAST</ref>,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3c8324e7900dcfe2f7df33e7d9fb822c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a3c8324e7900dcfe2f7df33e7d9fb822c" kindref="member">CM_SAVE_ACTIVE_VIEW</ref>,</highlight></codeline>
+<codeline lineno="130" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a493fb337818bc6de93bf6623108eb156" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a493fb337818bc6de93bf6623108eb156" kindref="member">CM_RESTORE_ACTIVE_VIEW</ref>,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9adf244f9f7360289acf05a4aa036d6c6e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9adf244f9f7360289acf05a4aa036d6c6e" kindref="member">CM_SET_VIEWPORT_CLIPPING</ref>,</highlight></codeline>
+<codeline lineno="133" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5dfccca06971a5840b5e0684741c9c80" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9a5dfccca06971a5840b5e0684741c9c80" kindref="member">CM_SET_DEFAULT_VIEWPORT_CLIPPING</ref>,</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab82f78fde4dcb1bccd54f85dfa26e8fa" kindref="member">CM__LAST_USED_BY_CORE</ref></highlight></codeline>
+<codeline lineno="136" refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9ab82f78fde4dcb1bccd54f85dfa26e8fa" refkind="member"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_cm.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,661 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>General Resource Management</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Texture Management" href="textures.html" />
+    <link rel="prev" title="Resource IDs" href="resid.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../resMgr.html">Managed Resources</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="resid.html">Resource IDs</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">General Resource Management</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420first_managed_d3dresi"><code class="docutils literal notranslate"><span class="pre">first_managed_d3dres()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419next_managed_d3dres8D3DRESIDi"><code class="docutils literal notranslate"><span class="pre">next_managed_d3dres()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv45TexQL"><code class="docutils literal notranslate"><span class="pre">TexQL</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL8TQL_stubE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL_stub</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL9TQL_thumbE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL_thumb</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL8TQL_baseE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL_base</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL8TQL_highE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL_high</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL7TQL_uhqE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL_uhq</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL10TQL__COUNTE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL__COUNT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL10TQL__FIRSTE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL__FIRST</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N5TexQL9TQL__LASTE"><code class="docutils literal notranslate"><span class="pre">TexQL::TQL__LAST</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420register_managed_resPKcP11D3dResource"><code class="docutils literal notranslate"><span class="pre">register_managed_res()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv426is_managed_res_factory_set8D3DRESID"><code class="docutils literal notranslate"><span class="pre">is_managed_res_factory_set()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419acquire_managed_res8D3DRESID"><code class="docutils literal notranslate"><span class="pre">acquire_managed_res()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv418change_managed_res8D3DRESIDP11D3dResource"><code class="docutils literal notranslate"><span class="pre">change_managed_res()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419release_managed_res8D3DRESID"><code class="docutils literal notranslate"><span class="pre">release_managed_res()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv428release_managed_res_verifiedR8D3DRESIDP11D3dResource"><code class="docutils literal notranslate"><span class="pre">release_managed_res_verified()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419acquire_managed_tex8D3DRESID"><code class="docutils literal notranslate"><span class="pre">acquire_managed_tex()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419release_managed_tex8D3DRESID"><code class="docutils literal notranslate"><span class="pre">release_managed_tex()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4I0E28release_managed_tex_verifiedvR8D3DRESIDR1T"><code class="docutils literal notranslate"><span class="pre">release_managed_tex_verified()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419acquire_managed_buf8D3DRESID"><code class="docutils literal notranslate"><span class="pre">acquire_managed_buf()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419release_managed_buf8D3DRESID"><code class="docutils literal notranslate"><span class="pre">release_managed_buf()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4I0E28release_managed_buf_verifiedvR8D3DRESIDR1T"><code class="docutils literal notranslate"><span class="pre">release_managed_buf_verified()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv420get_managed_res_name8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_name()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv418get_managed_res_idPKc"><code class="docutils literal notranslate"><span class="pre">get_managed_res_id()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv424get_managed_res_refcount8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_refcount()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419get_managed_res_lfu8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_lfu()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv423get_managed_res_cur_tql8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_cur_tql()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv423get_managed_res_max_tql8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_max_tql()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv426get_managed_res_maxreq_lev8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_maxreq_lev()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv426get_managed_res_loaded_lev8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_loaded_lev()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv417enable_res_mgr_mtbi"><code class="docutils literal notranslate"><span class="pre">enable_res_mgr_mt()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv426iterate_all_managed_d3dres8D3DRESIDi"><code class="docutils literal notranslate"><span class="pre">iterate_all_managed_d3dres()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Texture Management</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../resMgr.html">Managed Resources</a></li>
+      <li class="breadcrumb-item active">General Resource Management</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/resMgr/general.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="general-resource-management">
+<h1>General Resource Management<a class="headerlink" href="#general-resource-management" title="Link to this heading"></a></h1>
+<p>Automatic resource manager for D3D resources. </p>
+<p>Glossary:<ul class="simple">
+<li><p>level - feature of texture size, computed as <code class="docutils literal notranslate"><span class="pre">log2(max(tex.dimensions))</span> <span class="pre">=</span> <span class="pre">log2(max(tex.w,</span> <span class="pre">tex.h,</span> <span class="pre">tex.d))</span></code>:<ol class="arabic simple">
+<li><p>level=1 means smallest possing size (2x2x2) and is commonly used to denote smallest quality;</p></li>
+<li><p>level=15 means maximum possible size (up to 32767x32768, but current GPUs don’t handle such res);</p></li>
+<li><p>level=2..15 means some non-stub quality. Variables for holding level usually have suffix Lev or _lev</p></li>
+</ol>
+</p></li>
+<li><p>QL - quality level (or TQL - texture quality level), do not confuse it with ‘level’. Some predefined quality preset of texture (stub, thumbnail, base, high, ultrahigh, etc.) Enumerated later with TexQL enum (TQL_*). Variables for holding quality level usually have suffix QL or _ql.</p></li>
+<li><p>LFU - last frame used, ordinary rendered frame counter (generally from game start) where texture was referenced last time</p></li>
+<li><p>levDesc - levels descriptor that maps QL to real levels (e.g. TQL_thumb -&gt; level=6, TQL_base -&gt; level=9) </p></li>
+</ul>
+</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-helper-wrappers">Helper wrappers</p>
+<p>See <a class="reference internal" href="#dag__resMgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc"><span class="std std-ref">iterate_all_managed_d3dres()</span></a>. Use as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">D3DRESID</span> <span class="nb">id</span> <span class="o">=</span> <span class="n">first_managed_d3dres</span><span class="p">();</span> <span class="nb">id</span> <span class="o">!=</span> <span class="n">BAD_D3DRESID</span><span class="p">;</span> <span class="nb">id</span> <span class="o">=</span> <span class="n">next_managed_d3dres</span><span class="p">(</span><span class="nb">id</span><span class="p">))</span> 
+</pre></div>
+</div>
+<p>Get the first managed resource ID for iteration <dl class="field-list simple">
+<dt class="field-odd">param min_rc<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Minimum reference count filter </p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">return<span class="colon">:</span></dt>
+<dd class="field-odd"><p>First managed resource ID with refCount &gt;= <code class="docutils literal notranslate"><span class="pre">min_rc</span></code></p>
+</dd>
+</dl>
+</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420first_managed_d3dresi">
+<span id="_CPPv320first_managed_d3dresi"></span><span id="_CPPv220first_managed_d3dresi"></span><span id="first_managed_d3dres__i"></span><span class="target" id="dag__resMgr_8h_1a0b8cec301feeb91c6742d6822530d5dd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">first_managed_d3dres</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_rc</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420first_managed_d3dresi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419next_managed_d3dres8D3DRESIDi">
+<span id="_CPPv319next_managed_d3dres8D3DRESIDi"></span><span id="_CPPv219next_managed_d3dres8D3DRESIDi"></span><span id="next_managed_d3dres__D3DRESID.i"></span><span class="target" id="dag__resMgr_8h_1abe988b915fc83a4e61d664a2707c3b85"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">next_managed_d3dres</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">prev_id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_rc</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419next_managed_d3dres8D3DRESIDi" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the next managed resource ID for iteration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prev_id</strong> – ID of the previous resource </p></li>
+<li><p><strong>min_rc</strong> – Minimum reference count filter </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Next managed resource ID after <code class="docutils literal notranslate"><span class="pre">prev_id</span></code> with refCount &gt;= <code class="docutils literal notranslate"><span class="pre">min_rc</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv45TexQL">
+<span id="_CPPv35TexQL"></span><span id="_CPPv25TexQL"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TexQL</span></span></span><a class="headerlink" href="#_CPPv45TexQL" title="Link to this definition"></a><br /></dt>
+<dd><p>Quality levels for textures (QL) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL8TQL_stubE">
+<span id="_CPPv3N5TexQL8TQL_stubE"></span><span id="_CPPv2N5TexQL8TQL_stubE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba4be09bf3ff76f53d92abfc2009500c38"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL_stub</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL8TQL_stubE" title="Link to this definition"></a><br /></dt>
+<dd><p>stub (shared 1x1 placeholder) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL9TQL_thumbE">
+<span id="_CPPv3N5TexQL9TQL_thumbE"></span><span id="_CPPv2N5TexQL9TQL_thumbE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba8dce478308a12a7a8bd22310113aa3fe"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL_thumb</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL9TQL_thumbE" title="Link to this definition"></a><br /></dt>
+<dd><p>thumbnail quality (upto 64x64, total mem size &lt;= 4K) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL8TQL_baseE">
+<span id="_CPPv3N5TexQL8TQL_baseE"></span><span id="_CPPv2N5TexQL8TQL_baseE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebaf14a876c736d29a49f6e0be754af1d21"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL_base</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL8TQL_baseE" title="Link to this definition"></a><br /></dt>
+<dd><p>base quality (low split) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL8TQL_highE">
+<span id="_CPPv3N5TexQL8TQL_highE"></span><span id="_CPPv2N5TexQL8TQL_highE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba9c1a5f7c219b7772b3d928c286253299"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL_high</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL8TQL_highE" title="Link to this definition"></a><br /></dt>
+<dd><p>full quality (HQ) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL7TQL_uhqE">
+<span id="_CPPv3N5TexQL7TQL_uhqE"></span><span id="_CPPv2N5TexQL7TQL_uhqE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba1b7ec28083986ea3c86173483167cf17"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL_uhq</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL7TQL_uhqE" title="Link to this definition"></a><br /></dt>
+<dd><p>ultra high quality </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL10TQL__COUNTE">
+<span id="_CPPv3N5TexQL10TQL__COUNTE"></span><span id="_CPPv2N5TexQL10TQL__COUNTE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL__COUNT</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL10TQL__COUNTE" title="Link to this definition"></a><br /></dt>
+<dd><p>enum item count </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL10TQL__FIRSTE">
+<span id="_CPPv3N5TexQL10TQL__FIRSTE"></span><span id="_CPPv2N5TexQL10TQL__FIRSTE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebabf67d196bd929d576dcbfd3181c02e78"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL__FIRST</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL10TQL__FIRSTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5TexQL9TQL__LASTE">
+<span id="_CPPv3N5TexQL9TQL__LASTE"></span><span id="_CPPv2N5TexQL9TQL__LASTE"></span><span class="target" id="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebade665ae02089f604440b00bb05facecc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TQL__LAST</span></span></span><a class="headerlink" href="#_CPPv4N5TexQL9TQL__LASTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420register_managed_resPKcP11D3dResource">
+<span id="_CPPv320register_managed_resPKcP11D3dResource"></span><span id="_CPPv220register_managed_resPKcP11D3dResource"></span><span id="register_managed_res__cCP.D3dResourceP"></span><span class="target" id="dag__resMgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2"></span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_managed_res</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">D3dResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420register_managed_resPKcP11D3dResource" title="Link to this definition"></a><br /></dt>
+<dd><p>Registers external D3D resource with the specified <code class="docutils literal notranslate"><span class="pre">name</span></code> as managed and returns the D3DRESID for it. </p>
+<p>Specified resource becomes owned by the manager, no factory is assigned to it. RefCount is set to 1 and when it eventually reaches 0, the resource is automatically destroyed and the name is evicted. Use <a class="reference internal" href="#dag__resMgr_8h_1ab8d423d447df4e5459d92230a91e2609"><span class="std std-ref">release_managed_res()</span></a> or <a class="reference internal" href="#dag__resMgr_8h_1a21ccc1c9589538a79ae900f963820c44"><span class="std std-ref">release_managed_res_verified()</span></a> to del ref and finally destroy. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Resource name is case-insensitive and must be unique. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – the name to register the resource under </p></li>
+<li><p><strong>res</strong> – the resource to register </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the D3DRESID for the registered resource </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426is_managed_res_factory_set8D3DRESID">
+<span id="_CPPv326is_managed_res_factory_set8D3DRESID"></span><span id="_CPPv226is_managed_res_factory_set8D3DRESID"></span><span id="is_managed_res_factory_set__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1a00376763cbffd50bbafa7ffb914f8019"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_managed_res_factory_set</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426is_managed_res_factory_set8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks whether creation/release factory is set for D3DRESID. </p>
+<p>E.g. for an ID that was acquired from <a class="reference internal" href="#dag__resMgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2"><span class="std std-ref">register_managed_res()</span></a>, it will return false. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the D3DRESID to check </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if a factory was specified for the D3DRESID </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419acquire_managed_res8D3DRESID">
+<span id="_CPPv319acquire_managed_res8D3DRESID"></span><span id="_CPPv219acquire_managed_res8D3DRESID"></span><span id="acquire_managed_res__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1a5b61f3428d070652a6b848214bbc2255"></span><span class="n"><span class="pre">D3dResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">acquire_managed_res</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419acquire_managed_res8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Acquires resource object and increments resource reference count. </p>
+<p>If resource was not referenced yet, it is created. If it is unavailable (bad ID), nullptr is returned. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1ab8d423d447df4e5459d92230a91e2609"><span class="std std-ref">release_managed_res()</span></a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When factory fails to create texture, <em>missing</em> texture handling may be applied. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the managed ID to acquire </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the acquired resource object or nullptr if the ID is invalid </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418change_managed_res8D3DRESIDP11D3dResource">
+<span id="_CPPv318change_managed_res8D3DRESIDP11D3dResource"></span><span id="_CPPv218change_managed_res8D3DRESIDP11D3dResource"></span><span id="change_managed_res__D3DRESID.D3dResourceP"></span><span class="target" id="dag__resMgr_8h_1ab6017cf83e8de7f63f9767a262c78d67"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">change_managed_res</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="n"><span class="pre">D3dResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">new_res</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418change_managed_res8D3DRESIDP11D3dResource" title="Link to this definition"></a><br /></dt>
+<dd><p>Replaces the resource for managed id <code class="docutils literal notranslate"><span class="pre">id</span></code>. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This does not work with asset resources owned by resMgr, only with registered resources. Texture factories and mip/bias rules will not be respected. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – Managed ID to replace the resource for </p></li>
+<li><p><strong>new_res</strong> – New driver resource to use for this <code class="docutils literal notranslate"><span class="pre">id</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if the resource was replaced successfully, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419release_managed_res8D3DRESID">
+<span id="_CPPv319release_managed_res8D3DRESID"></span><span id="_CPPv219release_managed_res8D3DRESID"></span><span id="release_managed_res__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1ab8d423d447df4e5459d92230a91e2609"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">release_managed_res</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419release_managed_res8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Releases resource object and decrements resource reference count. </p>
+<p>When reference count reaches 0, resource may be released. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1a5b61f3428d070652a6b848214bbc2255"><span class="std std-ref">acquire_managed_res()</span></a> </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the managed ID to release </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428release_managed_res_verifiedR8D3DRESIDP11D3dResource">
+<span id="_CPPv328release_managed_res_verifiedR8D3DRESIDP11D3dResource"></span><span id="_CPPv228release_managed_res_verifiedR8D3DRESIDP11D3dResource"></span><span id="release_managed_res_verified__D3DRESIDR.D3dResourceP"></span><span class="target" id="dag__resMgr_8h_1a21ccc1c9589538a79ae900f963820c44"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">release_managed_res_verified</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">id</span></span>, <span class="n"><span class="pre">D3dResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">check_res</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428release_managed_res_verifiedR8D3DRESIDP11D3dResource" title="Link to this definition"></a><br /></dt>
+<dd><p>Releases resource object and decrements resource reference count, but additionally checks that the managed resource is the same as <code class="docutils literal notranslate"><span class="pre">check_res</span></code>. </p>
+<p>When reference count reaches 0, resource may be released. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1a5b61f3428d070652a6b848214bbc2255"><span class="std std-ref">acquire_managed_res()</span></a> On resource destruction (when name is unregistered) id is set to BAD_D3DRESID </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – the managed ID to release </p></li>
+<li><p><strong>check_res</strong> – the resource to check against </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419acquire_managed_tex8D3DRESID">
+<span id="_CPPv319acquire_managed_tex8D3DRESID"></span><span id="_CPPv219acquire_managed_tex8D3DRESID"></span><span id="acquire_managed_tex__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1a27cb03a9e18d577ab6f0e46d3cd36492"></span><a class="reference internal" href="../d3dAPI/textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">acquire_managed_tex</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419acquire_managed_tex8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Acquires resource object and increments resource reference count.   </p>
+<p>If resource was not referenced yet, it is created. If it is unavailable (bad ID), nullptr is returned. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1ab8d423d447df4e5459d92230a91e2609"><span class="std std-ref">release_managed_res()</span></a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When factory fails to create texture, <em>missing</em> texture handling may be applied. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the managed ID to acquire </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the acquired resource object or nullptr if the ID is invalid   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419release_managed_tex8D3DRESID">
+<span id="_CPPv319release_managed_tex8D3DRESID"></span><span id="_CPPv219release_managed_tex8D3DRESID"></span><span id="release_managed_tex__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1a0fbd44fb094d60f3a1e4c12dafbd20cc"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">release_managed_tex</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419release_managed_tex8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Releases resource object and decrements resource reference count.   </p>
+<p>When reference count reaches 0, resource may be released. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1a5b61f3428d070652a6b848214bbc2255"><span class="std std-ref">acquire_managed_res()</span></a> </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the managed ID to release   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0E28release_managed_tex_verifiedvR8D3DRESIDR1T">
+<span id="_CPPv3I0E28release_managed_tex_verifiedR8D3DRESIDR1T"></span><span id="_CPPv2I0E28release_managed_tex_verifiedR8D3DRESIDR1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dag__resMgr_8h_1a89ad87ae23533fe12c52060dd46deff3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">release_managed_tex_verified</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">id</span></span>, <a class="reference internal" href="#_CPPv4I0E28release_managed_tex_verifiedvR8D3DRESIDR1T" title="release_managed_tex_verified::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0E28release_managed_tex_verifiedvR8D3DRESIDR1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Releases resource object and decrements resource reference count, but additionally checks that the managed resource is the same as <code class="docutils literal notranslate"><span class="pre">check_res</span></code>.   </p>
+<p>When reference count reaches 0, resource may be released. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1a5b61f3428d070652a6b848214bbc2255"><span class="std std-ref">acquire_managed_res()</span></a> On resource destruction (when name is unregistered) id is set to BAD_D3DRESID </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – the managed ID to release </p></li>
+<li><p><strong>check_res</strong> – the resource to check against   </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419acquire_managed_buf8D3DRESID">
+<span id="_CPPv319acquire_managed_buf8D3DRESID"></span><span id="_CPPv219acquire_managed_buf8D3DRESID"></span><span id="acquire_managed_buf__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1a16e91952778a123d7822b54275fed096"></span><a class="reference internal" href="../d3dAPI/Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">acquire_managed_buf</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419acquire_managed_buf8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Acquires resource object and increments resource reference count.   </p>
+<p>If resource was not referenced yet, it is created. If it is unavailable (bad ID), nullptr is returned. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1ab8d423d447df4e5459d92230a91e2609"><span class="std std-ref">release_managed_res()</span></a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When factory fails to create texture, <em>missing</em> texture handling may be applied. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the managed ID to acquire </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the acquired resource object or nullptr if the ID is invalid   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419release_managed_buf8D3DRESID">
+<span id="_CPPv319release_managed_buf8D3DRESID"></span><span id="_CPPv219release_managed_buf8D3DRESID"></span><span id="release_managed_buf__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1a05bd66eded47fa97a426946968990c7f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">release_managed_buf</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419release_managed_buf8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Releases resource object and decrements resource reference count.   </p>
+<p>When reference count reaches 0, resource may be released. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1a5b61f3428d070652a6b848214bbc2255"><span class="std std-ref">acquire_managed_res()</span></a> </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the managed ID to release   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0E28release_managed_buf_verifiedvR8D3DRESIDR1T">
+<span id="_CPPv3I0E28release_managed_buf_verifiedR8D3DRESIDR1T"></span><span id="_CPPv2I0E28release_managed_buf_verifiedR8D3DRESIDR1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dag__resMgr_8h_1a839c4712cd105e11a649cba17976904c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">release_managed_buf_verified</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">id</span></span>, <a class="reference internal" href="#_CPPv4I0E28release_managed_buf_verifiedvR8D3DRESIDR1T" title="release_managed_buf_verified::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">buf</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0E28release_managed_buf_verifiedvR8D3DRESIDR1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Releases resource object and decrements resource reference count, but additionally checks that the managed resource is the same as <code class="docutils literal notranslate"><span class="pre">check_res</span></code>.   </p>
+<p>When reference count reaches 0, resource may be released. Logically paired with <a class="reference internal" href="#dag__resMgr_8h_1a5b61f3428d070652a6b848214bbc2255"><span class="std std-ref">acquire_managed_res()</span></a> On resource destruction (when name is unregistered) id is set to BAD_D3DRESID </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – the managed ID to release </p></li>
+<li><p><strong>check_res</strong> – the resource to check against   </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420get_managed_res_name8D3DRESID">
+<span id="_CPPv320get_managed_res_name8D3DRESID"></span><span id="_CPPv220get_managed_res_name8D3DRESID"></span><span id="get_managed_res_name__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1aa8a5be3115e2c52c668fb2b8a5905fc2"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_name</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420get_managed_res_name8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the name for a managed resource by ID, or nullptr if ID is invalid. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the D3DRESID to get the name for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the name of the managed resource with ID <code class="docutils literal notranslate"><span class="pre">id</span></code> or nullptr </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418get_managed_res_idPKc">
+<span id="_CPPv318get_managed_res_idPKc"></span><span id="_CPPv218get_managed_res_idPKc"></span><span id="get_managed_res_id__cCP"></span><span class="target" id="dag__resMgr_8h_1ad6b6c88dd810e84135a270f581fb428d"></span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_id</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">res_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418get_managed_res_idPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets managed resource ID by its name, or BAD_D3DRESID if name is invalid. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>res_name</strong> – the name of the resource to get the ID for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the managed resource ID that corresponds to <code class="docutils literal notranslate"><span class="pre">res_name</span></code> or BAD_D3DRESID if the name is invalid </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424get_managed_res_refcount8D3DRESID">
+<span id="_CPPv324get_managed_res_refcount8D3DRESID"></span><span id="_CPPv224get_managed_res_refcount8D3DRESID"></span><span id="get_managed_res_refcount__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1ae30a8b0240bc0b61cd2001469c426869"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_refcount</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424get_managed_res_refcount8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the reference count for a managed resource by ID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the ID to get the reference count for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the reference count for the D3DRESID resource or a negative value if the resource is missing </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419get_managed_res_lfu8D3DRESID">
+<span id="_CPPv319get_managed_res_lfu8D3DRESID"></span><span id="_CPPv219get_managed_res_lfu8D3DRESID"></span><span id="get_managed_res_lfu__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1acb034a863d5cb1347a81b75153c77894"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_lfu</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419get_managed_res_lfu8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the last-frame-used (LFU) counter for a managed ID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the ID to get the LFU counter for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the last-frame-used counter for the D3DRESID resource or 0 if the resource is missing/unregistered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv423get_managed_res_cur_tql8D3DRESID">
+<span id="_CPPv323get_managed_res_cur_tql8D3DRESID"></span><span id="_CPPv223get_managed_res_cur_tql8D3DRESID"></span><span id="get_managed_res_cur_tql__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1af54ca60a9fb6c96ab9787a1f2fb98150"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45TexQL" title="TexQL"><span class="n"><span class="pre">TexQL</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_cur_tql</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv423get_managed_res_cur_tql8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the current quality level (TQL_*) for a managed ID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the ID to get the quality level for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the current quality level for the D3DRESID resource or TQL_stub if the resource is missing/unregistered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv423get_managed_res_max_tql8D3DRESID">
+<span id="_CPPv323get_managed_res_max_tql8D3DRESID"></span><span id="_CPPv223get_managed_res_max_tql8D3DRESID"></span><span id="get_managed_res_max_tql__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1ac465b8750dbf5930983c81b074c867aa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45TexQL" title="TexQL"><span class="n"><span class="pre">TexQL</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_max_tql</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv423get_managed_res_max_tql8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the maximum available quality level (TQL_*) for a managed ID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the D3DRESID to get the quality level for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the current quality level for the D3DRESID resource or TQL_stub if the resource is missing/unregistered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426get_managed_res_maxreq_lev8D3DRESID">
+<span id="_CPPv326get_managed_res_maxreq_lev8D3DRESID"></span><span id="_CPPv226get_managed_res_maxreq_lev8D3DRESID"></span><span id="get_managed_res_maxreq_lev__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1a8c2fa2232792a04589dc9ea429284bf0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_maxreq_lev</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426get_managed_res_maxreq_lev8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the maximum requested level for a managed ID, i.e. log2(tex.dimension). Do not confuse it with QL! </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the D3DRESID to get the loaded level for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the current loaded level for <code class="docutils literal notranslate"><span class="pre">id</span></code> or 0 if the resource is missing/unregistered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426get_managed_res_loaded_lev8D3DRESID">
+<span id="_CPPv326get_managed_res_loaded_lev8D3DRESID"></span><span id="_CPPv226get_managed_res_loaded_lev8D3DRESID"></span><span id="get_managed_res_loaded_lev__D3DRESID"></span><span class="target" id="dag__resMgr_8h_1ae35f2263809755bf4f6af99d7900e935"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_managed_res_loaded_lev</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426get_managed_res_loaded_lev8D3DRESID" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the current loaded level for a managed ID, i.e. log2(tex.dimension). Do not confuse it with QL! </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – the D3DRESID to get the loaded level for </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the current loaded level for <code class="docutils literal notranslate"><span class="pre">id</span></code> or 0 if the resource is missing/unregistered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv417enable_res_mgr_mtbi">
+<span id="_CPPv317enable_res_mgr_mtbi"></span><span id="_CPPv217enable_res_mgr_mtbi"></span><span id="enable_res_mgr_mt__b.i"></span><span class="target" id="dag__resMgr_8h_1ac2afa95673d861e463f1f87e45a4926b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_res_mgr_mt</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_res_entry_count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv417enable_res_mgr_mtbi" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables or disables multithreading support for resource manager and preallocates internal structures to handle upto <code class="docutils literal notranslate"><span class="pre">max_res_entry_count</span></code> resource entries without reallocations. </p>
+<p>enable_res_mgr_mt(false, -1) will disable multithreading support and shrink entries array to used size </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – whether to enable multithreading support </p></li>
+<li><p><strong>max_res_entry_count</strong> – the maximum number of resource entries to preallocate or -1 to shrink to fit </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426iterate_all_managed_d3dres8D3DRESIDi">
+<span id="_CPPv326iterate_all_managed_d3dres8D3DRESIDi"></span><span id="_CPPv226iterate_all_managed_d3dres8D3DRESIDi"></span><span id="iterate_all_managed_d3dres__D3DRESID.i"></span><span class="target" id="dag__resMgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc"></span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">iterate_all_managed_d3dres</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="resid.html#_CPPv48D3DRESID" title="D3DRESID"><span class="n"><span class="pre">D3DRESID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">after_rid</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min_ref_count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426iterate_all_managed_d3dres8D3DRESIDi" title="Link to this definition"></a><br /></dt>
+<dd><p>Utility for iterating all managed resources. </p>
+<p>Managed resources form a linked list, so for an arbitrary ID, this function returns the “next” ID in the list. Hence one is supposed to call this function in a loop until it returns BAD_D3DRESID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>after_rid</strong> – ID of the texture to get the next texture for. Use BAD_D3DRESID to start iteration. </p></li>
+<li><p><strong>min_ref_count</strong> – Minimum reference count filter </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Some ID that follows <code class="docutils literal notranslate"><span class="pre">after_rid</span></code> and has refCount &gt;= <code class="docutils literal notranslate"><span class="pre">min_ref_count</span></code> OR BAD_RESID if the iteration is done. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="resid.html" class="btn btn-neutral float-left" title="Resource IDs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="textures.html" class="btn btn-neutral float-right" title="Texture Management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

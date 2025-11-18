@@ -1,0 +1,1850 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__texMgr_8h" kind="file" language="C++">
+    <compoundname>dag_texMgr.h</compoundname>
+    <includes local="no">util/dag_texMetaData.h</includes>
+    <includes local="no">drv/3d/dag_samplerHandle.h</includes>
+    <includes refid="dag__resMgr_8h" local="no">3d/dag_resMgr.h</includes>
+    <includes local="no">generic/dag_tabFwd.h</includes>
+    <includedby refid="dag__materialData_8h" local="no">dag_materialData.h</includedby>
+    <includedby refid="dag__resPtr_8h" local="yes">dag_resPtr.h</includedby>
+    <includedby refid="dag__texPackMgr2_8h" local="no">dag_texPackMgr2.h</includedby>
+    <includedby refid="dag__textureIDHolder_8h" local="no">dag_textureIDHolder.h</includedby>
+    <incdepgraph>
+      <node id="4">
+        <label>3d/dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="10">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="7">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="9">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="10">
+        <label>dag_dynAtlas.h</label>
+        <link refid="dag__dynAtlas_8h"/>
+      </node>
+      <node id="4">
+        <label>dag_indirectDrawcallsBuffer.h</label>
+        <link refid="dag__indirectDrawcallsBuffer_8h"/>
+      </node>
+      <node id="2">
+        <label>dag_materialData.h</label>
+        <link refid="dag__materialData_8h"/>
+      </node>
+      <node id="5">
+        <label>dag_multidrawContext.h</label>
+        <link refid="dag__multidrawContext_8h"/>
+      </node>
+      <node id="11">
+        <label>dag_occlusionSystem.h</label>
+        <link refid="dag__occlusionSystem_8h"/>
+      </node>
+      <node id="3">
+        <label>dag_resPtr.h</label>
+        <link refid="dag__resPtr_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>dag_resizableTex.h</label>
+        <link refid="dag__resizableTex_8h"/>
+      </node>
+      <node id="7">
+        <label>dag_ringDynBuf.h</label>
+        <link refid="dag__ringDynBuf_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>dag_texPackMgr2.h</label>
+        <link refid="dag__texPackMgr2_8h"/>
+      </node>
+      <node id="9">
+        <label>dag_textureIDHolder.h</label>
+        <link refid="dag__textureIDHolder_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classTextureFactory" prot="public">TextureFactory</innerclass>
+    <innerclass refid="structLODBiasRule" prot="public">LODBiasRule</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+      <sectiondef kind="user-defined">
+      <header>Helper wrappers</header>
+      <description><para>See <ref refid="dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19" kindref="member">iterate_all_managed_textures()</ref>. Use as follows:</para>
+<para><programlisting><codeline><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/><ref refid="dag__texMgr_8h_1a95ecbb03ea3d1d7410b4f9bdfdee4abe" kindref="member">first_managed_texture</ref>();<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>!=<sp/>BAD_TEXTUREID;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/><ref refid="dag__texMgr_8h_1ac0538e03a92a3538de029e3ebb80dfdb" kindref="member">next_managed_texture</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">))<sp/></highlight></codeline>
+</programlisting></para>
+<para>Get the first managed texture ID for iteration <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>min_rc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>First managed texture ID with refCount &gt;= <computeroutput>min_rc</computeroutput> </para>
+</simplesect>
+</para>
+</description>
+      <memberdef kind="function" id="dag__texMgr_8h_1a95ecbb03ea3d1d7410b4f9bdfdee4abe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID first_managed_texture</definition>
+        <argsstring>(int min_rc=0)</argsstring>
+        <name>first_managed_texture</name>
+        <param>
+          <type>int</type>
+          <declname>min_rc</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="264" column="18" bodyfile="dag_texMgr.h" bodystart="264" bodyend="264"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ac0538e03a92a3538de029e3ebb80dfdb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID next_managed_texture</definition>
+        <argsstring>(TEXTUREID prev_id, int min_rc=0)</argsstring>
+        <name>next_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>prev_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_rc</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+<para>Get the next managed texture ID for iteration. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>prev_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the previous texture </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_rc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Next managed texture ID after <computeroutput>prev_id</computeroutput> with refCount &gt;= <computeroutput>min_rc</computeroutput> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="270" column="18" bodyfile="dag_texMgr.h" bodystart="270" bodyend="270"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__texMgr_8h_1aafc40eb17cdae4ab37108bb7f468db00" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dgs_tex_quality</definition>
+        <argsstring></argsstring>
+        <name>dgs_tex_quality</name>
+        <briefdescription>
+<para>Read-only access to the current texture quality level. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This is READ-ONLY, do not modify this value </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="292" column="12" declfile="dag_texMgr.h" declline="292" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__texMgr_8h_1abbbeb59eb49ea77e3f246b093b8121b7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dgs_tex_anisotropy</definition>
+        <argsstring></argsstring>
+        <name>dgs_tex_anisotropy</name>
+        <briefdescription>
+<para>Read-only access to the current texture anisotropy. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This is READ-ONLY, do not modify this value </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="296" column="12" declfile="dag_texMgr.h" declline="296" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__texMgr_8h_1a330118e2ff774cf30e8d7f358164f1b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID register_managed_tex</definition>
+        <argsstring>(const char *name, BaseTexture *res)</argsstring>
+        <name>register_managed_tex</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+<para>Registers external D3D resource with the specified <computeroutput>name</computeroutput> as managed and returns the D3DRESID for it.   </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Specified resource becomes owned by the manager, no factory is assigned to it. RefCount is set to 1 and when it eventually reaches 0, the resource is automatically destroyed and the name is evicted. Use <ref refid="dag__resMgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res()</ref> or <ref refid="dag__resMgr_8h_1a21ccc1c9589538a79ae900f963820c44" kindref="member">release_managed_res_verified()</ref> to del ref and finally destroy. <simplesect kind="warning"><para>Resource name is case-insensitive and must be unique. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the name to register the resource under </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the resource to register </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the D3DRESID for the registered resource   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="18" column="10" declfile="dag_texMgr.h" declline="18" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a929f255b55d4a2048438b355b6f63b64" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool is_managed_tex_factory_set</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>is_managed_tex_factory_set</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Checks whether creation/release factory is set for D3DRESID.   </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. for an ID that was acquired from <ref refid="dag__resMgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2" kindref="member">register_managed_res()</ref>, it will return false. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to check </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if a factory was specified for the D3DRESID   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="22" column="20" bodyfile="dag_texMgr.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a9908f1cf94c8fcb3f8d0f99e624d0845" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * get_managed_texture_name</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_texture_name</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the name for a managed resource by ID, or nullptr if ID is invalid.   </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to get the name for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the name of the managed resource with ID <computeroutput>id</computeroutput> or nullptr   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="24" column="26" bodyfile="dag_texMgr.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a19a0cfba901ef57c2dafd0a61e4488bf" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>static D3DRESID get_managed_texture_id</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>get_managed_texture_id</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Gets managed resource ID by its name, or BAD_D3DRESID if name is invalid.   </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the name of the resource to get the ID for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the managed resource ID that corresponds to <computeroutput>res_name</computeroutput> or BAD_D3DRESID if the name is invalid   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="26" column="24" bodyfile="dag_texMgr.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a43681067205198b0f0464d7759345c1b" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int get_managed_texture_refcount</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_texture_refcount</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the reference count for a managed resource by ID.   </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the ID to get the reference count for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the reference count for the D3DRESID resource or a negative value if the resource is missing   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="28" column="19" bodyfile="dag_texMgr.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1aa219feda667fa251848b1d845dc266a0" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void enable_tex_mgr_mt</definition>
+        <argsstring>(bool enable, int max_res_entry_count)</argsstring>
+        <name>enable_tex_mgr_mt</name>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_res_entry_count</declname>
+        </param>
+        <briefdescription>
+<para>Enables or disables multithreading support for resource manager and preallocates internal structures to handle upto <computeroutput>max_res_entry_count</computeroutput> resource entries without reallocations.   </para>
+        </briefdescription>
+        <detaileddescription>
+<para>enable_res_mgr_mt(false, -1) will disable multithreading support and shrink entries array to used size <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>enable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>whether to enable multithreading support </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>max_res_entry_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the maximum number of resource entries to preallocate or -1 to shrink to fit   </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="30" column="20" bodyfile="dag_texMgr.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID add_managed_texture</definition>
+        <argsstring>(const char *name, TextureFactory *factory=nullptr)</argsstring>
+        <name>add_managed_texture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>factory</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Adds entry for managed texture name and returns TEXTUREID for it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When entry for &apos;name&apos; already exists, it just returns TEXTUREID. For new entry &apos;factory&apos; is set as creator, for existing entry &apos;factory&apos; must be nullptr. <simplesect kind="warning"><para>Texture name is case-insensitive and must be unique. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name that uniquely identifies the texture </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>factory</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Custom texture creation mechanism, must be nullptr for existing textures </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Managed ID of the texture </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="90" column="11" declfile="dag_texMgr.h" declline="90" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1aee0bb1833034da3342fb8aa4da6b2673" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID add_managed_array_texture</definition>
+        <argsstring>(const char *name, dag::ConstSpan&lt; const char * &gt; tex_slice_nm)</argsstring>
+        <name>add_managed_array_texture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; const char * &gt;</type>
+          <declname>tex_slice_nm</declname>
+        </param>
+        <briefdescription>
+<para>Adds or updates entry for managed array texture name, stores creation properties and returns TEXTUREID for it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Array texture will be composed of slices with texture names <computeroutput>tex_slice_nm</computeroutput>. <simplesect kind="warning"><para>Textures in slices must have the same format and size, and furthermore, some restrictions of DDSx flags apply. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name that uniquely identifies the new array texture </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tex_slice_nm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of texture names to use as slices </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Managed ID of the texture </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="98" column="11" declfile="dag_texMgr.h" declline="98" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a9b00ae85619f5137cfabf976c5e8bcbb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID update_managed_array_texture</definition>
+        <argsstring>(const char *name, dag::ConstSpan&lt; const char * &gt; tex_slice_nm)</argsstring>
+        <name>update_managed_array_texture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; const char * &gt;</type>
+          <declname>tex_slice_nm</declname>
+        </param>
+        <briefdescription>
+<para>Updates an existing array texture entry with new slices. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>The number of slices must match the original array texture. </para>
+</simplesect>
+<simplesect kind="note"><para>Simply calls <ref refid="dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d" kindref="member">add_managed_texture()</ref> under the hood, this function exists purely for readability purposes. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the array texture to update </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tex_slice_nm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of new texture names to use as slices </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Managed ID of the array texture that was updated </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="106" column="11" declfile="dag_texMgr.h" declline="106" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a0829b33f955def877a14670103f5b9eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned reload_managed_array_textures_for_changed_slice</definition>
+        <argsstring>(const char *slice_tex_name)</argsstring>
+        <name>reload_managed_array_textures_for_changed_slice</name>
+        <param>
+          <type>const char *</type>
+          <declname>slice_tex_name</declname>
+        </param>
+        <briefdescription>
+<para>Checks all registered array textures and reloads those referencing specified slice. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slice_tex_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of changed texture that can be used as slice in some array texture </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Number of reloaded array textures (or 0 if no array texture reference that slice) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="111" column="10" declfile="dag_texMgr.h" declline="111" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1aa748cb1de7974cc6bd4d20d8eeac9f5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool evict_managed_tex_id</definition>
+        <argsstring>(TEXTUREID &amp;id)</argsstring>
+        <name>evict_managed_tex_id</name>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Schedules removal of the managed entry for the specified <computeroutput>id</computeroutput> and sets <computeroutput>id</computeroutput> to BAD_TEXTUREID (unconditionally, even if the operation fails or is deferred). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When refCount = 0, removal is performed immediately, otherwise it is deferred. Can be used to remove entries created with <ref refid="dag__texMgr_8h_1a330118e2ff774cf30e8d7f358164f1b3" kindref="member">register_managed_tex()</ref>, <ref refid="dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d" kindref="member">add_managed_texture()</ref>, <ref refid="dag__texMgr_8h_1aee0bb1833034da3342fb8aa4da6b2673" kindref="member">add_managed_array_texture()</ref> <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to remove </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture was removed immediately, <computeroutput>false</computeroutput> otherwise, including if the operation was invalid. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="119" column="6" declfile="dag_texMgr.h" declline="119" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool check_managed_texture_loaded</definition>
+        <argsstring>(TEXTUREID id, bool fq_loaded=false)</argsstring>
+        <name>check_managed_texture_loaded</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Checks whether contents of managed texture was loaded. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to check </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture is loaded, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="125" column="6" declfile="dag_texMgr.h" declline="125" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a3b3339e11930913031968cb5bea718c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool check_all_managed_textures_loaded</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; id, bool fq_loaded=false, bool ignore_unref_tex=true)</argsstring>
+        <name>check_all_managed_textures_loaded</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>ignore_unref_tex</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>Checks whether contents of all managed textures in list was loaded, analogous to calling <ref refid="dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592" kindref="member">check_managed_texture_loaded()</ref> multiple times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Skips checks for textures with refcount=0 by default. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to check. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ignore_unref_tex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to skip textures with refcount=0 </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if all textures (excluding those with refcount=0 if <computeroutput>ignore_unref_tex</computeroutput> is true) are loaded, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="134" column="6" declfile="dag_texMgr.h" declline="134" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a65e77b79df17550d7ff4ccf5f8ffab6c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool change_managed_texture</definition>
+        <argsstring>(TEXTUREID id, BaseTexture *new_texture, TextureFactory *factory=NULL)</argsstring>
+        <name>change_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>new_texture</declname>
+        </param>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>factory</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+<para>Replaces the texture for managed id <computeroutput>id</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to replace </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>new_texture</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>New driver texture to use for this <computeroutput>id</computeroutput> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>factory</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Custom texture creation mechanism </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture was replaced successfully, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="141" column="6" declfile="dag_texMgr.h" declline="141" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ae1a61ba348eea968816bcdea95b57135" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void discard_unused_managed_texture</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>discard_unused_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Discards unused texture: unloads texture when refCount=0, does nothing otherwise. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to discard </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="145" column="6" declfile="dag_texMgr.h" declline="145" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ac93ca63f360b15217f24bab008b10e61" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void discard_unused_managed_textures</definition>
+        <argsstring>()</argsstring>
+        <name>discard_unused_managed_textures</name>
+        <briefdescription>
+<para>Iterate all managed textures and unload those with refCount=0. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="148" column="6" declfile="dag_texMgr.h" declline="148" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a5e8fee654c9a3f97e448f25980720546" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mark_managed_tex_lfu</definition>
+        <argsstring>(TEXTUREID id, unsigned req_lev=15)</argsstring>
+        <name>mark_managed_tex_lfu</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>req_lev</declname>
+          <defval>15</defval>
+        </param>
+        <briefdescription>
+<para>Set current frame as &apos;last frame used&apos; for texture. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to mark </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>req_lev</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Quality level that was used on this frame </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="153" column="13" bodyfile="dag_texMgr.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1abcc9d9a46307732985116d329c400d15" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_managed_texture</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>prefetch_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Request texture content load. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to load </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true when texture already loaded, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="158" column="6" declfile="dag_texMgr.h" declline="158" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1abf11ffaec3de1c20ba78014887415835" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_managed_textures</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; id)</argsstring>
+        <name>prefetch_managed_textures</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Requests texture content load for a list of textures, the same as calling <ref refid="dag__texMgr_8h_1abcc9d9a46307732985116d329c400d15" kindref="member">prefetch_managed_texture()</ref> multiple times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to load </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> when all textures are already loaded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="163" column="6" declfile="dag_texMgr.h" declline="163" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ae7839b10b79d6c70018b8b16cd7569f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_managed_textures_by_textag</definition>
+        <argsstring>(int textag)</argsstring>
+        <name>prefetch_managed_textures_by_textag</name>
+        <param>
+          <type>int</type>
+          <declname>textag</declname>
+        </param>
+        <briefdescription>
+<para>Requests texture content load for list of textures by TEXTAG. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>textag</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The tag to load textures for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> when all textures with the tag are already loaded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="168" column="6" declfile="dag_texMgr.h" declline="168" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a2acb20162c92c8cbbd542c643893ba48" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mark_managed_textures_important</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; id, unsigned add_importance=1, int min_lev_for_dyn_decrease=16)</argsstring>
+        <name>mark_managed_textures_important</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>add_importance</declname>
+          <defval>1</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_lev_for_dyn_decrease</declname>
+          <defval>16</defval>
+        </param>
+        <briefdescription>
+<para>Marks list of textures as important (to force loading content upto requested quality level as soon as possible) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to mark </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>add_importance</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Additional importance to add to the textures </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_lev_for_dyn_decrease</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>important textures with more levels min can be downgraded 1 mip when dyn decrease used </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="174" column="6" declfile="dag_texMgr.h" declline="174" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a97119628076528951d0a1f485e8785b7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void reset_managed_textures_streaming_state</definition>
+        <argsstring>()</argsstring>
+        <name>reset_managed_textures_streaming_state</name>
+        <briefdescription>
+<para>Resets streaming state of textures so that they can be reloaded respecting the global tex quality settings changes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="177" column="6" declfile="dag_texMgr.h" declline="177" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1aaa1f138f4a6ba9e9522ed2f56386cdc0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_default_tex_factory</definition>
+        <argsstring>(TextureFactory *tf)</argsstring>
+        <name>set_default_tex_factory</name>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>tf</declname>
+        </param>
+        <briefdescription>
+<para>Sets the default texture factory to use for managed textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="180" column="6" declfile="dag_texMgr.h" declline="180" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ae49c26351c0282c2997d912554e42b05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory * get_default_tex_factory</definition>
+        <argsstring>()</argsstring>
+        <name>get_default_tex_factory</name>
+        <briefdescription>
+<para>Gets the default texture factory. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="182" column="16" declfile="dag_texMgr.h" declline="182" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a495f0ca137fb6d568f0a1dfa8dc64784" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory * get_symbolic_tex_factory</definition>
+        <argsstring>()</argsstring>
+        <name>get_symbolic_tex_factory</name>
+        <briefdescription>
+<para>Gets the symbolic texture factory which always produces nulls for texture creation. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="185" column="16" declfile="dag_texMgr.h" declline="185" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a7c3a7b04775ca28775c45664a0f607e9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory * get_stub_tex_factory</definition>
+        <argsstring>()</argsstring>
+        <name>get_stub_tex_factory</name>
+        <briefdescription>
+<para>Gets the stub texture factory which always produces stub 1x1 textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="188" column="16" declfile="dag_texMgr.h" declline="188" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a683e84903e54dc7315f3f9b67417dadf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void init_managed_textures_streaming_support</definition>
+        <argsstring>(int reload_jobmgr_id=-2)</argsstring>
+        <name>init_managed_textures_streaming_support</name>
+        <param>
+          <type>int</type>
+          <declname>reload_jobmgr_id</declname>
+          <defval>-2</defval>
+        </param>
+        <briefdescription>
+<para>Init data and callbacks to support streaming. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Settings are taken from dgs_get_settings()-&gt;getBlockByName(&quot;texStreaming&quot;). <simplesect kind="note"><para>reload_jobmgr_id=-2 means auto creation of jobmanager, reload_jobmgr_id=-1 means no jobmanager </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rload_jobmgr_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Either -1 or -2, controls whether to create a job manager for texture streaming </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="195" column="6" declfile="dag_texMgr.h" declline="195" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a096f66638e2dc26021525fc86342eed2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_textures_streaming_active</definition>
+        <argsstring>()</argsstring>
+        <name>is_managed_textures_streaming_active</name>
+        <briefdescription>
+<para>Checks whether texture streaming is inited and active. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><computeroutput>true</computeroutput> if texture streaming is active, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="199" column="6" declfile="dag_texMgr.h" declline="199" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a1423644b5f3047b6f83f0dec18b479a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_textures_streaming_load_on_demand</definition>
+        <argsstring>()</argsstring>
+        <name>is_managed_textures_streaming_load_on_demand</name>
+        <briefdescription>
+<para>Checks whether texture streaming loads textures only when used. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><computeroutput>true</computeroutput> if texture streaming is load-on-demand, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="202" column="6" declfile="dag_texMgr.h" declline="202" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a9dc2eabd570197367513958be6df09a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dump_texture_streaming_memory_state</definition>
+        <argsstring>()</argsstring>
+        <name>dump_texture_streaming_memory_state</name>
+        <briefdescription>
+<para>Dumps current memory usage (Sys/Gpu) state of texture streaming. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="205" column="6" declfile="dag_texMgr.h" declline="205" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ab69ccc33b0b889a6fa192ffa5805fdf7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_texture_incomplete</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>is_managed_texture_incomplete</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Checks whether the specified texture is split BQ/HQ with missing HQ part. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to check </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture is missing HQ part, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="210" column="6" declfile="dag_texMgr.h" declline="210" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1acfcd91bd72cdf0422a8bd29d97b5c04d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void load_anisotropy_from_settings</definition>
+        <argsstring>()</argsstring>
+        <name>load_anisotropy_from_settings</name>
+        <briefdescription>
+<para>Re-loads anisotropy config from settings. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="213" column="6" declfile="dag_texMgr.h" declline="213" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a258007979db02946c29a87c5703ca5c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void add_anisotropy_exception</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>add_anisotropy_exception</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Marks that a texture&apos;s anisotropy should not be changed automatically. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to mark </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="217" column="6" declfile="dag_texMgr.h" declline="217" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a7ccd087454be46df74b63ed70f8ad1ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void reset_anisotropy</definition>
+        <argsstring>(const char *tex_name_filter=nullptr)</argsstring>
+        <name>reset_anisotropy</name>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name_filter</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Resets anisotropy for all textures whose name contains <computeroutput>tex_name_filter</computeroutput> as a substring. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex_name_filter</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Substring filter to match texture names </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="222" column="6" declfile="dag_texMgr.h" declline="222" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a14789e775e6e63f0a8a63a72c8c73f8f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_and_check_managed_texture_loaded</definition>
+        <argsstring>(TEXTUREID id, bool fq_loaded=false)</argsstring>
+        <name>prefetch_and_check_managed_texture_loaded</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Attempts to load the texture for usage on the current frame and simply checks for immediate success. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to load and check </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture is loaded, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="228" column="13" bodyfile="dag_texMgr.h" bodystart="228" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1aaf2198403a15f5c207b4ae3ade24e753" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_and_check_managed_textures_loaded</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; tex_list, bool fq_loaded=false)</argsstring>
+        <name>prefetch_and_check_managed_textures_loaded</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>tex_list</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Attempts to load multiple textures for usage on the current frame and check for immediate success. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex_list</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to load and check </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if all textures are loaded, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="241" column="6" declfile="dag_texMgr.h" declline="241" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a65a211a88b66af68df09d2c69b02644a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void prefetch_and_wait_managed_textures_loaded</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; tex_list, bool fq_loaded=false)</argsstring>
+        <name>prefetch_and_wait_managed_textures_loaded</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>tex_list</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Synchronously loads a list of textures, blocking the current thread until all textures are loaded. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex_list</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to load </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to wait for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="246" column="6" declfile="dag_texMgr.h" declline="246" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID iterate_all_managed_textures</definition>
+        <argsstring>(TEXTUREID after_tid, int min_ref_count)</argsstring>
+        <name>iterate_all_managed_textures</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>after_tid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_ref_count</declname>
+        </param>
+        <briefdescription>
+<para>Utility for iterating all managed textures. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Managed textures form a linked list, so for an arbitrary ID, this function returns the &quot;next&quot; ID in the list. Hence one is supposed to call this function in a loop until it returns BAD_TEXTUREID. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>after_tid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to get the next texture for. Use BAD_TEXTUREID to start iteration. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_ref_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Some ID that follows <computeroutput>after_tid</computeroutput> and has refCount &gt;= <computeroutput>min_ref_count</computeroutput> OR BAD_TEXTUREID if the iteration is done. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="254" column="11" declfile="dag_texMgr.h" declline="254" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a814ec29bfa6374bc3f6c0f5747ce4203" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID get_max_managed_texture_id</definition>
+        <argsstring>()</argsstring>
+        <name>get_max_managed_texture_id</name>
+        <briefdescription>
+<para>Access to the highest valid texture ID for storing properties of managed textures in arrays. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Highest valid texture ID </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="275" column="11" declfile="dag_texMgr.h" declline="275" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ac9889fa8c4d94cb0aa7b66f9b99c8162" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint16_t</type>
+        <definition>uint16_t get_managed_texture_streaming_generation</definition>
+        <argsstring>(TEXTUREID tid)</argsstring>
+        <name>get_managed_texture_streaming_generation</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+<para>Get generation of managed texture content, which changes during streaming. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>valid ID of texture </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Generation of streaming data </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="280" column="10" declfile="dag_texMgr.h" declline="280" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1aba5db10640f5e378f0cd517a8ccf3c0e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_texture_id_valid</definition>
+        <argsstring>(TEXTUREID tid, bool validate_value)</argsstring>
+        <name>is_managed_texture_id_valid</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>validate_value</declname>
+        </param>
+        <briefdescription>
+<para>returns true when tid resembles texture ID and (optionally checked) contains valid value (non-BAD and has proper generation) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="283" column="13" bodyfile="dag_texMgr.h" bodystart="283" bodyend="288"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1af923347e7641cf299572a7c36dd0e5e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TextureMetaData</type>
+        <definition>TextureMetaData get_texture_meta_data</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>get_texture_meta_data</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Get texture meta data. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to get the meta data for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="300" column="17" declfile="dag_texMgr.h" declline="300" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1a725d6655c2fe6154e3387b698420290c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>d3d::SamplerInfo</type>
+        <definition>d3d::SamplerInfo get_sampler_info</definition>
+        <argsstring>(const TextureMetaData &amp;texture_meta_data, bool force_addr_from_tmd=true)</argsstring>
+        <name>get_sampler_info</name>
+        <param>
+          <type>const TextureMetaData &amp;</type>
+          <declname>texture_meta_data</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>force_addr_from_tmd</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>Get a sampler info structure from texture meta data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="303" column="18" declfile="dag_texMgr.h" declline="303" declcolumn="18"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1ad587d87ea78813000789b9a8837dc333" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>d3d::SamplerHandle</type>
+        <definition>d3d::SamplerHandle get_texture_separate_sampler</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>get_texture_separate_sampler</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Returns separate sampler for the texture ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to get the sampler for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Sampler handle for the texture. If no separate sampler is set, returns invalid handle </para>
+</simplesect>
+<simplesect kind="note"><para>Returned sampler must not be destroyed </para>
+</simplesect>
+<simplesect kind="note"><para>The function is not thread-safe, and the caller must ensure that there are no concurrent setters for this texture ID </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="310" column="20" declfile="dag_texMgr.h" declline="310" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1accbedd67115d72eedce1b8c370cae944" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool set_texture_separate_sampler</definition>
+        <argsstring>(TEXTUREID id, const d3d::SamplerInfo &amp;sampler_info)</argsstring>
+        <name>set_texture_separate_sampler</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const d3d::SamplerInfo &amp;</type>
+          <declname>sampler_info</declname>
+        </param>
+        <briefdescription>
+<para>Sets separate sampler for the texture ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to set the sampler for </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sampler_info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Sampler info for sampler to set </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the sampler was set successfully, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+<simplesect kind="note"><para>Calling a function for the same texture ID is not thread-safe </para>
+</simplesect>
+<simplesect kind="note"><para>Calling a function for different texture IDs is thread-safe </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="318" column="6" declfile="dag_texMgr.h" declline="318" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__texMgr_8h_1acb049d298c8d0b2c1aeeea8e905e9b01" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_add_lod_bias_batch</definition>
+        <argsstring>(dag::Span&lt; const LODBiasRule &gt; rules)</argsstring>
+        <name>set_add_lod_bias_batch</name>
+        <param>
+          <type>dag::Span&lt; const <ref refid="structLODBiasRule" kindref="compound">LODBiasRule</ref> &gt;</type>
+          <declname>rules</declname>
+        </param>
+        <briefdescription>
+<para>Sets the LOD bias for a batch of substring-bias pairs. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rules</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A span of <ref refid="structLODBiasRule" kindref="compound">LODBiasRule</ref> objects containing substring and LOD bias pairs. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="328" column="6" declfile="dag_texMgr.h" declline="328" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_texMetaData.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_samplerHandle.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resMgr_8h" kindref="compound">3d/dag_resMgr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabFwd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="namespaced3d" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">SamplerInfo;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="dag__texMgr_8h_1a330118e2ff774cf30e8d7f358164f1b3" refkind="member"><highlight class="normal">D3DRESID<sp/><ref refid="dag__texMgr_8h_1a330118e2ff774cf30e8d7f358164f1b3" kindref="member">register_managed_tex</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>BaseTexture<sp/>*res);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_managed_tex_factory_set(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__resMgr_8h_1a00376763cbffd50bbafa7ffb914f8019" kindref="member">is_managed_res_factory_set</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_managed_texture_name(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__resMgr_8h_1aa8a5be3115e2c52c668fb2b8a5905fc2" kindref="member">get_managed_res_name</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>D3DRESID<sp/>get_managed_texture_id(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*res_name)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__resMgr_8h_1ad6b6c88dd810e84135a270f581fb428d" kindref="member">get_managed_res_id</ref>(res_name);<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_managed_texture_refcount(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__resMgr_8h_1ae30a8b0240bc0b61cd2001469c426869" kindref="member">get_managed_res_refcount</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_tex_mgr_mt(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_res_entry_count)<sp/>{<sp/><ref refid="dag__resMgr_8h_1ac2afa95673d861e463f1f87e45a4926b" kindref="member">enable_res_mgr_mt</ref>(enable,<sp/>max_res_entry_count);<sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classTextureFactory" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="36" refid="classTextureFactory_1a26fdd8185a07623c2900fe60b8dac1ce" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureFactory_1a26fdd8185a07623c2900fe60b8dac1ce" kindref="member">TextureFactory</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="37" refid="classTextureFactory_1a84e350ac4634c29602de12b644385e89" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureFactory_1a84e350ac4634c29602de12b644385e89" kindref="member">TextureFactory</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38" refid="classTextureFactory_1ac0106175a8099265143ed66be78bf245" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>&amp;<ref refid="classTextureFactory_1ac0106175a8099265143ed66be78bf245" kindref="member">operator=</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39" refid="classTextureFactory_1a1af95fcbad091cab0c7b4d1d94ed5ead" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1a1af95fcbad091cab0c7b4d1d94ed5ead" kindref="member">~TextureFactory</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="classTextureFactory_1a4b00696900c0f29eabf22a273736f004" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>BaseTexture<sp/>*<ref refid="classTextureFactory_1a4b00696900c0f29eabf22a273736f004" kindref="member">createTexture</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classTextureFactory_1aae54b99b3f39bfd9db4ac6db413b2ba5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1aae54b99b3f39bfd9db4ac6db413b2ba5" kindref="member">releaseTexture</ref>(BaseTexture<sp/>*texture,<sp/>TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="classTextureFactory_1a35553694ce8e200f6e184dca44fa548f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1a35553694ce8e200f6e184dca44fa548f" kindref="member">texFactoryActiveChanged</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*active*/</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="classTextureFactory_1a9a87bde42bc3fa4396e3d7edb5408484" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1a9a87bde42bc3fa4396e3d7edb5408484" kindref="member">scheduleTexLoading</ref>(TEXTUREID<sp/></highlight><highlight class="comment">/*id*/</highlight><highlight class="normal">,<sp/><ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/></highlight><highlight class="comment">/*req_ql*/</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classTextureFactory_1a1e9079ab0224c130a5c3826521be9560" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1a1e9079ab0224c130a5c3826521be9560" kindref="member">getTextureDDSx</ref>(TEXTUREID<sp/></highlight><highlight class="comment">/*id*/</highlight><highlight class="normal">,<sp/>Tab&lt;char&gt;<sp/>&amp;<sp/></highlight><highlight class="comment">/*out_ddsx*/</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classTextureFactory_1acaecb96963eca51a5c0706eeb195492c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1acaecb96963eca51a5c0706eeb195492c" kindref="member">onUnregisterTexture</ref>(TEXTUREID<sp/></highlight><highlight class="comment">/*id*/</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="classTextureFactory_1a2add0cedfa660000e44b1ea0e0f6e513" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1a2add0cedfa660000e44b1ea0e0f6e513" kindref="member">isPersistentTexName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<sp/></highlight><highlight class="comment">/*nm*/</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="classTextureFactory_1a2c4ab41edbc450fb91093cf54dc5bb6f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureFactory_1a2c4ab41edbc450fb91093cf54dc5bb6f" kindref="member">onTexFactoryDeleted</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*f);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90" refid="dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d" refkind="member"><highlight class="normal">TEXTUREID<sp/><ref refid="dag__texMgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d" kindref="member">add_managed_texture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*factory<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="dag__texMgr_8h_1aee0bb1833034da3342fb8aa4da6b2673" refkind="member"><highlight class="normal">TEXTUREID<sp/><ref refid="dag__texMgr_8h_1aee0bb1833034da3342fb8aa4da6b2673" kindref="member">add_managed_array_texture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>dag::ConstSpan&lt;const<sp/>char<sp/>*&gt;<sp/>tex_slice_nm);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106" refid="dag__texMgr_8h_1a9b00ae85619f5137cfabf976c5e8bcbb" refkind="member"><highlight class="normal">TEXTUREID<sp/><ref refid="dag__texMgr_8h_1a9b00ae85619f5137cfabf976c5e8bcbb" kindref="member">update_managed_array_texture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>dag::ConstSpan&lt;const<sp/>char<sp/>*&gt;<sp/>tex_slice_nm);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111" refid="dag__texMgr_8h_1a0829b33f955def877a14670103f5b9eb" refkind="member"><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a0829b33f955def877a14670103f5b9eb" kindref="member">reload_managed_array_textures_for_changed_slice</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*slice_tex_name);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119" refid="dag__texMgr_8h_1aa748cb1de7974cc6bd4d20d8eeac9f5e" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1aa748cb1de7974cc6bd4d20d8eeac9f5e" kindref="member">evict_managed_tex_id</ref>(TEXTUREID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125" refid="dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592" kindref="member">check_managed_texture_loaded</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="dag__texMgr_8h_1a3b3339e11930913031968cb5bea718c0" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a3b3339e11930913031968cb5bea718c0" kindref="member">check_all_managed_textures_loaded</ref>(dag::ConstSpan&lt;TEXTUREID&gt;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ignore_unref_tex<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="dag__texMgr_8h_1a65e77b79df17550d7ff4ccf5f8ffab6c" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a65e77b79df17550d7ff4ccf5f8ffab6c" kindref="member">change_managed_texture</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>BaseTexture<sp/>*new_texture,<sp/><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*factory<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145" refid="dag__texMgr_8h_1ae1a61ba348eea968816bcdea95b57135" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1ae1a61ba348eea968816bcdea95b57135" kindref="member">discard_unused_managed_texture</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148" refid="dag__texMgr_8h_1ac93ca63f360b15217f24bab008b10e61" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1ac93ca63f360b15217f24bab008b10e61" kindref="member">discard_unused_managed_textures</ref>();</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="dag__texMgr_8h_1a5e8fee654c9a3f97e448f25980720546" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a5e8fee654c9a3f97e448f25980720546" kindref="member">mark_managed_tex_lfu</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>req_lev<sp/>=<sp/>15)<sp/>{<sp/>D3dResManagerData::markResLFU(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>req_lev);<sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158" refid="dag__texMgr_8h_1abcc9d9a46307732985116d329c400d15" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1abcc9d9a46307732985116d329c400d15" kindref="member">prefetch_managed_texture</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163" refid="dag__texMgr_8h_1abf11ffaec3de1c20ba78014887415835" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1abf11ffaec3de1c20ba78014887415835" kindref="member">prefetch_managed_textures</ref>(dag::ConstSpan&lt;TEXTUREID&gt;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168" refid="dag__texMgr_8h_1ae7839b10b79d6c70018b8b16cd7569f8" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1ae7839b10b79d6c70018b8b16cd7569f8" kindref="member">prefetch_managed_textures_by_textag</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>textag);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174" refid="dag__texMgr_8h_1a2acb20162c92c8cbbd542c643893ba48" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a2acb20162c92c8cbbd542c643893ba48" kindref="member">mark_managed_textures_important</ref>(dag::ConstSpan&lt;TEXTUREID&gt;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>add_importance<sp/>=<sp/>1,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_lev_for_dyn_decrease<sp/>=<sp/>16);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177" refid="dag__texMgr_8h_1a97119628076528951d0a1f485e8785b7" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a97119628076528951d0a1f485e8785b7" kindref="member">reset_managed_textures_streaming_state</ref>();</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180" refid="dag__texMgr_8h_1aaa1f138f4a6ba9e9522ed2f56386cdc0" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1aaa1f138f4a6ba9e9522ed2f56386cdc0" kindref="member">set_default_tex_factory</ref>(<ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*tf);</highlight></codeline>
+<codeline lineno="182" refid="dag__texMgr_8h_1ae49c26351c0282c2997d912554e42b05" refkind="member"><highlight class="normal"><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*<ref refid="dag__texMgr_8h_1ae49c26351c0282c2997d912554e42b05" kindref="member">get_default_tex_factory</ref>();</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185" refid="dag__texMgr_8h_1a495f0ca137fb6d568f0a1dfa8dc64784" refkind="member"><highlight class="normal"><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*<ref refid="dag__texMgr_8h_1a495f0ca137fb6d568f0a1dfa8dc64784" kindref="member">get_symbolic_tex_factory</ref>();</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188" refid="dag__texMgr_8h_1a7c3a7b04775ca28775c45664a0f607e9" refkind="member"><highlight class="normal"><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref><sp/>*<ref refid="dag__texMgr_8h_1a7c3a7b04775ca28775c45664a0f607e9" kindref="member">get_stub_tex_factory</ref>();</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195" refid="dag__texMgr_8h_1a683e84903e54dc7315f3f9b67417dadf" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a683e84903e54dc7315f3f9b67417dadf" kindref="member">init_managed_textures_streaming_support</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reload_jobmgr_id<sp/>=<sp/>-2);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199" refid="dag__texMgr_8h_1a096f66638e2dc26021525fc86342eed2" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a096f66638e2dc26021525fc86342eed2" kindref="member">is_managed_textures_streaming_active</ref>();</highlight></codeline>
+<codeline lineno="202" refid="dag__texMgr_8h_1a1423644b5f3047b6f83f0dec18b479a8" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a1423644b5f3047b6f83f0dec18b479a8" kindref="member">is_managed_textures_streaming_load_on_demand</ref>();</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205" refid="dag__texMgr_8h_1a9dc2eabd570197367513958be6df09a4" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a9dc2eabd570197367513958be6df09a4" kindref="member">dump_texture_streaming_memory_state</ref>();</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210" refid="dag__texMgr_8h_1ab69ccc33b0b889a6fa192ffa5805fdf7" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1ab69ccc33b0b889a6fa192ffa5805fdf7" kindref="member">is_managed_texture_incomplete</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213" refid="dag__texMgr_8h_1acfcd91bd72cdf0422a8bd29d97b5c04d" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1acfcd91bd72cdf0422a8bd29d97b5c04d" kindref="member">load_anisotropy_from_settings</ref>();</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217" refid="dag__texMgr_8h_1a258007979db02946c29a87c5703ca5c5" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a258007979db02946c29a87c5703ca5c5" kindref="member">add_anisotropy_exception</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight></codeline>
+<codeline lineno="222" refid="dag__texMgr_8h_1a7ccd087454be46df74b63ed70f8ad1ab" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a7ccd087454be46df74b63ed70f8ad1ab" kindref="member">reset_anisotropy</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*tex_name_filter<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228" refid="dag__texMgr_8h_1a14789e775e6e63f0a8a63a72c8c73f8f" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a14789e775e6e63f0a8a63a72c8c73f8f" kindref="member">prefetch_and_check_managed_texture_loaded</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="229"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592" kindref="member">check_managed_texture_loaded</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>fq_loaded))</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>loaded<sp/>=<sp/><ref refid="dag__texMgr_8h_1a1423644b5f3047b6f83f0dec18b479a8" kindref="member">is_managed_textures_streaming_load_on_demand</ref>()<sp/>?<sp/><ref refid="dag__texMgr_8h_1abcc9d9a46307732985116d329c400d15" kindref="member">prefetch_managed_texture</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>:<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><ref refid="dag__texMgr_8h_1a5e8fee654c9a3f97e448f25980720546" kindref="member">mark_managed_tex_lfu</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(loaded<sp/>&amp;&amp;<sp/>fq_loaded)<sp/>?<sp/><ref refid="dag__texMgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592" kindref="member">check_managed_texture_loaded</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>fq_loaded)<sp/>:<sp/>loaded;</highlight></codeline>
+<codeline lineno="235"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight></codeline>
+<codeline lineno="241" refid="dag__texMgr_8h_1aaf2198403a15f5c207b4ae3ade24e753" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1aaf2198403a15f5c207b4ae3ade24e753" kindref="member">prefetch_and_check_managed_textures_loaded</ref>(dag::ConstSpan&lt;TEXTUREID&gt;<sp/>tex_list,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight></codeline>
+<codeline lineno="246" refid="dag__texMgr_8h_1a65a211a88b66af68df09d2c69b02644a" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a65a211a88b66af68df09d2c69b02644a" kindref="member">prefetch_and_wait_managed_textures_loaded</ref>(dag::ConstSpan&lt;TEXTUREID&gt;<sp/>tex_list,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="254" refid="dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19" refkind="member"><highlight class="normal">TEXTUREID<sp/><ref refid="dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19" kindref="member">iterate_all_managed_textures</ref>(TEXTUREID<sp/>after_tid,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_ref_count);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"></highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="264" refid="dag__texMgr_8h_1a95ecbb03ea3d1d7410b4f9bdfdee4abe" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TEXTUREID<sp/><ref refid="dag__texMgr_8h_1a95ecbb03ea3d1d7410b4f9bdfdee4abe" kindref="member">first_managed_texture</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_rc<sp/>=<sp/>0)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19" kindref="member">iterate_all_managed_textures</ref>(BAD_TEXTUREID,<sp/>min_rc);<sp/>}</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="270" refid="dag__texMgr_8h_1ac0538e03a92a3538de029e3ebb80dfdb" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TEXTUREID<sp/><ref refid="dag__texMgr_8h_1ac0538e03a92a3538de029e3ebb80dfdb" kindref="member">next_managed_texture</ref>(TEXTUREID<sp/>prev_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_rc<sp/>=<sp/>0)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1a49ce59e321d31694ce44d606598a4b19" kindref="member">iterate_all_managed_textures</ref>(prev_id,<sp/>min_rc);<sp/>}</highlight></codeline>
+<codeline lineno="272"></codeline>
+<codeline lineno="275" refid="dag__texMgr_8h_1a814ec29bfa6374bc3f6c0f5747ce4203" refkind="member"><highlight class="normal">TEXTUREID<sp/><ref refid="dag__texMgr_8h_1a814ec29bfa6374bc3f6c0f5747ce4203" kindref="member">get_max_managed_texture_id</ref>();</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight></codeline>
+<codeline lineno="280" refid="dag__texMgr_8h_1ac9889fa8c4d94cb0aa7b66f9b99c8162" refkind="member"><highlight class="normal">uint16_t<sp/><ref refid="dag__texMgr_8h_1ac9889fa8c4d94cb0aa7b66f9b99c8162" kindref="member">get_managed_texture_streaming_generation</ref>(TEXTUREID<sp/>tid);</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight></codeline>
+<codeline lineno="283" refid="dag__texMgr_8h_1aba5db10640f5e378f0cd517a8ccf3c0e" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1aba5db10640f5e378f0cd517a8ccf3c0e" kindref="member">is_managed_texture_id_valid</ref>(TEXTUREID<sp/>tid,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>validate_value)</highlight></codeline>
+<codeline lineno="284"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!tid.checkMarkerBit())</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>validate_value<sp/>?<sp/>D3dResManagerData::isValidID(tid,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>:<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight></codeline>
+<codeline lineno="292"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1aafc40eb17cdae4ab37108bb7f468db00" kindref="member">dgs_tex_quality</ref>;</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight></codeline>
+<codeline lineno="296"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1abbbeb59eb49ea77e3f246b093b8121b7" kindref="member">dgs_tex_anisotropy</ref>;</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"></highlight></codeline>
+<codeline lineno="300" refid="dag__texMgr_8h_1af923347e7641cf299572a7c36dd0e5e6" refkind="member"><highlight class="normal">TextureMetaData<sp/><ref refid="dag__texMgr_8h_1af923347e7641cf299572a7c36dd0e5e6" kindref="member">get_texture_meta_data</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"></highlight></codeline>
+<codeline lineno="303" refid="dag__texMgr_8h_1a725d6655c2fe6154e3387b698420290c" refkind="member"><highlight class="normal">d3d::SamplerInfo<sp/><ref refid="dag__texMgr_8h_1a725d6655c2fe6154e3387b698420290c" kindref="member">get_sampler_info</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TextureMetaData<sp/>&amp;texture_meta_data,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>force_addr_from_tmd<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"></highlight></codeline>
+<codeline lineno="310" refid="dag__texMgr_8h_1ad587d87ea78813000789b9a8837dc333" refkind="member"><highlight class="normal">d3d::SamplerHandle<sp/><ref refid="dag__texMgr_8h_1ad587d87ea78813000789b9a8837dc333" kindref="member">get_texture_separate_sampler</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"></highlight></codeline>
+<codeline lineno="318" refid="dag__texMgr_8h_1accbedd67115d72eedce1b8c370cae944" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1accbedd67115d72eedce1b8c370cae944" kindref="member">set_texture_separate_sampler</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>d3d::SamplerInfo<sp/>&amp;sampler_info);</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"></highlight></codeline>
+<codeline lineno="320" refid="structLODBiasRule" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structLODBiasRule" kindref="compound">LODBiasRule</ref></highlight></codeline>
+<codeline lineno="321"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="322" refid="structLODBiasRule_1a6fd433a89871a617c3c863acbdc81e50" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structLODBiasRule_1a6fd433a89871a617c3c863acbdc81e50" kindref="member">substring</ref>;</highlight></codeline>
+<codeline lineno="323" refid="structLODBiasRule_1ad4afcb8e93933e46901d539fd945f988" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structLODBiasRule_1ad4afcb8e93933e46901d539fd945f988" kindref="member">bias</ref>;</highlight></codeline>
+<codeline lineno="324"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight></codeline>
+<codeline lineno="328" refid="dag__texMgr_8h_1acb049d298c8d0b2c1aeeea8e905e9b01" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__texMgr_8h_1acb049d298c8d0b2c1aeeea8e905e9b01" kindref="member">set_add_lod_bias_batch</ref>(dag::Span&lt;const<sp/>LODBiasRule&gt;<sp/>rules);</highlight></codeline>
+    </programlisting>
+    <location file="dag_texMgr.h"/>
+  </compounddef>
+</doxygen>

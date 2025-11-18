@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMessages" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderMessages</compoundname>
+    <includes refid="shMessages_8h" local="no">shMessages.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMessages_1a1ec5397cb59cd024e1d1e052cd2e5151" prot="public" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap ShaderMessages::strings</definition>
+        <argsstring></argsstring>
+        <name>strings</name>
+        <qualifiedname>ShaderMessages::strings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMessages.h" line="10" column="17" bodyfile="shMessages.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMessages_1aa245525a8a5a4f29080de2a9c5e5aaa0" prot="public" static="no" mutable="no">
+        <type>eastl::bitvector</type>
+        <definition>eastl::bitvector ShaderMessages::nonFilenameMessages</definition>
+        <argsstring></argsstring>
+        <name>nonFilenameMessages</name>
+        <qualifiedname>ShaderMessages::nonFilenameMessages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMessages.h" line="11" column="4" bodyfile="shMessages.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMessages_1a310c9a107a8561ed87e390bcaa3644b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMessages::addMessage</definition>
+        <argsstring>(const char *message, bool file_name)</argsstring>
+        <name>addMessage</name>
+        <qualifiedname>ShaderMessages::addMessage</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>message</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>file_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMessages.h" line="13" column="7" bodyfile="shMessages.h" bodystart="13" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMessages_1ac6d819b0da1bdeba379a76536b4915fd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMessages::isFilenameMessage</definition>
+        <argsstring>(int id) const</argsstring>
+        <name>isFilenameMessage</name>
+        <qualifiedname>ShaderMessages::isFilenameMessage</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMessages.h" line="21" column="8" bodyfile="shMessages.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shMessages.h" line="8" column="1" bodyfile="shMessages.h" bodystart="9" bodyend="22"/>
+    <listofallmembers>
+      <member refid="structShaderMessages_1a310c9a107a8561ed87e390bcaa3644b1" prot="public" virt="non-virtual"><scope>ShaderMessages</scope><name>addMessage</name></member>
+      <member refid="structShaderMessages_1ac6d819b0da1bdeba379a76536b4915fd" prot="public" virt="non-virtual"><scope>ShaderMessages</scope><name>isFilenameMessage</name></member>
+      <member refid="structShaderMessages_1aa245525a8a5a4f29080de2a9c5e5aaa0" prot="public" virt="non-virtual"><scope>ShaderMessages</scope><name>nonFilenameMessages</name></member>
+      <member refid="structShaderMessages_1a1ec5397cb59cd024e1d1e052cd2e5151" prot="public" virt="non-virtual"><scope>ShaderMessages</scope><name>strings</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

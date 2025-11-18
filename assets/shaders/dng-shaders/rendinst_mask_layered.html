@@ -1,0 +1,372 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rendinst_mask_layered</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="rendinst_modulate2x_diffuse_decal" href="rendinst_modulate2x_diffuse_decal.html" />
+    <link rel="prev" title="rendinst_flag_layered" href="rendinst_flag_layered.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">daNetGame-based Shaders</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="dynamic_painted_by_mask.html"><code class="docutils literal notranslate"><span class="pre">dynamic_painted_by_mask</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="land_mesh_height_decal.html"><code class="docutils literal notranslate"><span class="pre">land_mesh_height_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_normal_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_normal_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_modulate2x_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_modulate2x_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_emissive</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_colored.html"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_colored</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_layered</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#material-structure">Material Structure</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters">Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_modulate2x_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_modulate2x_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_refraction.html"><code class="docutils literal notranslate"><span class="pre">rendinst_refraction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code>/<code class="docutils literal notranslate"><span class="pre">simple_aces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_emissive_anim.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive_anim</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_illum_anim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_glass.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_glass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_painted.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_colored.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_colored</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_perlin_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_vcolor_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_vcolor_layered</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Shaders</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daNetGame-based Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/shaders/dng-shaders/rendinst_mask_layered.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="rendinst-mask-layered">
+<h1><code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code><a class="headerlink" href="#rendinst-mask-layered" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code> shader is designed for rendering instances using two
+detail tiles, a global normal map, and an overlay texture (applied using
+<code class="docutils literal notranslate"><span class="pre">modulate2x</span></code>). The details are blended according to their respective heightmaps
+and a blending mask provided in the overlay texture.</p>
+<p>The primary distinction between this shader and
+<a class="reference internal" href="../rendinst_layered.html"><span class="std std-doc">rendinst_layered</span></a> is that <code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code> uses
+only a single UV channel.</p>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail_tile=7.1&quot;</span></code> – Controls the tiling of both detail maps
+simultaneously. Applies to both details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;invert_height1=1&quot;</span></code> – (default – <code class="docutils literal notranslate"><span class="pre">0</span></code>) – Inverts the heightmap of
+Detail1. This can be a fractional value (e.g., <code class="docutils literal notranslate"><span class="pre">0.5</span></code> makes the heightmap
+gray).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;invert_height2=1&quot;</span></code> – (default is <code class="docutils literal notranslate"><span class="pre">0</span></code>) – Inverts the heightmap of
+Detail2 map. This can also be a fractional value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=0,0,0,0&quot;</span></code> – Configures the coloring of the two
+details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points=0,1,0,1&quot;</span></code> – Sets the black and white points for the
+coloring range of both details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;atest=1&quot;</span></code> – Enables alpha test.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_alphatest=0,0.15,0.45,0&quot;</span></code> – Specifies which detail to
+apply alpha test on and with what intensity.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">microdetails</span></code> – This shader supports the standard syntax used in the
+<a class="reference internal" href="rendinst_simple.html"><span class="std std-doc">rendinst_simple</span></a> or
+<a class="reference internal" href="../rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a> shaders.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">heightmap</span> <span class="pre">blending</span></code>– For more information on heightmap blending, refer to
+<a class="reference internal" href="../rendinst_layered.html#blending-with-landscape-heightmap"><span class="std std-ref">Blending with Landscape
+Heightmap</span></a>.</p></li>
+</ul>
+</section>
+<section id="material-structure">
+<h2>Material Structure<a class="headerlink" href="#material-structure" title="Link to this heading"></a></h2>
+<ul>
+<li><p><strong>Slot 1: Overlay Texture</strong>
+The overlay texture is applied over other textures using <code class="docutils literal notranslate"><span class="pre">modulate2x</span></code>.</p>
+<ul class="simple">
+<li><p><strong>RGB Channels:</strong> Albedo</p></li>
+<li><p><strong>Alpha Channel:</strong> Blending mask for the details, similar to
+<a class="reference internal" href="../rendinst_layered.html"><span class="std std-doc">rendinst_layered</span></a>.</p>
+<ul>
+<li><p>White pixel: Detail2 (upper)</p></li>
+<li><p>Black pixel: Detail1 (lower)</p></li>
+<li><p>Gray pixel: Displays the detail with the higher heightmap value at that
+location.</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If an overlay is created without a blending mask, it defaults to 100% black.
+As a result, all further material adjustments will be nearly invisible because
+only Detail1 will be displayed (black in the mask reveals Detail1).</p>
+</div>
+</li>
+<li><p><strong>Slot 2: Unused</strong></p></li>
+<li><p><strong>Slot 3: Global Normal Texture</strong>
+This texture is placed beneath the detail normals, modifying them.</p>
+<ul class="simple">
+<li><p><strong>RG Channels:</strong> Normal map</p></li>
+<li><p><strong>B Channel:</strong> Not used, should remain black.</p></li>
+<li><p><strong>Alpha Channel:</strong> Smoothness, applied using <code class="docutils literal notranslate"><span class="pre">modulate2x</span></code> over the details’
+smoothness.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Avoid adding unnecessary smoothness to the global normal unless:</p>
+<ol class="arabic simple">
+<li><p>You’re emphasizing specific elements in the overlay, such as adding dirty
+leaks and configuring their smoothness on the normal’s alpha.</p></li>
+<li><p>You need to differentiate materials within the same detail, like making car
+paint matte while keeping the bumper glossy.</p></li>
+<li><p>The texture is not used uniquely, such as when part of the overlay and
+global normal is shared with the <a class="reference internal" href="rendinst_simple.html"><span class="std std-doc">rendinst_simple</span></a>
+shader for elements like headlights or glass.</p></li>
+</ol>
+<p>A common issue is adding smoothness to the global normal, which can override
+the details’ smoothness, leaving only the most prominent details visible.
+Unused areas of the global smoothness should remain 50% gray.</p>
+</div>
+</li>
+<li><p><strong>Slots 4-5: Detail1 Textures</strong></p>
+<ul class="simple">
+<li><p>Slot 4: Diffuse texture for Detail1.</p></li>
+<li><p>Slot 5: Normal texture for Detail1.</p></li>
+</ul>
+</li>
+<li><p><strong>Slots 6-7: Detail2 Textures</strong></p>
+<ul class="simple">
+<li><p>Slot 6: Diffuse texture for Detail2.</p></li>
+<li><p>Slot 7: Normal texture for Detail2.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail_tile=7.1&quot;</span></code> – Controls the tiling of both detail maps
+simultaneously.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;invert_height1=1&quot;</span></code> – (default – 0) – Inverts the heightmap of
+Detail1.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;invert_height2=1&quot;</span></code> – (default – 0) – Inverts the heightmap of
+Detail2.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Unlike the <a class="reference internal" href="../rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a> shader,
+heightmap inversion parameters in <code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code> do not affect the
+overall distribution of details. Instead, details are distributed across the
+model using the blending mask (overlay alpha). Heightmap inversion highlights
+specific features within those details.</p>
+<p>If the heightmap is not inverted, white (high) pixels take priority. For
+example, intact sections of chipped stucco will be visible (as they are
+higher). If the heightmap is inverted, the damaged sections will become
+prominent (as they are higher after inversion).</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=0,0,0,0&quot;</span></code> – Configures the coloring of the two
+details (the overlay is not colored).</p>
+<ul class="simple">
+<li><p>First component: Colors Detail1 (non-integer values can specify intensity).</p></li>
+<li><p>Second component: Colors Detail2 (non-integer values can specify intensity).</p></li>
+<li><p>Third component: Not used but must be included for the shader to function
+correctly.</p></li>
+<li><p>Fourth component: Selects the row for coloring.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points=0,1,0,1&quot;</span></code> – Sets the black and white points for the
+coloring range of both detail maps.</p></li>
+<li><p>First component: Black point for Detail1, similar to
+<a class="reference internal" href="rendinst_simple_painted.html"><span class="std std-doc">rendinst_simple_painted</span></a>.</p></li>
+<li><p>Second component: White point for Detail1.</p></li>
+<li><p>Third component: Black point for Detail2.</p></li>
+<li><p>Fourth component: White point for Detail2.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Always specify different values for the black and white points, even if the
+detail is not being colored. The default configuration should be</p>
+<p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points=0,1,0,1&quot;</span></code>.</p>
+<p>Failure to do so may result in identical black and white points, causing a
+division by zero error:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered:</span> <span class="pre">divide</span> <span class="pre">by</span> <span class="pre">zero</span> <span class="pre">[real]</span> <span class="pre">while</span> <span class="pre">executing</span> <span class="pre">shader</span> <span class="pre">code.</span> <span class="pre">Stopped</span> <span class="pre">at</span> <span class="pre">operand</span> <span class="pre">#45</span></code>.</p>
+</div>
+<p>This allows you to define a color range for materials with distinct brightness
+variations, such as painted wood. You can adjust the black and white points to
+control the color change in the paint layer while keeping the wood layer
+beneath either unchanged or minimally altered.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_mask_layered_01.jpg"><img alt="../../../_images/rendinst_mask_layered_01.jpg" class="bg-primary" src="../../../_images/rendinst_mask_layered_01.jpg" style="width: 32.5%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_mask_layered_02.jpg"><img alt="../../../_images/rendinst_mask_layered_02.jpg" class="bg-primary" src="../../../_images/rendinst_mask_layered_02.jpg" style="width: 31%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_mask_layered_03.jpg"><img alt="../../../_images/rendinst_mask_layered_03.jpg" class="bg-primary" src="../../../_images/rendinst_mask_layered_03.jpg" style="width: 32.5%;" />
+</a>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;atest=1&quot;</span></code> + <code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_alphatest=0,0.15,0.45,0&quot;</span></code>:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">atest</span></code> and <code class="docutils literal notranslate"><span class="pre">details_alphatest</span></code> parameters must be used together to enable
+and configure alpha test:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;atest=1&quot;</span></code> – Enables alpha test.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_alphatest=0,0.15,0.45,0&quot;</span></code> – Specifies which detail to
+apply alpha test on and with what intensity.</p></li>
+</ul>
+</li>
+<li><p><strong>Microdetails</strong> function the same as in the
+<a class="reference internal" href="../rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a> shader.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../about-assets/microdetails/microdetails.html"><span class="std std-doc">Microdetails</span></a>.</p>
+</div>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_flag_layered.html" class="btn btn-neutral float-left" title="rendinst_flag_layered" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rendinst_modulate2x_diffuse_decal.html" class="btn btn-neutral float-right" title="rendinst_modulate2x_diffuse_decal" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

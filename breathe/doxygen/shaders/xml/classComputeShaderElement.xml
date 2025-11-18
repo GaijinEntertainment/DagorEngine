@@ -1,0 +1,556 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classComputeShaderElement" kind="class" language="C++" prot="public">
+    <compoundname>ComputeShaderElement</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+    <derivedcompoundref refid="classMeshShaderElement" prot="public" virt="non-virtual">MeshShaderElement</derivedcompoundref>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classComputeShaderElement_1a21ffc6410251876b9e1ab6c143ad73df" prot="protected" static="no" mutable="no">
+        <type>ScriptedShaderMaterial *</type>
+        <definition>ScriptedShaderMaterial* ComputeShaderElement::mat</definition>
+        <argsstring></argsstring>
+        <name>mat</name>
+        <qualifiedname>ComputeShaderElement::mat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="58" column="26" bodyfile="dag_computeShaders.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classComputeShaderElement_1a9f6f0fb75c7fb291924ecef4f18d9fae" prot="protected" static="no" mutable="no">
+        <type>ScriptedShaderElement *</type>
+        <definition>ScriptedShaderElement* ComputeShaderElement::elem</definition>
+        <argsstring></argsstring>
+        <name>elem</name>
+        <qualifiedname>ComputeShaderElement::elem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="59" column="25" bodyfile="dag_computeShaders.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classComputeShaderElement_1aa52828ddb2a7f2bfe86aeaf291f501b2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ComputeShaderElement::ComputeShaderElement</definition>
+        <argsstring>(ScriptedShaderMaterial *ssm, ShaderElement *selem=nullptr)</argsstring>
+        <name>ComputeShaderElement</name>
+        <qualifiedname>ComputeShaderElement::ComputeShaderElement</qualifiedname>
+        <param>
+          <type>ScriptedShaderMaterial *</type>
+          <declname>ssm</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+          <declname>selem</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="26" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1aca1d0189aa7ae363f382504186f0bcfc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ComputeShaderElement::~ComputeShaderElement</definition>
+        <argsstring>()</argsstring>
+        <name>~ComputeShaderElement</name>
+        <qualifiedname>ComputeShaderElement::~ComputeShaderElement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="27" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1ad73f21b28186fcefb8f0e9c2da08e8bf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ComputeShaderElement::getShaderClassName</definition>
+        <argsstring>() const</argsstring>
+        <name>getShaderClassName</name>
+        <qualifiedname>ComputeShaderElement::getShaderClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="29" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a8e44076ffcb44659abe7f688844bd46a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::set_int_param</definition>
+        <argsstring>(const int variable_id, const int v)</argsstring>
+        <name>set_int_param</name>
+        <qualifiedname>ComputeShaderElement::set_int_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="31" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a40b64dc37e30fbca83b413bdabcd8559" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::set_real_param</definition>
+        <argsstring>(const int variable_id, const real v)</argsstring>
+        <name>set_real_param</name>
+        <qualifiedname>ComputeShaderElement::set_real_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const real</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="32" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a6dd7d75054611f2b0fb2a63615560e76" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::set_color4_param</definition>
+        <argsstring>(const int variable_id, const struct Color4 &amp;)</argsstring>
+        <name>set_color4_param</name>
+        <qualifiedname>ComputeShaderElement::set_color4_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const struct Color4 &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="33" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a838353d33ef499b4900de748e31ad53f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::set_texture_param</definition>
+        <argsstring>(const int variable_id, const TEXTUREID v)</argsstring>
+        <name>set_texture_param</name>
+        <qualifiedname>ComputeShaderElement::set_texture_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const TEXTUREID</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="34" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1ae26a9a9301a449d8e92e28b157536ce3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::set_sampler_param</definition>
+        <argsstring>(const int variable_id, d3d::SamplerHandle v)</argsstring>
+        <name>set_sampler_param</name>
+        <qualifiedname>ComputeShaderElement::set_sampler_param</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="35" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a9553e3df5df9b69a31284c01a7b0aae9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::hasVariable</definition>
+        <argsstring>(const int variable_id) const</argsstring>
+        <name>hasVariable</name>
+        <qualifiedname>ComputeShaderElement::hasVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a3b7028a2fadd615294c5bcd1cf0a31d1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::getColor4Variable</definition>
+        <argsstring>(const int variable_id, Color4 &amp;value) const</argsstring>
+        <name>getColor4Variable</name>
+        <qualifiedname>ComputeShaderElement::getColor4Variable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="38" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1afca9c7e40fa66153f9db32881d97a0ab" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::getRealVariable</definition>
+        <argsstring>(const int variable_id, real &amp;value) const</argsstring>
+        <name>getRealVariable</name>
+        <qualifiedname>ComputeShaderElement::getRealVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="39" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a7875e9beabf1698628af1d0bed014177" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::getIntVariable</definition>
+        <argsstring>(const int variable_id, int &amp;value) const</argsstring>
+        <name>getIntVariable</name>
+        <qualifiedname>ComputeShaderElement::getIntVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="40" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a23f6c7b341dd214b2612aeb0e9dd2f83" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::getTextureVariable</definition>
+        <argsstring>(const int variable_id, TEXTUREID &amp;value) const</argsstring>
+        <name>getTextureVariable</name>
+        <qualifiedname>ComputeShaderElement::getTextureVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="41" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a37a3cd4e32756d8df07111a448badb7c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::getSamplerVariable</definition>
+        <argsstring>(const int variable_id, d3d::SamplerHandle &amp;value) const</argsstring>
+        <name>getSamplerVariable</name>
+        <qualifiedname>ComputeShaderElement::getSamplerVariable</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="42" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1af3e0e4b39959c4bb1ceeeb4c55420168" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::array&lt; uint16_t, 3 &gt;</type>
+        <definition>eastl::array&lt; uint16_t, 3 &gt; ComputeShaderElement::getThreadGroupSizes</definition>
+        <argsstring>() const</argsstring>
+        <name>getThreadGroupSizes</name>
+        <qualifiedname>ComputeShaderElement::getThreadGroupSizes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="45" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a86fe1a57e83377e47c218aa4feeaf84b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::dispatch</definition>
+        <argsstring>(int tgx, int tgy, int tgz, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS, bool set_states=true) const</argsstring>
+        <name>dispatch</name>
+        <qualifiedname>ComputeShaderElement::dispatch</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>tgx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tgy</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tgz</declname>
+        </param>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>set_states</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="46" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a8b7e29e926c38836c1e49f5319d6dd31" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::dispatchThreads</definition>
+        <argsstring>(int threads_x, int threads_y, int threads_z, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS, bool set_states=true) const</argsstring>
+        <name>dispatchThreads</name>
+        <qualifiedname>ComputeShaderElement::dispatchThreads</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>threads_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>threads_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>threads_z</declname>
+        </param>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>set_states</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="47" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1afdab12d747f458137d42df5987a1f586" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ComputeShaderElement::getWaveSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getWaveSize</name>
+        <qualifiedname>ComputeShaderElement::getWaveSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="49" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a38ac36f8537bd052d3e29695c5b91204" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::dispatch</definition>
+        <argsstring>(GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS, bool set_states=true) const</argsstring>
+        <name>dispatch</name>
+        <qualifiedname>ComputeShaderElement::dispatch</qualifiedname>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>set_states</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="50" column="8" bodyfile="dag_computeShaders.h" bodystart="50" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1a955c06d787ea766003061d7741ae66db" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::dispatch_indirect</definition>
+        <argsstring>(Sbuffer *args, int ofs, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS, bool set_states=true) const</argsstring>
+        <name>dispatch_indirect</name>
+        <qualifiedname>ComputeShaderElement::dispatch_indirect</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>args</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>set_states</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="54" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classComputeShaderElement_1ab7238a3654b4fe7305d316fd90e536c1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ComputeShaderElement::setStates</definition>
+        <argsstring>() const</argsstring>
+        <name>setStates</name>
+        <qualifiedname>ComputeShaderElement::setStates</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="55" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ComputeShaderElement</label>
+        <link refid="classComputeShaderElement"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="3">
+        <label>MeshShaderElement</label>
+        <link refid="classMeshShaderElement"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ComputeShaderElement</label>
+        <link refid="classComputeShaderElement"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="dag_computeShaders.h" line="20" column="1" bodyfile="dag_computeShaders.h" bodystart="21" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classComputeShaderElement_1aa52828ddb2a7f2bfe86aeaf291f501b2" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>ComputeShaderElement</name></member>
+      <member refid="classComputeShaderElement_1a86fe1a57e83377e47c218aa4feeaf84b" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>dispatch</name></member>
+      <member refid="classComputeShaderElement_1a38ac36f8537bd052d3e29695c5b91204" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>dispatch</name></member>
+      <member refid="classComputeShaderElement_1a955c06d787ea766003061d7741ae66db" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>dispatch_indirect</name></member>
+      <member refid="classComputeShaderElement_1a8b7e29e926c38836c1e49f5319d6dd31" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>dispatchThreads</name></member>
+      <member refid="classComputeShaderElement_1a9f6f0fb75c7fb291924ecef4f18d9fae" prot="protected" virt="non-virtual"><scope>ComputeShaderElement</scope><name>elem</name></member>
+      <member refid="classComputeShaderElement_1a3b7028a2fadd615294c5bcd1cf0a31d1" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getColor4Variable</name></member>
+      <member refid="classComputeShaderElement_1a7875e9beabf1698628af1d0bed014177" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getIntVariable</name></member>
+      <member refid="classComputeShaderElement_1afca9c7e40fa66153f9db32881d97a0ab" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getRealVariable</name></member>
+      <member refid="classComputeShaderElement_1a37a3cd4e32756d8df07111a448badb7c" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getSamplerVariable</name></member>
+      <member refid="classComputeShaderElement_1ad73f21b28186fcefb8f0e9c2da08e8bf" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getShaderClassName</name></member>
+      <member refid="classComputeShaderElement_1a23f6c7b341dd214b2612aeb0e9dd2f83" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getTextureVariable</name></member>
+      <member refid="classComputeShaderElement_1af3e0e4b39959c4bb1ceeeb4c55420168" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getThreadGroupSizes</name></member>
+      <member refid="classComputeShaderElement_1afdab12d747f458137d42df5987a1f586" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>getWaveSize</name></member>
+      <member refid="classComputeShaderElement_1a9553e3df5df9b69a31284c01a7b0aae9" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>hasVariable</name></member>
+      <member refid="classComputeShaderElement_1a21ffc6410251876b9e1ab6c143ad73df" prot="protected" virt="non-virtual"><scope>ComputeShaderElement</scope><name>mat</name></member>
+      <member refid="classComputeShaderElement_1a6dd7d75054611f2b0fb2a63615560e76" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>set_color4_param</name></member>
+      <member refid="classComputeShaderElement_1a8e44076ffcb44659abe7f688844bd46a" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>set_int_param</name></member>
+      <member refid="classComputeShaderElement_1a40b64dc37e30fbca83b413bdabcd8559" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>set_real_param</name></member>
+      <member refid="classComputeShaderElement_1ae26a9a9301a449d8e92e28b157536ce3" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>set_sampler_param</name></member>
+      <member refid="classComputeShaderElement_1a838353d33ef499b4900de748e31ad53f" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>set_texture_param</name></member>
+      <member refid="classComputeShaderElement_1ab7238a3654b4fe7305d316fd90e536c1" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>setStates</name></member>
+      <member refid="classComputeShaderElement_1aca1d0189aa7ae363f382504186f0bcfc" prot="public" virt="non-virtual"><scope>ComputeShaderElement</scope><name>~ComputeShaderElement</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

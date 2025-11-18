@@ -1,0 +1,759 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Render State</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Render Targets" href="RenderTarget.html" />
+    <link rel="prev" title="Render Pass" href="RenderPass.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Render State</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv47shaders"><code class="docutils literal notranslate"><span class="pre">shaders</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders19DriverRenderStateIdE"><code class="docutils literal notranslate"><span class="pre">shaders::DriverRenderStateId</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders13RenderStateIdE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateId</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders13RenderStateId7InvalidE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateId::Invalid</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders24DriverRenderStateIdDummyE"><code class="docutils literal notranslate"><span class="pre">shaders::DriverRenderStateIdDummy</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7shaders11RenderStateE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11RenderStateEv"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::RenderState()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK7shaders11RenderStateeqERK11RenderState"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::operator==()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK7shaders11RenderStateneERK11RenderState"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::operator!=()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11blendParamsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::blendParams</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState6paramsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::params</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState4pad_E"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::pad_</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState15dualSourceBlendE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::dualSourceBlend</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11blendFactorE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::blendFactor</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState29NumIndependentBlendParametersE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::NumIndependentBlendParameters</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState12BlendFactorsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendFactors</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState12BlendFactors3srcE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendFactors::src</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState12BlendFactors3dstE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendFactors::dst</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParamsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendParams</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParams13ablendFactorsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendParams::ablendFactors</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParams16sepablendFactorsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendParams::sepablendFactors</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParams7blendOpE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendParams::blendOp</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParams11sepablendOpE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendParams::sepablendOp</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParams6ablendE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendParams::ablend</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParams9sepablendE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::BlendParams::sepablend</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParamsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams3srcE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::src</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams3dstE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::dst</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams13ablendFactorsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::ablendFactors</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams16sepablendFactorsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::sepablendFactors</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams7blendOpE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::blendOp</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams11sepablendOpE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::sepablendOp</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams6ablendE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::ablend</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams9sepablendE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState::DualSourceBlendParams::sepablend</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBitsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits6zwriteE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::zwrite</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits5ztestE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::ztest</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits5zFuncE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::zFunc</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits10stencilRefE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::stencilRef</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits4cullE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::cull</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits17depthBoundsEnableE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::depthBoundsEnable</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits17forcedSampleCountE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::forcedSampleCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits18conservativeRasterE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::conservativeRaster</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits5zClipE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::zClip</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits14scissorEnabledE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::scissorEnabled</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits23independentBlendEnabledE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::independentBlendEnabled</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits15alphaToCoverageE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::alphaToCoverage</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits17viewInstanceCountE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::viewInstanceCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits15blendFactorUsedE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::blendFactorUsed</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits22dualSourceBlendEnabledE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::dualSourceBlendEnabled</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits7colorWrE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::colorWr</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits5zBiasE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::zBias</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits10slopeZBiasE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::slopeZBias</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBits7stencilE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits::stencil</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d16set_blend_factorE8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">d3d::set_blend_factor()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10setstencilE8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::setstencil()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d7setwireEb"><code class="docutils literal notranslate"><span class="pre">d3d::setwire()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d16set_depth_boundsEff"><code class="docutils literal notranslate"><span class="pre">d3d::set_depth_bounds()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d19create_render_stateERKN7shaders11RenderStateE"><code class="docutils literal notranslate"><span class="pre">d3d::create_render_state()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d16set_render_stateEN7shaders19DriverRenderStateIdE"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_state()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d19clear_render_statesEv"><code class="docutils literal notranslate"><span class="pre">d3d::clear_render_states()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Render State</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/RenderState.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="render-state">
+<h1>Render State<a class="headerlink" href="#render-state" title="Link to this heading"></a></h1>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv47shaders">
+<span id="_CPPv37shaders"></span><span id="_CPPv27shaders"></span><span id="shaders"></span><span class="target" id="namespaceshaders"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shaders</span></span></span><a class="headerlink" href="#_CPPv47shaders" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders19DriverRenderStateIdE">
+<span id="_CPPv3N7shaders19DriverRenderStateIdE"></span><span id="_CPPv2N7shaders19DriverRenderStateIdE"></span><span class="target" id="namespaceshaders_1a18d95bd7603b031ab4919fb4e4ad8022"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DriverRenderStateId</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GenerationRefId</span></span><span class="p"><span class="pre">&lt;</span></span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N7shaders24DriverRenderStateIdDummyE" title="shaders::DriverRenderStateIdDummy"><span class="n"><span class="pre">DriverRenderStateIdDummy</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N7shaders19DriverRenderStateIdE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders13RenderStateIdE">
+<span id="_CPPv3N7shaders13RenderStateIdE"></span><span id="_CPPv2N7shaders13RenderStateIdE"></span><span class="target" id="namespaceshaders_1a735d1a3cb2bc85a77c7e3b5edadda029"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderStateId</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N7shaders13RenderStateIdE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders13RenderStateId7InvalidE">
+<span id="_CPPv3N7shaders13RenderStateId7InvalidE"></span><span id="_CPPv2N7shaders13RenderStateId7InvalidE"></span><span class="target" id="namespaceshaders_1a735d1a3cb2bc85a77c7e3b5edadda029a4bbb8f967da6d1a610596d7257179c2b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Invalid</span></span></span><a class="headerlink" href="#_CPPv4N7shaders13RenderStateId7InvalidE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders24DriverRenderStateIdDummyE">
+<span id="_CPPv3N7shaders24DriverRenderStateIdDummyE"></span><span id="_CPPv2N7shaders24DriverRenderStateIdDummyE"></span><span id="shaders::DriverRenderStateIdDummy"></span><span class="target" id="classshaders_1_1DriverRenderStateIdDummy"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DriverRenderStateIdDummy</span></span></span><a class="headerlink" href="#_CPPv4N7shaders24DriverRenderStateIdDummyE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_renderStateId.h&gt;</em></div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp">
+<span class="target" id="namespaceshaders"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shaders</span></span></span><br /></dt>
+<dd><dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderStateE">
+<span id="_CPPv3N7shaders11RenderStateE"></span><span id="_CPPv2N7shaders11RenderStateE"></span><span id="shaders::RenderState"></span><span class="target" id="structshaders_1_1RenderState"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders15RenderStateBitsE" title="shaders::RenderStateBits"><span class="n"><span class="pre">RenderStateBits</span></span></a><a class="headerlink" href="#_CPPv4N7shaders11RenderStateE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_renderStates.h&gt;</em></div>
+<p>Extended render state with blending params. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11RenderStateEv">
+<span id="_CPPv3N7shaders11RenderState11RenderStateEv"></span><span id="_CPPv2N7shaders11RenderState11RenderStateEv"></span><span id="shaders::RenderState::RenderState"></span><span class="target" id="structshaders_1_1RenderState_1a1a9487f73dbf19b1632bd8406d3d21b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderState</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11RenderStateEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7shaders11RenderStateeqERK11RenderState">
+<span id="_CPPv3NK7shaders11RenderStateeqERK11RenderState"></span><span id="_CPPv2NK7shaders11RenderStateeqERK11RenderState"></span><span id="shaders::RenderState::eq-operator__RenderStateCRC"></span><span class="target" id="structshaders_1_1RenderState_1a5da3db99b8d3f118edcfb1ec26dca05b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N7shaders11RenderStateE" title="shaders::RenderState"><span class="n"><span class="pre">RenderState</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">s</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7shaders11RenderStateeqERK11RenderState" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7shaders11RenderStateneERK11RenderState">
+<span id="_CPPv3NK7shaders11RenderStateneERK11RenderState"></span><span id="_CPPv2NK7shaders11RenderStateneERK11RenderState"></span><span id="shaders::RenderState::neq-operator__RenderStateCRC"></span><span class="target" id="structshaders_1_1RenderState_1abcea5c426400a752353b685be0236f1e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">!=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N7shaders11RenderStateE" title="shaders::RenderState"><span class="n"><span class="pre">RenderState</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">s</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7shaders11RenderStateneERK11RenderState" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11blendParamsE">
+<span id="_CPPv3N7shaders11RenderState11blendParamsE"></span><span id="_CPPv2N7shaders11RenderState11blendParamsE"></span><span id="shaders::RenderState::blendParams__BlendParamsA"></span><span class="target" id="structshaders_1_1RenderState_1a0acd3d76c9199502196f4ccb66d0fa05"></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState11BlendParamsE" title="shaders::RenderState::BlendParams"><span class="n"><span class="pre">BlendParams</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blendParams</span></span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState29NumIndependentBlendParametersE" title="shaders::RenderState::NumIndependentBlendParameters"><span class="n"><span class="pre">NumIndependentBlendParameters</span></span></a><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11blendParamsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState6paramsE">
+<span id="_CPPv3N7shaders11RenderState6paramsE"></span><span id="_CPPv2N7shaders11RenderState6paramsE"></span><span id="shaders::RenderState::params__DualSourceBlendParams"></span><span class="target" id="structshaders_1_1RenderState_1aefb63695ea2ab083258d30868efbc264"></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParamsE" title="shaders::RenderState::DualSourceBlendParams"><span class="n"><span class="pre">DualSourceBlendParams</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">params</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState6paramsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState4pad_E">
+<span id="_CPPv3N7shaders11RenderState4pad_E"></span><span id="_CPPv2N7shaders11RenderState4pad_E"></span><span id="shaders::RenderState::pad___uint8_tA"></span><span class="target" id="structshaders_1_1RenderState_1ac836aa81d98638b20bf13ddc3ac5b831"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pad_</span></span></span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">sizeof</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState11blendParamsE" title="shaders::RenderState::blendParams"><span class="n"><span class="pre">blendParams</span></span></a><span class="p"><span class="pre">)</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="w"> </span><span class="k"><span class="pre">sizeof</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState6paramsE" title="shaders::RenderState::params"><span class="n"><span class="pre">params</span></span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState4pad_E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState15dualSourceBlendE">
+<span id="_CPPv3N7shaders11RenderState15dualSourceBlendE"></span><span id="_CPPv2N7shaders11RenderState15dualSourceBlendE"></span><span id="shaders::RenderState::dualSourceBlend__shaders::RenderState"></span><span class="target" id="structshaders_1_1RenderState_1aed7732d4a6d549453015a6895d55ab7e"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderStateE" title="shaders::RenderState"><span class="n"><span class="pre">RenderState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dualSourceBlend</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState15dualSourceBlendE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structshaders_1_1RenderState_1accbbe0cee6cbb694ab89a98afc354c5b"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">shaders::RenderState</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11blendFactorE">
+<span id="_CPPv3N7shaders11RenderState11blendFactorE"></span><span id="_CPPv2N7shaders11RenderState11blendFactorE"></span><span id="shaders::RenderState::blendFactor__E3DCOLOR"></span><span class="target" id="structshaders_1_1RenderState_1ada140c5454b5d8eee724f322ff435195"></span><span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blendFactor</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11blendFactorE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState29NumIndependentBlendParametersE">
+<span id="_CPPv3N7shaders11RenderState29NumIndependentBlendParametersE"></span><span id="_CPPv2N7shaders11RenderState29NumIndependentBlendParametersE"></span><span id="shaders::RenderState::NumIndependentBlendParameters__uint32_t"></span><span class="target" id="structshaders_1_1RenderState_1a6d01e59ded7e0800c902cefd503cd979"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NumIndependentBlendParameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState29NumIndependentBlendParametersE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState12BlendFactorsE">
+<span id="_CPPv3N7shaders11RenderState12BlendFactorsE"></span><span id="_CPPv2N7shaders11RenderState12BlendFactorsE"></span><span id="shaders::RenderState::BlendFactors"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendFactors"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BlendFactors</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState12BlendFactorsE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_renderStates.h&gt;</em></div>
+<p>Description of blending factors. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState12BlendFactors3srcE">
+<span id="_CPPv3N7shaders11RenderState12BlendFactors3srcE"></span><span id="_CPPv2N7shaders11RenderState12BlendFactors3srcE"></span><span id="shaders::RenderState::BlendFactors::src__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendFactors_1a93b4dbd109ed3110afd7fbe115dda3e6"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">src</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState12BlendFactors3srcE" title="Link to this definition"></a><br /></dt>
+<dd><p>Configures source alpha <a class="reference internal" href="constants.html#dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629"><span class="std std-ref">BLEND_FACTOR</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState12BlendFactors3dstE">
+<span id="_CPPv3N7shaders11RenderState12BlendFactors3dstE"></span><span id="_CPPv2N7shaders11RenderState12BlendFactors3dstE"></span><span id="shaders::RenderState::BlendFactors::dst__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendFactors_1ab142254ca70c79442094e1b7fe5a6fde"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dst</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState12BlendFactors3dstE" title="Link to this definition"></a><br /></dt>
+<dd><p>Configures destination alpha <a class="reference internal" href="constants.html#dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629"><span class="std std-ref">BLEND_FACTOR</span></a>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11BlendParamsE">
+<span id="_CPPv3N7shaders11RenderState11BlendParamsE"></span><span id="_CPPv2N7shaders11RenderState11BlendParamsE"></span><span id="shaders::RenderState::BlendParams"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendParams"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BlendParams</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11BlendParamsE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_renderStates.h&gt;</em></div>
+<p>Description of blending parameters. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11BlendParams13ablendFactorsE">
+<span id="_CPPv3N7shaders11RenderState11BlendParams13ablendFactorsE"></span><span id="_CPPv2N7shaders11RenderState11BlendParams13ablendFactorsE"></span><span id="shaders::RenderState::BlendParams::ablendFactors__BlendFactors"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendParams_1a3efbf4f5891bccd0264c662d0a9c5bb0"></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState12BlendFactorsE" title="shaders::RenderState::BlendFactors"><span class="n"><span class="pre">BlendFactors</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ablendFactors</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11BlendParams13ablendFactorsE" title="Link to this definition"></a><br /></dt>
+<dd><p>Configures alpha blend factor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11BlendParams16sepablendFactorsE">
+<span id="_CPPv3N7shaders11RenderState11BlendParams16sepablendFactorsE"></span><span id="_CPPv2N7shaders11RenderState11BlendParams16sepablendFactorsE"></span><span id="shaders::RenderState::BlendParams::sepablendFactors__BlendFactors"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendParams_1a120aba4f8967f122a4dd97cd7ba5c90f"></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState12BlendFactorsE" title="shaders::RenderState::BlendFactors"><span class="n"><span class="pre">BlendFactors</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sepablendFactors</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11BlendParams16sepablendFactorsE" title="Link to this definition"></a><br /></dt>
+<dd><p>Configures separate alpha blend factor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11BlendParams7blendOpE">
+<span id="_CPPv3N7shaders11RenderState11BlendParams7blendOpE"></span><span id="_CPPv2N7shaders11RenderState11BlendParams7blendOpE"></span><span id="shaders::RenderState::BlendParams::blendOp__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendParams_1a9d3f7ddd64ab9809e49a984f13ea0c75"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blendOp</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11BlendParams7blendOpE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies <a class="reference internal" href="constants.html#dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653"><span class="std std-ref">BLENDOP</span></a> operation for alpha blending. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11BlendParams11sepablendOpE">
+<span id="_CPPv3N7shaders11RenderState11BlendParams11sepablendOpE"></span><span id="_CPPv2N7shaders11RenderState11BlendParams11sepablendOpE"></span><span id="shaders::RenderState::BlendParams::sepablendOp__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendParams_1a20dc3dc1c41c0473d8c4cec4a4807a38"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sepablendOp</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11BlendParams11sepablendOpE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies <a class="reference internal" href="constants.html#dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653"><span class="std std-ref">BLENDOP</span></a> operation for separate alpha blending. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11BlendParams6ablendE">
+<span id="_CPPv3N7shaders11RenderState11BlendParams6ablendE"></span><span id="_CPPv2N7shaders11RenderState11BlendParams6ablendE"></span><span id="shaders::RenderState::BlendParams::ablend__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendParams_1a77877ef77c58ffcce6347822b8ea600a"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ablend</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11BlendParams6ablendE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables alpha blending. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState11BlendParams9sepablendE">
+<span id="_CPPv3N7shaders11RenderState11BlendParams9sepablendE"></span><span id="_CPPv2N7shaders11RenderState11BlendParams9sepablendE"></span><span id="shaders::RenderState::BlendParams::sepablend__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1BlendParams_1a9228df9d7ccb1ffd396f38f6d61e047c"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sepablend</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState11BlendParams9sepablendE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables separate alpha blending. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParamsE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParamsE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParamsE"></span><span id="shaders::RenderState::DualSourceBlendParams"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DualSourceBlendParams</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParamsE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_renderStates.h&gt;</em></div>
+<p>Description of blending parameters for dual source blending. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams3srcE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams3srcE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams3srcE"></span><span id="shaders::RenderState::DualSourceBlendParams::src__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a023898d70631e871c2a3d6beed4495e4"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">src</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams3srcE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams3dstE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams3dstE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams3dstE"></span><span id="shaders::RenderState::DualSourceBlendParams::dst__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a485139042ed907dd8a479622e2a8710d"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dst</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams3dstE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams13ablendFactorsE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams13ablendFactorsE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams13ablendFactorsE"></span><span id="shaders::RenderState::DualSourceBlendParams::ablendFactors__shaders::RenderState::DualSourceBlendParams"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ad2345edef5197e7ddc0998a3763c3d9d"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderStateE" title="shaders::RenderState"><span class="n"><span class="pre">RenderState</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParamsE" title="shaders::RenderState::DualSourceBlendParams"><span class="n"><span class="pre">DualSourceBlendParams</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ablendFactors</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams13ablendFactorsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams16sepablendFactorsE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams16sepablendFactorsE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams16sepablendFactorsE"></span><span id="shaders::RenderState::DualSourceBlendParams::sepablendFactors__shaders::RenderState::DualSourceBlendParams"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ad8161719cf0bf8d6f2e69cf36f87bab5"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderStateE" title="shaders::RenderState"><span class="n"><span class="pre">RenderState</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParamsE" title="shaders::RenderState::DualSourceBlendParams"><span class="n"><span class="pre">DualSourceBlendParams</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sepablendFactors</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams16sepablendFactorsE" title="Link to this definition"></a><br /></dt>
+<dd><p>Configures blend factors &amp;#8212; allow for extended enum values. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams7blendOpE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams7blendOpE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams7blendOpE"></span><span id="shaders::RenderState::DualSourceBlendParams::blendOp__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a3976269760d5ac6fcbe8c4e5d4ca52b0"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blendOp</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams7blendOpE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies <a class="reference internal" href="constants.html#dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653"><span class="std std-ref">BLENDOP</span></a> operation for alpha blending. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams11sepablendOpE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams11sepablendOpE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams11sepablendOpE"></span><span id="shaders::RenderState::DualSourceBlendParams::sepablendOp__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a15baf7433259006aa32cdf61df0efa50"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sepablendOp</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams11sepablendOpE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies <a class="reference internal" href="constants.html#dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653"><span class="std std-ref">BLENDOP</span></a> operation for separate alpha blending. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams6ablendE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams6ablendE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams6ablendE"></span><span id="shaders::RenderState::DualSourceBlendParams::ablend__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ac8df3ba0a01ccb145a84551f7a8278cd"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ablend</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams6ablendE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables alpha blending. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders11RenderState21DualSourceBlendParams9sepablendE">
+<span id="_CPPv3N7shaders11RenderState21DualSourceBlendParams9sepablendE"></span><span id="_CPPv2N7shaders11RenderState21DualSourceBlendParams9sepablendE"></span><span id="shaders::RenderState::DualSourceBlendParams::sepablend__uint8_t"></span><span class="target" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1abdedb8cab365f59217d0b999d038f71e"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sepablend</span></span></span><a class="headerlink" href="#_CPPv4N7shaders11RenderState21DualSourceBlendParams9sepablendE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enables separate alpha blending. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBitsE">
+<span id="_CPPv3N7shaders15RenderStateBitsE"></span><span id="_CPPv2N7shaders15RenderStateBitsE"></span><span id="shaders::RenderStateBits"></span><span class="target" id="structshaders_1_1RenderStateBits"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderStateBits</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBitsE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_renderStates.h&gt;</em></div>
+<p>Description of render state. </p>
+<p>Subclassed by <a class="reference internal" href="#structshaders_1_1RenderState"><span class="std std-ref">shaders::RenderState</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits6zwriteE">
+<span id="_CPPv3N7shaders15RenderStateBits6zwriteE"></span><span id="_CPPv2N7shaders15RenderStateBits6zwriteE"></span><span id="shaders::RenderStateBits::zwrite__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a9baf0b1367e6cfc9971ace5b020bdf9c"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">zwrite</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits6zwriteE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enable depth write. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits5ztestE">
+<span id="_CPPv3N7shaders15RenderStateBits5ztestE"></span><span id="_CPPv2N7shaders15RenderStateBits5ztestE"></span><span id="shaders::RenderStateBits::ztest__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a6286e8d640191c8d002bfed7a469e5c3"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ztest</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits5ztestE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enable depth test. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits5zFuncE">
+<span id="_CPPv3N7shaders15RenderStateBits5zFuncE"></span><span id="_CPPv2N7shaders15RenderStateBits5zFuncE"></span><span id="shaders::RenderStateBits::zFunc__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a7d28bc1d7f2086fef5651e36c4fa9c3d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">zFunc</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits5zFuncE" title="Link to this definition"></a><br /></dt>
+<dd><p>Relationship operation <a class="reference internal" href="constants.html#dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8"><span class="std std-ref">CMPF</span></a> used for depth test (less, greater, equal and etc.). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits10stencilRefE">
+<span id="_CPPv3N7shaders15RenderStateBits10stencilRefE"></span><span id="_CPPv2N7shaders15RenderStateBits10stencilRefE"></span><span id="shaders::RenderStateBits::stencilRef__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a5f69dc3af6288832070853bf5c78e71d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stencilRef</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits10stencilRefE" title="Link to this definition"></a><br /></dt>
+<dd><p>Reference value to perform against when doing a stencil test. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits4cullE">
+<span id="_CPPv3N7shaders15RenderStateBits4cullE"></span><span id="_CPPv2N7shaders15RenderStateBits4cullE"></span><span id="shaders::RenderStateBits::cull__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1abd2b3881859cac60dd8463335f98c5c1"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cull</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits4cullE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies triangle face culling <a class="reference internal" href="constants.html#dag__consts__base_8h_1a3ec788941c4774e74e3d249189685fca"><span class="std std-ref">CULL_TYPE</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits17depthBoundsEnableE">
+<span id="_CPPv3N7shaders15RenderStateBits17depthBoundsEnableE"></span><span id="_CPPv2N7shaders15RenderStateBits17depthBoundsEnableE"></span><span id="shaders::RenderStateBits::depthBoundsEnable__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a0514fd670606fb307ffba3a2145dd4e7"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depthBoundsEnable</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits17depthBoundsEnableE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enable depth-bounds testing. Samples outside the range are discarded. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits17forcedSampleCountE">
+<span id="_CPPv3N7shaders15RenderStateBits17forcedSampleCountE"></span><span id="_CPPv2N7shaders15RenderStateBits17forcedSampleCountE"></span><span id="shaders::RenderStateBits::forcedSampleCount__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a02fd720d83c068ed936052f8ef1ef676"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">forcedSampleCount</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits17forcedSampleCountE" title="Link to this definition"></a><br /></dt>
+<dd><p>The sample count that is forced while UAV rendering or rasterizing. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Requires caps.hasForcedSamplerCount (DX 11.1). </p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Depth test must be disabled. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits18conservativeRasterE">
+<span id="_CPPv3N7shaders15RenderStateBits18conservativeRasterE"></span><span id="_CPPv2N7shaders15RenderStateBits18conservativeRasterE"></span><span id="shaders::RenderStateBits::conservativeRaster__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1ac7eed855dd4645947ef475403171f980"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">conservativeRaster</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits18conservativeRasterE" title="Link to this definition"></a><br /></dt>
+<dd><p>Identifies whether conservative rasterization is on or off. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Requires caps.hasConservativeRassterization (DX 11.3). </p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Only triangle topology is allowed (DX 12). </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits5zClipE">
+<span id="_CPPv3N7shaders15RenderStateBits5zClipE"></span><span id="_CPPv2N7shaders15RenderStateBits5zClipE"></span><span id="shaders::RenderStateBits::zClip__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a93d38a2114add3541716035cfec779b3"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">zClip</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits5zClipE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enable depth clipping based on distance. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits14scissorEnabledE">
+<span id="_CPPv3N7shaders15RenderStateBits14scissorEnabledE"></span><span id="_CPPv2N7shaders15RenderStateBits14scissorEnabledE"></span><span id="shaders::RenderStateBits::scissorEnabled__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1aa3471748aeacdd914dd8867837ba7c86"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scissorEnabled</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits14scissorEnabledE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enable scissor-rectangle culling. All pixels outside an active scissor rectangle are culled. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits23independentBlendEnabledE">
+<span id="_CPPv3N7shaders15RenderStateBits23independentBlendEnabledE"></span><span id="_CPPv2N7shaders15RenderStateBits23independentBlendEnabledE"></span><span id="shaders::RenderStateBits::independentBlendEnabled__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a72955f98d8689819e3e06efd34c87262"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">independentBlendEnabled</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits23independentBlendEnabledE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enable independent blending in simultaneous render targets. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits15alphaToCoverageE">
+<span id="_CPPv3N7shaders15RenderStateBits15alphaToCoverageE"></span><span id="_CPPv2N7shaders15RenderStateBits15alphaToCoverageE"></span><span id="shaders::RenderStateBits::alphaToCoverage__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1abf9ecd74a66b231601ef4abb39f2cefc"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">alphaToCoverage</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits15alphaToCoverageE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies whether to use alpha-to-coverage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits17viewInstanceCountE">
+<span id="_CPPv3N7shaders15RenderStateBits17viewInstanceCountE"></span><span id="_CPPv2N7shaders15RenderStateBits17viewInstanceCountE"></span><span id="shaders::RenderStateBits::viewInstanceCount__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1ac4bc0a1392ddd3c80fb1123f15624745"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">viewInstanceCount</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits17viewInstanceCountE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies the number of used views. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits15blendFactorUsedE">
+<span id="_CPPv3N7shaders15RenderStateBits15blendFactorUsedE"></span><span id="_CPPv2N7shaders15RenderStateBits15blendFactorUsedE"></span><span id="shaders::RenderStateBits::blendFactorUsed__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1ac42cbf3958beecf7de6a31c6c79ff7b9"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blendFactorUsed</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits15blendFactorUsedE" title="Link to this definition"></a><br /></dt>
+<dd><p>Signifies that blendFactor should be applied when setting the state. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits22dualSourceBlendEnabledE">
+<span id="_CPPv3N7shaders15RenderStateBits22dualSourceBlendEnabledE"></span><span id="_CPPv2N7shaders15RenderStateBits22dualSourceBlendEnabledE"></span><span id="shaders::RenderStateBits::dualSourceBlendEnabled__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1a954bf8df37a234b28dc884d1d6d74963"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dualSourceBlendEnabled</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits22dualSourceBlendEnabledE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enable dual source blending of two pixel shader outputs to one rt. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits7colorWrE">
+<span id="_CPPv3N7shaders15RenderStateBits7colorWrE"></span><span id="_CPPv2N7shaders15RenderStateBits7colorWrE"></span><span id="shaders::RenderStateBits::colorWr__uint32_t"></span><span class="target" id="structshaders_1_1RenderStateBits_1ad0c3d02cefc012f3ec8761b81dad48da"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">colorWr</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits7colorWrE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies mask which is used for color write. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits5zBiasE">
+<span id="_CPPv3N7shaders15RenderStateBits5zBiasE"></span><span id="_CPPv2N7shaders15RenderStateBits5zBiasE"></span><span id="shaders::RenderStateBits::zBias__float"></span><span class="target" id="structshaders_1_1RenderStateBits_1a6ca4c01e718744ad9052aaf9e0bc02c3"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">zBias</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits5zBiasE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies depth value added to a given pixel. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits10slopeZBiasE">
+<span id="_CPPv3N7shaders15RenderStateBits10slopeZBiasE"></span><span id="_CPPv2N7shaders15RenderStateBits10slopeZBiasE"></span><span id="shaders::RenderStateBits::slopeZBias__float"></span><span class="target" id="structshaders_1_1RenderStateBits_1a2baef0b95f441cba7f14eb55bb3c69ce"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slopeZBias</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits10slopeZBiasE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies scalar on a given pixel’s slope. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7shaders15RenderStateBits7stencilE">
+<span id="_CPPv3N7shaders15RenderStateBits7stencilE"></span><span id="_CPPv2N7shaders15RenderStateBits7stencilE"></span><span id="shaders::RenderStateBits::stencil__StencilState"></span><span class="target" id="structshaders_1_1RenderStateBits_1ad87cb62ad2a9c365362b33a5e7bd0e08"></span><a class="reference internal" href="../shaders/Overrides.html#_CPPv4N7shaders12StencilStateE" title="shaders::StencilState"><span class="n"><span class="pre">StencilState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stencil</span></span></span><a class="headerlink" href="#_CPPv4N7shaders15RenderStateBits7stencilE" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies stencil state. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d16set_blend_factorE8E3DCOLOR">
+<span id="_CPPv3N3d3d16set_blend_factorE8E3DCOLOR"></span><span id="_CPPv2N3d3d16set_blend_factorE8E3DCOLOR"></span><span id="d3d::set_blend_factor__E3DCOLOR"></span><span class="target" id="namespaced3d_1a55f4d4d0d4bd73efd083e7c05814b099"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_blend_factor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d16set_blend_factorE8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the blend factor object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>color</strong> – blend factor to set </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10setstencilE8uint32_t">
+<span id="_CPPv3N3d3d10setstencilE8uint32_t"></span><span id="_CPPv2N3d3d10setstencilE8uint32_t"></span><span id="d3d::setstencil__uint32_t"></span><span class="target" id="namespaced3d_1a930aaf843f11f2120640447487351c1f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setstencil</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10setstencilE8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the stencil reference value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ref</strong> – reference value to set </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7setwireEb">
+<span id="_CPPv3N3d3d7setwireEb"></span><span id="_CPPv2N3d3d7setwireEb"></span><span id="d3d::setwire__b"></span><span class="target" id="namespaced3d_1aa5b61419d1af9fbe03b9bf8fec0fc1b9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setwire</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">in</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7setwireEb" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the wireframe mode. Works only in dev build. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>in</strong> – true to enable wireframe mode, false to disable </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d16set_depth_boundsEff">
+<span id="_CPPv3N3d3d16set_depth_boundsEff"></span><span id="_CPPv2N3d3d16set_depth_boundsEff"></span><span id="d3d::set_depth_bounds__float.float"></span><span class="target" id="namespaced3d_1abb10954f6395f127f5f5dc08fe491415"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_depth_bounds</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">zmin</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">zmax</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d16set_depth_boundsEff" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the depth bounds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zmin</strong> – minimum depth value </p></li>
+<li><p><strong>zmax</strong> – maximum depth value </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d19create_render_stateERKN7shaders11RenderStateE">
+<span id="_CPPv3N3d3d19create_render_stateERKN7shaders11RenderStateE"></span><span id="_CPPv2N3d3d19create_render_stateERKN7shaders11RenderStateE"></span><span id="d3d::create_render_state__shaders::RenderStateCR"></span><span class="target" id="namespaced3d_1a795f77f1ef8dd6e2d2c5c8f8321d96ff"></span><a class="reference internal" href="#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders19DriverRenderStateIdE" title="shaders::DriverRenderStateId"><span class="n"><span class="pre">DriverRenderStateId</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">create_render_state</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders11RenderStateE" title="shaders::RenderState"><span class="n"><span class="pre">RenderState</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">state</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d19create_render_stateERKN7shaders11RenderStateE" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a render state object in driver. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> – parameters of the render state object to create </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#namespaceshaders_1a18d95bd7603b031ab4919fb4e4ad8022"><span class="std std-ref">shaders::DriverRenderStateId</span></a> id of the created render state object </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d16set_render_stateEN7shaders19DriverRenderStateIdE">
+<span id="_CPPv3N3d3d16set_render_stateEN7shaders19DriverRenderStateIdE"></span><span id="_CPPv2N3d3d16set_render_stateEN7shaders19DriverRenderStateIdE"></span><span id="d3d::set_render_state__shaders::DriverRenderStateId"></span><span class="target" id="namespaced3d_1adeee19f05937fa2c4d5c8a12bdd78078"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_state</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N7shaders19DriverRenderStateIdE" title="shaders::DriverRenderStateId"><span class="n"><span class="pre">DriverRenderStateId</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">state_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d16set_render_stateEN7shaders19DriverRenderStateIdE" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the render state object in driver. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state_id</strong> – id of the render state object to set </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d19clear_render_statesEv">
+<span id="_CPPv3N3d3d19clear_render_statesEv"></span><span id="_CPPv2N3d3d19clear_render_statesEv"></span><span id="d3d::clear_render_states"></span><span class="target" id="namespaced3d_1a01059836b63021069459b0c308c22791"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_render_states</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d19clear_render_statesEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Remove all render state objects allocated in driver. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RenderPass.html" class="btn btn-neutral float-left" title="Render Pass" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="RenderTarget.html" class="btn btn-neutral float-right" title="Render Targets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structproc_1_1internal_1_1ProcessHandle" kind="struct" language="C++" prot="public">
+    <compoundname>proc::internal::ProcessHandle</compoundname>
+    <includes refid="processes__impl_8h" local="no">processes_impl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ProcessHandle_1aa0a9af603c4fbc2ae6d3b1bb277de629" prot="public" static="no" mutable="no">
+        <type><ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref></type>
+        <definition>ProcessTask proc::internal::ProcessHandle::task</definition>
+        <argsstring></argsstring>
+        <name>task</name>
+        <qualifiedname>proc::internal::ProcessHandle::task</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="34" column="15" bodyfile="processes_impl.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ProcessHandle_1affd838c8f9407c54fa0568ba1b67e772" prot="public" static="no" mutable="no">
+        <type><ref refid="structproc_1_1internal_1_1ProcessData" kindref="compound">ProcessData</ref> *</type>
+        <definition>ProcessData* proc::internal::ProcessHandle::processData</definition>
+        <argsstring></argsstring>
+        <name>processData</name>
+        <qualifiedname>proc::internal::ProcessHandle::processData</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="35" column="15" bodyfile="processes_impl.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ProcessHandle_1a23f455f33a3d764ff1372421ef1deb5d" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceproc_1_1internal_1ad2096b942d412deeebcd891d4d276f7c" kindref="member">SinkHandle</ref></type>
+        <definition>SinkHandle proc::internal::ProcessHandle::sink</definition>
+        <argsstring></argsstring>
+        <name>sink</name>
+        <qualifiedname>proc::internal::ProcessHandle::sink</qualifiedname>
+        <initializer>= <ref refid="namespaceproc_1_1internal_1ad2096b942d412deeebcd891d4d276f7caccc0377a8afbf50e7094f5c23a8af223" kindref="member">SinkHandle::INVALID</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="36" column="14" bodyfile="processes_impl.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ProcessHandle_1a7b34e1994ba23e4695f383beb371f562" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool proc::internal::ProcessHandle::hasCommunicated</definition>
+        <argsstring></argsstring>
+        <name>hasCommunicated</name>
+        <qualifiedname>proc::internal::ProcessHandle::hasCommunicated</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="37" column="8" bodyfile="processes_impl.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ProcessHandle_1ad79bf8201d4bad51d73ab51e706fed25" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool proc::internal::ProcessHandle::hasBeenSignalled</definition>
+        <argsstring></argsstring>
+        <name>hasBeenSignalled</name>
+        <qualifiedname>proc::internal::ProcessHandle::hasBeenSignalled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="38" column="8" bodyfile="processes_impl.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>PROCESS_INFORMATION</label>
+      </node>
+      <node id="2">
+        <label>proc::ProcessTask</label>
+        <link refid="structproc_1_1ProcessTask"/>
+      </node>
+      <node id="5">
+        <label>proc::internal::Pipe</label>
+        <link refid="unionproc_1_1internal_1_1Pipe"/>
+      </node>
+      <node id="3">
+        <label>proc::internal::ProcessData</label>
+        <link refid="structproc_1_1internal_1_1ProcessData"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>outputPipe</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>proc::internal::ProcessHandle</label>
+        <link refid="structproc_1_1internal_1_1ProcessHandle"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>task</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>processData</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="processes_impl.h" line="32" column="1" bodyfile="processes_impl.h" bodystart="33" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structproc_1_1internal_1_1ProcessHandle_1ad79bf8201d4bad51d73ab51e706fed25" prot="public" virt="non-virtual"><scope>proc::internal::ProcessHandle</scope><name>hasBeenSignalled</name></member>
+      <member refid="structproc_1_1internal_1_1ProcessHandle_1a7b34e1994ba23e4695f383beb371f562" prot="public" virt="non-virtual"><scope>proc::internal::ProcessHandle</scope><name>hasCommunicated</name></member>
+      <member refid="structproc_1_1internal_1_1ProcessHandle_1affd838c8f9407c54fa0568ba1b67e772" prot="public" virt="non-virtual"><scope>proc::internal::ProcessHandle</scope><name>processData</name></member>
+      <member refid="structproc_1_1internal_1_1ProcessHandle_1a23f455f33a3d764ff1372421ef1deb5d" prot="public" virt="non-virtual"><scope>proc::internal::ProcessHandle</scope><name>sink</name></member>
+      <member refid="structproc_1_1internal_1_1ProcessHandle_1aa0a9af603c4fbc2ae6d3b1bb277de629" prot="public" virt="non-virtual"><scope>proc::internal::ProcessHandle</scope><name>task</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

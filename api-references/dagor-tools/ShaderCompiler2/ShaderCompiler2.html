@@ -1,0 +1,469 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShaderCompiler2</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="prev" title="3ds Max Plugins" href="../maxplug/maxplug.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../EditorCore/EditorCore.html">EditorCore</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../libTools/index.html">libTools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../maxplug/maxplug.html">3ds Max Plugins</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ShaderCompiler2</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv435get_git_files_last_commit_timestampN3dag9ConstSpanI12SimpleStringEE"><code class="docutils literal notranslate"><span class="pre">get_git_files_last_commit_timestamp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv418close_shader_classv"><code class="docutils literal notranslate"><span class="pre">close_shader_class()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv416add_shader_classP11ShaderClassRN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_shader_class()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv411add_fshaderN3dag9ConstSpanIjEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_fshader()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv49add_vprogN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_vprog()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv416add_render_stateRK18SemanticShaderPassRN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_render_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv410add_stcodeN3dag9ConstSpanIiEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_stcode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv426add_stcode_validation_maskiPN13shader_layout25StcodeConstValidationMaskERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_stcode_validation_mask()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv418count_shader_statsRjRjRjRjRjRKN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">count_shader_stats()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv420load_shaders_bindumpR14ShadersBindumpRN7bindump7IReaderERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">load_shaders_bindump()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv421link_scripted_shadersPK7uint8_tiPKcPKcRN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">link_scripted_shaders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv421save_scripted_shadersPKcN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextEb"><code class="docutils literal notranslate"><span class="pre">save_scripted_shaders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv425update_shaders_timestampsN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">update_shaders_timestamps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv414ShadersBindump"><code class="docutils literal notranslate"><span class="pre">ShadersBindump</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump13variable_listE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::variable_list</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump15static_samplersE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::static_samplers</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump9intervalsE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::intervals</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump11empty_blockE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::empty_block</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump12state_blocksE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::state_blocks</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump13shaderClassesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::shaderClasses</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump12renderStatesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::renderStates</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump10shadersFshE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::shadersFsh</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump10shadersVprE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::shadersVpr</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump13shadersStcodeE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::shadersStcode</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump20dynamicCppcodeHashesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::dynamicCppcodeHashes</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump19staticCppcodeHashesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::staticCppcodeHashes</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump26dynamicCppcodeRoutineNamesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::dynamicCppcodeRoutineNames</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump25staticCppcodeRoutineNamesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::staticCppcodeRoutineNames</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump21cppcodeRegisterTablesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::cppcodeRegisterTables</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump27cppcodeRegisterTableOffsetsE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::cppcodeRegisterTableOffsets</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N14ShadersBindump16stcodeConstMasksE"><code class="docutils literal notranslate"><span class="pre">ShadersBindump::stcodeConstMasks</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv420ShadersBindumpHeader"><code class="docutils literal notranslate"><span class="pre">ShadersBindumpHeader</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N20ShadersBindumpHeader10cache_signE"><code class="docutils literal notranslate"><span class="pre">ShadersBindumpHeader::cache_sign</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N20ShadersBindumpHeader13cache_versionE"><code class="docutils literal notranslate"><span class="pre">ShadersBindumpHeader::cache_version</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N20ShadersBindumpHeader13last_blk_hashE"><code class="docutils literal notranslate"><span class="pre">ShadersBindumpHeader::last_blk_hash</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N20ShadersBindumpHeader4hashE"><code class="docutils literal notranslate"><span class="pre">ShadersBindumpHeader::hash</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N20ShadersBindumpHeader16dependency_filesE"><code class="docutils literal notranslate"><span class="pre">ShadersBindumpHeader::dependency_files</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv424CompressedShadersBindump"><code class="docutils literal notranslate"><span class="pre">CompressedShadersBindump</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N24CompressedShadersBindump17decompressed_sizeE"><code class="docutils literal notranslate"><span class="pre">CompressedShadersBindump::decompressed_size</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N24CompressedShadersBindump18compressed_shadersE"><code class="docutils literal notranslate"><span class="pre">CompressedShadersBindump::compressed_shaders</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N24CompressedShadersBindump3eofE"><code class="docutils literal notranslate"><span class="pre">CompressedShadersBindump::eof</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv47shaders"><code class="docutils literal notranslate"><span class="pre">shaders</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+      <li class="breadcrumb-item active">ShaderCompiler2</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-tools/ShaderCompiler2/ShaderCompiler2.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="shadercompiler2">
+<h1>ShaderCompiler2<a class="headerlink" href="#shadercompiler2" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv435get_git_files_last_commit_timestampN3dag9ConstSpanI12SimpleStringEE">
+<span id="_CPPv335get_git_files_last_commit_timestampN3dag9ConstSpanI12SimpleStringEE"></span><span id="_CPPv235get_git_files_last_commit_timestampN3dag9ConstSpanI12SimpleStringEE"></span><span id="get_git_files_last_commit_timestamp__dag::ConstSpan:SimpleString:"></span><span class="target" id="gitRunner_8h_1a817f7fd0a115ed22da311cebd682b727"></span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_git_files_last_commit_timestamp</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">SimpleString</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">file_path</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv435get_git_files_last_commit_timestampN3dag9ConstSpanI12SimpleStringEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the timestamp of the most recent commit for list of files. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The timestamp is in milliseconds </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If any of the files are locally modified or there are local commits not present in remote, the function will return 0 </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_paths</strong> – The list of file paths </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The timestamp of the most recent commit </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418close_shader_classv">
+<span id="_CPPv318close_shader_classv"></span><span id="_CPPv218close_shader_classv"></span><span id="close_shader_class"></span><span class="target" id="linkShaders_8h_1a89ad15dc480db392b8a38daa4a8d4745"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">close_shader_class</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418close_shader_classv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv416add_shader_classP11ShaderClassRN3shc13TargetContextE">
+<span id="_CPPv316add_shader_classP11ShaderClassRN3shc13TargetContextE"></span><span id="_CPPv216add_shader_classP11ShaderClassRN3shc13TargetContextE"></span><span id="add_shader_class__ShaderClassP.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1a9dd11b723e582c5a303b746fde7c5efa"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_shader_class</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ShaderClass</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">sc</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv416add_shader_classP11ShaderClassRN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv411add_fshaderN3dag9ConstSpanIjEERN3shc13TargetContextE">
+<span id="_CPPv311add_fshaderN3dag9ConstSpanIjEERN3shc13TargetContextE"></span><span id="_CPPv211add_fshaderN3dag9ConstSpanIjEERN3shc13TargetContextE"></span><span id="add_fshader__dag::ConstSpan:unsigned:.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1aa26fc4d6261cf25ea202c85a47deed61"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_fshader</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">code</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv411add_fshaderN3dag9ConstSpanIjEERN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv49add_vprogN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEERN3shc13TargetContextE">
+<span id="_CPPv39add_vprogN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEERN3shc13TargetContextE"></span><span id="_CPPv29add_vprogN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEERN3shc13TargetContextE"></span><span id="add_vprog__dag::ConstSpan:unsigned:.dag::ConstSpan:unsigned:.dag::ConstSpan:unsigned:.dag::ConstSpan:unsigned:.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1a58a37ce7dcfb6642f4498171a2a8f2cd"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_vprog</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vs</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">hs</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ds</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gs</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv49add_vprogN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEERN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv416add_render_stateRK18SemanticShaderPassRN3shc13TargetContextE">
+<span id="_CPPv316add_render_stateRK18SemanticShaderPassRN3shc13TargetContextE"></span><span id="_CPPv216add_render_stateRK18SemanticShaderPassRN3shc13TargetContextE"></span><span id="add_render_state__SemanticShaderPassCR.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1a07de43c7fcfd3647d78f0a2111368280"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_render_state</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">SemanticShaderPass</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">state</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv416add_render_stateRK18SemanticShaderPassRN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv410add_stcodeN3dag9ConstSpanIiEERN3shc13TargetContextE">
+<span id="_CPPv310add_stcodeN3dag9ConstSpanIiEERN3shc13TargetContextE"></span><span id="_CPPv210add_stcodeN3dag9ConstSpanIiEERN3shc13TargetContextE"></span><span id="add_stcode__dag::ConstSpan:i:.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1a96fa1850596561b85a77a8b6e78407fd"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_stcode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">code</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv410add_stcodeN3dag9ConstSpanIiEERN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426add_stcode_validation_maskiPN13shader_layout25StcodeConstValidationMaskERN3shc13TargetContextE">
+<span id="_CPPv326add_stcode_validation_maskiPN13shader_layout25StcodeConstValidationMaskERN3shc13TargetContextE"></span><span id="_CPPv226add_stcode_validation_maskiPN13shader_layout25StcodeConstValidationMaskERN3shc13TargetContextE"></span><span id="add_stcode_validation_mask__i.shader_layout::StcodeConstValidationMaskP.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1ace100897f3e189920a57708fbc77bbaa"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_stcode_validation_mask</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stcode_id</span></span>, <span class="n"><span class="pre">shader_layout</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">StcodeConstValidationMask</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426add_stcode_validation_maskiPN13shader_layout25StcodeConstValidationMaskERN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418count_shader_statsRjRjRjRjRjRKN3shc13TargetContextE">
+<span id="_CPPv318count_shader_statsRjRjRjRjRjRKN3shc13TargetContextE"></span><span id="_CPPv218count_shader_statsRjRjRjRjRjRKN3shc13TargetContextE"></span><span id="count_shader_stats__unsignedR.unsignedR.unsignedR.unsignedR.unsignedR.shc::TargetContextCR"></span><span class="target" id="linkShaders_8h_1a4bf07cae8abae5fa8dfc3d872402bac8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count_shader_stats</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">uniqueFshBytesInFile</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">uniqueFshCountInFile</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">uniqueVprBytesInFile</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">uniqueVprCountInFile</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">stcodeBytes</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418count_shader_statsRjRjRjRjRjRKN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420load_shaders_bindumpR14ShadersBindumpRN7bindump7IReaderERN3shc13TargetContextE">
+<span id="_CPPv320load_shaders_bindumpR14ShadersBindumpRN7bindump7IReaderERN3shc13TargetContextE"></span><span id="_CPPv220load_shaders_bindumpR14ShadersBindumpRN7bindump7IReaderERN3shc13TargetContextE"></span><span id="load_shaders_bindump__ShadersBindumpR.bindump::IReaderR.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1a305d00d1fd0fdba5682b501ae71abe7b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load_shaders_bindump</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv414ShadersBindump" title="ShadersBindump"><span class="n"><span class="pre">ShadersBindump</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">shaders</span></span>, <span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">IReader</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">full_file_reader</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420load_shaders_bindumpR14ShadersBindumpRN7bindump7IReaderERN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421link_scripted_shadersPK7uint8_tiPKcPKcRN3shc13TargetContextE">
+<span id="_CPPv321link_scripted_shadersPK7uint8_tiPKcPKcRN3shc13TargetContextE"></span><span id="_CPPv221link_scripted_shadersPK7uint8_tiPKcPKcRN3shc13TargetContextE"></span><span id="link_scripted_shaders__uint8_tCP.i.cCP.cCP.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1a80685ae901a05b19dd81461d6117456a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">link_scripted_shaders</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">mapped_data</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_size</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">source_name</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421link_scripted_shadersPK7uint8_tiPKcPKcRN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421save_scripted_shadersPKcN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextEb">
+<span id="_CPPv321save_scripted_shadersPKcN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextEb"></span><span id="_CPPv221save_scripted_shadersPKcN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextEb"></span><span id="save_scripted_shaders__cCP.dag::ConstSpan:SimpleString:.shc::TargetContextR.b"></span><span class="target" id="linkShaders_8h_1a046b2c7bead7428033d3815dad7cc27f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">save_scripted_shaders</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">SimpleString</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">files</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">need_cppstcode_file_write</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421save_scripted_shadersPKcN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextEb" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv425update_shaders_timestampsN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextE">
+<span id="_CPPv325update_shaders_timestampsN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextE"></span><span id="_CPPv225update_shaders_timestampsN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextE"></span><span id="update_shaders_timestamps__dag::ConstSpan:SimpleString:.shc::TargetContextR"></span><span class="target" id="linkShaders_8h_1ada36b76256c8c7e82e285ca2281bb944"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_shaders_timestamps</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">SimpleString</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dependencies</span></span>, <span class="n"><span class="pre">shc</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TargetContext</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv425update_shaders_timestampsN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextE" title="Link to this definition"></a><br /></dt>
+<dd><p>Update the timestamps of the shader classes. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If dagor git repo is present and files are not locally git modified, the function will use the timestamp of the last commit for file dependencies. Otherwise, it will use the filesystem timestamp </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dependencies</strong> – The list of files that the shader classes depend on </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv414ShadersBindump">
+<span id="_CPPv314ShadersBindump"></span><span id="_CPPv214ShadersBindump"></span><span id="ShadersBindump"></span><span class="target" id="structShadersBindump"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ShadersBindump</span></span></span><a class="headerlink" href="#_CPPv414ShadersBindump" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;linkShaders.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump13variable_listE">
+<span id="_CPPv3N14ShadersBindump13variable_listE"></span><span id="_CPPv2N14ShadersBindump13variable_listE"></span><span id="ShadersBindump::variable_list__SerializableTab:ShaderGlobal::Var:"></span><span class="target" id="structShadersBindump_1a6932b5ba55f02780f140008096216793"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../../dagor-render/index/shaders/global_shader_variables.html#_CPPv412ShaderGlobal" title="ShaderGlobal"><span class="n"><span class="pre">ShaderGlobal</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Var</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">variable_list</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump13variable_listE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump15static_samplersE">
+<span id="_CPPv3N14ShadersBindump15static_samplersE"></span><span id="_CPPv2N14ShadersBindump15static_samplersE"></span><span id="ShadersBindump::static_samplers__SerializableTab:Sampler:"></span><span class="target" id="structShadersBindump_1aced761e20398c6053868cc38e71dec36"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">Sampler</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">static_samplers</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump15static_samplersE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump9intervalsE">
+<span id="_CPPv3N14ShadersBindump9intervalsE"></span><span id="_CPPv2N14ShadersBindump9intervalsE"></span><span id="ShadersBindump::intervals__IntervalList"></span><span class="target" id="structShadersBindump_1abc23df78df3bb2501f9386a250085db7"></span><span class="n"><span class="pre">IntervalList</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">intervals</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump9intervalsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump11empty_blockE">
+<span id="_CPPv3N14ShadersBindump11empty_blockE"></span><span id="_CPPv2N14ShadersBindump11empty_blockE"></span><span id="ShadersBindump::empty_block__bindump::Ptr:ShaderStateBlock:"></span><span class="target" id="structShadersBindump_1aee2ee0394ba4ee1173a17fc16a13def5"></span><span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">ShaderStateBlock</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">empty_block</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump11empty_blockE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump12state_blocksE">
+<span id="_CPPv3N14ShadersBindump12state_blocksE"></span><span id="_CPPv2N14ShadersBindump12state_blocksE"></span><span id="ShadersBindump::state_blocks__SerializableTab:ShaderStateBlockP:"></span><span class="target" id="structShadersBindump_1ab4fa76b4e1a1731e6abcda8b9feda5eb"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">ShaderStateBlock</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">state_blocks</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump12state_blocksE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump13shaderClassesE">
+<span id="_CPPv3N14ShadersBindump13shaderClassesE"></span><span id="_CPPv2N14ShadersBindump13shaderClassesE"></span><span id="ShadersBindump::shaderClasses__SerializableTab:ShaderClassP:"></span><span class="target" id="structShadersBindump_1ac20a831c0ac09e53b937da00a4baa531"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">ShaderClass</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shaderClasses</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump13shaderClassesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump12renderStatesE">
+<span id="_CPPv3N14ShadersBindump12renderStatesE"></span><span id="_CPPv2N14ShadersBindump12renderStatesE"></span><span id="ShadersBindump::renderStates__SerializableTab:shaders::RenderState:"></span><span class="target" id="structShadersBindump_1a93cf9c9fdf016a7bb703d28bd8ae362e"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../../dagor-render/index/d3dAPI/RenderState.html#_CPPv47shaders" title="shaders"><span class="n"><span class="pre">shaders</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../dagor-render/index/d3dAPI/RenderState.html#_CPPv4N7shaders11RenderStateE" title="shaders::RenderState"><span class="n"><span class="pre">RenderState</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">renderStates</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump12renderStatesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump10shadersFshE">
+<span id="_CPPv3N14ShadersBindump10shadersFshE"></span><span id="_CPPv2N14ShadersBindump10shadersFshE"></span><span id="ShadersBindump::shadersFsh__SerializableTab:TabFsh:"></span><span class="target" id="structShadersBindump_1a87687384dbf3c31e138b51d0bbd80a89"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">TabFsh</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shadersFsh</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump10shadersFshE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump10shadersVprE">
+<span id="_CPPv3N14ShadersBindump10shadersVprE"></span><span id="_CPPv2N14ShadersBindump10shadersVprE"></span><span id="ShadersBindump::shadersVpr__SerializableTab:TabVpr:"></span><span class="target" id="structShadersBindump_1a3ea706eacea53a31cfdd8a685b5d2983"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">TabVpr</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shadersVpr</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump10shadersVprE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump13shadersStcodeE">
+<span id="_CPPv3N14ShadersBindump13shadersStcodeE"></span><span id="_CPPv2N14ShadersBindump13shadersStcodeE"></span><span id="ShadersBindump::shadersStcode__SerializableTab:TabStcode:"></span><span class="target" id="structShadersBindump_1a53021ecd230c1b3c6d7ba583aff6632b"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">TabStcode</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shadersStcode</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump13shadersStcodeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump20dynamicCppcodeHashesE">
+<span id="_CPPv3N14ShadersBindump20dynamicCppcodeHashesE"></span><span id="_CPPv2N14ShadersBindump20dynamicCppcodeHashesE"></span><span id="ShadersBindump::dynamicCppcodeHashes__SerializableTab:CryptoHash:"></span><span class="target" id="structShadersBindump_1a6829b94608c9922019b3d26661080a58"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">CryptoHash</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dynamicCppcodeHashes</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump20dynamicCppcodeHashesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump19staticCppcodeHashesE">
+<span id="_CPPv3N14ShadersBindump19staticCppcodeHashesE"></span><span id="_CPPv2N14ShadersBindump19staticCppcodeHashesE"></span><span id="ShadersBindump::staticCppcodeHashes__SerializableTab:CryptoHash:"></span><span class="target" id="structShadersBindump_1a4ae697c6b9935f49120f3e76f4fb8fc5"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">CryptoHash</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">staticCppcodeHashes</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump19staticCppcodeHashesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump26dynamicCppcodeRoutineNamesE">
+<span id="_CPPv3N14ShadersBindump26dynamicCppcodeRoutineNamesE"></span><span id="_CPPv2N14ShadersBindump26dynamicCppcodeRoutineNamesE"></span><span id="ShadersBindump::dynamicCppcodeRoutineNames__SerializableTab:bindump::string:"></span><span class="target" id="structShadersBindump_1adbbcd35e0948e97766f0b6960127b01c"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dynamicCppcodeRoutineNames</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump26dynamicCppcodeRoutineNamesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump25staticCppcodeRoutineNamesE">
+<span id="_CPPv3N14ShadersBindump25staticCppcodeRoutineNamesE"></span><span id="_CPPv2N14ShadersBindump25staticCppcodeRoutineNamesE"></span><span id="ShadersBindump::staticCppcodeRoutineNames__SerializableTab:bindump::string:"></span><span class="target" id="structShadersBindump_1a21e66239a3d69bb42f5abc5ae5d9c0de"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">staticCppcodeRoutineNames</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump25staticCppcodeRoutineNamesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump21cppcodeRegisterTablesE">
+<span id="_CPPv3N14ShadersBindump21cppcodeRegisterTablesE"></span><span id="_CPPv2N14ShadersBindump21cppcodeRegisterTablesE"></span><span id="ShadersBindump::cppcodeRegisterTables__SerializableTab:SerializableTab:int32_t::"></span><span class="target" id="structShadersBindump_1a4d019eff48346db2f7ddb9b52909790c"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cppcodeRegisterTables</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump21cppcodeRegisterTablesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump27cppcodeRegisterTableOffsetsE">
+<span id="_CPPv3N14ShadersBindump27cppcodeRegisterTableOffsetsE"></span><span id="_CPPv2N14ShadersBindump27cppcodeRegisterTableOffsetsE"></span><span id="ShadersBindump::cppcodeRegisterTableOffsets__SerializableTab:int32_t:"></span><span class="target" id="structShadersBindump_1a986fbb2aabccb0b6584bb9174c419f31"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cppcodeRegisterTableOffsets</span></span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump27cppcodeRegisterTableOffsetsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N14ShadersBindump16stcodeConstMasksE">
+<span id="_CPPv3N14ShadersBindump16stcodeConstMasksE"></span><span id="_CPPv2N14ShadersBindump16stcodeConstMasksE"></span><span id="ShadersBindump::stcodeConstMasks__SerializableTab:shader_layout::StcodeConstValidationMaskP:"></span><span class="target" id="structShadersBindump_1a60c2fcfedf3b3e6b5718df6ed7df40f1"></span><span class="n"><span class="pre">SerializableTab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">shader_layout</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">StcodeConstValidationMask</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stcodeConstMasks</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N14ShadersBindump16stcodeConstMasksE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv420ShadersBindumpHeader">
+<span id="_CPPv320ShadersBindumpHeader"></span><span id="_CPPv220ShadersBindumpHeader"></span><span id="ShadersBindumpHeader"></span><span class="target" id="structShadersBindumpHeader"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ShadersBindumpHeader</span></span></span><a class="headerlink" href="#_CPPv420ShadersBindumpHeader" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;linkShaders.h&gt;</em></div>
+<p>Subclassed by <a class="reference internal" href="#structCompressedShadersBindump"><span class="std std-ref">CompressedShadersBindump</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20ShadersBindumpHeader10cache_signE">
+<span id="_CPPv3N20ShadersBindumpHeader10cache_signE"></span><span id="_CPPv2N20ShadersBindumpHeader10cache_signE"></span><span id="ShadersBindumpHeader::cache_sign__i"></span><span class="target" id="structShadersBindumpHeader_1a7a28b16040ac57ebb0290f1fc3020266"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cache_sign</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N20ShadersBindumpHeader10cache_signE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20ShadersBindumpHeader13cache_versionE">
+<span id="_CPPv3N20ShadersBindumpHeader13cache_versionE"></span><span id="_CPPv2N20ShadersBindumpHeader13cache_versionE"></span><span id="ShadersBindumpHeader::cache_version__i"></span><span class="target" id="structShadersBindumpHeader_1af5acd824207cfc830a14856704309eb6"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cache_version</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N20ShadersBindumpHeader13cache_versionE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20ShadersBindumpHeader13last_blk_hashE">
+<span id="_CPPv3N20ShadersBindumpHeader13last_blk_hashE"></span><span id="_CPPv2N20ShadersBindumpHeader13last_blk_hashE"></span><span id="ShadersBindumpHeader::last_blk_hash__BlkHashBytes"></span><span class="target" id="structShadersBindumpHeader_1a00aa476b59b6f4ba46073abae37774e1"></span><span class="n"><span class="pre">BlkHashBytes</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">last_blk_hash</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N20ShadersBindumpHeader13last_blk_hashE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20ShadersBindumpHeader4hashE">
+<span id="_CPPv3N20ShadersBindumpHeader4hashE"></span><span id="_CPPv2N20ShadersBindumpHeader4hashE"></span><span id="ShadersBindumpHeader::hash__bindump::EnableHash:ShadersBindump:"></span><span class="target" id="structShadersBindumpHeader_1af28e09d4864c9b4fd3d8da7ac34eb90c"></span><span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">EnableHash</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv414ShadersBindump" title="ShadersBindump"><span class="n"><span class="pre">ShadersBindump</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hash</span></span></span><a class="headerlink" href="#_CPPv4N20ShadersBindumpHeader4hashE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20ShadersBindumpHeader16dependency_filesE">
+<span id="_CPPv3N20ShadersBindumpHeader16dependency_filesE"></span><span id="_CPPv2N20ShadersBindumpHeader16dependency_filesE"></span><span id="ShadersBindumpHeader::dependency_files__bindump::vector:bindump::string:"></span><span class="target" id="structShadersBindumpHeader_1ab6b5e1758ece57f5194a0bd9c3516c6d"></span><span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dependency_files</span></span></span><a class="headerlink" href="#_CPPv4N20ShadersBindumpHeader16dependency_filesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv424CompressedShadersBindump">
+<span id="_CPPv324CompressedShadersBindump"></span><span id="_CPPv224CompressedShadersBindump"></span><span id="CompressedShadersBindump"></span><span class="target" id="structCompressedShadersBindump"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CompressedShadersBindump</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv420ShadersBindumpHeader" title="ShadersBindumpHeader"><span class="n"><span class="pre">ShadersBindumpHeader</span></span></a><a class="headerlink" href="#_CPPv424CompressedShadersBindump" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;linkShaders.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24CompressedShadersBindump17decompressed_sizeE">
+<span id="_CPPv3N24CompressedShadersBindump17decompressed_sizeE"></span><span id="_CPPv2N24CompressedShadersBindump17decompressed_sizeE"></span><span id="CompressedShadersBindump::decompressed_size__uint64_t"></span><span class="target" id="structCompressedShadersBindump_1a722663c55a1b03bbb7720165212b8eb0"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">decompressed_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N24CompressedShadersBindump17decompressed_sizeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24CompressedShadersBindump18compressed_shadersE">
+<span id="_CPPv3N24CompressedShadersBindump18compressed_shadersE"></span><span id="_CPPv2N24CompressedShadersBindump18compressed_shadersE"></span><span id="CompressedShadersBindump::compressed_shaders__bindump::vector:uint8_t:"></span><span class="target" id="structCompressedShadersBindump_1a608bf222c046f653259c2fd7f3bc7e24"></span><span class="n"><span class="pre">bindump</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">compressed_shaders</span></span></span><a class="headerlink" href="#_CPPv4N24CompressedShadersBindump18compressed_shadersE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24CompressedShadersBindump3eofE">
+<span id="_CPPv3N24CompressedShadersBindump3eofE"></span><span id="_CPPv2N24CompressedShadersBindump3eofE"></span><span id="CompressedShadersBindump::eof__i"></span><span class="target" id="structCompressedShadersBindump_1ad676cf4e01ce5b406b14b15b07995bbf"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eof</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N24CompressedShadersBindump3eofE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv47shaders">
+<span id="_CPPv37shaders"></span><span id="_CPPv27shaders"></span><span id="shaders"></span><span class="target" id="namespaceshaders"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shaders</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../maxplug/maxplug.html" class="btn btn-neutral float-left" title="3ds Max Plugins" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

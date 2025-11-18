@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeStaticVars" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeStaticVars</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+    <innerclass refid="structStcodeStaticVars_1_1Var" prot="public">StcodeStaticVars::Var</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeStaticVars_1ae18fb0ae1bad4b760082055be2eb33e9" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; <ref refid="structStcodeStaticVars_1_1Var" kindref="compound">Var</ref> &gt;</type>
+        <definition>dag::Vector&lt;Var&gt; StcodeStaticVars::content</definition>
+        <argsstring></argsstring>
+        <name>content</name>
+        <qualifiedname>StcodeStaticVars::content</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="117" column="15" bodyfile="cppStcodeAssembly.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeStaticVars_1a308290d19e9ced6925e09b2eb1fc2525" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeStaticVars::add</definition>
+        <argsstring>(const char *name, int id)</argsstring>
+        <name>add</name>
+        <qualifiedname>StcodeStaticVars::add</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="119" column="8" bodyfile="cppStcodeAssembly.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeStaticVars_1a466f2bf0bb5779dfa8aea2a7dc8235f0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeStaticVars::patch</definition>
+        <argsstring>(int old_reg, int new_reg)</argsstring>
+        <name>patch</name>
+        <qualifiedname>StcodeStaticVars::patch</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>old_reg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>new_reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="121" column="8" bodyfile="cppStcodeAssembly.h" bodystart="121" bodyend="129"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="107" column="1" bodyfile="cppStcodeAssembly.h" bodystart="108" bodyend="130"/>
+    <listofallmembers>
+      <member refid="structStcodeStaticVars_1a308290d19e9ced6925e09b2eb1fc2525" prot="public" virt="non-virtual"><scope>StcodeStaticVars</scope><name>add</name></member>
+      <member refid="structStcodeStaticVars_1ae18fb0ae1bad4b760082055be2eb33e9" prot="public" virt="non-virtual"><scope>StcodeStaticVars</scope><name>content</name></member>
+      <member refid="structStcodeStaticVars_1a466f2bf0bb5779dfa8aea2a7dc8235f0" prot="public" virt="non-virtual"><scope>StcodeStaticVars</scope><name>patch</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,293 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1SharedRes" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::SharedRes</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ManagedResType</basecompoundref>
+    <basecompoundref refid="classresptr__detail_1_1MoveAssignable" prot="public" virt="non-virtual">resptr_detail::MoveAssignable</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ManagedResType</type>
+      </param>
+      <param>
+        <type>typename Deleter</type>
+        <defval><ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper</ref>&lt;typename ManagedResType::resource_t&gt;</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1SharedRes_1a92543874f567f361c83a23114adf04f2" prot="public" static="no">
+        <type><ref refid="classresptr__detail_1_1MoveAssignable" kindref="compound">MoveAssignable</ref></type>
+        <definition>using resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::move_assignable_t =  MoveAssignable</definition>
+        <argsstring></argsstring>
+        <name>move_assignable_t</name>
+        <qualifiedname>resptr_detail::SharedRes::move_assignable_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="415" column="3" bodyfile="dag_resPtr.h" bodystart="415" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classresptr__detail_1_1SharedRes_1a80ca1333d830140f2e82362355f678c9" prot="public" static="no">
+        <type>ManagedResType</type>
+        <definition>using resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::BaseType =  ManagedResType</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>resptr_detail::SharedRes::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="416" column="3" bodyfile="dag_resPtr.h" bodystart="416" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classresptr__detail_1_1SharedRes_1a068f9e3939faec80fcaab60058ed5fc8" prot="public" static="no">
+        <type>typename BaseType::resource_t</type>
+        <definition>using resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::ResType =  typename BaseType::resource_t</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>resptr_detail::SharedRes::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="417" column="3" bodyfile="dag_resPtr.h" bodystart="417" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a9c5560593bd734463c84ead31e914fa0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::SharedRes</definition>
+        <argsstring>()=default</argsstring>
+        <name>SharedRes</name>
+        <qualifiedname>resptr_detail::SharedRes::SharedRes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="419" column="4"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a27a161898f28a70609f4e56c8ac897dc" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::SharedRes</definition>
+        <argsstring>(SharedRes &amp;&amp;other) noexcept</argsstring>
+        <name>SharedRes</name>
+        <qualifiedname>resptr_detail::SharedRes::SharedRes</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1SharedRes" kindref="compound">SharedRes</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="419" column="28" bodyfile="dag_resPtr.h" bodystart="419" bodyend="419"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a5477cf37863d52cd7aac4b6e28a1d121" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1SharedRes" kindref="compound">SharedRes</ref> &amp;</type>
+        <definition>SharedRes &amp; resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::operator=</definition>
+        <argsstring>(SharedRes &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::SharedRes::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1SharedRes" kindref="compound">SharedRes</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="419" column="86" bodyfile="dag_resPtr.h" bodystart="419" bodyend="419"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a917886ba2d55ca7a4562051dd51dba9d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>resptr_detail::SharedRes::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="419" column="243" bodyfile="dag_resPtr.h" bodystart="419" bodyend="419"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a817a98442ee0140305da587bfea17a0e" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::SharedRes</definition>
+        <argsstring>(typename Helper&lt; ResType &gt;::resid_t res_id)</argsstring>
+        <name>SharedRes</name>
+        <qualifiedname>resptr_detail::SharedRes::SharedRes</qualifiedname>
+        <param>
+          <type>typename <ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper</ref>&lt; <ref refid="classresptr__detail_1_1SharedRes_1a068f9e3939faec80fcaab60058ed5fc8" kindref="member">ResType</ref> &gt;::resid_t</type>
+          <declname>res_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="421" column="12" bodyfile="dag_resPtr.h" bodystart="421" bodyend="425"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a54fcc4ce70d958bf45b73dc01c4434d3" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::SharedRes</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res)</argsstring>
+        <name>SharedRes</name>
+        <qualifiedname>resptr_detail::SharedRes::SharedRes</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; <ref refid="classresptr__detail_1_1SharedRes_1a068f9e3939faec80fcaab60058ed5fc8" kindref="member">ResType</ref> &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="427" column="12" bodyfile="dag_resPtr.h" bodystart="427" bodyend="431"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a4e9500e048eb75c279d991a2d43e51f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::SharedRes</definition>
+        <argsstring>(const SharedRes &amp;other)</argsstring>
+        <name>SharedRes</name>
+        <qualifiedname>resptr_detail::SharedRes::SharedRes</qualifiedname>
+        <param>
+          <type>const <ref refid="classresptr__detail_1_1SharedRes" kindref="compound">SharedRes</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="433" column="3" bodyfile="dag_resPtr.h" bodystart="433" bodyend="433"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a306e30a54061bd9c264e81fe9c34ec50" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1SharedRes" kindref="compound">SharedRes</ref> &amp;</type>
+        <definition>SharedRes &amp; resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::operator=</definition>
+        <argsstring>(const SharedRes &amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::SharedRes::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classresptr__detail_1_1SharedRes" kindref="compound">SharedRes</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="435" column="13" bodyfile="dag_resPtr.h" bodystart="435" bodyend="439"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1a20d8356d11fb5ed1473e78cc778fe5e0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::~SharedRes</definition>
+        <argsstring>()</argsstring>
+        <name>~SharedRes</name>
+        <qualifiedname>resptr_detail::SharedRes::~SharedRes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="441" column="3" bodyfile="dag_resPtr.h" bodystart="441" bodyend="441"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classresptr__detail_1_1SharedRes_1ad7e442848f96b200f006e12d9135bdb5" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;::release</definition>
+        <argsstring>(typename Helper&lt; ResType &gt;::resid_t &amp;res_id, ResType *res)</argsstring>
+        <name>release</name>
+        <qualifiedname>resptr_detail::SharedRes::release</qualifiedname>
+        <param>
+          <type>typename <ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper</ref>&lt; <ref refid="classresptr__detail_1_1SharedRes_1a068f9e3939faec80fcaab60058ed5fc8" kindref="member">ResType</ref> &gt;::resid_t &amp;</type>
+          <declname>res_id</declname>
+        </param>
+        <param>
+          <type><ref refid="classresptr__detail_1_1SharedRes_1a068f9e3939faec80fcaab60058ed5fc8" kindref="member">ResType</ref> *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="443" column="15" bodyfile="dag_resPtr.h" bodystart="443" bodyend="448"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="3">
+        <label>resptr_detail::MoveAssignable</label>
+        <link refid="classresptr__detail_1_1MoveAssignable"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1SharedRes"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="3">
+        <label>resptr_detail::MoveAssignable</label>
+        <link refid="classresptr__detail_1_1MoveAssignable"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1SharedRes"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="412" column="1" bodyfile="dag_resPtr.h" bodystart="413" bodyend="449"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1SharedRes_1a80ca1333d830140f2e82362355f678c9" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>BaseType</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a917886ba2d55ca7a4562051dd51dba9d" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>close</name></member>
+      <member refid="classresptr__detail_1_1MoveAssignable_1adc2200080aa2d0473c528d9f96f9fa6c" prot="protected" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>isValidForMoveAssignment</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a92543874f567f361c83a23114adf04f2" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>move_assignable_t</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a5477cf37863d52cd7aac4b6e28a1d121" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a306e30a54061bd9c264e81fe9c34ec50" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1ad7e442848f96b200f006e12d9135bdb5" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>release</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a068f9e3939faec80fcaab60058ed5fc8" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>ResType</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a9c5560593bd734463c84ead31e914fa0" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>SharedRes</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a27a161898f28a70609f4e56c8ac897dc" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>SharedRes</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a817a98442ee0140305da587bfea17a0e" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>SharedRes</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a54fcc4ce70d958bf45b73dc01c4434d3" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>SharedRes</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a4e9500e048eb75c279d991a2d43e51f3" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>SharedRes</name></member>
+      <member refid="classresptr__detail_1_1SharedRes_1a20d8356d11fb5ed1473e78cc778fe5e0" prot="public" virt="non-virtual"><scope>resptr_detail::SharedRes</scope><name>~SharedRes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

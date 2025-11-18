@@ -1,0 +1,350 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DagorMat</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Asset Viewer" href="../../../asset-viewer/index.html" />
+    <link rel="prev" title="DagorMat" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../dagor-maxscript-toolbox/index.html">Dagor MaxScript Toolbox</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">DagorMat</a><ul class="current">
+<li class="toctree-l5 current"><a class="current reference internal" href="#">DagorMat</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#configuring-dagormat-shaders">Configuring DagorMat Shaders</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#general-configuration-parameters">General Configuration Parameters</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#texture-slot-names">Texture Slot Names</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#global-parameters">Global Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#shader-specific-parameters">Shader-Specific Parameters</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#procedural-parameter-update">Procedural Parameter Update</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">DagorMat</a></li>
+      <li class="breadcrumb-item active">DagorMat</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagormat/dagormat.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagormat">
+<h1>DagorMat<a class="headerlink" href="#dagormat" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>DagorMat is essentially a collection of shaders for 3ds Max. To access it,
+open the Material Editor (preferably using the Slate Material Editor),
+navigate to the <strong>General</strong> tab, and you should see two materials listed under
+Dagor Dagorrat Material.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you don’t see DagorMat listed, press <code class="docutils literal notranslate"><span class="pre">F10</span></code> and switch the <strong>Renderer</strong>
+field to <strong>Scanline Renderer</strong>.</p>
+</div>
+<a class="reference internal image-reference" href="../../../../_images/dagormat_01.png"><img alt="" class="align-center" src="../../../../_images/dagormat_01.png" style="width: 50em;" />
+</a>
+<p>There are two versions available because the original was DagorMat1 (often just
+called DagorMat), where shader names (class names) and their parameters had to
+be manually entered. Even now, some shaders have not been migrated to DagorMat2
+and thus still open in DagorMat1, with all parameters defined via scripts. This
+can be cumbersome since 3ds Max’s interface limits the shader parameter display
+area to just a few lines.</p>
+<a class="reference internal image-reference" href="../../../../_images/dagormat_02.png"><img alt="" class="align-center" src="../../../../_images/dagormat_02.png" style="width: 33em;" />
+</a>
+<p>DagorMat2 was likely developed to address these usability issues, allowing you
+to set all parameters using a mouse-friendly interface.</p>
+<p><strong>Shader:</strong></p>
+<a class="reference internal image-reference" href="../../../../_images/dagormat_03.png"><img alt="" class="align-center" src="../../../../_images/dagormat_03.png" style="width: 33em;" />
+</a>
+<p><strong>Additional parameters:</strong></p>
+<a class="reference internal image-reference" href="../../../../_images/dagormat_05.png"><img alt="" class="align-center" src="../../../../_images/dagormat_05.png" style="width: 33em;" />
+</a>
+</section>
+<section id="configuring-dagormat-shaders">
+<h2>Configuring DagorMat Shaders<a class="headerlink" href="#configuring-dagormat-shaders" title="Link to this heading"></a></h2>
+<p>Since DagorMat1 does not use any preset parameters (everything is manually
+scripted), there’s no need for additional configuration. However, DagorMat2
+requires that shaders and their parameters be added to the <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>
+files for them to appear in 3ds Max.</p>
+<p>These configuration files can be found at:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>.../dagor_cdk/windows-x86_64/plugins-3dsMax/
+</pre></div>
+</div>
+<section id="general-configuration-parameters">
+<h3>General Configuration Parameters<a class="headerlink" href="#general-configuration-parameters" title="Link to this heading"></a></h3>
+<p>To configure shaders, open the <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code> file in any text editor.</p>
+<section id="texture-slot-names">
+<h4>Texture Slot Names<a class="headerlink" href="#texture-slot-names" title="Link to this heading"></a></h4>
+<p><strong>Parameters:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[_settings]
+tex1_name=&quot;diffuse&quot;
+tex2_name=&quot;CUBE environment&quot;
+tex3_name=&quot;normalmap&quot;
+tex4_name=&quot;parallax (height field)&quot;
+tex5_name=&quot;glossmap (specular mask+shininess)&quot;
+tex6_name=&quot;emission tex (unsupported!)&quot;
+tex7_name=&quot;lightmap&quot;
+tex8_name=&quot;detail tex&quot;
+</pre></div>
+</div>
+<p>Control the following:</p>
+<a class="reference internal image-reference" href="../../../../_images/dagormat_05.png"><img alt="" class="align-center" src="../../../../_images/dagormat_05.png" style="width: 33em;" />
+</a>
+</section>
+<section id="global-parameters">
+<h4>Global Parameters<a class="headerlink" href="#global-parameters" title="Link to this heading"></a></h4>
+<p>These parameters apply to all shaders. While they might not work everywhere, you
+can set them in any shader. If a shader doesn’t have its own specific
+parameters, only the global ones will be used.</p>
+<p><strong>Parameters:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[_global_params]
+lighting=enum(none lightmap vltmap)
+real_two_sided=enum(yes no)
+scene_emission=real optional
+emission=real optional
+relief=real optional
+atest=text optional
+reflection_multiplier=int optional
+</pre></div>
+</div>
+<p>Control the following:</p>
+<a class="reference internal image-reference" href="../../../../_images/dagormat_06.png"><img alt="" class="align-center" src="../../../../_images/dagormat_06.png" style="width: 50em;" />
+</a>
+<p>Pay close attention to how different parameter types are displayed and processed
+in the 3ds Max interface:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">enum(none</span> <span class="pre">lightmap</span> <span class="pre">vltmap)</span></code>: enumerations appear as “radio buttons”.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enum(yes</span> <span class="pre">no)</span></code>: boolean options appear as checkboxes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">real</span> <span class="pre">optional</span></code>: a “real number” allows you to specify any numerical value.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>3ds Max does not export zero values unless you manually enter them. If you
+add a new parameter (which defaults to <code class="docutils literal notranslate"><span class="pre">0</span></code>) and don’t replace it with your own
+zero, the parameter will not be exported.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">text</span> <span class="pre">optional</span></code>: string type, typically used when a parameter requires
+multiple components (e.g., <code class="docutils literal notranslate"><span class="pre">(1,1,1,1)</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">optional</span></code>: integer type, ranging from negative to positive infinity.</p></li>
+</ul>
+</section>
+</section>
+<section id="shader-specific-parameters">
+<h3>Shader-Specific Parameters<a class="headerlink" href="#shader-specific-parameters" title="Link to this heading"></a></h3>
+<p>Next, you’ll find parameters specific to each shader. These are defined
+similarly to the global ones, using the same types of variables.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[rendinst_perlin_layered]     // Shader name
+invert_heights=text optional  // Parameters
+mask_gamma=text optional
+paint_details=text optional
+
+micro_detail_layer=real optional
+micro_detail_layer_v_scale=real optional
+micro_detail_layer_uv_scale=real optional
+
+// War Thunder parameters
+blend_normals=text optional
+details_tile=text optional
+</pre></div>
+</div>
+</section>
+<section id="procedural-parameter-update">
+<h3>Procedural Parameter Update<a class="headerlink" href="#procedural-parameter-update" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code> file can now be updated using the tool located at
+<code class="docutils literal notranslate"><span class="pre">.../tools/util/dagorShadersCfgGenerator-dev.exe</span></code>.</p>
+<p>This tool performs the following steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Reads the Parent <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>:</strong> the tool begins by loading the
+parent <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code> file, which serves as the base for updating shader
+parameters.</p></li>
+<li><p><strong>Reads the Target <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>:</strong> it then loads the target
+<code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>, where the final parameters and shaders will be saved.
+Usually, this is the same file as the parent, since there are no other shader
+config files to reference.</p></li>
+<li><p><strong>Loads Shader Dumps:</strong> the tool reads a list of shader binaries, either from
+tool-specific shaders (<code class="docutils literal notranslate"><span class="pre">tools.ps50.shdump.bin</span></code>) or game shaders
+(<code class="docutils literal notranslate"><span class="pre">game.ps50.shdump.bin</span></code>). Given the variety of projects, shaders differ
+between them, so you can specify multiple binaries from different projects to
+consolidate their parameters into a single <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>.</p></li>
+<li><p><strong>Extracts Shaders and Parameters:</strong> the tool extracts all shaders and their
+parameters from the shader binaries.</p></li>
+<li><p><strong>Merges Parameters:</strong> it merges these extracted parameters into the parent
+<code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>, maintaining the structure by only adding new parameters
+and removing outdated ones.</p></li>
+<li><p><strong>Writes the Final <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>:</strong> the tool then saves the updated
+configuration to the target <code class="docutils literal notranslate"><span class="pre">dagorShaders.cfg</span></code>.</p></li>
+</ol>
+<p>The tool is run through the command line with the following syntax:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>dagorShadersCfgGenerator-dev.exe [parent dagorShaders.cfg] [target dagorShaders.cfg] [shader binary 1 (.ps50.shdump.bin)] [shader binary 2 (.ps50.shdump.bin)] ... [shader binary N (.ps50.shdump.bin)]
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p><strong>Exercise Caution</strong>. The tool should not be fully trusted due to frequent
+changes in the shader environment. After each update, always perform a <code class="docutils literal notranslate"><span class="pre">diff</span></code>
+comparison with the current version and carefully review any differences.</p></li>
+<li><p><strong>Potential Issues</strong>. The tool may occasionally omit certain parameters or
+fail to locate shaders that you know exist.</p></li>
+</ul>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="DagorMat" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../asset-viewer/index.html" class="btn btn-neutral float-right" title="Asset Viewer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

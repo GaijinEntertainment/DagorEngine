@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ResourceBindingTable" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ResourceBindingTable</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead" prot="public">raytrace::ResourceBindingTable::AccelerationStructureRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead" prot="public">raytrace::ResourceBindingTable::BufferRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite" prot="public">raytrace::ResourceBindingTable::BufferWrite</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead" prot="public">raytrace::ResourceBindingTable::ConstBufferRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead" prot="public">raytrace::ResourceBindingTable::SamplerRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead" prot="public">raytrace::ResourceBindingTable::TextureRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite" prot="public">raytrace::ResourceBindingTable::TextureWrite</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1aeed1a47821a9e278bf8c36731909b38e" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const uint32_t &gt;</type>
+        <definition>dag::ConstSpan&lt;const uint32_t&gt; raytrace::ResourceBindingTable::immediateConstants</definition>
+        <argsstring></argsstring>
+        <name>immediateConstants</name>
+        <qualifiedname>raytrace::ResourceBindingTable::immediateConstants</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constant data that is supposed to be pushed into immediate registers, this data is usually written directly to to the command buffer of the device and update some constant registers of the device. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="885" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="885" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1aa3067a678c7049184316383dc2d95d77" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead" kindref="compound">ConstBufferRead</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;ConstBufferRead&gt; raytrace::ResourceBindingTable::constantBufferReads</definition>
+        <argsstring></argsstring>
+        <name>constantBufferReads</name>
+        <qualifiedname>raytrace::ResourceBindingTable::constantBufferReads</qualifiedname>
+        <briefdescription>
+<para>Binding set of constant buffers. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="887" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="887" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1a7e21606c08c3e992e76bb35fea19b322" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead" kindref="compound">BufferRead</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;BufferRead&gt; raytrace::ResourceBindingTable::bufferReads</definition>
+        <argsstring></argsstring>
+        <name>bufferReads</name>
+        <qualifiedname>raytrace::ResourceBindingTable::bufferReads</qualifiedname>
+        <briefdescription>
+<para>Binding set for read only buffers (eg SRV). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="889" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="889" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1af4d3573b5083e804c1199fc31cc64e24" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead" kindref="compound">TextureRead</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;TextureRead&gt; raytrace::ResourceBindingTable::textureReads</definition>
+        <argsstring></argsstring>
+        <name>textureReads</name>
+        <qualifiedname>raytrace::ResourceBindingTable::textureReads</qualifiedname>
+        <briefdescription>
+<para>Binding set for read only textures (eg SRV). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="891" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="891" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1ad593430f3c041a0b59a9a211151bc04a" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead" kindref="compound">AccelerationStructureRead</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;AccelerationStructureRead&gt; raytrace::ResourceBindingTable::accelerationStructureReads</definition>
+        <argsstring></argsstring>
+        <name>accelerationStructureReads</name>
+        <qualifiedname>raytrace::ResourceBindingTable::accelerationStructureReads</qualifiedname>
+        <briefdescription>
+<para>Binding set for acceleration structures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="893" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="893" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1a951b5087e01bbe7820a94b980e95e6f7" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite" kindref="compound">BufferWrite</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;BufferWrite&gt; raytrace::ResourceBindingTable::bufferWrites</definition>
+        <argsstring></argsstring>
+        <name>bufferWrites</name>
+        <qualifiedname>raytrace::ResourceBindingTable::bufferWrites</qualifiedname>
+        <briefdescription>
+<para>Binding set for read write buffers (eg UAV). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="895" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="895" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1a8192ec4e8a014256e259a9bc81ac664e" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite" kindref="compound">TextureWrite</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;TextureWrite&gt; raytrace::ResourceBindingTable::textureWrites</definition>
+        <argsstring></argsstring>
+        <name>textureWrites</name>
+        <qualifiedname>raytrace::ResourceBindingTable::textureWrites</qualifiedname>
+        <briefdescription>
+<para>Binding set for read write textures (eg UAV). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="897" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="897" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1a039898bb372b39a16253eae58f837325" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead" kindref="compound">SamplerRead</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;SamplerRead&gt; raytrace::ResourceBindingTable::samples</definition>
+        <argsstring></argsstring>
+        <name>samples</name>
+        <qualifiedname>raytrace::ResourceBindingTable::samples</qualifiedname>
+        <briefdescription>
+<para>Binding set for samplers. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="899" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="899" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Resource binding table, order is not important. Slots that are undefined by this table that are used by the pipeline of the dispatch will be using the corresponding null resource. Definitions by this table with null for resource references will be ignored and do not contribute to possible slot usage clashes. &apos;constantBufferReads&apos; use the &apos;b&apos; register space. &apos;bufferReads&apos;, &apos;textureReads&apos; and &apos;accelerationStructureReads&apos; use the &apos;t&apos; register space. &apos;bufferWrites&apos; and &apos;textureWrites&apos; use the &apos;u&apos; register space. Behavior is undefined when slot usages clash. A usage clash happens when the same register slot of the same register space is used by multiple resource usage definitions, for example if &apos;bufferReads&apos; has a entry with a &apos;slot&apos; value and &apos;textureReads&apos; has a entry with a &apos;slot&apos; with the same value. </para>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="815" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="816" bodyend="900"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ResourceBindingTable_1ad593430f3c041a0b59a9a211151bc04a" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>accelerationStructureReads</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1a7e21606c08c3e992e76bb35fea19b322" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>bufferReads</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1a951b5087e01bbe7820a94b980e95e6f7" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>bufferWrites</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1aa3067a678c7049184316383dc2d95d77" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>constantBufferReads</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1aeed1a47821a9e278bf8c36731909b38e" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>immediateConstants</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1a039898bb372b39a16253eae58f837325" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>samples</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1af4d3573b5083e804c1199fc31cc64e24" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>textureReads</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1a8192ec4e8a014256e259a9bc81ac664e" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable</scope><name>textureWrites</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

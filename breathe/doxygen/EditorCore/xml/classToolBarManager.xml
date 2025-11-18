@@ -1,0 +1,888 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classToolBarManager" kind="class" language="C++" prot="public">
+    <compoundname>ToolBarManager</compoundname>
+    <includes refid="ec__status__bar_8h" local="no">ec_status_bar.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Functions called by editor core</header>
+      <memberdef kind="variable" id="classToolBarManager_1a271f3c6567b139e57e1b23ecb8892d75" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::tbId</definition>
+        <argsstring></argsstring>
+        <name>tbId</name>
+        <qualifiedname>ToolBarManager::tbId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="81" column="7" bodyfile="ec_status_bar.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a46d3f79421128d3aedfdb7b56f1fa1be" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ToolBarManager::isEnabled</definition>
+        <argsstring></argsstring>
+        <name>isEnabled</name>
+        <qualifiedname>ToolBarManager::isEnabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="83" column="8" bodyfile="ec_status_bar.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a2191f9c03581242ba231f56fe7f8c957" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 ToolBarManager::gizmoPos</definition>
+        <argsstring></argsstring>
+        <name>gizmoPos</name>
+        <qualifiedname>ToolBarManager::gizmoPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="84" column="10" bodyfile="ec_status_bar.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a0d6fe8acb8b8a2a69e4a47f505cb06e4" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::gizmoBasisType</definition>
+        <argsstring></argsstring>
+        <name>gizmoBasisType</name>
+        <qualifiedname>ToolBarManager::gizmoBasisType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="86" column="7" bodyfile="ec_status_bar.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a9b81dc35ab67e0198207d2e38a6dfe87" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::gizmoCenterType</definition>
+        <argsstring></argsstring>
+        <name>gizmoCenterType</name>
+        <qualifiedname>ToolBarManager::gizmoCenterType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="87" column="7" bodyfile="ec_status_bar.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a8712465c5156045232e2dd7faab5da01" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; ToolBarManager::itemsBasis</definition>
+        <argsstring></argsstring>
+        <name>itemsBasis</name>
+        <qualifiedname>ToolBarManager::itemsBasis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="89" column="7" bodyfile="ec_status_bar.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a402d49ca0f2c30fcae236a1ee817e8b4" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; ToolBarManager::itemsCenter</definition>
+        <argsstring></argsstring>
+        <name>itemsCenter</name>
+        <qualifiedname>ToolBarManager::itemsCenter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="90" column="7" bodyfile="ec_status_bar.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a45d1b0b91a56cf4d13edaef4673bcb55" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ToolBarManager::isEnabledBtnRotateCenterAndObj</definition>
+        <argsstring></argsstring>
+        <name>isEnabledBtnRotateCenterAndObj</name>
+        <qualifiedname>ToolBarManager::isEnabledBtnRotateCenterAndObj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="92" column="8" bodyfile="ec_status_bar.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a4d09969fd3abaf7a1bb417dd3d02c879" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ToolBarManager::controlsInserted</definition>
+        <argsstring></argsstring>
+        <name>controlsInserted</name>
+        <qualifiedname>ToolBarManager::controlsInserted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="94" column="8" bodyfile="ec_status_bar.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1ac6b1822d45aee0e4a733c6c8e0d27fc7" prot="protected" static="no" mutable="no">
+        <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+        <definition>IEditorCoreEngine::ModeType ToolBarManager::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ToolBarManager::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="96" column="31" bodyfile="ec_status_bar.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1adf582a8a6b2b210a5e18b286a655dff9" prot="protected" static="no" mutable="no">
+        <type><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> *</type>
+        <definition>IGizmoClient* ToolBarManager::client</definition>
+        <argsstring></argsstring>
+        <name>client</name>
+        <qualifiedname>ToolBarManager::client</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="97" column="16" bodyfile="ec_status_bar.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a69c57d3c96773507bae8eb2344d8064d" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::availableTypes</definition>
+        <argsstring></argsstring>
+        <name>availableTypes</name>
+        <qualifiedname>ToolBarManager::availableTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="98" column="7" bodyfile="ec_status_bar.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a903dd8c771821f11076b6409d02738d8" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::moveGizmo</definition>
+        <argsstring></argsstring>
+        <name>moveGizmo</name>
+        <qualifiedname>ToolBarManager::moveGizmo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="100" column="7" bodyfile="ec_status_bar.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a9b24e5040792002fd87c76667ff885b1" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::moveSurfGizmo</definition>
+        <argsstring></argsstring>
+        <name>moveSurfGizmo</name>
+        <qualifiedname>ToolBarManager::moveSurfGizmo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="101" column="7" bodyfile="ec_status_bar.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1ae60ec7062f91ffb8759f2d875907e3a7" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::scaleGizmo</definition>
+        <argsstring></argsstring>
+        <name>scaleGizmo</name>
+        <qualifiedname>ToolBarManager::scaleGizmo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="102" column="7" bodyfile="ec_status_bar.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classToolBarManager_1a610700cb516529dd79655c66f5d57c23" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ToolBarManager::rotateGizmo</definition>
+        <argsstring></argsstring>
+        <name>rotateGizmo</name>
+        <qualifiedname>ToolBarManager::rotateGizmo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="103" column="7" bodyfile="ec_status_bar.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a9f7ab102770d47aa6f0e49f3ebd342ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ToolBarManager::setMoveSnap</definition>
+        <argsstring>()</argsstring>
+        <name>setMoveSnap</name>
+        <qualifiedname>ToolBarManager::setMoveSnap</qualifiedname>
+        <briefdescription>
+<para>Push / pull &apos;Move snap toggle&apos; button. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="67" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a7394841a88cb23c60476dcc81932a807" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ToolBarManager::setScaleSnap</definition>
+        <argsstring>()</argsstring>
+        <name>setScaleSnap</name>
+        <qualifiedname>ToolBarManager::setScaleSnap</qualifiedname>
+        <briefdescription>
+<para>Push / pull &apos;Scale snap toggle&apos; button. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="70" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a5b63a58cf9582dc2e509c5d349d7c7c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ToolBarManager::setRotateSnap</definition>
+        <argsstring>()</argsstring>
+        <name>setRotateSnap</name>
+        <qualifiedname>ToolBarManager::setRotateSnap</qualifiedname>
+        <briefdescription>
+<para>Push / pull &apos;Rotate snap toggle&apos; button. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="73" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1ada1e23f96a66eb971ca9ee53a9106751" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ToolBarManager::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel)</argsstring>
+        <name>onChange</name>
+        <qualifiedname>ToolBarManager::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+<para>Editor should call onChange in toolbar collback. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="78" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a871085fee91a49786dc3e9f8115500be" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::setClientValues</definition>
+        <argsstring>(Point3 &amp;val)</argsstring>
+        <name>setClientValues</name>
+        <qualifiedname>ToolBarManager::setClientValues</qualifiedname>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="105" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a59545014f867e1fca090676289dedaff" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::refillTypes</definition>
+        <argsstring>()</argsstring>
+        <name>refillTypes</name>
+        <qualifiedname>ToolBarManager::refillTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="107" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1ae1f6dd196beadc22c10001db2f00b8a7" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::setGizmoBasisAndCenter</definition>
+        <argsstring>(int bas, int center)</argsstring>
+        <name>setGizmoBasisAndCenter</name>
+        <qualifiedname>ToolBarManager::setGizmoBasisAndCenter</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>bas</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>center</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="108" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a7a096c5ce23f3fb74b45e39393498503" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::setEnabled</definition>
+        <argsstring>(bool enable)</argsstring>
+        <name>setEnabled</name>
+        <qualifiedname>ToolBarManager::setEnabled</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="109" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a8b021f14efe44d5225d0f210560f2683" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">IEditorCoreEngine::CenterType</ref></type>
+        <definition>IEditorCoreEngine::CenterType ToolBarManager::getCenterTypeByName</definition>
+        <argsstring>(const char *name, bool enableRotObj) const</argsstring>
+        <name>getCenterTypeByName</name>
+        <qualifiedname>ToolBarManager::getCenterTypeByName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enableRotObj</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="111" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1ac117491e2332e2ba165e74558415a058" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+        <definition>IEditorCoreEngine::BasisType ToolBarManager::getBasisTypeByName</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getBasisTypeByName</name>
+        <qualifiedname>ToolBarManager::getBasisTypeByName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="112" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1ae7216e7b5a20764ef9573ee9a9e6f497" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getCenterNameByType</definition>
+        <argsstring>(IEditorCoreEngine::CenterType type) const</argsstring>
+        <name>getCenterNameByType</name>
+        <qualifiedname>ToolBarManager::getCenterNameByType</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">IEditorCoreEngine::CenterType</ref></type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="114" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a4477ec64d80f53571f822b9221193680" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getBasisNameByType</definition>
+        <argsstring>(IEditorCoreEngine::BasisType type) const</argsstring>
+        <name>getBasisNameByType</name>
+        <qualifiedname>ToolBarManager::getBasisNameByType</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="115" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a5de1c8262b78a575f0ff9217c0ad4304" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getBasisWorldCaption</definition>
+        <argsstring>() const</argsstring>
+        <name>getBasisWorldCaption</name>
+        <qualifiedname>ToolBarManager::getBasisWorldCaption</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="117" column="14" bodyfile="ec_status_bar.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1add43b6cef78c45f0eb1dff9a67458ce8" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getBasisLocalCaption</definition>
+        <argsstring>() const</argsstring>
+        <name>getBasisLocalCaption</name>
+        <qualifiedname>ToolBarManager::getBasisLocalCaption</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="118" column="14" bodyfile="ec_status_bar.h" bodystart="118" bodyend="118"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a5ed690b45d41291cf3f4d0f507d0d797" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getBasisParentCaption</definition>
+        <argsstring>() const</argsstring>
+        <name>getBasisParentCaption</name>
+        <qualifiedname>ToolBarManager::getBasisParentCaption</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="119" column="14" bodyfile="ec_status_bar.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1aefd1807269f4d953d1018a7768c8f5df" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getCenterPivotCaption</definition>
+        <argsstring>() const</argsstring>
+        <name>getCenterPivotCaption</name>
+        <qualifiedname>ToolBarManager::getCenterPivotCaption</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="121" column="14" bodyfile="ec_status_bar.h" bodystart="121" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1af24c774c9c6d33ffd6daf583fe33a399" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getCenterSelectionCaption</definition>
+        <argsstring>() const</argsstring>
+        <name>getCenterSelectionCaption</name>
+        <qualifiedname>ToolBarManager::getCenterSelectionCaption</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="122" column="14" bodyfile="ec_status_bar.h" bodystart="122" bodyend="122"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a0cb2f085f9cc5c456c6737acfb2c4d9d" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ToolBarManager::getCenterCoordCaption</definition>
+        <argsstring>() const</argsstring>
+        <name>getCenterCoordCaption</name>
+        <qualifiedname>ToolBarManager::getCenterCoordCaption</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="123" column="14" bodyfile="ec_status_bar.h" bodystart="123" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1ac583df8bb922a2c10f2d96eea25fd8b3" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ToolBarManager::getMoveGizmoDef</definition>
+        <argsstring>() const</argsstring>
+        <name>getMoveGizmoDef</name>
+        <qualifiedname>ToolBarManager::getMoveGizmoDef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="125" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a387c370e7b186439b5033e2c8b71b022" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ToolBarManager::getMoveSurfGizmoDef</definition>
+        <argsstring>() const</argsstring>
+        <name>getMoveSurfGizmoDef</name>
+        <qualifiedname>ToolBarManager::getMoveSurfGizmoDef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="126" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1af4c56eaada435e38aae9f1bb225e5ec6" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ToolBarManager::getScaleGizmoDef</definition>
+        <argsstring>() const</argsstring>
+        <name>getScaleGizmoDef</name>
+        <qualifiedname>ToolBarManager::getScaleGizmoDef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="127" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a57ff8885757d9224d7f0881c6bc73193" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ToolBarManager::getRotateGizmoDef</definition>
+        <argsstring>() const</argsstring>
+        <name>getRotateGizmoDef</name>
+        <qualifiedname>ToolBarManager::getRotateGizmoDef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="128" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1aee0101a43d00ef90a09e3a479494e9ed" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 ToolBarManager::getClientGizmoValue</definition>
+        <argsstring>()</argsstring>
+        <name>getClientGizmoValue</name>
+        <qualifiedname>ToolBarManager::getClientGizmoValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="130" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a095c9a46ca115b10069a185d3b95a8f8" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::setGizmoToToolbar</definition>
+        <argsstring>(Point3 value)</argsstring>
+        <name>setGizmoToToolbar</name>
+        <qualifiedname>ToolBarManager::setGizmoToToolbar</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="131" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Toolbar management</header>
+      <memberdef kind="function" id="classToolBarManager_1a3ed4f698a1e36a810976f9e393d0518c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::init</definition>
+        <argsstring>(int toolbar_id)</argsstring>
+        <name>init</name>
+        <qualifiedname>ToolBarManager::init</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>toolbar_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Init toolbar. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">toolbar_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- toolbar id </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="27" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Gizmo methods</header>
+      <memberdef kind="function" id="classToolBarManager_1a4d649fda8f9ee47f299ee810e5f96228" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::setGizmoClient</definition>
+        <argsstring>(IGizmoClient *gc, IEditorCoreEngine::ModeType tp)</argsstring>
+        <name>setGizmoClient</name>
+        <qualifiedname>ToolBarManager::setGizmoClient</qualifiedname>
+        <param>
+          <type><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> *</type>
+          <declname>gc</declname>
+        </param>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+          <declname>tp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set interface <ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> and Gizmo type. Caled by editor core. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">gc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ponter to interface <ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">tp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Gizmo type (see <ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a6d4a7ded466441d4c1a8ff10ce5c63d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ToolBarManager::act</definition>
+        <argsstring>()</argsstring>
+        <name>act</name>
+        <qualifiedname>ToolBarManager::act</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Acts the <ref refid="classToolBarManager" kindref="compound">ToolBarManager</ref>. In this function <ref refid="classToolBarManager" kindref="compound">ToolBarManager</ref> sets proper values in edit boxes located on assigned toolbar and enables/disables toolbar&apos;s controls. Called by editor core. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="43" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1adb6930333f22c3bd2892276737ab0949" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">IEditorCoreEngine::CenterType</ref></type>
+        <definition>IEditorCoreEngine::CenterType ToolBarManager::getCenterType</definition>
+        <argsstring>() const</argsstring>
+        <name>getCenterType</name>
+        <qualifiedname>ToolBarManager::getCenterType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo&apos;s center type. <simplesect kind="return"><para>Gizmo&apos;s center type (see <ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">IEditorCoreEngine::CenterType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="47" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a209f4b8ddfb41ce8649efa78f43f06ef" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">IEditorCoreEngine::CenterType</ref></type>
+        <definition>IEditorCoreEngine::CenterType ToolBarManager::getGizmoCenterTypeForMode</definition>
+        <argsstring>(IEditorCoreEngine::ModeType tp) const</argsstring>
+        <name>getGizmoCenterTypeForMode</name>
+        <qualifiedname>ToolBarManager::getGizmoCenterTypeForMode</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+          <declname>tp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo center type for a specific mode. <simplesect kind="return"><para>Gizmo center type a specific mode (see <ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">IEditorCoreEngine::CenterType</ref> and see <ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="51" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1aa8adc8e864ac3792fb7922cb4935f484" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+        <definition>IEditorCoreEngine::BasisType ToolBarManager::getBasisType</definition>
+        <argsstring>() const</argsstring>
+        <name>getBasisType</name>
+        <qualifiedname>ToolBarManager::getBasisType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo&apos;s basis type <simplesect kind="return"><para>Gizmo&apos;s basis type (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="55" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1a22766cf8057e17383d32964837543b16" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref></type>
+        <definition>IEditorCoreEngine::BasisType ToolBarManager::getGizmoBasisTypeForMode</definition>
+        <argsstring>(IEditorCoreEngine::ModeType tp) const</argsstring>
+        <name>getGizmoBasisTypeForMode</name>
+        <qualifiedname>ToolBarManager::getGizmoBasisTypeForMode</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+          <declname>tp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo&apos;s basis type for a specific mode <simplesect kind="return"><para>Gizmo&apos;s basis type for a specific mode (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref> and see <ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="59" column="32"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classToolBarManager_1a5056da38e0a3ed60b4a214635e997e72" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ToolBarManager::ToolBarManager</definition>
+        <argsstring>()</argsstring>
+        <name>ToolBarManager</name>
+        <qualifiedname>ToolBarManager::ToolBarManager</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="17" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classToolBarManager_1ac9dab81b28e5c8c64642700641d47760" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual ToolBarManager::~ToolBarManager</definition>
+        <argsstring>()</argsstring>
+        <name>~ToolBarManager</name>
+        <qualifiedname>ToolBarManager::~ToolBarManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_status_bar.h" line="19" column="11" bodyfile="ec_status_bar.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Toolbar manager. Used to display toolbar with Gizmo parameters, &apos;Navigate&apos; button, etc on it. </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="1">
+        <label>ToolBarManager</label>
+        <link refid="classToolBarManager"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_status_bar.h" line="13" column="1" bodyfile="ec_status_bar.h" bodystart="14" bodyend="132"/>
+    <listofallmembers>
+      <member refid="classToolBarManager_1a6d4a7ded466441d4c1a8ff10ce5c63d6" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>act</name></member>
+      <member refid="classToolBarManager_1a69c57d3c96773507bae8eb2344d8064d" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>availableTypes</name></member>
+      <member refid="classToolBarManager_1adf582a8a6b2b210a5e18b286a655dff9" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>client</name></member>
+      <member refid="classToolBarManager_1a4d09969fd3abaf7a1bb417dd3d02c879" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>controlsInserted</name></member>
+      <member refid="classToolBarManager_1add43b6cef78c45f0eb1dff9a67458ce8" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getBasisLocalCaption</name></member>
+      <member refid="classToolBarManager_1a4477ec64d80f53571f822b9221193680" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getBasisNameByType</name></member>
+      <member refid="classToolBarManager_1a5ed690b45d41291cf3f4d0f507d0d797" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getBasisParentCaption</name></member>
+      <member refid="classToolBarManager_1aa8adc8e864ac3792fb7922cb4935f484" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>getBasisType</name></member>
+      <member refid="classToolBarManager_1ac117491e2332e2ba165e74558415a058" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getBasisTypeByName</name></member>
+      <member refid="classToolBarManager_1a5de1c8262b78a575f0ff9217c0ad4304" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getBasisWorldCaption</name></member>
+      <member refid="classToolBarManager_1a0cb2f085f9cc5c456c6737acfb2c4d9d" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getCenterCoordCaption</name></member>
+      <member refid="classToolBarManager_1ae7216e7b5a20764ef9573ee9a9e6f497" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getCenterNameByType</name></member>
+      <member refid="classToolBarManager_1aefd1807269f4d953d1018a7768c8f5df" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getCenterPivotCaption</name></member>
+      <member refid="classToolBarManager_1af24c774c9c6d33ffd6daf583fe33a399" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getCenterSelectionCaption</name></member>
+      <member refid="classToolBarManager_1adb6930333f22c3bd2892276737ab0949" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>getCenterType</name></member>
+      <member refid="classToolBarManager_1a8b021f14efe44d5225d0f210560f2683" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getCenterTypeByName</name></member>
+      <member refid="classToolBarManager_1aee0101a43d00ef90a09e3a479494e9ed" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getClientGizmoValue</name></member>
+      <member refid="classToolBarManager_1a22766cf8057e17383d32964837543b16" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>getGizmoBasisTypeForMode</name></member>
+      <member refid="classToolBarManager_1a209f4b8ddfb41ce8649efa78f43f06ef" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>getGizmoCenterTypeForMode</name></member>
+      <member refid="classToolBarManager_1ac583df8bb922a2c10f2d96eea25fd8b3" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getMoveGizmoDef</name></member>
+      <member refid="classToolBarManager_1a387c370e7b186439b5033e2c8b71b022" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getMoveSurfGizmoDef</name></member>
+      <member refid="classToolBarManager_1a57ff8885757d9224d7f0881c6bc73193" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getRotateGizmoDef</name></member>
+      <member refid="classToolBarManager_1af4c56eaada435e38aae9f1bb225e5ec6" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>getScaleGizmoDef</name></member>
+      <member refid="classToolBarManager_1a0d6fe8acb8b8a2a69e4a47f505cb06e4" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>gizmoBasisType</name></member>
+      <member refid="classToolBarManager_1a9b81dc35ab67e0198207d2e38a6dfe87" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>gizmoCenterType</name></member>
+      <member refid="classToolBarManager_1a2191f9c03581242ba231f56fe7f8c957" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>gizmoPos</name></member>
+      <member refid="classToolBarManager_1a3ed4f698a1e36a810976f9e393d0518c" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>init</name></member>
+      <member refid="classToolBarManager_1a46d3f79421128d3aedfdb7b56f1fa1be" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>isEnabled</name></member>
+      <member refid="classToolBarManager_1a45d1b0b91a56cf4d13edaef4673bcb55" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>isEnabledBtnRotateCenterAndObj</name></member>
+      <member refid="classToolBarManager_1a8712465c5156045232e2dd7faab5da01" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>itemsBasis</name></member>
+      <member refid="classToolBarManager_1a402d49ca0f2c30fcae236a1ee817e8b4" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>itemsCenter</name></member>
+      <member refid="classToolBarManager_1a903dd8c771821f11076b6409d02738d8" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>moveGizmo</name></member>
+      <member refid="classToolBarManager_1a9b24e5040792002fd87c76667ff885b1" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>moveSurfGizmo</name></member>
+      <member refid="classToolBarManager_1ada1e23f96a66eb971ca9ee53a9106751" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>onChange</name></member>
+      <member refid="classToolBarManager_1a59545014f867e1fca090676289dedaff" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>refillTypes</name></member>
+      <member refid="classToolBarManager_1a610700cb516529dd79655c66f5d57c23" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>rotateGizmo</name></member>
+      <member refid="classToolBarManager_1ae60ec7062f91ffb8759f2d875907e3a7" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>scaleGizmo</name></member>
+      <member refid="classToolBarManager_1a871085fee91a49786dc3e9f8115500be" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>setClientValues</name></member>
+      <member refid="classToolBarManager_1a7a096c5ce23f3fb74b45e39393498503" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>setEnabled</name></member>
+      <member refid="classToolBarManager_1ae1f6dd196beadc22c10001db2f00b8a7" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>setGizmoBasisAndCenter</name></member>
+      <member refid="classToolBarManager_1a4d649fda8f9ee47f299ee810e5f96228" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>setGizmoClient</name></member>
+      <member refid="classToolBarManager_1a095c9a46ca115b10069a185d3b95a8f8" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>setGizmoToToolbar</name></member>
+      <member refid="classToolBarManager_1a9f7ab102770d47aa6f0e49f3ebd342ab" prot="public" virt="virtual"><scope>ToolBarManager</scope><name>setMoveSnap</name></member>
+      <member refid="classToolBarManager_1a5b63a58cf9582dc2e509c5d349d7c7c8" prot="public" virt="virtual"><scope>ToolBarManager</scope><name>setRotateSnap</name></member>
+      <member refid="classToolBarManager_1a7394841a88cb23c60476dcc81932a807" prot="public" virt="virtual"><scope>ToolBarManager</scope><name>setScaleSnap</name></member>
+      <member refid="classToolBarManager_1a271f3c6567b139e57e1b23ecb8892d75" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>tbId</name></member>
+      <member refid="classToolBarManager_1a5056da38e0a3ed60b4a214635e997e72" prot="public" virt="non-virtual"><scope>ToolBarManager</scope><name>ToolBarManager</name></member>
+      <member refid="classToolBarManager_1ac6b1822d45aee0e4a733c6c8e0d27fc7" prot="protected" virt="non-virtual"><scope>ToolBarManager</scope><name>type</name></member>
+      <member refid="classToolBarManager_1ac9dab81b28e5c8c64642700641d47760" prot="public" virt="virtual"><scope>ToolBarManager</scope><name>~ToolBarManager</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

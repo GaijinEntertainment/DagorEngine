@@ -1,0 +1,224 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImpostorParams" kind="struct" language="C++" prot="protected">
+    <compoundname>ImpostorParams</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImpostorParams_1ac2ad7ed0eb78373d718f01d5a52b9999" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; <ref refid="structImpostorSliceData" kindref="compound">ImpostorSliceData</ref>, 9 &gt;</type>
+        <definition>eastl::array&lt;ImpostorSliceData, 9&gt; ImpostorParams::perSliceParams</definition>
+        <argsstring></argsstring>
+        <name>perSliceParams</name>
+        <qualifiedname>ImpostorParams::perSliceParams</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="138" column="18" bodyfile="dag_rendInstRes.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1ab2ca84cc5a59e6639bd1f560f314a4f4" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorParams::scale</definition>
+        <argsstring></argsstring>
+        <name>scale</name>
+        <qualifiedname>ImpostorParams::scale</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="139" column="12" bodyfile="dag_rendInstRes.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1a5c42ef70c1ef7fde3001c14b3d9f0a0b" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorParams::boundingSphere</definition>
+        <argsstring></argsstring>
+        <name>boundingSphere</name>
+        <qualifiedname>ImpostorParams::boundingSphere</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="140" column="12" bodyfile="dag_rendInstRes.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1ab9e98b009e4a7db2d7f62c0554b89536" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; Point4, 4 &gt;</type>
+        <definition>eastl::array&lt;Point4, 4&gt; ImpostorParams::vertexOffsets</definition>
+        <argsstring></argsstring>
+        <name>vertexOffsets</name>
+        <qualifiedname>ImpostorParams::vertexOffsets</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="141" column="18" bodyfile="dag_rendInstRes.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1aaa98af74e7d309bcd8ac6946d8b52816" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImpostorParams::horizontalSamples</definition>
+        <argsstring></argsstring>
+        <name>horizontalSamples</name>
+        <qualifiedname>ImpostorParams::horizontalSamples</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="142" column="14" bodyfile="dag_rendInstRes.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1a1cd1d41a4a14e2c5c924250cbc2bf9eb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImpostorParams::verticalSamples</definition>
+        <argsstring></argsstring>
+        <name>verticalSamples</name>
+        <qualifiedname>ImpostorParams::verticalSamples</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="143" column="14" bodyfile="dag_rendInstRes.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1a62be2a7b96cb84dc301ff3b177b089e7" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorParams::crownCenter1</definition>
+        <argsstring></argsstring>
+        <name>crownCenter1</name>
+        <qualifiedname>ImpostorParams::crownCenter1</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="144" column="12" bodyfile="dag_rendInstRes.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1a0a276741ecfbd91a28fd8a071b37b048" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorParams::invCrownRad1</definition>
+        <argsstring></argsstring>
+        <name>invCrownRad1</name>
+        <qualifiedname>ImpostorParams::invCrownRad1</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="144" column="26" bodyfile="dag_rendInstRes.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1a73fe75926a252dfadd9b2872f34c423e" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorParams::crownCenter2</definition>
+        <argsstring></argsstring>
+        <name>crownCenter2</name>
+        <qualifiedname>ImpostorParams::crownCenter2</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="145" column="12" bodyfile="dag_rendInstRes.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1a65f7d61557f462545e5ea7dd88d8924a" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorParams::invCrownRad2</definition>
+        <argsstring></argsstring>
+        <name>invCrownRad2</name>
+        <qualifiedname>ImpostorParams::invCrownRad2</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="145" column="26" bodyfile="dag_rendInstRes.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1a3fcb33320278614539baa1fba7ae1536" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ImpostorParams::preshadowEnabled</definition>
+        <argsstring></argsstring>
+        <name>preshadowEnabled</name>
+        <qualifiedname>ImpostorParams::preshadowEnabled</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="146" column="10" bodyfile="dag_rendInstRes.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorParams_1acc7f33deb1a590cff861caf1cc280798" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ImpostorParams::bottomGradient</definition>
+        <argsstring></argsstring>
+        <name>bottomGradient</name>
+        <qualifiedname>ImpostorParams::bottomGradient</qualifiedname>
+        <initializer>= 0.0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="147" column="11" bodyfile="dag_rendInstRes.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structImpostorParams_1a301b6e8bc4062408e926d00e53157260" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ImpostorParams::hasBakedTexture</definition>
+        <argsstring>() const</argsstring>
+        <name>hasBakedTexture</name>
+        <qualifiedname>ImpostorParams::hasBakedTexture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="148" column="10" bodyfile="dag_rendInstRes.h" bodystart="148" bodyend="148"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_rendInstRes.h" line="136" column="3" bodyfile="dag_rendInstRes.h" bodystart="137" bodyend="149"/>
+    <listofallmembers>
+      <member refid="structImpostorParams_1acc7f33deb1a590cff861caf1cc280798" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>bottomGradient</name></member>
+      <member refid="structImpostorParams_1a5c42ef70c1ef7fde3001c14b3d9f0a0b" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>boundingSphere</name></member>
+      <member refid="structImpostorParams_1a62be2a7b96cb84dc301ff3b177b089e7" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>crownCenter1</name></member>
+      <member refid="structImpostorParams_1a73fe75926a252dfadd9b2872f34c423e" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>crownCenter2</name></member>
+      <member refid="structImpostorParams_1a301b6e8bc4062408e926d00e53157260" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>hasBakedTexture</name></member>
+      <member refid="structImpostorParams_1aaa98af74e7d309bcd8ac6946d8b52816" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>horizontalSamples</name></member>
+      <member refid="structImpostorParams_1a0a276741ecfbd91a28fd8a071b37b048" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>invCrownRad1</name></member>
+      <member refid="structImpostorParams_1a65f7d61557f462545e5ea7dd88d8924a" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>invCrownRad2</name></member>
+      <member refid="structImpostorParams_1ac2ad7ed0eb78373d718f01d5a52b9999" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>perSliceParams</name></member>
+      <member refid="structImpostorParams_1a3fcb33320278614539baa1fba7ae1536" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>preshadowEnabled</name></member>
+      <member refid="structImpostorParams_1ab2ca84cc5a59e6639bd1f560f314a4f4" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>scale</name></member>
+      <member refid="structImpostorParams_1ab9e98b009e4a7db2d7f62c0554b89536" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>vertexOffsets</name></member>
+      <member refid="structImpostorParams_1a1cd1d41a4a14e2c5c924250cbc2bf9eb" prot="public" virt="non-virtual"><scope>ImpostorParams</scope><name>verticalSamples</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

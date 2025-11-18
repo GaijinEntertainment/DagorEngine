@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTabInd" kind="struct" language="C++" prot="public">
+    <compoundname>TabInd</compoundname>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTabInd_1a589278ef6ce34fb62f66dcc1f4c48324" prot="public" static="no" mutable="no">
+        <type>Tab&lt; T &gt;</type>
+        <definition>Tab&lt;T&gt; TabInd&lt; T &gt;::slice</definition>
+        <argsstring></argsstring>
+        <name>slice</name>
+        <qualifiedname>TabInd::slice</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtils.cpp" line="26" column="7" bodyfile="binDumpUtils.cpp" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTabInd_1a7374c3d25e7b4be0c3b2cbdf9bf0e8d8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TabInd&lt; T &gt;::index</definition>
+        <argsstring></argsstring>
+        <name>index</name>
+        <qualifiedname>TabInd::index</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtils.cpp" line="27" column="7" bodyfile="binDumpUtils.cpp" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structTabInd_1a87e033730f26339e706e5eaccbd2096d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TabInd&lt; T &gt;::TabInd</definition>
+        <argsstring>(dag::ConstSpan&lt; T &gt; s, int Index)</argsstring>
+        <name>TabInd</name>
+        <qualifiedname>TabInd::TabInd</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; T &gt;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>Index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtils.cpp" line="29" column="3" bodyfile="binDumpUtils.cpp" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="structTabInd_1a4bd797c1f90c3759b431030e052fdcb4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TabInd&lt; T &gt;::TabInd</definition>
+        <argsstring>()</argsstring>
+        <name>TabInd</name>
+        <qualifiedname>TabInd::TabInd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtils.cpp" line="30" column="3" bodyfile="binDumpUtils.cpp" bodystart="30" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="binDumpUtils.cpp" line="24" column="1" bodyfile="binDumpUtils.cpp" bodystart="25" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structTabInd_1a7374c3d25e7b4be0c3b2cbdf9bf0e8d8" prot="public" virt="non-virtual"><scope>TabInd</scope><name>index</name></member>
+      <member refid="structTabInd_1a589278ef6ce34fb62f66dcc1f4c48324" prot="public" virt="non-virtual"><scope>TabInd</scope><name>slice</name></member>
+      <member refid="structTabInd_1a87e033730f26339e706e5eaccbd2096d" prot="public" virt="non-virtual"><scope>TabInd</scope><name>TabInd</name></member>
+      <member refid="structTabInd_1a4bd797c1f90c3759b431030e052fdcb4" prot="public" virt="non-virtual"><scope>TabInd</scope><name>TabInd</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

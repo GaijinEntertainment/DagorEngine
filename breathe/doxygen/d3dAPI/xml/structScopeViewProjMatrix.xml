@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structScopeViewProjMatrix" kind="struct" language="C++" prot="public">
+    <compoundname>ScopeViewProjMatrix</compoundname>
+    <basecompoundref refid="structViewProjMatrixContainer" prot="public" virt="non-virtual">ViewProjMatrixContainer</basecompoundref>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structScopeViewProjMatrix_1ac8ad93932cd609f4eae88fcb73dd55b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeViewProjMatrix::ScopeViewProjMatrix</definition>
+        <argsstring>()</argsstring>
+        <name>ScopeViewProjMatrix</name>
+        <qualifiedname>ScopeViewProjMatrix::ScopeViewProjMatrix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="218" column="3" bodyfile="dag_decl.h" bodystart="218" bodyend="218"/>
+      </memberdef>
+      <memberdef kind="function" id="structScopeViewProjMatrix_1af4e92bbc054cb0f8e3dc23e6f1af2ddf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeViewProjMatrix::~ScopeViewProjMatrix</definition>
+        <argsstring>()</argsstring>
+        <name>~ScopeViewProjMatrix</name>
+        <qualifiedname>ScopeViewProjMatrix::~ScopeViewProjMatrix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="219" column="3" bodyfile="dag_decl.h" bodystart="219" bodyend="219"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ScopeViewProjMatrix</label>
+        <link refid="structScopeViewProjMatrix"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ViewProjMatrixContainer</label>
+        <link refid="structViewProjMatrixContainer"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>Driver3dPerspective</label>
+        <link refid="structDriver3dPerspective"/>
+      </node>
+      <node id="1">
+        <label>ScopeViewProjMatrix</label>
+        <link refid="structScopeViewProjMatrix"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ViewProjMatrixContainer</label>
+        <link refid="structViewProjMatrixContainer"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>p</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="216" column="1" bodyfile="dag_decl.h" bodystart="217" bodyend="220"/>
+    <listofallmembers>
+      <member refid="structViewProjMatrixContainer_1af8f6d5cd7eb81a58abae66318413af89" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>getProjTm</name></member>
+      <member refid="structViewProjMatrixContainer_1a8a04491d400e01ea6c813d021cb97b01" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>getViewTm</name></member>
+      <member refid="structViewProjMatrixContainer_1a173f61b8e10c15aa6d16262f4ffd92d8" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>p</name></member>
+      <member refid="structViewProjMatrixContainer_1a74538f629fde4e2e765ea17450c48f75" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>p_ok</name></member>
+      <member refid="structViewProjMatrixContainer_1aa17f3b02bbe31d620efe1d245b3077aa" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>savedProj</name></member>
+      <member refid="structViewProjMatrixContainer_1a9250941812279f3ab0353dffcb759dfa" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>savedView</name></member>
+      <member refid="structScopeViewProjMatrix_1ac8ad93932cd609f4eae88fcb73dd55b0" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>ScopeViewProjMatrix</name></member>
+      <member refid="structScopeViewProjMatrix_1af4e92bbc054cb0f8e3dc23e6f1af2ddf" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>~ScopeViewProjMatrix</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

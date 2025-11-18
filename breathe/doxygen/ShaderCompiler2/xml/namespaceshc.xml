@@ -1,0 +1,1140 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshc" kind="namespace" language="C++">
+    <compoundname>shc</compoundname>
+    <innerclass refid="structshc_1_1Col4" prot="public">shc::Col4</innerclass>
+    <innerclass refid="classshc_1_1CompilationContext" prot="public">shc::CompilationContext</innerclass>
+    <innerclass refid="structshc_1_1CompilerConfig" prot="public">shc::CompilerConfig</innerclass>
+    <innerclass refid="structshc_1_1Int4" prot="public">shc::Int4</innerclass>
+    <innerclass refid="structshc_1_1Job" prot="public">shc::Job</innerclass>
+    <innerclass refid="classshc_1_1ShaderContext" prot="public">shc::ShaderContext</innerclass>
+    <innerclass refid="structshc_1_1ShaderValidVariantList" prot="public">shc::ShaderValidVariantList</innerclass>
+    <innerclass refid="classshc_1_1TargetContext" prot="public">shc::TargetContext</innerclass>
+    <innerclass refid="structshc_1_1TypeTables" prot="public">shc::TypeTables</innerclass>
+    <innerclass refid="classshc_1_1VariantContext" prot="public">shc::VariantContext</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceshc_1a95533126f6a653e991335050751baa8a" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>ShutdownState</name>
+        <qualifiedname>shc::ShutdownState</qualifiedname>
+        <enumvalue id="namespaceshc_1a95533126f6a653e991335050751baa8aa43491564ebcfd38568918efbd6e840fd" prot="public">
+          <name>RUNNING</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceshc_1a95533126f6a653e991335050751baa8aa89e5325b1f9acbf5dde5c70b84bbdcb1" prot="public">
+          <name>SHUTTING_DOWN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceshc_1a95533126f6a653e991335050751baa8aab7e248227c5c3ce57ac36abd39621e9a" prot="public">
+          <name>SHUTDOWN_LOCKED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="72" column="1" bodyfile="shCompiler.cpp" bodystart="73" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>JobMgrChoiceStrategy</name>
+        <qualifiedname>shc::JobMgrChoiceStrategy</qualifiedname>
+        <enumvalue id="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45a1ebd8dbf8c34e255f5cbf28f35860b71" prot="public">
+          <name>ROUND_ROBIN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45a9b3d3b71c41c604f6de20bd2280df393" prot="public">
+          <name>LEAST_BUSY_COOPERATIVE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="99" column="1" bodyfile="shCompiler.h" bodystart="100" bodyend="103"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceshc_1ab5a252f23815b0ca6e2fc8b85f8af065" prot="public" static="yes" mutable="no">
+        <type>DataBlock *</type>
+        <definition>DataBlock* shc::reqShadersBlock</definition>
+        <argsstring></argsstring>
+        <name>reqShadersBlock</name>
+        <qualifiedname>shc::reqShadersBlock</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="49" column="18" bodyfile="shCompiler.cpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a43c50689a4f4884a56dca03b05326d3c" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::defShaderReq</definition>
+        <argsstring></argsstring>
+        <name>defShaderReq</name>
+        <qualifiedname>shc::defShaderReq</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="50" column="13" bodyfile="shCompiler.cpp" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a920a9f8a5da5431e5494554a207704c9" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::defTreatInvalidAsNull</definition>
+        <argsstring></argsstring>
+        <name>defTreatInvalidAsNull</name>
+        <qualifiedname>shc::defTreatInvalidAsNull</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="51" column="13" bodyfile="shCompiler.cpp" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a3389ab68741b91d95a0dd83fc118b314" prot="public" static="yes" mutable="no">
+        <type>String</type>
+        <definition>String shc::updbPath</definition>
+        <argsstring></argsstring>
+        <name>updbPath</name>
+        <qualifiedname>shc::updbPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="52" column="15" bodyfile="shCompiler.cpp" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1afaf6380f5f0210d6e84612bb88fc93c8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::relinkOnly</definition>
+        <argsstring></argsstring>
+        <name>relinkOnly</name>
+        <qualifiedname>shc::relinkOnly</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="53" column="6" bodyfile="shCompiler.cpp" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1afe89dbb0693a34fc794760204894cdb2" prot="public" static="yes" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap shc::explicitGlobVarRef</definition>
+        <argsstring></argsstring>
+        <name>explicitGlobVarRef</name>
+        <qualifiedname>shc::explicitGlobVarRef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="54" column="22" bodyfile="shCompiler.cpp" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a6f3b7eb3cbca4a033880f1d62eb70e86" prot="public" static="yes" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned shc::worker_cnt</definition>
+        <argsstring></argsstring>
+        <name>worker_cnt</name>
+        <qualifiedname>shc::worker_cnt</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="56" column="17" bodyfile="shCompiler.cpp" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a859d511c528fa71ef305a78daddd1a38" prot="public" static="yes" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned shc::max_proc_count_for_worker_count</definition>
+        <argsstring></argsstring>
+        <name>max_proc_count_for_worker_count</name>
+        <qualifiedname>shc::max_proc_count_for_worker_count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="57" column="17" bodyfile="shCompiler.cpp" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a6469bf786b3e5f0ad4b03fbc63ad9711" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr size_t</type>
+        <definition>constexpr size_t shc::WORKER_STACK_SIZE</definition>
+        <argsstring></argsstring>
+        <name>WORKER_STACK_SIZE</name>
+        <qualifiedname>shc::WORKER_STACK_SIZE</qualifiedname>
+        <initializer>= 1 &lt;&lt; 20</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="59" column="25" bodyfile="shCompiler.cpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1ac9db901d5cbb886ca3cf8c0ec4737ae8" prot="public" static="yes" mutable="no">
+        <type>dag::AtomicInteger&lt; uint32_t &gt;</type>
+        <definition>dag::AtomicInteger&lt;uint32_t&gt; shc::jobs_in_flight_count</definition>
+        <argsstring></argsstring>
+        <name>jobs_in_flight_count</name>
+        <qualifiedname>shc::jobs_in_flight_count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="62" column="27" bodyfile="shCompiler.cpp" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1ac418f2daaf6744b81432c8312090f322" prot="public" static="yes" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned shc::cpujobs_job_mgr_base</definition>
+        <argsstring></argsstring>
+        <name>cpujobs_job_mgr_base</name>
+        <qualifiedname>shc::cpujobs_job_mgr_base</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="63" column="17" bodyfile="shCompiler.cpp" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a9086fd1c4593b8d773fcdd8fe531f69a" prot="public" static="yes" mutable="no">
+        <type>eastl::deque&lt; cpujobs::IJob * &gt;</type>
+        <definition>eastl::deque&lt;cpujobs::IJob *&gt; shc::jobs_in_flight</definition>
+        <argsstring></argsstring>
+        <name>jobs_in_flight</name>
+        <qualifiedname>shc::jobs_in_flight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="66" column="21" bodyfile="shCompiler.cpp" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a1ddfd4173b050f70ba813386e616e871" prot="public" static="yes" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shc::queue_pos</definition>
+        <argsstring></argsstring>
+        <name>queue_pos</name>
+        <qualifiedname>shc::queue_pos</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="67" column="17" bodyfile="shCompiler.cpp" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1af620d0936818e358e0ab86ba0bdb4e2d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned shc::MAX_WORKERS_FOR_AFFINITY_MASK</definition>
+        <argsstring></argsstring>
+        <name>MAX_WORKERS_FOR_AFFINITY_MASK</name>
+        <qualifiedname>shc::MAX_WORKERS_FOR_AFFINITY_MASK</qualifiedname>
+        <initializer>= 64</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="69" column="27" bodyfile="shCompiler.cpp" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a5e9910f8eeaf3ab5cdcb9580a3f4876f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int shc::THREADPOOL_QUEUE_SIZE</definition>
+        <argsstring></argsstring>
+        <name>THREADPOOL_QUEUE_SIZE</name>
+        <qualifiedname>shc::THREADPOOL_QUEUE_SIZE</qualifiedname>
+        <initializer>= 1024</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="70" column="22" bodyfile="shCompiler.cpp" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1af7a0dad188008951643db238f2e2e14e" prot="public" static="yes" mutable="no">
+        <type>dag::AtomicPod&lt; <ref refid="namespaceshc_1a95533126f6a653e991335050751baa8a" kindref="member">ShutdownState</ref> &gt;</type>
+        <definition>dag::AtomicPod&lt;ShutdownState&gt; shc::shutdown_state</definition>
+        <argsstring></argsstring>
+        <name>shutdown_state</name>
+        <qualifiedname>shc::shutdown_state</qualifiedname>
+        <initializer>= <ref refid="namespaceshc_1a95533126f6a653e991335050751baa8aa43491564ebcfd38568918efbd6e840fd" kindref="member">ShutdownState::RUNNING</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="79" column="23" bodyfile="shCompiler.cpp" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a02158846721ce617a91c9694ce58300b" prot="public" static="yes" mutable="no">
+        <type>eastl::vector&lt; <ref refid="structshc_1_1ShaderValidVariantList" kindref="compound">ShaderValidVariantList</ref> &gt;</type>
+        <definition>eastl::vector&lt;ShaderValidVariantList&gt; shc::svvl</definition>
+        <argsstring></argsstring>
+        <name>svvl</name>
+        <qualifiedname>shc::svvl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="809" column="22" bodyfile="shCompiler.cpp" bodystart="809" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a8df06bd09567124473b5cd0fe8fbf98a" prot="public" static="yes" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap shc::svvlNames</definition>
+        <argsstring></argsstring>
+        <name>svvlNames</name>
+        <qualifiedname>shc::svvlNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="810" column="22" bodyfile="shCompiler.cpp" bodystart="810" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a94fe56d91711a08c61c1b2b6a1afbef4" prot="public" static="yes" mutable="no">
+        <type><ref refid="structshc_1_1ShaderValidVariantList" kindref="compound">ShaderValidVariantList</ref> *</type>
+        <definition>ShaderValidVariantList* shc::curSvvl</definition>
+        <argsstring></argsstring>
+        <name>curSvvl</name>
+        <qualifiedname>shc::curSvvl</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="811" column="31" bodyfile="shCompiler.cpp" bodystart="811" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1aec0548a3f178bea7a245ba2b6a0006e9" prot="public" static="yes" mutable="no">
+        <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref> *</type>
+        <definition>const ShaderVariant::TypeTable* shc::curStatVariantTypes</definition>
+        <argsstring></argsstring>
+        <name>curStatVariantTypes</name>
+        <qualifiedname>shc::curStatVariantTypes</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="812" column="39" bodyfile="shCompiler.cpp" bodystart="812" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1aac46e2df9858242d0694b1371df90e0c" prot="public" static="yes" mutable="no">
+        <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref> *</type>
+        <definition>const ShaderVariant::TypeTable * shc::curDynVariantTypes</definition>
+        <argsstring></argsstring>
+        <name>curDynVariantTypes</name>
+        <qualifiedname>shc::curDynVariantTypes</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="812" column="60" bodyfile="shCompiler.cpp" bodystart="812" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1ada59eaeae63eb055ebe9864d7f2f5eaf" prot="public" static="yes" mutable="no">
+        <type>FastIntList</type>
+        <definition>FastIntList shc::curVvStIdx</definition>
+        <argsstring></argsstring>
+        <name>curVvStIdx</name>
+        <qualifiedname>shc::curVvStIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="813" column="20" bodyfile="shCompiler.cpp" bodystart="813" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceshc_1a3a6b6d644a39c1f22cbb9878ceda0a69" prot="public" static="yes" mutable="no">
+        <type>FastIntList</type>
+        <definition>FastIntList shc::curVvDynIdx</definition>
+        <argsstring></argsstring>
+        <name>curVvDynIdx</name>
+        <qualifiedname>shc::curVvDynIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="813" column="31" bodyfile="shCompiler.cpp" bodystart="813" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structshc_1_1CompilerConfig" kindref="compound">CompilerConfig</ref> &amp;</type>
+        <definition>const shc::CompilerConfig &amp; shc::config</definition>
+        <argsstring>()</argsstring>
+        <name>config</name>
+        <qualifiedname>shc::config</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="167" column="22" bodyfile="globalConfig.cpp" bodystart="7" bodyend="7" declfile="globalConfig.h" declline="167" declcolumn="22"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1aa485440d0f45a996614a2ea63907089a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structshc_1_1CompilerConfig" kindref="compound">CompilerConfig</ref> &amp;</type>
+        <definition>shc::CompilerConfig &amp; shc::acquire_rw_config</definition>
+        <argsstring>()</argsstring>
+        <name>acquire_rw_config</name>
+        <qualifiedname>shc::acquire_rw_config</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globalConfig.h" line="168" column="16" bodyfile="globalConfig.cpp" bodystart="8" bodyend="14" declfile="globalConfig.h" declline="168" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a0c336a7ebfd6800dacceeeaacbe41fdd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::try_enter_shutdown</definition>
+        <argsstring>()</argsstring>
+        <name>try_enter_shutdown</name>
+        <qualifiedname>shc::try_enter_shutdown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="81" column="6" bodyfile="shCompiler.cpp" bodystart="81" bodyend="90" declfile="shCompiler.h" declline="57" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a3f0d9ab9c11d14d3fb28a7305ae48164" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::try_lock_shutdown</definition>
+        <argsstring>()</argsstring>
+        <name>try_lock_shutdown</name>
+        <qualifiedname>shc::try_lock_shutdown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="92" column="6" bodyfile="shCompiler.cpp" bodystart="92" bodyend="99" declfile="shCompiler.h" declline="58" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a8a417be34944424a38dbc16575d9e4ef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::unlock_shutdown</definition>
+        <argsstring>()</argsstring>
+        <name>unlock_shutdown</name>
+        <qualifiedname>shc::unlock_shutdown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="101" column="6" bodyfile="shCompiler.cpp" bodystart="101" bodyend="105" declfile="shCompiler.h" declline="59" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a7c7fc5e96d2279fc0c634516b4244b68" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void shc::init_job_execution</definition>
+        <argsstring>()</argsstring>
+        <name>init_job_execution</name>
+        <qualifiedname>shc::init_job_execution</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="107" column="13" bodyfile="shCompiler.cpp" bodystart="107" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a8e40bb7ef47809a13cc805ad6828b001" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::pair&lt; unsigned, unsigned &gt;</type>
+        <definition>static eastl::pair&lt; unsigned, unsigned &gt; shc::calculate_jobs_x_processes_caps</definition>
+        <argsstring>(unsigned requested_num_workers)</argsstring>
+        <name>calculate_jobs_x_processes_caps</name>
+        <qualifiedname>shc::calculate_jobs_x_processes_caps</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>requested_num_workers</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="153" column="20" bodyfile="shCompiler.cpp" bodystart="153" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1ac431d98c07031953b228af74422abfe2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::init_jobs</definition>
+        <argsstring>(unsigned num_workers)</argsstring>
+        <name>init_jobs</name>
+        <qualifiedname>shc::init_jobs</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>num_workers</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="180" column="6" bodyfile="shCompiler.cpp" bodystart="180" bodyend="236" declfile="shCompiler.h" declline="105" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a78b0761985dc08fccb004298cb2184bd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::deinit_jobs</definition>
+        <argsstring>()</argsstring>
+        <name>deinit_jobs</name>
+        <qualifiedname>shc::deinit_jobs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="238" column="6" bodyfile="shCompiler.cpp" bodystart="238" bodyend="266" declfile="shCompiler.h" declline="106" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a15322df1795feb5f2e78c9a9338c6bf0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned shc::worker_count</definition>
+        <argsstring>()</argsstring>
+        <name>worker_count</name>
+        <qualifiedname>shc::worker_count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="268" column="10" bodyfile="shCompiler.cpp" bodystart="268" bodyend="268" declfile="shCompiler.h" declline="107" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a52533646036e68290d71cf996b716fc0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned shc::max_allowed_process_count</definition>
+        <argsstring>()</argsstring>
+        <name>max_allowed_process_count</name>
+        <qualifiedname>shc::max_allowed_process_count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="269" column="10" bodyfile="shCompiler.cpp" bodystart="269" bodyend="269" declfile="shCompiler.h" declline="108" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1abe61f9b56246b7ac56d190cf23d55011" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::is_multithreaded</definition>
+        <argsstring>()</argsstring>
+        <name>is_multithreaded</name>
+        <qualifiedname>shc::is_multithreaded</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="270" column="6" bodyfile="shCompiler.cpp" bodystart="270" bodyend="270" declfile="shCompiler.h" declline="109" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a72c2e791a45b155ec5e3a04a7368455e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::is_in_worker</definition>
+        <argsstring>()</argsstring>
+        <name>is_in_worker</name>
+        <qualifiedname>shc::is_in_worker</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="272" column="6" bodyfile="shCompiler.cpp" bodystart="272" bodyend="272" declfile="shCompiler.h" declline="110" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1aa29b1afa394d7f6e2b8d62ef87c3a88f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::await_all_jobs</definition>
+        <argsstring>(void(*on_released_cb)())</argsstring>
+        <name>await_all_jobs</name>
+        <qualifiedname>shc::await_all_jobs</qualifiedname>
+        <param>
+          <type>void(*)()</type>
+          <declname>on_released_cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="274" column="6" bodyfile="shCompiler.cpp" bodystart="274" bodyend="309" declfile="shCompiler.h" declline="111" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a196bec5ea00287d23be548089457adff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::add_job</definition>
+        <argsstring>(Job *job, JobMgrChoiceStrategy mgr_choice_strat)</argsstring>
+        <name>add_job</name>
+        <qualifiedname>shc::add_job</qualifiedname>
+        <param>
+          <type><ref refid="structshc_1_1Job" kindref="compound">Job</ref> *</type>
+          <declname>job</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45" kindref="member">JobMgrChoiceStrategy</ref></type>
+          <declname>mgr_choice_strat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="311" column="6" bodyfile="shCompiler.cpp" bodystart="311" bodyend="378" declfile="shCompiler.h" declline="112" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a8a4e1a65eb73ac377392e1321448660f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::startup</definition>
+        <argsstring>()</argsstring>
+        <name>startup</name>
+        <qualifiedname>shc::startup</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="380" column="6" bodyfile="shCompiler.cpp" bodystart="380" bodyend="384" declfile="shCompiler.h" declline="35" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1ac8d2ced91ea1a4e72195b0c33e8584a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::shutdown</definition>
+        <argsstring>()</argsstring>
+        <name>shutdown</name>
+        <qualifiedname>shc::shutdown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="387" column="6" bodyfile="shCompiler.cpp" bodystart="387" bodyend="387" declfile="shCompiler.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a684865d8e3b21456d251eb3400fee52f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::resetCompiler</definition>
+        <argsstring>()</argsstring>
+        <name>resetCompiler</name>
+        <qualifiedname>shc::resetCompiler</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="390" column="6" bodyfile="shCompiler.cpp" bodystart="390" bodyend="394" declfile="shCompiler.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a68edf3f17609b3f932b935fe388cd910" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::reset_source_file</definition>
+        <argsstring>()</argsstring>
+        <name>reset_source_file</name>
+        <qualifiedname>shc::reset_source_file</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="396" column="6" bodyfile="shCompiler.cpp" bodystart="396" bodyend="402" declfile="shCompiler.h" declline="44" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a721ecfdbb88fa2a042d32ee935757308" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String shc::get_obj_file_name_from_source</definition>
+        <argsstring>(const String &amp;source_file_name, const ShCompilationInfo &amp;comp)</argsstring>
+        <name>get_obj_file_name_from_source</name>
+        <qualifiedname>shc::get_obj_file_name_from_source</qualifiedname>
+        <param>
+          <type>const String &amp;</type>
+          <declname>source_file_name</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref> &amp;</type>
+          <declname>comp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="404" column="8" bodyfile="shCompiler.cpp" bodystart="404" bodyend="415" declfile="shCompiler.h" declline="61" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a7446716e9cbf38d49b9caed94e2f0782" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::should_recompile_sh</definition>
+        <argsstring>(const ShCompilationInfo &amp;comp, const String &amp;sourceFileName)</argsstring>
+        <name>should_recompile_sh</name>
+        <qualifiedname>shc::should_recompile_sh</qualifiedname>
+        <param>
+          <type>const <ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref> &amp;</type>
+          <declname>comp</declname>
+        </param>
+        <param>
+          <type>const String &amp;</type>
+          <declname>sourceFileName</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="418" column="6" bodyfile="shCompiler.cpp" bodystart="418" bodyend="422" declfile="shCompiler.h" declline="48" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a28066fa836fbd40b415cd40fb61a2023" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384" kindref="member">CompilerAction</ref></type>
+        <definition>CompilerAction shc::should_recompile</definition>
+        <argsstring>(const ShCompilationInfo &amp;comp)</argsstring>
+        <name>should_recompile</name>
+        <qualifiedname>shc::should_recompile</qualifiedname>
+        <param>
+          <type>const <ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref> &amp;</type>
+          <declname>comp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="423" column="16" bodyfile="shCompiler.cpp" bodystart="423" bodyend="449" declfile="shCompiler.h" declline="47" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a8c442ebc036376c0817dc83bd46434d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::compileShader</definition>
+        <argsstring>(CompilerAction compiler_action, bool no_save, bool should_rebuild, const shc::CompilationContext &amp;comp)</argsstring>
+        <name>compileShader</name>
+        <qualifiedname>shc::compileShader</qualifiedname>
+        <param>
+          <type><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384" kindref="member">CompilerAction</ref></type>
+          <declname>compiler_action</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>no_save</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>should_rebuild</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>comp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="452" column="6" bodyfile="shCompiler.cpp" bodystart="452" bodyend="584" declfile="shCompiler.h" declline="51" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1ae6471d14423f7b8cd5b71d7055d79c75" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::buildShaderBinDump</definition>
+        <argsstring>(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags packing_flags, const shc::CompilationContext &amp;comp)</argsstring>
+        <name>buildShaderBinDump</name>
+        <qualifiedname>shc::buildShaderBinDump</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>bindump_fn</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>sh_fn</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>forceRebuild</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>minidump</declname>
+        </param>
+        <param>
+          <type><ref refid="makeShBinDump_8h_1a7e4c9039c4d793938486d7f1c089329f" kindref="member">BindumpPackingFlags</ref></type>
+          <declname>packing_flags</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>comp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="586" column="6" bodyfile="shCompiler.cpp" bodystart="586" bodyend="645" declfile="shCompiler.h" declline="54" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a0f186f2ce7014f20aa47f31446439dbe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::setRequiredShadersBlock</definition>
+        <argsstring>(DataBlock *block)</argsstring>
+        <name>setRequiredShadersBlock</name>
+        <qualifiedname>shc::setRequiredShadersBlock</qualifiedname>
+        <param>
+          <type>DataBlock *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="647" column="6" bodyfile="shCompiler.cpp" bodystart="647" bodyend="647" declfile="shCompiler.h" declline="63" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a76f9fbee49ca2f49bfd7aee5b06bb529" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::setRequiredShadersDef</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>setRequiredShadersDef</name>
+        <qualifiedname>shc::setRequiredShadersDef</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="648" column="6" bodyfile="shCompiler.cpp" bodystart="648" bodyend="648" declfile="shCompiler.h" declline="64" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a0e6b3705eca44599c1964ff3953e6a75" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::isShaderRequired</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>isShaderRequired</name>
+        <qualifiedname>shc::isShaderRequired</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="650" column="6" bodyfile="shCompiler.cpp" bodystart="650" bodyend="653" declfile="shCompiler.h" declline="68" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a92cbda8ac75d5cf670a548ef272d6825" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::clearFlobVarRefList</definition>
+        <argsstring>()</argsstring>
+        <name>clearFlobVarRefList</name>
+        <qualifiedname>shc::clearFlobVarRefList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="655" column="6" bodyfile="shCompiler.cpp" bodystart="655" bodyend="655" declfile="shCompiler.h" declline="65" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a4170f0d930cdf92ed2b78bed24168644" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::addExplicitGlobVarRef</definition>
+        <argsstring>(const char *vname)</argsstring>
+        <name>addExplicitGlobVarRef</name>
+        <qualifiedname>shc::addExplicitGlobVarRef</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>vname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="656" column="6" bodyfile="shCompiler.cpp" bodystart="656" bodyend="656" declfile="shCompiler.h" declline="66" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a924aa4883ff8d5dfd8c3bea14a4de2fb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::isGlobVarRequired</definition>
+        <argsstring>(const char *vname)</argsstring>
+        <name>isGlobVarRequired</name>
+        <qualifiedname>shc::isGlobVarRequired</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>vname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="657" column="6" bodyfile="shCompiler.cpp" bodystart="657" bodyend="657" declfile="shCompiler.h" declline="69" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1af6b70447e448737532eb539f925f5e83" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Tab&lt; int &gt;</type>
+        <definition>static Tab&lt; int &gt; shc::stTypeMap</definition>
+        <argsstring>(midmem)</argsstring>
+        <name>stTypeMap</name>
+        <qualifiedname>shc::stTypeMap</qualifiedname>
+        <param>
+          <type>midmem</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="814" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a8d010b29b1aa57369044c8220756c693" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Tab&lt; int &gt;</type>
+        <definition>static Tab&lt; int &gt; shc::dynTypeMap</definition>
+        <argsstring>(midmem)</argsstring>
+        <name>dynTypeMap</name>
+        <qualifiedname>shc::dynTypeMap</qualifiedname>
+        <param>
+          <type>midmem</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="814" column="22" declfile="shCompiler.cpp" declline="814" declcolumn="22"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a68f3fb95029d4b4646af3bd76dd3bac1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::setInvalidAsNullDef</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>setInvalidAsNullDef</name>
+        <qualifiedname>shc::setInvalidAsNullDef</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="816" column="6" bodyfile="shCompiler.cpp" bodystart="816" bodyend="816" declfile="shCompiler.h" declline="73" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1ab66b53336232f9618b2312d6eebe10ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::setValidVariantsBlock</definition>
+        <argsstring>(DataBlock *block)</argsstring>
+        <name>setValidVariantsBlock</name>
+        <qualifiedname>shc::setValidVariantsBlock</qualifiedname>
+        <param>
+          <type>DataBlock *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="817" column="6" bodyfile="shCompiler.cpp" bodystart="817" bodyend="857" declfile="shCompiler.h" declline="72" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a950f822ed9707332f0fb4c602ea82c32" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::prepareTestVariantShader</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>prepareTestVariantShader</name>
+        <qualifiedname>shc::prepareTestVariantShader</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="859" column="6" bodyfile="shCompiler.cpp" bodystart="859" bodyend="866" declfile="shCompiler.h" declline="75" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a76cbe60a6ca21ca5a6760ce4beabca8e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::prepareTestVariant</definition>
+        <argsstring>(const ShaderVariant::TypeTable *sv, const ShaderVariant::TypeTable *dv)</argsstring>
+        <name>prepareTestVariant</name>
+        <qualifiedname>shc::prepareTestVariant</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref> *</type>
+          <declname>sv</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref> *</type>
+          <declname>dv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="867" column="6" bodyfile="shCompiler.cpp" bodystart="867" bodyend="895" declfile="shCompiler.h" declline="76" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1aba09c71513e9342dcc4f03d128304ba2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::isValidVariant</definition>
+        <argsstring>(const ShaderVariant::VariantSrc *sv, const ShaderVariant::VariantSrc *dv)</argsstring>
+        <name>isValidVariant</name>
+        <qualifiedname>shc::isValidVariant</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref> *</type>
+          <declname>sv</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref> *</type>
+          <declname>dv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="896" column="6" bodyfile="shCompiler.cpp" bodystart="896" bodyend="904" declfile="shCompiler.h" declline="77" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1af50955b1a5a2daa082f696535dbd19c3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::shouldMarkInvalidAsNull</definition>
+        <argsstring>()</argsstring>
+        <name>shouldMarkInvalidAsNull</name>
+        <qualifiedname>shc::shouldMarkInvalidAsNull</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="905" column="6" bodyfile="shCompiler.cpp" bodystart="905" bodyend="905" declfile="shCompiler.h" declline="78" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a2c0f7d473897e78b8669d30936452b73" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::setOutputUpdbPath</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>setOutputUpdbPath</name>
+        <qualifiedname>shc::setOutputUpdbPath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="906" column="6" bodyfile="shCompiler.cpp" bodystart="906" bodyend="906" declfile="shCompiler.h" declline="82" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1a3f38be8e25161985591a2a48a7162572" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * shc::getOutputUpdbPath</definition>
+        <argsstring>()</argsstring>
+        <name>getOutputUpdbPath</name>
+        <qualifiedname>shc::getOutputUpdbPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="907" column="12" bodyfile="shCompiler.cpp" bodystart="907" bodyend="907" declfile="shCompiler.h" declline="83" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceshc_1ae9d7e1fe461404fcd0feb93ca58da37f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String shc::search_include_with_pathes</definition>
+        <argsstring>(const char *fn)</argsstring>
+        <name>search_include_with_pathes</name>
+        <qualifiedname>shc::search_include_with_pathes</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="80" column="8" bodyfile="main.cpp" bodystart="771" bodyend="801" declfile="shCompiler.h" declline="80" declcolumn="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="condParser.h" line="12" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="linkShaders_8h" kind="file" language="C++">
+    <compoundname>linkShaders.h</compoundname>
+    <includes refid="shaderSave_8h" local="yes">shaderSave.h</includes>
+    <includes refid="shTargetContext_8h" local="yes">shTargetContext.h</includes>
+    <includes refid="intervals_8h" local="yes">intervals.h</includes>
+    <includes refid="globVar_8h" local="yes">globVar.h</includes>
+    <includes refid="samplers_8h" local="yes">samplers.h</includes>
+    <includes local="no">util/dag_simpleString.h</includes>
+    <includes local="no">util/dag_bindump_ext.h</includes>
+    <includes refid="shaderTab_8h" local="yes">shaderTab.h</includes>
+    <includes refid="shSemCode_8h" local="yes">shSemCode.h</includes>
+    <includes refid="cppStcodeAssembly_8h" local="yes">cppStcodeAssembly.h</includes>
+    <includes local="no">shaders/shader_layout.h</includes>
+    <includedby refid="linkShaders_8cpp" local="yes">linkShaders.cpp</includedby>
+    <includedby refid="makeShBinDump_8cpp" local="yes">makeShBinDump.cpp</includedby>
+    <includedby refid="namedConst_8cpp" local="yes">namedConst.cpp</includedby>
+    <includedby refid="shCompiler_8cpp" local="yes">shCompiler.cpp</includedby>
+    <includedby refid="shSemCode_8cpp" local="yes">shSemCode.cpp</includedby>
+    <includedby refid="sh__stat_8cpp" local="yes">sh_stat.cpp</includedby>
+    <includedby refid="shsem_8cpp" local="yes">shsem.cpp</includedby>
+    <incdepgraph>
+      <node id="87">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="80">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="72">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="88">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="63">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="86">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="68">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="58">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="1">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="81">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="90">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="77">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="62">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="91">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+      </node>
+      <node id="8">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="65">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="67">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="76">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="56">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="82">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="23">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="31">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="85">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="83">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="84">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="16">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="64">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="70">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="39">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="73">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="79">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="89">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="32">
+        <label>cstdint</label>
+      </node>
+      <node id="26">
+        <label>cstring</label>
+      </node>
+      <node id="22">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="21">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="78">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="38">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="66">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="55">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="29">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="43">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="25">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="48">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="52">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="53">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="71">
+        <label>memory</label>
+      </node>
+      <node id="34">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="74">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="37">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="46">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="35">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="36">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="41">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="33">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="60">
+        <label>shsyn.h</label>
+      </node>
+      <node id="40">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="7">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="75">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="50">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="45">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="12">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="1">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="4">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="5">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="6">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="7">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShadersBindump" prot="public">ShadersBindump</innerclass>
+    <innerclass refid="structShadersBindumpHeader" prot="public">ShadersBindumpHeader</innerclass>
+    <innerclass refid="structCompressedShadersBindump" prot="public">CompressedShadersBindump</innerclass>
+    <innernamespace refid="namespaceshaders">shaders</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="linkShaders_8h_1a89ad15dc480db392b8a38daa4a8d4745" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void close_shader_class</definition>
+        <argsstring>()</argsstring>
+        <name>close_shader_class</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="63" column="6" bodyfile="linkShaders.cpp" bodystart="43" bodyend="43" declfile="linkShaders.h" declline="63" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a9dd11b723e582c5a303b746fde7c5efa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void add_shader_class</definition>
+        <argsstring>(ShaderClass *sc, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_shader_class</name>
+        <param>
+          <type><ref refid="classShaderClass" kindref="compound">ShaderClass</ref> *</type>
+          <declname>sc</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="65" column="6" bodyfile="linkShaders.cpp" bodystart="45" bodyend="50" declfile="linkShaders.h" declline="65" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1aa26fc4d6261cf25ea202c85a47deed61" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int add_fshader</definition>
+        <argsstring>(dag::ConstSpan&lt; unsigned &gt; code, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_fshader</name>
+        <param>
+          <type>dag::ConstSpan&lt; unsigned &gt;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="67" column="5" bodyfile="linkShaders.cpp" bodystart="52" bodyend="70" declfile="linkShaders.h" declline="67" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a58a37ce7dcfb6642f4498171a2a8f2cd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int add_vprog</definition>
+        <argsstring>(dag::ConstSpan&lt; unsigned &gt; vs, dag::ConstSpan&lt; unsigned &gt; hs, dag::ConstSpan&lt; unsigned &gt; ds, dag::ConstSpan&lt; unsigned &gt; gs, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_vprog</name>
+        <param>
+          <type>dag::ConstSpan&lt; unsigned &gt;</type>
+          <declname>vs</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; unsigned &gt;</type>
+          <declname>hs</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; unsigned &gt;</type>
+          <declname>ds</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; unsigned &gt;</type>
+          <declname>gs</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="68" column="5" bodyfile="linkShaders.cpp" bodystart="75" bodyend="261" declfile="linkShaders.h" declline="68" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a07de43c7fcfd3647d78f0a2111368280" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int add_render_state</definition>
+        <argsstring>(const SemanticShaderPass &amp;state, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_render_state</name>
+        <param>
+          <type>const <ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> &amp;</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="70" column="5" bodyfile="linkShaders.cpp" bodystart="835" bodyend="905" declfile="linkShaders.h" declline="70" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a96fa1850596561b85a77a8b6e78407fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int add_stcode</definition>
+        <argsstring>(dag::ConstSpan&lt; int &gt; code, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_stcode</name>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="72" column="5" bodyfile="linkShaders.cpp" bodystart="791" bodyend="806" declfile="linkShaders.h" declline="72" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1ace100897f3e189920a57708fbc77bbaa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void add_stcode_validation_mask</definition>
+        <argsstring>(int stcode_id, shader_layout::StcodeConstValidationMask *mask, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_stcode_validation_mask</name>
+        <param>
+          <type>int</type>
+          <declname>stcode_id</declname>
+        </param>
+        <param>
+          <type>shader_layout::StcodeConstValidationMask *</type>
+          <declname>mask</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="74" column="6" bodyfile="linkShaders.cpp" bodystart="808" bodyend="822" declfile="linkShaders.h" declline="74" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a4bf07cae8abae5fa8dfc3d872402bac8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void count_shader_stats</definition>
+        <argsstring>(unsigned &amp;uniqueFshBytesInFile, unsigned &amp;uniqueFshCountInFile, unsigned &amp;uniqueVprBytesInFile, unsigned &amp;uniqueVprCountInFile, unsigned &amp;stcodeBytes, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>count_shader_stats</name>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>uniqueFshBytesInFile</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>uniqueFshCountInFile</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>uniqueVprBytesInFile</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>uniqueVprCountInFile</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>stcodeBytes</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="76" column="6" bodyfile="linkShaders.cpp" bodystart="943" bodyend="963" declfile="linkShaders.h" declline="76" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a305d00d1fd0fdba5682b501ae71abe7b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool load_shaders_bindump</definition>
+        <argsstring>(ShadersBindump &amp;shaders, bindump::IReader &amp;full_file_reader, shc::TargetContext &amp;ctx)</argsstring>
+        <name>load_shaders_bindump</name>
+        <param>
+          <type><ref refid="structShadersBindump" kindref="compound">ShadersBindump</ref> &amp;</type>
+          <declname>shaders</declname>
+        </param>
+        <param>
+          <type>bindump::IReader &amp;</type>
+          <declname>full_file_reader</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="79" column="6" bodyfile="linkShaders.cpp" bodystart="984" bodyend="1010" declfile="linkShaders.h" declline="79" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a80685ae901a05b19dd81461d6117456a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool link_scripted_shaders</definition>
+        <argsstring>(const uint8_t *mapped_data, int data_size, const char *filename, const char *source_name, shc::TargetContext &amp;ctx)</argsstring>
+        <name>link_scripted_shaders</name>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>mapped_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>data_size</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_name</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="80" column="6" bodyfile="linkShaders.cpp" bodystart="1012" bodyend="1228" declfile="linkShaders.h" declline="80" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1a046b2c7bead7428033d3815dad7cc27f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void save_scripted_shaders</definition>
+        <argsstring>(const char *filename, dag::ConstSpan&lt; SimpleString &gt; files, shc::TargetContext &amp;ctx, bool need_cppstcode_file_write=true)</argsstring>
+        <name>save_scripted_shaders</name>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; SimpleString &gt;</type>
+          <declname>files</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>need_cppstcode_file_write</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="82" column="6" bodyfile="linkShaders.cpp" bodystart="1230" bodyend="1336" declfile="linkShaders.h" declline="82" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="linkShaders_8h_1ada36b76256c8c7e82e285ca2281bb944" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_shaders_timestamps</definition>
+        <argsstring>(dag::ConstSpan&lt; SimpleString &gt; dependencies, shc::TargetContext &amp;ctx)</argsstring>
+        <name>update_shaders_timestamps</name>
+        <param>
+          <type>dag::ConstSpan&lt; SimpleString &gt;</type>
+          <declname>dependencies</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+<para>Update the timestamps of the shader classes. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dependencies</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The list of files that the shader classes depend on </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="note"><para>If dagor git repo is present and files are not locally git modified, the function will use the timestamp of the last commit for file dependencies. Otherwise, it will use the filesystem timestamp </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="91" column="6" bodyfile="linkShaders.cpp" bodystart="1338" bodyend="1354" declfile="linkShaders.h" declline="91" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderSave_8h" kindref="compound">shaderSave.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="intervals_8h" kindref="compound">intervals.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globVar_8h" kindref="compound">globVar.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="samplers_8h" kindref="compound">samplers.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_simpleString.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_bindump_ext.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderTab_8h" kindref="compound">shaderTab.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shSemCode_8h" kindref="compound">shSemCode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="cppStcodeAssembly_8h" kindref="compound">cppStcodeAssembly.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shader_layout.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderClass" kindref="compound">ShaderClass</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenSave;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="namespaceshaders" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshaders" kindref="compound">shaders</ref></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RenderState;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="structShadersBindump" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShadersBindump" kindref="compound">ShadersBindump</ref></highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26" refid="structShadersBindump_1a6932b5ba55f02780f140008096216793" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;ShaderGlobal::Var&gt;</ref><sp/><ref refid="structShadersBindump_1a6932b5ba55f02780f140008096216793" kindref="member">variable_list</ref>;</highlight></codeline>
+<codeline lineno="27" refid="structShadersBindump_1aced761e20398c6053868cc38e71dec36" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;Sampler&gt;</ref><sp/><ref refid="structShadersBindump_1aced761e20398c6053868cc38e71dec36" kindref="member">static_samplers</ref>;</highlight></codeline>
+<codeline lineno="28" refid="structShadersBindump_1abc23df78df3bb2501f9386a250085db7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/><ref refid="structShadersBindump_1abc23df78df3bb2501f9386a250085db7" kindref="member">intervals</ref>;</highlight></codeline>
+<codeline lineno="29" refid="structShadersBindump_1aee2ee0394ba4ee1173a17fc16a13def5" refkind="member"><highlight class="normal"><sp/><sp/>bindump::Ptr&lt;ShaderStateBlock&gt;<sp/><ref refid="structShadersBindump_1aee2ee0394ba4ee1173a17fc16a13def5" kindref="member">empty_block</ref>;</highlight></codeline>
+<codeline lineno="30" refid="structShadersBindump_1ab4fa76b4e1a1731e6abcda8b9feda5eb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;ShaderStateBlock *&gt;</ref><sp/><ref refid="structShadersBindump_1ab4fa76b4e1a1731e6abcda8b9feda5eb" kindref="member">state_blocks</ref>;</highlight></codeline>
+<codeline lineno="31" refid="structShadersBindump_1ac20a831c0ac09e53b937da00a4baa531" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;ShaderClass *&gt;</ref><sp/><ref refid="structShadersBindump_1ac20a831c0ac09e53b937da00a4baa531" kindref="member">shaderClasses</ref>;</highlight></codeline>
+<codeline lineno="32" refid="structShadersBindump_1a93cf9c9fdf016a7bb703d28bd8ae362e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;shaders::RenderState&gt;</ref><sp/><ref refid="structShadersBindump_1a93cf9c9fdf016a7bb703d28bd8ae362e" kindref="member">renderStates</ref>;</highlight></codeline>
+<codeline lineno="33" refid="structShadersBindump_1a87687384dbf3c31e138b51d0bbd80a89" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;TabFsh&gt;</ref><sp/><ref refid="structShadersBindump_1a87687384dbf3c31e138b51d0bbd80a89" kindref="member">shadersFsh</ref>;</highlight></codeline>
+<codeline lineno="34" refid="structShadersBindump_1a3ea706eacea53a31cfdd8a685b5d2983" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;TabVpr&gt;</ref><sp/><ref refid="structShadersBindump_1a3ea706eacea53a31cfdd8a685b5d2983" kindref="member">shadersVpr</ref>;</highlight></codeline>
+<codeline lineno="35" refid="structShadersBindump_1a53021ecd230c1b3c6d7ba583aff6632b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;TabStcode&gt;</ref><sp/><ref refid="structShadersBindump_1a53021ecd230c1b3c6d7ba583aff6632b" kindref="member">shadersStcode</ref>;</highlight></codeline>
+<codeline lineno="36" refid="structShadersBindump_1a6829b94608c9922019b3d26661080a58" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;CryptoHash&gt;</ref><sp/><ref refid="structShadersBindump_1a6829b94608c9922019b3d26661080a58" kindref="member">dynamicCppcodeHashes</ref>;</highlight></codeline>
+<codeline lineno="37" refid="structShadersBindump_1a4ae697c6b9935f49120f3e76f4fb8fc5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;CryptoHash&gt;</ref><sp/><ref refid="structShadersBindump_1a4ae697c6b9935f49120f3e76f4fb8fc5" kindref="member">staticCppcodeHashes</ref>;</highlight></codeline>
+<codeline lineno="38" refid="structShadersBindump_1adbbcd35e0948e97766f0b6960127b01c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;bindump::string&gt;</ref><sp/><ref refid="structShadersBindump_1adbbcd35e0948e97766f0b6960127b01c" kindref="member">dynamicCppcodeRoutineNames</ref>;</highlight></codeline>
+<codeline lineno="39" refid="structShadersBindump_1a21e66239a3d69bb42f5abc5ae5d9c0de" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;bindump::string&gt;</ref><sp/><ref refid="structShadersBindump_1a21e66239a3d69bb42f5abc5ae5d9c0de" kindref="member">staticCppcodeRoutineNames</ref>;</highlight></codeline>
+<codeline lineno="40" refid="structShadersBindump_1a4d019eff48346db2f7ddb9b52909790c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;SerializableTab&lt;int32_t&gt;</ref>&gt;<sp/><ref refid="structShadersBindump_1a4d019eff48346db2f7ddb9b52909790c" kindref="member">cppcodeRegisterTables</ref>;</highlight></codeline>
+<codeline lineno="41" refid="structShadersBindump_1a986fbb2aabccb0b6584bb9174c419f31" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;int32_t&gt;</ref><sp/><ref refid="structShadersBindump_1a986fbb2aabccb0b6584bb9174c419f31" kindref="member">cppcodeRegisterTableOffsets</ref>;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Only<sp/>used<sp/>if<sp/>shc::config().generateCppStcodeValidationData</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="structShadersBindump_1a60c2fcfedf3b3e6b5718df6ed7df40f1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;shader_layout::StcodeConstValidationMask *&gt;</ref><sp/><ref refid="structShadersBindump_1a60c2fcfedf3b3e6b5718df6ed7df40f1" kindref="member">stcodeConstMasks</ref>{};</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="structShadersBindumpHeader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShadersBindumpHeader" kindref="compound">ShadersBindumpHeader</ref></highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49" refid="structShadersBindumpHeader_1a7a28b16040ac57ebb0290f1fc3020266" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShadersBindumpHeader_1a7a28b16040ac57ebb0290f1fc3020266" kindref="member">cache_sign</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="50" refid="structShadersBindumpHeader_1af5acd824207cfc830a14856704309eb6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShadersBindumpHeader_1af5acd824207cfc830a14856704309eb6" kindref="member">cache_version</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="51" refid="structShadersBindumpHeader_1a00aa476b59b6f4ba46073abae37774e1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="blkHash_8h_1a592888f422a40aa9b9dad4c6e6dbed99" kindref="member">BlkHashBytes</ref><sp/><ref refid="structShadersBindumpHeader_1a00aa476b59b6f4ba46073abae37774e1" kindref="member">last_blk_hash</ref><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="52" refid="structShadersBindumpHeader_1af28e09d4864c9b4fd3d8da7ac34eb90c" refkind="member"><highlight class="normal"><sp/><sp/>bindump::EnableHash&lt;ShadersBindump&gt;<sp/><ref refid="structShadersBindumpHeader_1af28e09d4864c9b4fd3d8da7ac34eb90c" kindref="member">hash</ref>;</highlight></codeline>
+<codeline lineno="53" refid="structShadersBindumpHeader_1ab6b5e1758ece57f5194a0bd9c3516c6d" refkind="member"><highlight class="normal"><sp/><sp/>bindump::vector&lt;bindump::string&gt;<sp/><ref refid="structShadersBindumpHeader_1ab6b5e1758ece57f5194a0bd9c3516c6d" kindref="member">dependency_files</ref>;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="structCompressedShadersBindump" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCompressedShadersBindump" kindref="compound">CompressedShadersBindump</ref><sp/>:<sp/><ref refid="structShadersBindumpHeader" kindref="compound">ShadersBindumpHeader</ref></highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58" refid="structCompressedShadersBindump_1a722663c55a1b03bbb7720165212b8eb0" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="structCompressedShadersBindump_1a722663c55a1b03bbb7720165212b8eb0" kindref="member">decompressed_size</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="59" refid="structCompressedShadersBindump_1a608bf222c046f653259c2fd7f3bc7e24" refkind="member"><highlight class="normal"><sp/><sp/>bindump::vector&lt;uint8_t&gt;<sp/><ref refid="structCompressedShadersBindump_1a608bf222c046f653259c2fd7f3bc7e24" kindref="member">compressed_shaders</ref>;</highlight></codeline>
+<codeline lineno="60" refid="structCompressedShadersBindump_1ad676cf4e01ce5b406b14b15b07995bbf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structCompressedShadersBindump_1ad676cf4e01ce5b406b14b15b07995bbf" kindref="member">eof</ref><sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>0<sp/>means<sp/>invalid,<sp/>need<sp/>to<sp/>initialize<sp/>by<sp/>hand</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a89ad15dc480db392b8a38daa4a8d4745" kindref="member">close_shader_class</ref>();</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a9dd11b723e582c5a303b746fde7c5efa" kindref="member">add_shader_class</ref>(<ref refid="classShaderClass" kindref="compound">ShaderClass</ref><sp/>*sc,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1aa26fc4d6261cf25ea202c85a47deed61" kindref="member">add_fshader</ref>(dag::ConstSpan&lt;unsigned&gt;<sp/>code,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a58a37ce7dcfb6642f4498171a2a8f2cd" kindref="member">add_vprog</ref>(dag::ConstSpan&lt;unsigned&gt;<sp/>vs,<sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>hs,<sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>ds,<sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>gs,</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a07de43c7fcfd3647d78f0a2111368280" kindref="member">add_render_state</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;state,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a96fa1850596561b85a77a8b6e78407fd" kindref="member">add_stcode</ref>(dag::ConstSpan&lt;int&gt;<sp/>code,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1ace100897f3e189920a57708fbc77bbaa" kindref="member">add_stcode_validation_mask</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stcode_id,<sp/>shader_layout::StcodeConstValidationMask<sp/>*mask,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a4bf07cae8abae5fa8dfc3d872402bac8" kindref="member">count_shader_stats</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;uniqueFshBytesInFile,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;uniqueFshCountInFile,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;uniqueVprBytesInFile,</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;uniqueVprCountInFile,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;stcodeBytes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a305d00d1fd0fdba5682b501ae71abe7b" kindref="member">load_shaders_bindump</ref>(<ref refid="structShadersBindump" kindref="compound">ShadersBindump</ref><sp/>&amp;<ref refid="namespaceshaders" kindref="compound">shaders</ref>,<sp/>bindump::IReader<sp/>&amp;full_file_reader,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a80685ae901a05b19dd81461d6117456a" kindref="member">link_scripted_shaders</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*mapped_data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>data_size,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*source_name,</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1a046b2c7bead7428033d3815dad7cc27f" kindref="member">save_scripted_shaders</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename,<sp/>dag::ConstSpan&lt;SimpleString&gt;<sp/>files,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>need_cppstcode_file_write<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8h_1ada36b76256c8c7e82e285ca2281bb944" kindref="member">update_shaders_timestamps</ref>(dag::ConstSpan&lt;SimpleString&gt;<sp/>dependencies,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">VertexProgramAndPixelShaderIdents</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vprog;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fsh;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">VertexProgramAndPixelShaderIdents<sp/><ref refid="linkShaders_8cpp_1ab063c21a0baeb0b136cf1f1d2e0e0a41" kindref="member">add_phase_one_progs</ref>(dag::ConstSpan&lt;unsigned&gt;<sp/>vs,<sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>hs,</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>ds,<sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>gs,<sp/>dag::ConstSpan&lt;unsigned&gt;<sp/>ps,</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><ref refid="structSemanticShaderPass_1_1EnableFp16State" kindref="compound">SemanticShaderPass::EnableFp16State</ref><sp/>enableFp16,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="linkShaders_8cpp_1aa120dd755705808199f189664dd5edce" kindref="member">recompile_shaders</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="linkShaders.h"/>
+  </compounddef>
+</doxygen>

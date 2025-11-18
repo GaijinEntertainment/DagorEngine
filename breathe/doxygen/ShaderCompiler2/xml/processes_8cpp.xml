@@ -1,0 +1,405 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="processes_8cpp" kind="file" language="C++">
+    <compoundname>processes.cpp</compoundname>
+    <includes refid="processes_8h" local="yes">processes.h</includes>
+    <includes refid="processes__impl_8h" local="yes">processes_impl.h</includes>
+    <includes refid="shCompiler_8h" local="yes">shCompiler.h</includes>
+    <includes refid="defer_8h" local="yes">defer.h</includes>
+    <includes local="no">generic/dag_sort.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includes local="no">osApiWrappers/dag_miscApi.h</includes>
+    <includes local="no">osApiWrappers/dag_cpuJobs.h</includes>
+    <incdepgraph>
+      <node id="13">
+        <label>defer.h</label>
+        <link refid="defer_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>processes.cpp</label>
+        <link refid="processes_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>processes_impl.h</label>
+        <link refid="processes__impl_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shCompiler.h</label>
+        <link refid="shCompiler_8h"/>
+      </node>
+      <node id="9">
+        <label>EASTL/deque.h</label>
+      </node>
+      <node id="6">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="4">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="16">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="15">
+        <label>generic/dag_sort.h</label>
+      </node>
+      <node id="10">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="11">
+        <label>osApiWrappers/dag_atomic_types.h</label>
+      </node>
+      <node id="18">
+        <label>osApiWrappers/dag_cpuJobs.h</label>
+      </node>
+      <node id="17">
+        <label>osApiWrappers/dag_miscApi.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaceproc">proc</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="processes_8h" kindref="compound">processes.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="processes__impl_8h" kindref="compound">processes_impl.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shCompiler_8h" kindref="compound">shCompiler.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="defer_8h" kindref="compound">defer.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_sort.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_miscApi.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_cpuJobs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="namespaceproc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceproc" kindref="compound">proc</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO:<sp/>add<sp/>memory<sp/>orders<sp/>to<sp/>cancelled.<sp/>Beware,<sp/>there<sp/>are<sp/>dances<sp/>w/<sp/>shutdown,<sp/>so<sp/>acq_rel<sp/>may<sp/>not<sp/>be<sp/>automatically<sp/>enough!</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>How<sp/>this<sp/>is<sp/>done:</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>When<sp/>the<sp/>user<sp/>calls<sp/>perform,<sp/>the<sp/>function<sp/>starts<sp/>launching<sp/>processes<sp/>and<sp/>collecting<sp/>results.</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/>For<sp/>this<sp/>time,<sp/>regular<sp/>shutdown<sp/>(inside<sp/>a<sp/>^C<sp/>handler)<sp/>is<sp/>not<sp/>an<sp/>option,<sp/>so<sp/>the<sp/>shutdown<sp/>is<sp/>locked</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/>for<sp/>the<sp/>duration<sp/>of<sp/>the<sp/>compilation.<sp/>Instead,<sp/>the<sp/>user<sp/>can<sp/>call<sp/>proc::cancel<sp/>from<sp/>any<sp/>other<sp/>thread,</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/>and<sp/>the<sp/>process<sp/>loop<sp/>will<sp/>pick<sp/>it<sp/>up,<sp/>drop<sp/>all<sp/>enqueued<sp/>tasks<sp/>and<sp/>terminate<sp/>ones<sp/>running.</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*<sp/>This<sp/>is<sp/>implemented<sp/>with<sp/>an<sp/>atomic<sp/>flag<sp/>(cancelled),<sp/>which<sp/>is<sp/>read<sp/>on<sp/>each<sp/>iteration<sp/>of<sp/>the<sp/>loop,</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>and<sp/>an<sp/>os<sp/>event/pipe<sp/>that<sp/>gets<sp/>signaled.<sp/>When<sp/>the<sp/>loop<sp/>waits<sp/>for<sp/>the<sp/>next<sp/>finished<sp/>process,<sp/>it<sp/>also</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*<sp/>waits<sp/>on<sp/>the<sp/>event,<sp/>so<sp/>that<sp/>cancellation<sp/>wakes<sp/>it<sp/>up<sp/>too,<sp/>and<sp/>there<sp/>are<sp/>no<sp/>delays.</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/>When<sp/>the<sp/>loop<sp/>goes<sp/>into<sp/>cancellation<sp/>mode,<sp/>either<sp/>because<sp/>a<sp/>process<sp/>failed<sp/>of<sp/>because<sp/>it<sp/>was<sp/>told<sp/>to<sp/>do<sp/>so,</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/>it<sp/>also<sp/>awaits<sp/>running<sp/>processes,<sp/>but<sp/>now<sp/>without<sp/>the<sp/>event<sp/>and<sp/>with<sp/>a<sp/>possible<sp/>timeout.</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/>When<sp/>the<sp/>loop<sp/>is<sp/>done,<sp/>it<sp/>restores<sp/>the<sp/>ability<sp/>of<sp/>the<sp/>app<sp/>to<sp/>shut<sp/>down<sp/>regularly.</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref><sp/>g_state{};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>parse_output(<ref refid="structproc_1_1internal_1_1OutputSink" kindref="compound">internal::OutputSink</ref><sp/>&amp;sink)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>shouldPrintSep<sp/>=<sp/>sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a6b21e12821791b460d791c32cae86491" kindref="member">messageSep</ref><sp/>!=<sp/><ref refid="namespaceproc_1a2d59f96d30d2d59f859f636daeeb9948" kindref="member">MANAGED_MESSAGE_SEPARATOR</ref>;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>eastl::string_view<sp/>bufView{sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" kindref="member">buffer</ref>.data(),<sp/>sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" kindref="member">buffer</ref>.size()};</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>begin<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>end<sp/>=<sp/>bufView.find(sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a6b21e12821791b460d791c32cae86491" kindref="member">messageSep</ref>);<sp/>end<sp/>!=<sp/>eastl::string_view::npos;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/>begin<sp/>=<sp/>end<sp/>+<sp/>1,<sp/>end<sp/>=<sp/>begin<sp/>&gt;=<sp/>bufView.size()<sp/>?<sp/>eastl::string_view::npos<sp/>:<sp/>bufView.find(sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a6b21e12821791b460d791c32cae86491" kindref="member">messageSep</ref>,<sp/>begin))</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>message<sp/>=<sp/>bufView.substr(begin,<sp/>end<sp/>-<sp/>begin<sp/>+<sp/>(shouldPrintSep<sp/>?<sp/>1<sp/>:<sp/>0));</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>printf(</highlight><highlight class="stringliteral">&quot;%.*s&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">(message.size()),<sp/>message.data());</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>fflush(stdout);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sink.<ref refid="structproc_1_1internal_1_1OutputSink_1af249c1edcde90402cf129e9d337e077e" kindref="member">free</ref>)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" kindref="member">buffer</ref>.clear();<sp/></highlight><highlight class="comment">//<sp/>Drop<sp/>unfinished<sp/>message<sp/>remnants</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" kindref="member">buffer</ref>.erase(sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" kindref="member">buffer</ref>.begin(),<sp/>sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" kindref="member">buffer</ref>.begin()<sp/>+<sp/>begin);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>marshall_output(<ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref><sp/>&amp;state)</highlight></codeline>
+<codeline lineno="58"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>dag::Vector&lt;internal::OutputSink<sp/>*&gt;<sp/>sinks{};</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>sinks.reserve(state.<ref refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" kindref="member">sinkPool</ref>.size());</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;s<sp/>:<sp/>state.<ref refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" kindref="member">sinkPool</ref>)</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!s.buffer.empty()<sp/>&amp;&amp;<sp/>s.lastTs<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>sinks.push_back(&amp;s);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>fast_sort(sinks,<sp/>[](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*s1,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*s2)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s1-&gt;lastTs<sp/>&lt;<sp/>s2-&gt;lastTs;<sp/>});</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*s<sp/>:<sp/>sinks)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>parse_output(*s);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>s-&gt;lastTs<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>serve_output(<ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref><sp/>&amp;state)</highlight></codeline>
+<codeline lineno="76"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;<ref refid="namespaceproc" kindref="compound">proc</ref><sp/>:<sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>)</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceproc_1_1internal_1ace481c1794d7a8c1214e97993a7dbc48" kindref="member">internal::serve_process_output</ref>(state,<sp/><ref refid="namespaceproc" kindref="compound">proc</ref>);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>marshall_output(state);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1a70ea938c5ccbe95687c57066da668fc2" kindref="member">init</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ada719119b9731fd4759e71bbfe10bc52" kindref="member">max_proc_count</ref>,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>should_cancel_on_fail)</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>G_ASSERT(is_main_thread());</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>G_ASSERT(cpujobs::is_inited());</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>=<sp/><ref refid="namespaceproc_1ada719119b9731fd4759e71bbfe10bc52" kindref="member">max_proc_count</ref>;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a56dd20117f73dd24ec51dd4bf70b6712" kindref="member">shouldCancelOnProcFail</ref><sp/>=<sp/>should_cancel_on_fail;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>adapt<sp/>logic<sp/>to<sp/>different<sp/>platforms.<sp/>Seems<sp/>like<sp/>unix<sp/>schedulers<sp/>don&apos;t<sp/>deal<sp/>as<sp/>well<sp/>w/<sp/>proc<sp/>x<sp/>thread<sp/>overloads.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>=<sp/>cpujobs::get_physical_core_count();</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>&lt;<sp/>2)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>&gt;<sp/><ref refid="namespaceshc_1a52533646036e68290d71cf996b716fc0" kindref="member">shc::max_allowed_process_count</ref>())</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>=<sp/><ref refid="namespaceshc_1a52533646036e68290d71cf996b716fc0" kindref="member">shc::max_allowed_process_count</ref>();</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><ref refid="namespaceproc_1_1internal_1a4905227b272aef8099609719028dffba" kindref="member">internal::init_state</ref>(g_state);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ad83d474bf228f85aa5d829213c75a161" kindref="member">deinit</ref>()</highlight></codeline>
+<codeline lineno="102"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>G_ASSERT(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" kindref="member">tasks</ref>.empty());</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>G_ASSERT(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>.empty());</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><ref refid="namespaceproc_1_1internal_1a19b4179d06707dea59dea74999925c80" kindref="member">internal::deinit_state</ref>(g_state);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1a660c2f1d2aa0933c48ff9123c87d0211" kindref="member">is_multiproc</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref><sp/>&gt;<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ada719119b9731fd4759e71bbfe10bc52" kindref="member">max_proc_count</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ad5f5c1701a3bca364551263b0995445a" kindref="member">enqueue</ref>(<ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref><sp/>&amp;&amp;task)<sp/>{<sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" kindref="member">tasks</ref>.push_back(eastl::move(task));<sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>start_process(<ref refid="structproc_1_1internal_1_1ExecutionState" kindref="compound">internal::ExecutionState</ref><sp/>&amp;state,<sp/><ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref><sp/>&amp;&amp;task)</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1_1internal_1ad837746d9e2f36aefca39e78d569ae4e" kindref="member">internal::spawn_process</ref>(state,<sp/>eastl::move(task)).transform([&amp;state](</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;hnd)<sp/>{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;s<sp/>:<sp/>state.<ref refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" kindref="member">sinkPool</ref>)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(s.free)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>s.free<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>hnd.sink<sp/>=<sp/><ref refid="namespaceproc_1_1internal_1ad2096b942d412deeebcd891d4d276f7c" kindref="member">internal::SinkHandle</ref>(eastl::distance(state.<ref refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" kindref="member">sinkPool</ref>.begin(),<sp/>&amp;s));</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hnd.sink<sp/>==<sp/><ref refid="namespaceproc_1_1internal_1ad2096b942d412deeebcd891d4d276f7caccc0377a8afbf50e7094f5c23a8af223" kindref="member">internal::SinkHandle::INVALID</ref>)</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hnd.sink<sp/>=<sp/><ref refid="namespaceproc_1_1internal_1ad2096b942d412deeebcd891d4d276f7c" kindref="member">internal::SinkHandle</ref>(state.<ref refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" kindref="member">sinkPool</ref>.size());</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>state.<ref refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" kindref="member">sinkPool</ref>.emplace_back();</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;sink<sp/>=<sp/>state.<ref refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" kindref="member">sinkPool</ref>[eastl::to_underlying(hnd.sink)];</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>sink.<ref refid="structproc_1_1internal_1_1OutputSink_1af249c1edcde90402cf129e9d337e077e" kindref="member">free</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>sink.<ref refid="structproc_1_1internal_1_1OutputSink_1a6b21e12821791b460d791c32cae86491" kindref="member">messageSep</ref><sp/>=<sp/>hnd.task.isExternal<sp/>?<sp/></highlight><highlight class="charliteral">&apos;\n&apos;</highlight><highlight class="normal"><sp/>:<sp/><ref refid="namespaceproc_1a2d59f96d30d2d59f859f636daeeb9948" kindref="member">MANAGED_MESSAGE_SEPARATOR</ref>;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::move(hnd);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>});</highlight></codeline>
+<codeline lineno="141"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aad37db27edb90a297ccc8ae4716e7905" kindref="member">execute</ref>()</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="namespaceshc_1a3f0d9ab9c11d14d3fb28a7305ae48164" kindref="member">shc::try_lock_shutdown</ref>())</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><ref refid="namespaceproc_1_1internal_1a6f862e381c8b02a8b325d2a8553a1bd9" kindref="member">internal::start_execution</ref>(g_state);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Reset<sp/>when<sp/>done<sp/>(this<sp/>does<sp/>not<sp/>100%<sp/>support<sp/>reentrability,<sp/>see<sp/>comment<sp/>at<sp/>return)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><ref refid="cppStcode_8cpp_1afa2f02cf7da6a0b58c4f01e20ccd1384" kindref="member">DEFER</ref>([]<sp/>{</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a06a4a1637108f2cfa9eceacfaf0d5aba" kindref="member">cancelled</ref>.store(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceproc_1_1internal_1aece7975439e3ef6b29a1cba7bab509ad" kindref="member">internal::end_execution</ref>(g_state);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/>});</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>failedWithoutCancellation<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>When<sp/>awaiting<sp/>a<sp/>process,<sp/>decide<sp/>if<sp/>the<sp/>fail<sp/>should<sp/>cause<sp/>cancellation.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>If<sp/>failed<sp/>but<sp/>should<sp/>not<sp/>cancel,<sp/>we<sp/>instead<sp/>drop<sp/>tasks<sp/>and<sp/>set<sp/>the<sp/>flag</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>awaitProcsAndDecideContinuation<sp/>=<sp/>[&amp;]<sp/>{</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24a" kindref="member">internal::AwaitResult</ref><sp/>res<sp/>=<sp/><ref refid="namespaceproc_1_1internal_1a4a114e1b87e6f949387bf2de9d1d2b19" kindref="member">internal::await_processes</ref>(g_state,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/>50);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/>serve_output(g_state);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res<sp/>==<sp/><ref refid="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aa1d645d8f91c3389ba01ed60174902e87" kindref="member">internal::AwaitResult::SOME_FAILED</ref>)</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a56dd20117f73dd24ec51dd4bf70b6712" kindref="member">shouldCancelOnProcFail</ref>)</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>With<sp/>-cjWait<sp/>we<sp/>await<sp/>all<sp/>running<sp/>procs,<sp/>but<sp/>drop<sp/>queue</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>failedWithoutCancellation<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" kindref="member">tasks</ref>.clear();</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res<sp/>==<sp/><ref refid="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aaeb33eebbfae2724bc463f0e6ecfe7acb" kindref="member">internal::AwaitResult::CANCELLED_BY_USER</ref>)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ALL_SUCCEEDED<sp/>or<sp/>TIMEOUT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Scheduling<sp/>loop</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(!g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" kindref="member">tasks</ref>.empty())</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>.size()<sp/>&gt;=<sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" kindref="member">maxProcs</ref>)</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!awaitProcsAndDecideContinuation())</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" kindref="member">cancel</ref>;</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(failedWithoutCancellation)</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>final_wait;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a06a4a1637108f2cfa9eceacfaf0d5aba" kindref="member">cancelled</ref>.load())</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" kindref="member">cancel</ref>;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref><sp/>nextTask<sp/>=<sp/>eastl::move(g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" kindref="member">tasks</ref>.front());</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" kindref="member">tasks</ref>.pop_front();</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>nextProcMaybe<sp/>=<sp/>start_process(g_state,<sp/>eastl::move(nextTask));</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!nextProcMaybe)</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" kindref="member">cancel</ref>;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>.push_back(eastl::move(*nextProcMaybe));</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal">final_wait:</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(!g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>.empty())</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!awaitProcsAndDecideContinuation())</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" kindref="member">cancel</ref>;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Re-read<sp/>g_state.cancelled<sp/>after<sp/>unlocking<sp/>shutdown.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>If<sp/>try_enter_shutdown<sp/>failed<sp/>in<sp/>sighandler<sp/>--<sp/>then<sp/>it<sp/>was<sp/>before<sp/>unlock_shutdown<sp/>in<sp/>mo,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>and<sp/>preceding<sp/>proc::cancel()<sp/>hb<sp/>the<sp/>g_state.cancelled.load()<sp/>and<sp/>we<sp/>read<sp/>that<sp/>we<sp/>were<sp/>cancelled.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>If<sp/>try_enter_shutdown<sp/>succeeded<sp/>in<sp/>sighandler<sp/>--<sp/>the<sp/>handler<sp/>will<sp/>perform<sp/>the<sp/>shutdown<sp/>on<sp/>it&apos;s<sp/>own.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@NOTE:<sp/>this<sp/>logic<sp/>may<sp/>break<sp/>if<sp/>we<sp/>try<sp/>to<sp/>reenter<sp/>proc::perform()<sp/>instantly<sp/>(not<sp/>verified).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>However,<sp/>this<sp/>should<sp/>not<sp/>happen.<sp/>Currently<sp/>we<sp/>call<sp/>it<sp/>once<sp/>per<sp/>run,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>so<sp/>consider<sp/>reentering<sp/>proc::perform()<sp/>not<sp/>supported.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><ref refid="namespaceshc_1a8a417be34944424a38dbc16575d9e4ef" kindref="member">shc::unlock_shutdown</ref>();</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!failedWithoutCancellation<sp/>&amp;&amp;<sp/>!g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a06a4a1637108f2cfa9eceacfaf0d5aba" kindref="member">cancelled</ref>.load();</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><ref refid="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" kindref="member">cancel</ref>:</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" kindref="member">tasks</ref>.clear();</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>sendInterruptSafe<sp/>=<sp/>[](</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;<ref refid="namespaceproc" kindref="compound">proc</ref>)<sp/>{</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="namespaceproc" kindref="compound">proc</ref>.hasCommunicated)</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceproc_1_1internal_1a3a8e8a76befc94e8fb0412f6b498c634" kindref="member">internal::send_interrupt_signal_to_process</ref>(<ref refid="namespaceproc" kindref="compound">proc</ref>);</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceproc" kindref="compound">proc</ref>.hasBeenSignalled<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>First,<sp/>try<sp/>regular<sp/>signals</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;<ref refid="namespaceproc" kindref="compound">proc</ref><sp/>:<sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>)</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/>sendInterruptSafe(<ref refid="namespaceproc" kindref="compound">proc</ref>);</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>timeouts<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MAX_TIMEOUTS<sp/>=<sp/>50;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(!g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>.empty())</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24a" kindref="member">internal::AwaitResult</ref><sp/>res<sp/>=<sp/><ref refid="namespaceproc_1_1internal_1a4a114e1b87e6f949387bf2de9d1d2b19" kindref="member">internal::await_processes</ref>(g_state,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/>50);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>serve_output(g_state);</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>If<sp/>some<sp/>processes<sp/>hung<sp/>or<sp/>have<sp/>not<sp/>started<sp/>in<sp/>the<sp/>prev<sp/>signal<sp/>sends,<sp/>send<sp/>more<sp/>signals</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;<ref refid="namespaceproc" kindref="compound">proc</ref><sp/>:<sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>)</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res<sp/>==<sp/><ref refid="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aa070a0fb40f6c308ab544b227660aadff" kindref="member">internal::AwaitResult::TIMEOUT</ref><sp/>||<sp/>!<ref refid="namespaceproc" kindref="compound">proc</ref>.hasBeenSignalled)</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sendInterruptSafe(<ref refid="namespaceproc" kindref="compound">proc</ref>);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res<sp/>==<sp/><ref refid="namespaceproc_1_1internal_1a57a46be36e26d46d3477e81e4ea2f24aa070a0fb40f6c308ab544b227660aadff" kindref="member">internal::AwaitResult::TIMEOUT</ref>)</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>++timeouts;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(timeouts<sp/>&gt;<sp/>MAX_TIMEOUTS)</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"></highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>If<sp/>some<sp/>processes<sp/>hung<sp/>dead,<sp/>terminate<sp/>them<sp/>with<sp/>fire</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;<ref refid="namespaceproc" kindref="compound">proc</ref><sp/>:<sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>)</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceproc_1_1internal_1aa7c8c1690b4664163b51eb9ca5351472" kindref="member">internal::kill_process</ref>(<ref refid="namespaceproc" kindref="compound">proc</ref>);</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(!g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" kindref="member">processes</ref>.empty())</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceproc_1_1internal_1a4a114e1b87e6f949387bf2de9d1d2b19" kindref="member">internal::await_processes</ref>(g_state,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/>50);</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/>serve_output(g_state);</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><ref refid="namespaceshc_1a8a417be34944424a38dbc16575d9e4ef" kindref="member">shc::unlock_shutdown</ref>();</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="276"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"></highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" kindref="member">cancel</ref>()</highlight></codeline>
+<codeline lineno="279"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/>g_state.<ref refid="structproc_1_1internal_1_1ExecutionState_1a06a4a1637108f2cfa9eceacfaf0d5aba" kindref="member">cancelled</ref>.store(</highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><ref refid="namespaceproc_1_1internal_1a6cd68800bcaada199b72a5320a36adf6" kindref="member">internal::fire_cancellation_event</ref>(g_state);</highlight></codeline>
+<codeline lineno="282"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>proc</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="processes.cpp"/>
+  </compounddef>
+</doxygen>

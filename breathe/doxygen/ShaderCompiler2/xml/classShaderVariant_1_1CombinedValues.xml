@@ -1,0 +1,177 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderVariant_1_1CombinedValues" kind="class" language="C++" prot="public">
+    <compoundname>ShaderVariant::CombinedValues</compoundname>
+    <includes refid="shaderVariant_8h" local="no">shaderVariant.h</includes>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classShaderVariant_1_1CombinedValues_1a31ed77b74d76a02779700439815132e8" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t ShaderVariant::CombinedValues::MAX_VALUES</definition>
+        <argsstring></argsstring>
+        <name>MAX_VALUES</name>
+        <qualifiedname>ShaderVariant::CombinedValues::MAX_VALUES</qualifiedname>
+        <initializer>= 32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="145" column="29" bodyfile="shaderVariant.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderVariant_1_1CombinedValues_1a1fc164b58e6ff2e1c8cd703e8c4e9349" prot="private" static="no" mutable="no">
+        <type>eastl::array&lt; <ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref>, MAX_VALUES &gt;</type>
+        <definition>eastl::array&lt;ValueType, MAX_VALUES&gt; ShaderVariant::CombinedValues::mValues</definition>
+        <argsstring></argsstring>
+        <name>mValues</name>
+        <qualifiedname>ShaderVariant::CombinedValues::mValues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="146" column="16" bodyfile="shaderVariant.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderVariant_1_1CombinedValues_1ab85aea63d6e291cf2098dd6765975b5a" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderVariant::CombinedValues::mCount</definition>
+        <argsstring></argsstring>
+        <name>mCount</name>
+        <qualifiedname>ShaderVariant::CombinedValues::mCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="147" column="12" bodyfile="shaderVariant.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderVariant_1_1CombinedValues_1a23ca13922e3fc808f7b566662ae9c932" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::CombinedValues::CombinedValues</definition>
+        <argsstring>()</argsstring>
+        <name>CombinedValues</name>
+        <qualifiedname>ShaderVariant::CombinedValues::CombinedValues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="124" column="3" bodyfile="shaderVariant.h" bodystart="124" bodyend="124"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1CombinedValues_1a7f6467e765af422e82228befad778a23" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariant::CombinedValues::operator==</definition>
+        <argsstring>(const CombinedValues &amp;right) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ShaderVariant::CombinedValues::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1CombinedValues" kindref="compound">CombinedValues</ref> &amp;</type>
+          <declname>right</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="125" column="8" bodyfile="shaderVariant.h" bodystart="125" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1CombinedValues_1a2f16b1f3b7ccda866dd31d04912b0bfa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::CombinedValues::set</definition>
+        <argsstring>(uint32_t idx, ValueType value)</argsstring>
+        <name>set</name>
+        <qualifiedname>ShaderVariant::CombinedValues::set</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref></type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="126" column="15" bodyfile="shaderVariant.h" bodystart="126" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1CombinedValues_1af20f252569b83c63f0a6b3df8ce8ace1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref></type>
+        <definition>ValueType ShaderVariant::CombinedValues::get</definition>
+        <argsstring>(uint32_t idx) const</argsstring>
+        <name>get</name>
+        <qualifiedname>ShaderVariant::CombinedValues::get</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="131" column="20" bodyfile="shaderVariant.h" bodystart="131" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1CombinedValues_1a33b8fda6a04f851587b686e2b40af73b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::CombinedValues::setCount</definition>
+        <argsstring>(uint32_t count)</argsstring>
+        <name>setCount</name>
+        <qualifiedname>ShaderVariant::CombinedValues::setCount</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="136" column="15" bodyfile="shaderVariant.h" bodystart="136" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1CombinedValues_1a3672ab62f1d1d3edf1c086eecee6d056" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderVariant::CombinedValues::getCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getCount</name>
+        <qualifiedname>ShaderVariant::CombinedValues::getCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="142" column="19" bodyfile="shaderVariant.h" bodystart="142" bodyend="142"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderVariant.h" line="121" column="1" bodyfile="shaderVariant.h" bodystart="122" bodyend="148"/>
+    <listofallmembers>
+      <member refid="classShaderVariant_1_1CombinedValues_1a23ca13922e3fc808f7b566662ae9c932" prot="public" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>CombinedValues</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1af20f252569b83c63f0a6b3df8ce8ace1" prot="public" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>get</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1a3672ab62f1d1d3edf1c086eecee6d056" prot="public" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>getCount</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1a31ed77b74d76a02779700439815132e8" prot="private" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>MAX_VALUES</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1ab85aea63d6e291cf2098dd6765975b5a" prot="private" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>mCount</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1a1fc164b58e6ff2e1c8cd703e8c4e9349" prot="private" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>mValues</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1a7f6467e765af422e82228befad778a23" prot="public" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>operator==</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1a2f16b1f3b7ccda866dd31d04912b0bfa" prot="public" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>set</name></member>
+      <member refid="classShaderVariant_1_1CombinedValues_1a33b8fda6a04f851587b686e2b40af73b" prot="public" virt="non-virtual"><scope>ShaderVariant::CombinedValues</scope><name>setCount</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

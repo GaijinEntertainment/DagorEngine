@@ -1,0 +1,270 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Managed Resources</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Resource IDs" href="resMgr/resid.html" />
+    <link rel="prev" title="daFgCore Daslang Module" href="daFrameGraph/daFgCore.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Managed Resources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="resMgr/resid.html">Resource IDs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="resMgr/general.html">General Resource Management</a></li>
+<li class="toctree-l4"><a class="reference internal" href="resMgr/textures.html">Texture Management</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Engine Render</a></li>
+      <li class="breadcrumb-item active">Managed Resources</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-render/index/resMgr.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="managed-resources">
+<h1>Managed Resources<a class="headerlink" href="#managed-resources" title="Link to this heading"></a></h1>
+<p>Dagor provides a resource management system built on top of the D3D API.
+This system handles streaming of texture assets (through integration with
+the D3D API drivers), resource lifetime management, and indirect access
+to resources through managed IDs or string names.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="resMgr/resid.html">Resource IDs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/resid.html#_CPPv48D3DRESID"><code class="docutils literal notranslate"><span class="pre">D3DRESID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/resid.html#_CPPv412BAD_D3DRESID"><code class="docutils literal notranslate"><span class="pre">BAD_D3DRESID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/resid.html#_CPPv49TEXTUREID"><code class="docutils literal notranslate"><span class="pre">TEXTUREID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/resid.html#_CPPv413BAD_TEXTUREID"><code class="docutils literal notranslate"><span class="pre">BAD_TEXTUREID</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="resMgr/general.html">General Resource Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv420first_managed_d3dresi"><code class="docutils literal notranslate"><span class="pre">first_managed_d3dres()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419next_managed_d3dres8D3DRESIDi"><code class="docutils literal notranslate"><span class="pre">next_managed_d3dres()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv45TexQL"><code class="docutils literal notranslate"><span class="pre">TexQL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv420register_managed_resPKcP11D3dResource"><code class="docutils literal notranslate"><span class="pre">register_managed_res()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv426is_managed_res_factory_set8D3DRESID"><code class="docutils literal notranslate"><span class="pre">is_managed_res_factory_set()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419acquire_managed_res8D3DRESID"><code class="docutils literal notranslate"><span class="pre">acquire_managed_res()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv418change_managed_res8D3DRESIDP11D3dResource"><code class="docutils literal notranslate"><span class="pre">change_managed_res()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419release_managed_res8D3DRESID"><code class="docutils literal notranslate"><span class="pre">release_managed_res()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv428release_managed_res_verifiedR8D3DRESIDP11D3dResource"><code class="docutils literal notranslate"><span class="pre">release_managed_res_verified()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419acquire_managed_tex8D3DRESID"><code class="docutils literal notranslate"><span class="pre">acquire_managed_tex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419release_managed_tex8D3DRESID"><code class="docutils literal notranslate"><span class="pre">release_managed_tex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv4I0E28release_managed_tex_verifiedvR8D3DRESIDR1T"><code class="docutils literal notranslate"><span class="pre">release_managed_tex_verified()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419acquire_managed_buf8D3DRESID"><code class="docutils literal notranslate"><span class="pre">acquire_managed_buf()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419release_managed_buf8D3DRESID"><code class="docutils literal notranslate"><span class="pre">release_managed_buf()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv4I0E28release_managed_buf_verifiedvR8D3DRESIDR1T"><code class="docutils literal notranslate"><span class="pre">release_managed_buf_verified()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv420get_managed_res_name8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_name()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv418get_managed_res_idPKc"><code class="docutils literal notranslate"><span class="pre">get_managed_res_id()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv424get_managed_res_refcount8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_refcount()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv419get_managed_res_lfu8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_lfu()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv423get_managed_res_cur_tql8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_cur_tql()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv423get_managed_res_max_tql8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_max_tql()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv426get_managed_res_maxreq_lev8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_maxreq_lev()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv426get_managed_res_loaded_lev8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_res_loaded_lev()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv417enable_res_mgr_mtbi"><code class="docutils literal notranslate"><span class="pre">enable_res_mgr_mt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/general.html#_CPPv426iterate_all_managed_d3dres8D3DRESIDi"><code class="docutils literal notranslate"><span class="pre">iterate_all_managed_d3dres()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="resMgr/textures.html">Texture Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv421first_managed_texturei"><code class="docutils literal notranslate"><span class="pre">first_managed_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv420next_managed_texture9TEXTUREIDi"><code class="docutils literal notranslate"><span class="pre">next_managed_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv420register_managed_texPKcP11BaseTexture"><code class="docutils literal notranslate"><span class="pre">register_managed_tex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv426is_managed_tex_factory_set8D3DRESID"><code class="docutils literal notranslate"><span class="pre">is_managed_tex_factory_set()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv424get_managed_texture_name8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_name()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv422get_managed_texture_idPKc"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_id()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv428get_managed_texture_refcount8D3DRESID"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_refcount()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv417enable_tex_mgr_mtbi"><code class="docutils literal notranslate"><span class="pre">enable_tex_mgr_mt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv419add_managed_texturePKcP14TextureFactory"><code class="docutils literal notranslate"><span class="pre">add_managed_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv425add_managed_array_texturePKcN3dag9ConstSpanIPKcEE"><code class="docutils literal notranslate"><span class="pre">add_managed_array_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv428update_managed_array_texturePKcN3dag9ConstSpanIPKcEE"><code class="docutils literal notranslate"><span class="pre">update_managed_array_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv447reload_managed_array_textures_for_changed_slicePKc"><code class="docutils literal notranslate"><span class="pre">reload_managed_array_textures_for_changed_slice()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv420evict_managed_tex_idR9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">evict_managed_tex_id()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv428check_managed_texture_loaded9TEXTUREIDb"><code class="docutils literal notranslate"><span class="pre">check_managed_texture_loaded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv433check_all_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEbb"><code class="docutils literal notranslate"><span class="pre">check_all_managed_textures_loaded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv422change_managed_texture9TEXTUREIDP11BaseTextureP14TextureFactory"><code class="docutils literal notranslate"><span class="pre">change_managed_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv430discard_unused_managed_texture9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">discard_unused_managed_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv431discard_unused_managed_texturesv"><code class="docutils literal notranslate"><span class="pre">discard_unused_managed_textures()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv420mark_managed_tex_lfu9TEXTUREIDj"><code class="docutils literal notranslate"><span class="pre">mark_managed_tex_lfu()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv424prefetch_managed_texture9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">prefetch_managed_texture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv425prefetch_managed_texturesN3dag9ConstSpanI9TEXTUREIDEE"><code class="docutils literal notranslate"><span class="pre">prefetch_managed_textures()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv435prefetch_managed_textures_by_textagi"><code class="docutils literal notranslate"><span class="pre">prefetch_managed_textures_by_textag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv431mark_managed_textures_importantN3dag9ConstSpanI9TEXTUREIDEEji"><code class="docutils literal notranslate"><span class="pre">mark_managed_textures_important()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv438reset_managed_textures_streaming_statev"><code class="docutils literal notranslate"><span class="pre">reset_managed_textures_streaming_state()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv423set_default_tex_factoryP14TextureFactory"><code class="docutils literal notranslate"><span class="pre">set_default_tex_factory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv423get_default_tex_factoryv"><code class="docutils literal notranslate"><span class="pre">get_default_tex_factory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv424get_symbolic_tex_factoryv"><code class="docutils literal notranslate"><span class="pre">get_symbolic_tex_factory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv420get_stub_tex_factoryv"><code class="docutils literal notranslate"><span class="pre">get_stub_tex_factory()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv439init_managed_textures_streaming_supporti"><code class="docutils literal notranslate"><span class="pre">init_managed_textures_streaming_support()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv436is_managed_textures_streaming_activev"><code class="docutils literal notranslate"><span class="pre">is_managed_textures_streaming_active()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv444is_managed_textures_streaming_load_on_demandv"><code class="docutils literal notranslate"><span class="pre">is_managed_textures_streaming_load_on_demand()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv435dump_texture_streaming_memory_statev"><code class="docutils literal notranslate"><span class="pre">dump_texture_streaming_memory_state()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv429is_managed_texture_incomplete9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">is_managed_texture_incomplete()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv429load_anisotropy_from_settingsv"><code class="docutils literal notranslate"><span class="pre">load_anisotropy_from_settings()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv424add_anisotropy_exception9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">add_anisotropy_exception()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv416reset_anisotropyPKc"><code class="docutils literal notranslate"><span class="pre">reset_anisotropy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv441prefetch_and_check_managed_texture_loaded9TEXTUREIDb"><code class="docutils literal notranslate"><span class="pre">prefetch_and_check_managed_texture_loaded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv442prefetch_and_check_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"><code class="docutils literal notranslate"><span class="pre">prefetch_and_check_managed_textures_loaded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv441prefetch_and_wait_managed_textures_loadedN3dag9ConstSpanI9TEXTUREIDEEb"><code class="docutils literal notranslate"><span class="pre">prefetch_and_wait_managed_textures_loaded()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv428iterate_all_managed_textures9TEXTUREIDi"><code class="docutils literal notranslate"><span class="pre">iterate_all_managed_textures()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv426get_max_managed_texture_idv"><code class="docutils literal notranslate"><span class="pre">get_max_managed_texture_id()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv440get_managed_texture_streaming_generation9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">get_managed_texture_streaming_generation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv427is_managed_texture_id_valid9TEXTUREIDb"><code class="docutils literal notranslate"><span class="pre">is_managed_texture_id_valid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv421get_texture_meta_data9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">get_texture_meta_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv416get_sampler_infoRK15TextureMetaDatab"><code class="docutils literal notranslate"><span class="pre">get_sampler_info()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv428get_texture_separate_sampler9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">get_texture_separate_sampler()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv428set_texture_separate_sampler9TEXTUREIDRKN3d3d11SamplerInfoE"><code class="docutils literal notranslate"><span class="pre">set_texture_separate_sampler()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv422set_add_lod_bias_batchN3dag4SpanIK11LODBiasRuleEE"><code class="docutils literal notranslate"><span class="pre">set_add_lod_bias_batch()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv415dgs_tex_quality"><code class="docutils literal notranslate"><span class="pre">dgs_tex_quality</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv418dgs_tex_anisotropy"><code class="docutils literal notranslate"><span class="pre">dgs_tex_anisotropy</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv414TextureFactory"><code class="docutils literal notranslate"><span class="pre">TextureFactory</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv411LODBiasRule"><code class="docutils literal notranslate"><span class="pre">LODBiasRule</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="resMgr/textures.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="daFrameGraph/daFgCore.html" class="btn btn-neutral float-left" title="daFgCore Daslang Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="resMgr/resid.html" class="btn btn-neutral float-right" title="Resource IDs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

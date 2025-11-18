@@ -1,0 +1,208 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contributing to Compiler</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Substance Designer Mip Generator" href="../substance-designer/index.html" />
+    <link rel="prev" title="Shader Compiler" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Shader Compiler</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Contributing to Compiler</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-compiler-works">How Compiler Works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#versioning">Versioning</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Shader Compiler</a></li>
+      <li class="breadcrumb-item active">Contributing to Compiler</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/shader-compiler/contributing_to_compiler.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="contributing-to-compiler">
+<h1>Contributing to Compiler<a class="headerlink" href="#contributing-to-compiler" title="Link to this heading"></a></h1>
+<p>This section describes the rules of versioning and why they are important.</p>
+<section id="how-compiler-works">
+<h2>How Compiler Works<a class="headerlink" href="#how-compiler-works" title="Link to this heading"></a></h2>
+<p>Dagor Shader Compiler (DSC) is used to create compiled shader dumps (which are separate for each specific driver and shader model). For a given compiler run, the end result is usually a single <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;&lt;driver&gt;.[bindless.]&lt;shader</span> <span class="pre">model&gt;.shdump.bin</span></code> file and (optionally) a dynamic cpp stcode library. To reduce compile time, intermediate files are cached and reused in future runs:</p>
+<ul class="simple">
+<li><p>SHA cache (binary): located in <code class="docutils literal notranslate"><span class="pre">&lt;intermediate</span> <span class="pre">dir&gt;/../../shaders_sha~&lt;platform&gt;-O&lt;optimization</span> <span class="pre">level&gt;[-bindless]/bin</span></code>, contains driver-specific binaries compiled for specific shaders. Reused if exactly the same HLSL (or HLSL-like) code is compiled in future compiler runs.</p></li>
+<li><p>SHA cache (source): located in <code class="docutils literal notranslate"><span class="pre">&lt;intermediate</span> <span class="pre">dir&gt;/../../shaders_sha~&lt;platform&gt;-O&lt;optimization</span> <span class="pre">level&gt;[-bindless]/src</span></code>, may contain the final HLSL (or HLSL-like) source code for a specific shader to be compiled. References the binary cache file if it was generated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.obj</span></code> files: located in <code class="docutils literal notranslate"><span class="pre">&lt;intermediate</span> <span class="pre">dir&gt;</span></code>, contain full compiler output for a given <code class="docutils literal notranslate"><span class="pre">.dshl</span></code> file. Reused if the <code class="docutils literal notranslate"><span class="pre">.dshl</span></code> file is not modified since the last compiler run.</p></li>
+</ul>
+<p>Here is a list of the available <code class="docutils literal notranslate"><span class="pre">&lt;driver&gt;</span></code> values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DX12x</span></code> - Xbox One platform</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DX12xs</span></code> - Xbox Series platform</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DX12</span></code> - DirectX 12 API</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SpirV</span></code> - Vulkan API</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PS4</span></code> - PlayStation 4 platform</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PS5</span></code> - PlayStation 5 platform</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MTL</span></code> - Metal API</p></li>
+<li><p>empty string - DirectX 11 API</p></li>
+</ul>
+<p>The input <code class="docutils literal notranslate"><span class="pre">.blk</span></code> <strong>MUST</strong> have the variable <code class="docutils literal notranslate"><span class="pre">outDumpName:t=&quot;&lt;dump</span> <span class="pre">path&gt;/&lt;</span> <span class="pre">name&gt;&lt;driver&gt;&quot;</span></code>.</p>
+<p>The presence of <code class="docutils literal notranslate"><span class="pre">[bindless]</span></code> is defined by the DSC flag <code class="docutils literal notranslate"><span class="pre">-enableBindless:on</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;intermediate</span> <span class="pre">dir&gt;</span></code> is defined by the DSC flag <code class="docutils literal notranslate"><span class="pre">-o</span></code>.</p>
+</section>
+<section id="versioning">
+<h2>Versioning<a class="headerlink" href="#versioning" title="Link to this heading"></a></h2>
+<p>Dagor Shader Compiler has 3 different “versions”, each of which must be updated separately:</p>
+<ul class="simple">
+<li><p>If generated HLSL (or HLSL-like) code <strong>MAY</strong> produce a bytecode different from the previous version (for example, if you updated libs for HLSL compiler), the corresponding <code class="docutils literal notranslate"><span class="pre">sha1_cache_version</span></code> <strong>MUST</strong> be updated in <code class="docutils literal notranslate"><span class="pre">prog/tools/ShaderCompiler2/sha1_cache_version.h</span></code>, because it is used for cache in <code class="docutils literal notranslate"><span class="pre">_output/shaders_sha~&lt;platform&gt;-O&lt;optimization</span> <span class="pre">level&gt;[-bindless]/</span></code></p></li>
+<li><p>If changes require rebuilding of all <code class="docutils literal notranslate"><span class="pre">.obj</span></code> (if <code class="docutils literal notranslate"><span class="pre">.dshl</span></code> file <strong>MAY</strong> produce <code class="docutils literal notranslate"><span class="pre">.hlsl</span></code> different from the previous version or stcode generation was changed) for</p>
+<ul>
+<li><p>some platforms, the corresponding <code class="docutils literal notranslate"><span class="pre">_MAKE4C('version')</span></code> <strong>MUST</strong> be updated in <code class="docutils literal notranslate"><span class="pre">prog/tools/ShaderCompiler2/ver_obj_&lt;platform&gt;.&lt;h</span> <span class="pre">or</span> <span class="pre">cpp&gt;</span></code></p></li>
+<li><p>all platforms, <code class="docutils literal notranslate"><span class="pre">SHADER_CACHE_COMMON_VER</span></code> <strong>MUST</strong> be updated in <code class="docutils literal notranslate"><span class="pre">prog/tools/ShaderCompiler2/shCacheVer.h</span></code></p></li>
+</ul>
+</li>
+<li><p>If you implement some new feature or fix something, <code class="docutils literal notranslate"><span class="pre">CompilerConfig::version</span></code> <strong>MUST</strong> be updated in <code class="docutils literal notranslate"><span class="pre">prog/tools/ShaderCompiler2/globalConfig.h</span></code>. It is only used for logging.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Shader Compiler" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../substance-designer/index.html" class="btn btn-neutral float-right" title="Substance Designer Mip Generator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

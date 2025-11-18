@@ -1,0 +1,202 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacestcode" kind="namespace" language="C++">
+    <compoundname>stcode</compoundname>
+    <innerclass refid="classstcode_1_1ScopedCustomConstSetter" prot="public">stcode::ScopedCustomConstSetter</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__stcode_8h_1a3ce03dbc394a5614595bb517bb93598b" prot="public" static="no">
+        <type>dag::FixedMoveOnlyFunction&lt; 64, eastl::optional&lt; eastl::string &gt;(eastl::string_view)&gt;</type>
+        <definition>using stcode::SpecialBlkTagInterpreter = typedef dag::FixedMoveOnlyFunction&lt;64, eastl::optional&lt;eastl::string&gt;(eastl::string_view)&gt;</definition>
+        <argsstring></argsstring>
+        <name>SpecialBlkTagInterpreter</name>
+        <qualifiedname>stcode::SpecialBlkTagInterpreter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="22" column="1" bodyfile="dag_stcode.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__stcode_8h_1a4fc05dfda8c22f7ab9df9a0a4b50e85a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool stcode::USE_BRANCHED_DYNAMIC_ROUTINES</definition>
+        <argsstring></argsstring>
+        <name>USE_BRANCHED_DYNAMIC_ROUTINES</name>
+        <qualifiedname>stcode::USE_BRANCHED_DYNAMIC_ROUTINES</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="78" column="23" bodyfile="dag_stcode.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__stcode_8h_1a1f0db22bd52282dbd17e7f585a115e93" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool stcode::load</definition>
+        <argsstring>(const char *)</argsstring>
+        <name>load</name>
+        <qualifiedname>stcode::load</qualifiedname>
+        <param>
+          <type>const char *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="80" column="13" bodyfile="dag_stcode.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__stcode_8h_1a12c10416b8d0c645a0611a8e43fd24f9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void stcode::unload</definition>
+        <argsstring>()</argsstring>
+        <name>unload</name>
+        <qualifiedname>stcode::unload</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="81" column="13" bodyfile="dag_stcode.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__stcode_8h_1a81fa2e1921cdf91d30402bd6032c2b1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool stcode::is_loaded</definition>
+        <argsstring>()</argsstring>
+        <name>is_loaded</name>
+        <qualifiedname>stcode::is_loaded</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="82" column="13" bodyfile="dag_stcode.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__stcode_8h_1a4c727b47a6ec6d3126121e354b626808" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void stcode::set_special_tag_interp</definition>
+        <argsstring>(SpecialBlkTagInterpreter &amp;&amp;)</argsstring>
+        <name>set_special_tag_interp</name>
+        <qualifiedname>stcode::set_special_tag_interp</qualifiedname>
+        <param>
+          <type>SpecialBlkTagInterpreter &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="84" column="13" bodyfile="dag_stcode.h" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__stcode_8h_1ae7a872372fc71ce52c03217ede1943b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void stcode::run_dyn_routine</definition>
+        <argsstring>(size_t, const void *, uint32_t=-1, int=15, const char *=nullptr)</argsstring>
+        <name>run_dyn_routine</name>
+        <qualifiedname>stcode::run_dyn_routine</qualifiedname>
+        <param>
+          <type>size_t</type>
+        </param>
+        <param>
+          <type>const void *</type>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <defval>-1</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <defval>15</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="86" column="13" bodyfile="dag_stcode.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__stcode_8h_1ad5f1ffa901707bfd6eb7cc3e4a6798e0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void stcode::run_st_routine</definition>
+        <argsstring>(size_t, void *)</argsstring>
+        <name>run_st_routine</name>
+        <qualifiedname>stcode::run_st_routine</qualifiedname>
+        <param>
+          <type>size_t</type>
+        </param>
+        <param>
+          <type>void *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="87" column="13" bodyfile="dag_stcode.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__stcode_8h_1a040221472a3590f94c40a4066a09cc88" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class...</type>
+            <declname>Args</declname>
+            <defname>Args</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void stcode::set_on_before_resource_used_cb</definition>
+        <argsstring>(Args...)</argsstring>
+        <name>set_on_before_resource_used_cb</name>
+        <qualifiedname>stcode::set_on_before_resource_used_cb</qualifiedname>
+        <param>
+          <type>Args...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="90" column="13" bodyfile="dag_stcode.h" bodystart="90" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__stcode_8h_1aa98b09d07b930d85b2eac3dff82dbc09" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void stcode::set_custom_const_setter</definition>
+        <argsstring>(shaders_internal::ConstSetter *)</argsstring>
+        <name>set_custom_const_setter</name>
+        <qualifiedname>stcode::set_custom_const_setter</qualifiedname>
+        <param>
+          <type>shaders_internal::ConstSetter *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_stcode.h" line="93" column="13" bodyfile="dag_stcode.h" bodystart="93" bodyend="93"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_stcode.h" line="19" column="1"/>
+  </compounddef>
+</doxygen>

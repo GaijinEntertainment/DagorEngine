@@ -1,0 +1,706 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor ECS</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Schemeful Events (daScript, Quirrel, C++, Net)" href="schemeful_events.html" />
+    <link rel="prev" title="Dagor ECS" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Dagor ECS</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Dagor ECS</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#basic-concepts">Basic Concepts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#characteristics">Characteristics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#working-directly">Working Directly</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#entity-states">Entity States</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#legacy-oop">Legacy (OOP)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#difference-in-approaches">Difference in Approaches</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#performance">Performance</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#entity-creation">Entity Creation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#data-handling-frame-update">Data Handling/Frame Update</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#codegen">Codegen</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#code-example">Code Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="schemeful_events.html">Schemeful Events (daScript, Quirrel, C++, Net)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor ECS</a></li>
+      <li class="breadcrumb-item active">Dagor ECS</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api-references/dagor-ecs/dagor_ecs.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-ecs">
+<h1>Dagor ECS<a class="headerlink" href="#dagor-ecs" title="Link to this heading"></a></h1>
+<section id="basic-concepts">
+<h2>Basic Concepts<a class="headerlink" href="#basic-concepts" title="Link to this heading"></a></h2>
+<p><strong>Entity:</strong> An entity is a set of components created based on a template using
+an initializer (a data set) for each component. It is important to note that an
+entity is <em>not</em> a container; components are not stored “within” it.</p>
+<p><strong>EntityId:</strong> This is the identifier for an entity, acting as a weak reference
+with a limited number of reuse cycles (generation).</p>
+<p><strong>Component:</strong> Essentially, a component is a pure data class without any code
+and behaviour description, which is instead contained in ECS systems. While
+components can be written in an Object-Oriented Programming (OOP) style, like
+legacy (e.g., C with classes but without polymorphism), the methods should only
+be invoked from ECS systems that receive components of the same type as
+parameter. Components may include a copy constructor, comparison operator or/and
+assignment operator, but at a minimum, they must have a constructor and
+destructor, with additional elements necessary for serialization and tracking of
+changes.</p>
+<p><strong>Templates:</strong> The only way to create an entity is to specify a fully data-driven
+template, which lists all the components of the entity (they might be assigned
+to some default values). An optional initializer can be provided to
+override these default values within the entity.</p>
+<p><strong>Archetype:</strong> A specific list of components defines an archetype. All
+components of entities sharing the same archetype are stored optimally in memory
+(Structs of Arrays, SoA). Multiple templates can correspond to the same
+archetype. Direct interaction with archetypes is not possible, as they are
+framework entities, but it is useful to understand which archetype your template
+corresponds to.</p>
+<p><strong>ComponentTypeManager:</strong> This object manages the lifecycle (i.e., creation and
+destruction) of non-PoD (Plain old Data) types, such as <code class="docutils literal notranslate"><span class="pre">visual_effect</span></code>,
+<code class="docutils literal notranslate"><span class="pre">animchar</span></code>, <code class="docutils literal notranslate"><span class="pre">human_phys_actor</span></code>, etc. This is a table of functions, which
+implement constructor, destructor, copy-constructor, comparison operator,
+assignment operator, move operator, replicateCompare (comparison + assignment).
+Only constructor and destructor would be essential. Copy constructor is required
+for creating components with an initializer or template with data, but not
+required when a template doesn’t contain data (only description is present).
+Comparison / assignment operators are required for serialization and tracked
+changes. Thus, when serialization and tracking are not needed operators can be
+omitted.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>In 99.9% cases ComponentTypeManager implementation is not needed. You should
+only identify if the specified data type is relocatable or not (i.e. does
+anything else contain a pointer to it), and declare it with standard macro
+<code class="docutils literal notranslate"><span class="pre">ECS_DECLARE_BOXED_TYPE</span></code> (or <code class="docutils literal notranslate"><span class="pre">ECS_DECLARE_RELOCATABLE_TYPE</span></code>). Relocatable type
+is faster and ensures better locality. It cannot be used if a data type (e.g.
+<code class="docutils literal notranslate"><span class="pre">fixed_vector</span></code>) stores a pointer to itself (or if size of type is greater than
+65536 bytes, which, hopefully, will never happen).</p>
+</div>
+<p><strong>System</strong>: Pure functions, which work with a predefined list of components:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>. Pure function that is invoked each frame. Essentially, it is
+BroadCast Event Immediate, but it is optimized for the case when there are a lot
+of ES listeners of this Event (Stage).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onEvent</span></code>. Usually works with a specific Entity (the event is sent to a
+particular entity). However, there could be BroadCast Events as well. <code class="docutils literal notranslate"><span class="pre">onEvent</span></code>
+receives not only components tuples, but also a typed Event. Event can be
+regularly postponed (and, in fact, it will be), but then it will be processed by
+all of the relevant systems at once.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">performQuery</span></code>. Pure function, which is invoked inside another function (see
+below). Both BroadCast Query and <code class="docutils literal notranslate"><span class="pre">onUpdate</span></code> are queries + one parameter
+(Event/Stage).</p></li>
+</ul>
+<p><strong>ChildComponent:</strong> The component that is not a part of Entity. Initializers
+(for creation) or “child” components in Object (a table) or Array.</p>
+<p><strong>Query:</strong> A fast and convenient way of getting all necessary entities with
+specified attributes (Components). That is to say, a query like <code class="docutils literal notranslate"><span class="pre">Get_All_Humans</span></code>
+or <code class="docutils literal notranslate"><span class="pre">Get_All_Humans_With_Transform</span></code>. In fact, simple systems perform function on
+all Query results for Stage/Event.</p>
+<p><strong>EntityManager:</strong> This represents “the whole world” in the ECS context.</p>
+<p><strong>Mutation of Entity Archetype:</strong> (a change in Entity Components). Archetypes
+can only be mutated via <code class="docutils literal notranslate"><span class="pre">reCreateEntity</span></code>, which allows transitioning to a new
+template by adding missing components and removing unnecessary ones from the old
+template. If the new template corresponds to the same archetype, the operation
+would be empty (no change).</p>
+<p><strong>Tracked/Replicated:</strong> Dagor ECS can automatically track changes and trigger
+events and/or replicate objects over a network. To enable this, entity
+components need to be marked appropriately in the template. Non-PoD types must
+implement comparison and assignment operators.</p>
+<p>There is an “optimized” variant of <code class="docutils literal notranslate"><span class="pre">replicateCompare(from,</span> <span class="pre">to)</span></code> (by default,
+it’s <code class="docutils literal notranslate"><span class="pre">if(!(from</span> <span class="pre">==</span> <span class="pre">to))</span> <span class="pre">{from</span> <span class="pre">=</span> <span class="pre">to;</span> <span class="pre">return</span> <span class="pre">true;</span> <span class="pre">}</span> <span class="pre">else</span> <span class="pre">return</span> <span class="pre">false;)</span></code>. If the
+data type is rather complicated and large, but all changes in the object of this
+type are securely encapsulated via “set” and “get” (mutable), then
+generation/hash logic can be used for more optimal comparison. If the generation
+hasn’t changed, then data hasn’t changed too. Example: <code class="docutils literal notranslate"><span class="pre">ecs::Objects</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ecs::Array</span></code>.</p>
+<p><strong>Replication:</strong> Changes are replicated using an “eventually consistent” model,
+meaning not all changes will be “visible” to the client in the exact order of
+their appearance the server (some could be even missed), but all changes will
+eventually be received by the clients. It is done in order to not resend
+“obsolete” data, if the packet containing replication has been lost, while
+relevant components have been changed.</p>
+</section>
+<section id="characteristics">
+<h2>Characteristics<a class="headerlink" href="#characteristics" title="Link to this heading"></a></h2>
+<ul>
+<li><p><strong>Components are Code-Free:</strong> Components do not contain any code. They are not
+OOP objects, as encapsulation, inheritance, and polymorphism contradict the
+principles of ECS (Entity-Component-System). Methods, aside from getters and
+mathematical operators, are also not present. (Refer to this
+<a class="reference external" href="https://youtu.be/QM1iUe6IofM">video</a> for more details.)</p></li>
+<li><p><strong>Systems (<code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>/<code class="docutils literal notranslate"><span class="pre">onEvent</span></code>) Are Data-Free:</strong> Systems do not store or modify
+data, including global or static variables (except for configuration data).
+Systems operate exclusively on predefined data registered in advance. If an
+Entity lacks the required components, it will not be processed by the System.
+Conversely, if it contains the required components, it will be processed.</p>
+<p>However, the System remains unaware of any other components the Entity might
+contain and cannot interact with them. An exception exists when working with
+components of other Entities, which must be explicitly declared during
+registration. The System is responsible for transforming the world from one
+consistent state to another and cannot rely on the existence or behavior of
+other systems.</p>
+</li>
+<li><p><strong>Deferred Creation and Destruction of Entities:</strong> Entities are created and
+destructed in a deferred manner, but no later than the end of the update
+cycle.</p></li>
+<li><p><strong>Deferred onEvent Execution:</strong> The execution of <code class="docutils literal notranslate"><span class="pre">onEvent</span></code> is deferred, with
+an unknown number of frames delay.</p></li>
+<li><p><strong>System (<code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>) Executes All at Once:</strong> All Systems (<code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>) are
+executed simultaneously. The execution order of Systems (before/after) is
+specified during ES registration and is subject to topological sorting.</p></li>
+<li><p><strong>Optimal Memory Storage for Components:</strong> Component data is stored in memory
+optimally (Structure of Arrays, SoA), except for Boxed components. Boxed
+components have optimization in the standard BoxedCreator template, which
+allows sequential memory allocation, though fragmentation can still occur.</p></li>
+<li><p><strong>Complex Systems Using Multiple Jobs/Queries:</strong> You can write Systems
+consisting of multiple Jobs/Queries. For this, the wrapping System is defined as
+accepting no components, and Queries (of any required number and types) are
+described within it.</p></li>
+<li><p><strong>Multiple Invocations of Simple Systems and Queries:</strong> Each simple System
+(and each Query) can and will be invoked multiple times — once for each data
+chunk of every Archetype that meets the requirements.</p></li>
+<li><p><strong>Parallelism:</strong> The execution of any <code class="docutils literal notranslate"><span class="pre">onUpdate</span></code> or broadcast <code class="docutils literal notranslate"><span class="pre">onEvent</span></code> can be
+parallelized. This can happen per System (executing the code of a single
+system across multiple threads, classic SIMD) or by executing multiple Systems
+simultaneously.</p>
+<p>Since System(<code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>)/<code class="docutils literal notranslate"><span class="pre">onEvent</span></code> explicitly declares which components are
+read-only, and which are read-write during registration, the EntityManager can
+accurately determine if there will be any Read/Write conflicts for any set of
+Systems, allowing parallel execution provided no other ECS-related code is
+invoked. However, this parallelism is not yet supported. SIMD execution within
+a single system is possible but extremely dangerous and undesirable unless you
+fully understand what you are doing.</p>
+<p>In daNetGame-based games this is specified in a query during declaration as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>`template&lt;typename Callable&gt; void animchar_update_ecs_query(Callable ECS_CAN_PARALLEL_FOR(c, 4));
+</pre></div>
+</div>
+<p>and for ES as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">animchar_update_es</span><span class="p">(</span><span class="n">const</span> <span class="n">UpdateStageInfo</span> <span class="o">&amp;</span><span class="p">,</span> <span class="n">EntityId</span> <span class="n">eid</span><span class="p">,</span> <span class="n">Callable</span> <span class="n">ECS_CAN_PARALLEL_FOR</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">4</span><span class="p">));</span>
+</pre></div>
+</div>
+<p>or in <code class="docutils literal notranslate"><span class="pre">es_order</span></code> as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>`es_name {mt{stage_name:i=quant_size;}}
+</pre></div>
+</div>
+<p>where
+<code class="docutils literal notranslate"><span class="pre">stage_name</span></code> could be <code class="docutils literal notranslate"><span class="pre">es_act</span></code>, <code class="docutils literal notranslate"><span class="pre">es_before_render</span></code>, or others, and
+<code class="docutils literal notranslate"><span class="pre">quant_size</span></code> is the minimum “quantum” of work (i.e., the minimum number of
+tuples to be processed). This quantum size depends on the system: the larger
+it is, the better (fewer switches), but if the system only needs to process 10
+tuples and the quantum is 10, there will be no parallelism. Generally, a good
+quantum size is around “expected number of tuples/16” (so each of 4 threads
+gets 4 chunks of work). However, if the work chunks are uneven in terms of
+time (animations can be very simple or very complex), it’s better to keep the
+quantum small, such as 4 elements.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Do not use parallelism except in a small amount of isolated, slow code.</p>
+</div>
+</li>
+<li><p><strong>Deferred <code class="docutils literal notranslate"><span class="pre">onEvent</span></code> Execution Based on Budget:</strong> The execution of any
+<code class="docutils literal notranslate"><span class="pre">onEvent</span></code> can be deferred by an arbitrary number of frames depending on
+available resources (“budget”). Unfortunately, the budget is not in
+milliseconds (because measuring that is slow) but in Events. Therefore, it is
+crucial that a single <code class="docutils literal notranslate"><span class="pre">onEvent</span></code> does not cause significant delays.</p></li>
+</ul>
+</section>
+<section id="working-directly">
+<h2>Working Directly<a class="headerlink" href="#working-directly" title="Link to this heading"></a></h2>
+<ul>
+<li><p><strong>Working with Components Directly:</strong> Direct manipulation of components is
+allowed only under one condition — it must not occur inside
+<code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>/<code class="docutils literal notranslate"><span class="pre">onEvent</span></code>.</p>
+<p>If it does happen inside <code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>/<code class="docutils literal notranslate"><span class="pre">onEvent</span></code> (for example, a trigger zone is
+checking whether someone has entered or not), this must be explicitly declared
+(via a Query).</p>
+<p>Such a system cannot be parallelized, either entirely (if it
+potentially (re)writes to the entire world), with specific other systems (if it
+explicitly declares which components it writes to), or it may only be
+parallelized within itself (if it reads from the entire world).</p>
+</li>
+<li><p><strong>Avoid Get/Set:</strong> In general, it is advisable to avoid using <code class="docutils literal notranslate"><span class="pre">get</span></code>/<code class="docutils literal notranslate"><span class="pre">set</span></code>
+methods.</p></li>
+</ul>
+</section>
+<section id="entity-states">
+<h2>Entity States<a class="headerlink" href="#entity-states" title="Link to this heading"></a></h2>
+<p>When writing network code, especially when dealing with an external Entity Id
+(not included in a query/es) through get/set operations (which should be avoided
+as much as possible), it is crucial to understand that an entity can exist in
+one of four primary states during its lifecycle:</p>
+<ol class="arabic simple">
+<li><p><strong>Non-Existent:</strong> The entity does not exist.</p></li>
+<li><p><strong>Exists but Empty (aka Allocated Handle):</strong> The entity exists but does not
+have any components. This can occur on the client side when there are
+references to the entity, but it has not yet been created by the server.</p></li>
+<li><p><strong>Exists and Empty, but Queued for Loading:</strong> The entity exists, is empty,
+but is queued for loading. This happens when an entity is created
+asynchronously.</p></li>
+<li><p><strong>Exists and Created:</strong> The entity exists, and all required components are
+present and loaded.</p></li>
+</ol>
+<p>For each of these states, there is a corresponding check (which may vary
+depending on the ECS version but is always present).</p>
+<p>There are also more exotic states, such as an entity that has been
+created/loaded but is missing some components because the entity is a composite
+created through recreation (e.g., “base+foo+bar”, where “foo” has not yet been
+added).</p>
+<p>To avoid problems, instead of using <code class="docutils literal notranslate"><span class="pre">get</span></code>/<code class="docutils literal notranslate"><span class="pre">getRW</span></code> (which, in dev builds, will
+assert in such cases but in release builds will still return a reference to
+empty memory), use <code class="docutils literal notranslate"><span class="pre">getNullable</span></code>/g<code class="docutils literal notranslate"><span class="pre">etNullableRW</span></code>. An entirely empty entity will
+return an “empty” template name.</p>
+</section>
+<section id="legacy-oop">
+<h2>Legacy (OOP)<a class="headerlink" href="#legacy-oop" title="Link to this heading"></a></h2>
+<p>If you have an OOP object that you want to turn into a component, this does not
+inherently violate the ECS paradigm. However, all the code (object methods)
+should only be invoked within an update.</p>
+<p>Essentially, this is just about moving shared code for several
+<code class="docutils literal notranslate"><span class="pre">onUpdate</span></code>/<code class="docutils literal notranslate"><span class="pre">onEvent</span></code> into a common location.</p>
+<p>However, the recommended approach is to extract such common code into a separate
+shared library rather than leaving it as a class method to clearly distance it
+from OOP. If the OOP object is polymorphic, this should not be used at all (and
+it’s better not to do this).</p>
+</section>
+<section id="difference-in-approaches">
+<h2>Difference in Approaches<a class="headerlink" href="#difference-in-approaches" title="Link to this heading"></a></h2>
+<p>Let’s say you want to create triggers (e.g., something happens when entering a
+trigger). Previously, you had a spherical trigger, and now you need a cubic one
+as well.</p>
+<p><strong>OOP Approach:</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">IShapedTrigger</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">isInside</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Point3</span><span class="w"> </span><span class="o">&amp;</span><span class="n">p</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BoxTrigger</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">IShapedTrigger</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">isInside</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Point3</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SphereTrigger</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">IShapedTrigger</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">isInside</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Point3</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Update code:</span>
+<span class="n">IShapedTrigger</span><span class="w"> </span><span class="o">*</span><span class="n">trigger</span><span class="p">;</span>
+<span class="n">foreach</span><span class="w"> </span><span class="p">(</span><span class="n">unit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">trigger</span><span class="o">-&gt;</span><span class="n">isInside</span><span class="p">(</span><span class="n">unit</span><span class="p">.</span><span class="n">pos</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">do_something</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>ECS Approach:</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">sphere_trigger_es</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">trigger</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Point3</span><span class="w"> </span><span class="o">&amp;</span><span class="n">sphere_c</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">sphere_r</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">performQuery</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="n">Unit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">unit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">length</span><span class="p">(</span><span class="n">sphere_c</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">unit</span><span class="p">.</span><span class="n">pos</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">sphere_r</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">sendEvent</span><span class="p">(</span><span class="n">IN_TRIGGER</span><span class="p">,</span><span class="w"> </span><span class="n">Event</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span><span class="w"> </span><span class="n">trigger</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">box_trigger_es</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">trigger</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Point3</span><span class="w"> </span><span class="o">&amp;</span><span class="n">box_0</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Point3</span><span class="w"> </span><span class="o">&amp;</span><span class="n">box_1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">performQuery</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="n">Unit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">unit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">unit</span><span class="p">.</span><span class="n">pos</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">BBox3</span><span class="p">(</span><span class="n">box_0</span><span class="p">,</span><span class="w"> </span><span class="n">box_1</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">sendEvent</span><span class="p">(</span><span class="n">IN_TRIGGER</span><span class="p">,</span><span class="w"> </span><span class="n">Event</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span><span class="w"> </span><span class="n">trigger</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="p">}</span>
+
+<span class="n">onEvent</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">trigger</span><span class="p">,</span><span class="w"> </span><span class="n">Unit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">unit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">do_something</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>As you can see, both approaches are possible, but:</p>
+<ol class="arabic simple">
+<li><p><strong>Deferred Execution:</strong> <code class="docutils literal notranslate"><span class="pre">do_something</span></code> can be deferred in ECS, which is
+beneficial rather than problematic.</p></li>
+<li><p><strong>Decoupling:</strong> The <code class="docutils literal notranslate"><span class="pre">onEvent</span></code> system has no knowledge of what triggered the
+event. It could be a spherical or cubic area, or even a special ability of a
+Unit. The system doesn’t care and doesn’t need to know. This promotes
+decoupling.</p></li>
+<li><p><strong>Debugging and Serialization:</strong> The entire process can be fully debugged
+graphically, serialized, and sent over the network as both an event and its
+result. This allows transfer necessary calculations to the client (e.g.,
+graphical effects) without using <code class="docutils literal notranslate"><span class="pre">if</span></code> statements.</p></li>
+<li><p><strong>Extensibility:</strong> The IShapeArea interface can be extended as broadly as
+needed. A unit can be in multiple zones simultaneously if required.</p></li>
+<li><p><strong>Less Code:</strong> Although it may seem that the amount of code is similar, the
+OOP approach lacks members (e.g., box, sphere), the actual function
+implementations, and instance creation code. The ECS version contains all the
+necessary code (excluding what is generated by codegen).</p></li>
+</ol>
+</section>
+<section id="performance">
+<h2>Performance<a class="headerlink" href="#performance" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Typical Entity Characteristics:</strong> In most game worlds, typical entities have
+at least 5-10 components, and sometimes even several hundred, consuming
+hundreds of bytes to tens of kilobytes of memory.</p></li>
+<li><p><strong>Component Characteristics:</strong> Components (members) are typically diverse, and
+rarely does a single method interact with all components simultaneously. Thus,
+OOP often results in patterns that are highly suboptimal in terms of cache
+efficiency and branch prediction.</p></li>
+<li><p><strong>Polymorphism in Entities:</strong> Real-world entities often exhibit some form of
+polymorphism, meaning multiple entities perform the same behavior on
+semantically similar data.</p></li>
+<li><p><strong>ECS vs. OOP:</strong> ECS provides more efficient access to entities and their data
+(via data duck typing) than classical OOP, but how does it fare in terms of
+performance?</p></li>
+<li><p><strong>DagorECS - Data-Oriented and Fast:</strong> Dagor ECS is designed with a
+data-oriented approach, it features high speed and excellent cache locality.</p></li>
+</ul>
+<section id="entity-creation">
+<h3>Entity Creation<a class="headerlink" href="#entity-creation" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Framework Overhead:</strong> The overhead of the framework during entity creation
+is negligible.</p></li>
+<li><p><strong>Batch Creation:</strong> Creating many entities (even with initializers) is
+generally faster than creating a <code class="docutils literal notranslate"><span class="pre">vector&lt;Entity&gt;</span></code> and adding them one by one.
+It is slightly (~40%) slower than creating all entities at once (a speed that
+is not achievable in real-world tasks, as it represents an upper limit) and
+slightly less (~30%) slower than using <code class="docutils literal notranslate"><span class="pre">vector&lt;unique_ptr&lt;Entity&gt;&gt;</span></code> (which, as
+we’ll see, incurs a significant performance penalty).</p></li>
+</ul>
+<p>Here are some measurements for creating 30,000 entities, each consisting of 15
+POD components, with a total entity size of 516 bytes (one component is tracked,
+no tracked means the component is not tracked):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Entity</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">TMatrix</span><span class="w"> </span><span class="n">transform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">TMatrix</span><span class="o">::</span><span class="n">IDENT</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">iv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="n">ic2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Point3</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="n">TMatrix</span><span class="w"> </span><span class="n">d</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">TMatrix</span><span class="o">::</span><span class="n">IDENT</span><span class="p">};</span>
+<span class="w">  </span><span class="n">Point3</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">ivCopy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p><strong>Time to create 30,000 Entities:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">daECS</span> <span class="n">create</span> <span class="p">(</span><span class="n">no</span> <span class="n">tracked</span><span class="p">):</span>                 <span class="mi">6788</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">grow</span> <span class="n">vector</span> <span class="n">create</span><span class="p">:</span>                       <span class="mi">10088</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">best</span> <span class="n">possible</span> <span class="p">(</span><span class="n">single</span> <span class="n">allocation</span><span class="p">)</span> <span class="n">create</span><span class="p">:</span>  <span class="mi">4768</span> <span class="n">us</span>
+</pre></div>
+</div>
+<p><strong>Average time for mass creation:</strong> <code class="docutils literal notranslate"><span class="pre">0.22</span> <span class="pre">microseconds</span></code> per entity. This is the
+synchronous creation time without any Event Systems (ES) catching creation
+events for these entities.</p>
+<p><strong>Conclusion:</strong> Entity creation in daECS is very fast! There is no need to
+implement spawn pools or other such complexities.</p>
+</section>
+<section id="data-handling-frame-update">
+<h3>Data Handling/Frame Update<a class="headerlink" href="#data-handling-frame-update" title="Link to this heading"></a></h3>
+<p>To evaluate this, we use the same entity and a trivial kinematic update: <code class="docutils literal notranslate"><span class="pre">pos</span> <span class="pre">+=</span> <span class="pre">dt</span> <span class="pre">*</span> <span class="pre">vel</span></code>.</p>
+<p><strong>Times marked as “best possible” represent the maximum achievable speeds for a
+data-oriented design, utilizing two parallel arrays (NOT entities).</strong></p>
+<p><strong>With a “cold” cache:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">daECS</span> <span class="n">update</span><span class="p">:</span>                     <span class="mf">49.45</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">vector</span><span class="o">&lt;</span><span class="n">Entity</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">inline</span><span class="p">:</span>          <span class="mf">460.20</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">vector</span><span class="o">&lt;</span><span class="n">Entity</span><span class="o">*&gt;</span><span class="p">,</span> <span class="n">inline</span><span class="p">:</span>         <span class="mf">502.40</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">vector</span><span class="o">&lt;</span><span class="n">Entity</span><span class="o">*&gt;</span><span class="p">,</span> <span class="n">virtual</span> <span class="n">update</span><span class="p">:</span> <span class="mf">683.45</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">best</span> <span class="n">possible</span><span class="p">,</span> <span class="n">inline</span><span class="p">:</span>            <span class="mf">44.55</span> <span class="n">us</span>
+</pre></div>
+</div>
+<p><strong>With a “hot” cache:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">daECS</span> <span class="n">update</span><span class="p">:</span>                     <span class="mf">35.7</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">vector</span><span class="o">&lt;</span><span class="n">Entity</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">inline</span><span class="p">:</span>          <span class="mf">299.8</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">vector</span><span class="o">&lt;</span><span class="n">Entity</span><span class="o">*&gt;</span><span class="p">,</span> <span class="n">inline</span><span class="p">:</span>         <span class="mf">346.0</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">vector</span><span class="o">&lt;</span><span class="n">Entity</span><span class="o">*&gt;</span><span class="p">,</span> <span class="n">virtual</span> <span class="n">update</span><span class="p">:</span> <span class="mf">561.8</span> <span class="n">us</span>
+<span class="o">-</span> <span class="n">best</span> <span class="n">possible</span><span class="p">:</span>                    <span class="mf">34.7</span> <span class="n">us</span>
+</pre></div>
+</div>
+<p><strong>Performance Summary:</strong> Despite the vastly greater convenience of the ECS
+framework, it is more than 10 times faster than working with OOP entities in any
+form (and especially faster than OOP with polymorphism).</p>
+<p><strong>Optimal Speeds:</strong> The best achievable speeds are no more than 10% better with
+a “cold” cache and practically identical with a “hot” cache.</p>
+<p><strong>Comparison with Other Frameworks:</strong> For comparison with another well-known
+data-oriented framework, Unity 2018 ECS: we have an exact implementation of the
+Unity algorithm, and daECS performs approximately 4-8 times faster.</p>
+<p><strong>Conclusion:</strong> Working with daECS is incredibly fast!</p>
+</section>
+</section>
+<section id="codegen">
+<h2>Codegen<a class="headerlink" href="#codegen" title="Link to this heading"></a></h2>
+<p>We have a <em>codegen</em> (code generation) tool that automatically generates
+standardized bindings for system registration using “lambda” that process one
+entity (tuple of components).</p>
+<p>This is a Python script that parses files to identify functions containing the
+following patterns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*_es</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*_es_event_handler</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*_ecs_query</span></code></p></li>
+</ul>
+<p>It then registers the system with the corresponding name. For example, functions
+like <code class="docutils literal notranslate"><span class="pre">water_es(UpdateStageInfoAct)</span></code> and <code class="docutils literal notranslate"><span class="pre">water_es(UpdateStageInfoRender)</span></code> or
+<code class="docutils literal notranslate"><span class="pre">water_es_event_handler(Event1)</span></code>/<code class="docutils literal notranslate"><span class="pre">water_es_event_handler(Event2)</span></code> would be
+registered as two separate systems with their own set of components.</p>
+<p>The <em>codegen</em> recognizes typed <code class="docutils literal notranslate"><span class="pre">on_update</span></code> functions (where the first parameter
+is the stage, with a specified type) and typed <code class="docutils literal notranslate"><span class="pre">event_handler</span></code> functions.</p>
+<p><strong>Parameter Binding:</strong></p>
+<ul>
+<li><p><strong>Strict Name Binding:</strong> All parameters are bound strictly by name. Names
+cannot be omitted! If a name is required for behavior but the data itself is
+not needed, use <code class="docutils literal notranslate"><span class="pre">ECS_REQUIRE(type</span> <span class="pre">name)</span></code>.</p>
+<p>For parameters listed in <code class="docutils literal notranslate"><span class="pre">ECS_REQUIRE</span></code> you can use <code class="docutils literal notranslate"><span class="pre">ecs::auto_type</span></code> (this is
+not an actual type but serves to avoid unnecessary includes, etc.).</p>
+</li>
+<li><p><strong>Optional Parameters:</strong> These either have a default value (e.g., <code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">water_wind</span> <span class="pre">=</span> <span class="pre">1.0f</span></code>) or are passed via pointer (e.g., <code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">*water_wind</span></code>). If
+the parameter is optional, entities that lack such a parameter will be processed
+with the default parameter (or <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> if it’s a pointer).</p></li>
+<li><p><strong>Implicit Component:</strong> The <code class="docutils literal notranslate"><span class="pre">eid</span></code> component, of type <code class="docutils literal notranslate"><span class="pre">ecs::EntityId</span></code>, is
+implicitly added to all templates.</p></li>
+</ul>
+<p><strong>Codegen Benefits:</strong></p>
+<p>All of this generated code is human-readable, meaning you can review and even
+write it manually (though this is not recommended). <em>Codegen</em> makes the code
+easier to read, reduces manual effort (and the errors that come with it), and
+enables faster refactoring of selected ECS framework APIs.</p>
+<p><strong>ECS Directives:</strong></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_TRACK(name1,</span> <span class="pre">name2)</span></code>: The system will “track” changes to components
+<code class="docutils literal notranslate"><span class="pre">name1</span></code> and <code class="docutils literal notranslate"><span class="pre">name2</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_BEFORE(name1,</span> <span class="pre">name2)</span> <span class="pre">ECS_AFTER(name3)</span></code>: The system will execute before
+<code class="docutils literal notranslate"><span class="pre">name1</span></code> and <code class="docutils literal notranslate"><span class="pre">name2</span></code>, but after <code class="docutils literal notranslate"><span class="pre">name3</span></code>. <code class="docutils literal notranslate"><span class="pre">nameX</span></code> can refer to the names of
+other systems or synchronization points listed in <code class="docutils literal notranslate"><span class="pre">es_order</span></code>. Any system not
+specified to run before <code class="docutils literal notranslate"><span class="pre">__first_sync_point</span></code> will always run after it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_NO_ORDER</span></code>: The execution order of this system is not important.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_TAG(render,</span> <span class="pre">sound)</span></code>: The system will only run if the program is
+configured with these tags (e.g., <code class="docutils literal notranslate"><span class="pre">server</span></code> for server-side, <code class="docutils literal notranslate"><span class="pre">gameClient</span></code> for
+client-side, etc.).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_ON_EVENT(on_appear)</span></code>: Which is a shortcut for
+<code class="docutils literal notranslate"><span class="pre">ECS_ON_EVENT(ecs::EventEntityCreated,</span> <span class="pre">ecs::EventComponentsAppear)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_ON_EVENT(on_disappear)</span></code>: Which is a shortcut for
+<code class="docutils literal notranslate"><span class="pre">ECS_ON_EVENT(ecs::EventEntityDestroyed,</span> <span class="pre">ecs::EventComponentsDisappear)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_REQUIRE</span></code>, <code class="docutils literal notranslate"><span class="pre">ECS_REQUIRE_NOT</span></code>: These macros for <em>codegen</em> should be placed
+directly before the ES function. For example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">ECS_REQUIRE</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">someName</span><span class="p">)</span><span class="w"> </span><span class="n">ECS_REQUIRE_NOT</span><span class="p">(</span><span class="n">ecs</span><span class="o">::</span><span class="n">auto_type</span><span class="w"> </span><span class="n">SomeAbsentName</span><span class="p">)</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">foo_es</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">hp</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// This function will only receive `hp` for entities that have the `someName` component (of type `int`)</span>
+<span class="w">    </span><span class="c1">// but do not have the `SomeAbsentName` component (type irrelevant).</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><code class="docutils literal notranslate"><span class="pre">ECS_REQUIRE</span></code> works via the annotate attribute, which unfortunately does not
+annotate literals — only names (of arguments or functions).</p>
+</div>
+<p>Therefore, the following will not work:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="n">foo</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">some_component</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="n">ECS_REQUIRE</span><span class="p">(</span><span class="n">ecs</span><span class="o">::</span><span class="n">Tag</span><span class="w"> </span><span class="n">some_tag</span><span class="p">))</span><span class="w"> </span><span class="c1">// This won&#39;t work</span>
+</pre></div>
+</div>
+<p>However, this will work:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">ECS_REQUIRE</span><span class="p">(</span><span class="n">ecs</span><span class="o">::</span><span class="n">Tag</span><span class="w"> </span><span class="n">some_tag</span><span class="p">))</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">foo</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">some_component</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ECS_ON_EVENT(EventName,</span> <span class="pre">EventName2,</span> <span class="pre">...)</span></code>: If the handler body needs to
+perform the same operation for different events, use <code class="docutils literal notranslate"><span class="pre">ECS_ON_EVENT</span></code> to avoid
+copy-pasting.</p></li>
+</ul>
+<p><strong>ECS core events:</strong></p>
+<p>Unicast events:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventEntityCreated</span></code>: Sent after entity was fully created &amp; loaded. Sent only once.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventEntityRecreated</span></code>: As previous, but might be sent several times. This
+event takes place after reCreateEntity calls.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventComponentsDisappear</span></code>: Event is called on recreate if this ES will no
+longer apply (i.e. list of components no longer matches).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventComponentsAppear</span></code>: Event is called on recreate if this ES will start
+apply (i.e. list of components matches).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventEntityDestroyed</span></code>: Sent before entity destruction.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventComponentChanged</span></code>: Sent after existing component is changed.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This is a unique, optimized event. It is triggered on the Entity System (ES)
+only if the ES requires the component that has been modified. Unlike other
+events, this event will not be received by an ES even if it matches the list
+of components unless the modified component is included in the ES’s list of
+components.</p>
+</div>
+</li>
+</ul>
+<p>Broadcast events:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">EventEntityManagerEsOrderSet</span></code>: Sent after es order has been set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventEntityManagerBeforeClear</span></code>, <code class="docutils literal notranslate"><span class="pre">EventEntityManagerAfterClear</span></code>: Sent
+before&amp;after all scene (all entities) destruction.</p></li>
+</ul>
+</section>
+<section id="code-example">
+<h2>Code Example<a class="headerlink" href="#code-example" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rect</span>
+<span class="p">{</span>
+    <span class="n">pos</span><span class="p">:</span><span class="n">p2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+    <span class="n">rectSize</span><span class="p">:</span><span class="n">p2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+    <span class="n">color</span><span class="p">:</span><span class="n">c</span><span class="o">=</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span>
+<span class="p">}</span>
+
+<span class="n">brick</span>
+<span class="p">{</span>
+    <span class="n">_extends</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;rect&quot;</span>
+    <span class="n">brick</span><span class="o">.</span><span class="n">pos</span><span class="p">:</span><span class="n">ip2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+<span class="p">}</span>
+
+<span class="n">pad</span>
+<span class="p">{</span>
+    <span class="n">_extends</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;rect&quot;</span>
+    <span class="n">isPad</span><span class="p">:</span><span class="n">b</span><span class="o">=</span><span class="n">yes</span>
+<span class="p">}</span>
+
+<span class="n">ball</span>
+<span class="p">{</span>
+    <span class="n">pos</span><span class="p">:</span><span class="n">p2</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span><span class="mi">700</span>
+    <span class="n">vel</span><span class="p">:</span><span class="n">p2</span> <span class="o">=</span> <span class="mi">330</span><span class="p">,</span><span class="o">-</span><span class="mi">550</span>
+    <span class="n">radius</span><span class="p">:</span><span class="n">r</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">color</span><span class="p">:</span><span class="n">c</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Dagor ECS" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="schemeful_events.html" class="btn btn-neutral float-right" title="Schemeful Events (daScript, Quirrel, C++, Net)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

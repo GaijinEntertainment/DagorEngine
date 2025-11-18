@@ -1,0 +1,276 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedetail" kind="namespace" language="C++">
+    <compoundname>detail</compoundname>
+    <innerclass refid="structdetail_1_1GetMdInitializerList" prot="public">detail::GetMdInitializerList</innerclass>
+    <innerclass refid="structdetail_1_1GetMdInitializerList_3_01T_00_01Rank_01_4" prot="public">detail::GetMdInitializerList&lt; T, Rank &gt;</innerclass>
+    <innerclass refid="structdetail_1_1MdArray" prot="public">detail::MdArray</innerclass>
+    <innerclass refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4" prot="public">detail::MdArray&lt; T, Rank, Dims &gt;</innerclass>
+    <innerclass refid="structdetail_1_1MdArrayDimensions" prot="public">detail::MdArrayDimensions</innerclass>
+    <innerclass refid="structdetail_1_1MdArrayDimensions_3_01Rank_01_4" prot="public">detail::MdArrayDimensions&lt; Rank &gt;</innerclass>
+    <innerclass refid="structdetail_1_1MdArrayIndex" prot="public">detail::MdArrayIndex</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespacedetail_1ad0b036847fe52ce09105335e2c4d4e45" prot="public" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+          <param>
+            <type>template&lt; class, class &gt; class</type>
+            <declname>Checker</declname>
+            <defname>Checker</defname>
+          </param>
+          <param>
+            <type>class...</type>
+            <declname>Ts</declname>
+            <defname>Ts</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool detail::all_types_are</definition>
+        <argsstring></argsstring>
+        <name>all_types_are</name>
+        <qualifiedname>detail::all_types_are</qualifiedname>
+        <initializer>= (Checker&lt;Ts, T&gt;::value &amp;&amp; ...)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="16" column="23" bodyfile="mdArray.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacedetail_1a1e95924925fb85b7958907ac031a13e8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+          <param>
+            <type>class...</type>
+            <declname>Ts</declname>
+            <defname>Ts</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool detail::all_types_are_convertible_to</definition>
+        <argsstring></argsstring>
+        <name>all_types_are_convertible_to</name>
+        <qualifiedname>detail::all_types_are_convertible_to</qualifiedname>
+        <initializer>= all_types_are&lt;T, eastl::is_convertible, Ts...&gt;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="19" column="23" bodyfile="mdArray.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacedetail_1a7a72711db1f9d73ddb7859a8326398d4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>uint32_t</type>
+            <declname>Rank</declname>
+            <defname>Rank</defname>
+          </param>
+          <param>
+            <type>class...</type>
+            <declname>Ts</declname>
+            <defname>Ts</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool detail::are_mdarray_indices</definition>
+        <argsstring></argsstring>
+        <name>are_mdarray_indices</name>
+        <qualifiedname>detail::are_mdarray_indices</qualifiedname>
+        <initializer>= sizeof...(Ts) == Rank &amp;&amp; all_types_are_convertible_to&lt;uint32_t, Ts...&gt;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="22" column="23" bodyfile="mdArray.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacedetail_1ab09831be5e622546230294105721a650" prot="public" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>uint32_t...</type>
+            <declname>Dims</declname>
+            <defname>Dims</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr <ref refid="structdetail_1_1MdArrayDimensions" kindref="compound">MdArrayDimensions</ref>&lt; sizeof...(Dims)&gt;</type>
+        <definition>constexpr MdArrayDimensions&lt;sizeof...(Dims)&gt; detail::dims_from_varargs</definition>
+        <argsstring></argsstring>
+        <name>dims_from_varargs</name>
+        <qualifiedname>detail::dims_from_varargs</qualifiedname>
+        <initializer>{Dims...}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="117" column="36" bodyfile="mdArray.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacedetail_1a8cd5ce960d327c8f763be295a252c2fc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>MdArrayDimensions</type>
+            <declname>Dims</declname>
+            <defname>Dims</defname>
+          </param>
+          <param>
+            <type>class...</type>
+            <declname>Ids</declname>
+            <defname>Ids</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structdetail_1_1MdArrayIndex" kindref="compound">MdArrayIndex</ref>&lt; Dims.rank()&gt;</type>
+        <definition>MdArrayIndex&lt; Dims.rank()&gt; detail::ids_from_varargs</definition>
+        <argsstring>(Ids... ids)</argsstring>
+        <name>ids_from_varargs</name>
+        <qualifiedname>detail::ids_from_varargs</qualifiedname>
+        <param>
+          <type>Ids...</type>
+          <declname>ids</declname>
+        </param>
+    <requiresclause>(are_mdarray_indices&lt;Dims.rank(), Ids...&gt;)    </requiresclause>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="121" column="14" bodyfile="mdArray.h" bodystart="121" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedetail_1a231d47577d52a343f01144962a54e51c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+          <param>
+            <type>uint32_t</type>
+            <declname>Rank</declname>
+            <defname>Rank</defname>
+          </param>
+          <param>
+            <type>MdArrayDimensions&lt; Rank &gt;</type>
+            <declname>Dims</declname>
+            <defname>Dims</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr void</type>
+        <definition>constexpr void detail::fill_mdarray_from_initializer</definition>
+        <argsstring>(MdArray&lt; T, Rank, Dims &gt; &amp;arr, typename GetMdInitializerList&lt; T, Rank &gt;::type initializer)</argsstring>
+        <name>fill_mdarray_from_initializer</name>
+        <qualifiedname>detail::fill_mdarray_from_initializer</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref>&lt; T, Rank, Dims &gt; &amp;</type>
+          <declname>arr</declname>
+        </param>
+        <param>
+          <type>typename <ref refid="structdetail_1_1GetMdInitializerList" kindref="compound">GetMdInitializerList</ref>&lt; T, Rank &gt;::type</type>
+          <declname>initializer</declname>
+        </param>
+    <requiresclause>(Rank &gt; 1)    </requiresclause>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="299" column="16" bodyfile="mdArray.h" bodystart="299" bodyend="304" declfile="mdArray.h" declline="144" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedetail_1a3712a58ae8cb46fab5149a47aacf9dc1" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+          <param>
+            <type>uint32_t</type>
+            <declname>Rank</declname>
+            <defname>Rank</defname>
+          </param>
+          <param>
+            <type>MdArrayDimensions&lt; Rank &gt;</type>
+            <declname>Dims</declname>
+            <defname>Dims</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr void</type>
+        <definition>constexpr void detail::fill_mdarray_from_initializer</definition>
+        <argsstring>(MdArray&lt; T, Rank, Dims &gt; &amp;arr, std::initializer_list&lt; T &gt; initializer)</argsstring>
+        <name>fill_mdarray_from_initializer</name>
+        <qualifiedname>detail::fill_mdarray_from_initializer</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref>&lt; T, Rank, Dims &gt; &amp;</type>
+          <declname>arr</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; T &gt;</type>
+          <declname>initializer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="307" column="16" bodyfile="mdArray.h" bodystart="307" bodyend="312" declfile="mdArray.h" declline="146" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedetail_1a374a25bbfcf9d2ff1b857978eeda2074" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+          <param>
+            <type>uint32_t</type>
+            <declname>Rank</declname>
+            <defname>Rank</defname>
+          </param>
+          <param>
+            <type>MdArrayDimensions&lt; Rank &gt;</type>
+            <declname>Dims</declname>
+            <defname>Dims</defname>
+          </param>
+          <param>
+            <type>size_t...</type>
+            <declname>Is</declname>
+            <defname>Is</defname>
+          </param>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref>&lt; T, Rank, Dims &gt;</type>
+        <definition>static MdArray&lt; T, Rank, Dims &gt; detail::mdarray_make_impl</definition>
+        <argsstring>(eastl::index_sequence&lt; Is... &gt;, F &amp;&amp;make)</argsstring>
+        <name>mdarray_make_impl</name>
+        <qualifiedname>detail::mdarray_make_impl</qualifiedname>
+        <param>
+          <type>eastl::index_sequence&lt; Is... &gt;</type>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>make</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="315" column="16" bodyfile="mdArray.h" bodystart="315" bodyend="318"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mdArray.h" line="12" column="1"/>
+  </compounddef>
+</doxygen>

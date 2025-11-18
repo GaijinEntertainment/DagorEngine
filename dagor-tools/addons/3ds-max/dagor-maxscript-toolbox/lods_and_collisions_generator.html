@@ -1,0 +1,370 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor LODs and Collisions Generator</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor Pivot Painter Vegetation Tool" href="pivot_painter_vegetation_tool.html" />
+    <link rel="prev" title="Dagor Fixing Illegal Characters Tool" href="fixing_illegal_characters.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor MaxScript Toolbox</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor Ambient Occlusion Baker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor LODs and Collisions Generator</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#comparison-of-optimization-quality">Comparison of Optimization Quality</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#key-advantages">Key Advantages</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-lods-and-collisions-generator">Accessing LODs and Collisions Generator</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-lods-and-collisions-generator">Using LODs and Collisions Generator</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#key-parameters-and-controls">Key Parameters and Controls</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#advanced-options">Advanced Options</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor Simple CMP Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor Transfer Vertex Position to Vertex Color Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor MaxScript Toolbox</a></li>
+      <li class="breadcrumb-item active">Dagor LODs and Collisions Generator</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/lods_and_collisions_generator.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-lods-and-collisions-generator">
+<h1>Dagor LODs and Collisions Generator<a class="headerlink" href="#dagor-lods-and-collisions-generator" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This script requires <strong>3ds Max 2018 or later</strong>.</p>
+</div>
+</section>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This script provides superior triangle optimization compared to tools like
+MultiRes or ProOptimizer. It simplifies the process by requiring only a single
+button press. The script more accurately preserves texture coordinates and
+texture coordinate edges. Additionally, the advanced features support
+high-quality collision generation and specific settings tailored for the Dagor
+Engine.</p>
+<section id="comparison-of-optimization-quality">
+<h3>Comparison of Optimization Quality<a class="headerlink" href="#comparison-of-optimization-quality" title="Link to this heading"></a></h3>
+<p>The following image illustrates the differences in optimization quality:</p>
+<a class="reference internal image-reference" href="../../../../_images/lod_generator_01.png"><img alt="LODs and Collisions Generator" class="align-center" src="../../../../_images/lod_generator_01.png" style="width: 50em;" />
+</a>
+</section>
+<section id="key-advantages">
+<h3>Key Advantages<a class="headerlink" href="#key-advantages" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>More Accurate Contour Representation</strong>. The optimized model more closely
+follows the original object’s contours.</p></li>
+<li><p><strong>Increased Segment Density</strong>. More segments are generated along the radius,
+resulting in a finer mesh.</p></li>
+<li><p><strong>Enhanced Knot Detail Preservation</strong>. Critical details, such as knots, are
+retained, which are often lost in other optimization methods.</p></li>
+</ol>
+<p>The script optimizes the placement of triangles more effectively, ensuring the
+shape of the object is conveyed with greater precision, even with the same
+number of triangles.</p>
+</section>
+</section>
+<section id="accessing-lods-and-collisions-generator">
+<h2>Accessing LODs and Collisions Generator<a class="headerlink" href="#accessing-lods-and-collisions-generator" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Navigate to <strong>Gaijin Tools</strong> <span class="cnum">1</span> <strong>&gt; LOD Generator…</strong> <span class="cnum">2</span>. This
+will open the main window of the Dagor LOD Generator.</p></li>
+<li><p>To verify the version <span class="cnum">3</span> of the script, go to <strong>Gaijin Tools &gt;
+About</strong>. The <strong>About</strong> window will display the current version. It’s
+important to check this regularly to ensure your script is up to date.</p>
+<a class="reference internal image-reference" href="../../../../_images/lod_generator_02.png"><img alt="LODs and Collisions Generator" class="align-center" src="../../../../_images/lod_generator_02.png" style="width: 50em;" />
+</a>
+<div class="warning admonition">
+<p class="admonition-title">Plugin Version Requirement</p>
+<p>Requires plugin version <strong>1.4 or higher</strong>.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="using-lods-and-collisions-generator">
+<h2>Using LODs and Collisions Generator<a class="headerlink" href="#using-lods-and-collisions-generator" title="Link to this heading"></a></h2>
+<p>To open the script window, navigate to <strong>Gaijin Tools &gt; LOD Generator…</strong> in
+the menu.</p>
+<a class="reference internal image-reference" href="../../../../_images/lod_generator_03.png"><img alt="LODs and Collisions Generator" class="align-center" src="../../../../_images/lod_generator_03.png" style="width: 50em;" />
+</a>
+<section id="key-parameters-and-controls">
+<h3>Key Parameters and Controls<a class="headerlink" href="#key-parameters-and-controls" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Vertex %</strong> <span class="cnum">1</span>: defines the percentage by which the number of
+triangles is reduced in each LOD (level of detail). For example, LOD01 will
+contain 50% of the original model’s triangles, LOD02 will have 25%, and so on.</p></li>
+<li><p><strong>Iterations</strong> <span class="cnum">2</span>: specifies the number of iterations for the
+optimization algorithm. Higher iterations generally yield better quality in
+point placement. The optimal number of 10 was determined experimentally,
+though in some cases, using the maximum allowable value is recommended.</p></li>
+<li><p><strong>Number of LODs:</strong> specifies how many LODs will be created.</p></li>
+<li><p><strong>Engine Optimization Type</strong> <span class="cnum">3</span>: Allows you to choose a more
+appropriate optimization algorithm for certain tasks. MultiRes is more
+suitable for tasks with aggressive LODs optimization. ProOptimizer is more
+flexible in optimization settings.</p></li>
+<li><p><strong>Protect Borders</strong> <span class="cnum">4</span>: Open edges will be excluded from the
+optimization process. This allows them to be left without distortion.</p></li>
+<li><p><strong>Keep UV Bondaries</strong> <span class="cnum">5</span>: Points that contain edges of UV coordinates
+will be excluded from optimization. Allows you to keep undistorted UV
+coordinates on edges untouched.</p></li>
+<li><p><strong>Build LODs!</strong> <span class="cnum">6</span>: initiates the generation process. The script can
+batch process all selected models, creating LODs or collisions for each.</p></li>
+</ul>
+<div class="important admonition">
+<p class="admonition-title">Supported Model Types</p>
+<p>The script works correctly with <strong>Edit Poly</strong>, <strong>Edit Mesh</strong>, and <strong>GrowFX</strong>
+model types. Other model types are not supported and may cause errors. Note that
+all modifiers applied to LODs and collisions will be removed if they were used
+on the model from which LODs or collisions are generated.</p>
+</div>
+<p>This basic functionality covers the use of MultiRes and ProOptimizer. For users
+familiar with these tools, the script should suffice for achieving optimal
+results. For more advanced collision generation and further optimization without
+visual quality loss, consider exploring the advanced settings detailed below.</p>
+</section>
+<section id="advanced-options">
+<h3>Advanced Options<a class="headerlink" href="#advanced-options" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>Loading the Test Scene</strong></p>
+<p>Load the following test scene:
+<a class="reference download internal" download="" href="../../../../_downloads/abac62c2c8110bf42a724064cefda12d/tree_cocos_nucifera.zip"><code class="xref download docutils literal notranslate"><span class="pre">tree_cocos_nucifera.max</span></code></a>.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This scene requires <strong>3ds Max 2021 or later</strong>.</p>
+</div>
+<p>This scene features a complex object with a Multi/Sub Material applied. It is
+crucial that Sub Materials are correctly named, as this influences collision
+generation.</p>
+<a class="reference internal image-reference" href="../../../../_images/lod_generator_04.png"><img alt="LODs and Collisions Generator" class="align-center" src="../../../../_images/lod_generator_04.png" style="width: 50em;" />
+</a>
+</li>
+<li><p><strong>Material Keyword Filtering</strong></p>
+<p>In <strong>Keep Material Name</strong> field <span class="cnum">14</span>, you can enter keywords separated
+by commas to specify which materials should be retained during collision
+generation. For example, on a palm tree, you might exclude roots and fruits
+but retain anything named “bark”. Materials matching the specified keywords
+will be preserved, while all others, along with their associated triangles,
+will be removed.</p>
+<p><strong>Example:</strong> highlight the palm tree. Enter <code class="docutils literal notranslate"><span class="pre">bark</span></code> in field <span class="cnum">14</span>. Run
+the script by clicking <strong>Build LODs!</strong> button <span class="cnum">6</span>. The result will show
+that all unnecessary triangles (e.g., leaves, roots, fruits) have been
+removed from the collision generation:</p>
+<a class="reference internal image-reference" href="../../../../_images/lod_generator_05.png"><img alt="LODs and Collisions Generator" class="align-center" src="../../../../_images/lod_generator_05.png" style="width: 50em;" />
+</a>
+<p>This filtering can be toggled off using <strong>Collision Use Name Mask</strong> checkbox
+<span class="cnum">9</span>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If the object does not have a Multi/Sub Material, the script will issue a
+warning and skip processing. No changes will be made in such cases.</p>
+</div>
+</li>
+<li><p><strong>Collision Height Cutoff</strong></p>
+<p>Enabling <strong>Collision Cut From Top</strong> checkbox <span class="cnum">8</span> allows you to cut off
+the collision mesh at a specified height, set in <strong>Collision Cut Height</strong>
+parameter <span class="cnum">13</span>. This can be useful for optimizing performance by
+removing unnecessary upper parts of the collision mesh, such as branches or
+trunks that characters cannot interact with.</p>
+<p><strong>Example:</strong> highlight the palm tree and set the desired cutoff height in
+parameter <span class="cnum">13</span>. Run the script with <strong>Build LODs!</strong> button <span class="cnum">6</span>
+again to see the result:</p>
+<a class="reference internal image-reference" href="../../../../_images/lod_generator_06.png"><img alt="LODs and Collisions Generator" class="align-center" src="../../../../_images/lod_generator_06.png" style="width: 50em;" />
+</a>
+</li>
+<li><p><strong>Additional Options</strong></p>
+<ul class="simple">
+<li><p><strong>Collision Generation</strong> <span class="cnum">7</span>: enables or disables collision
+generation.</p></li>
+<li><p>Custom Properties allows replaced by default custom object properties with
+those specified in fields <strong>LODs Custom Properties</strong> <span class="cnum">15</span> for LODs
+and <strong>Collision Custom Properties</strong> <span class="cnum">16</span> for collisions.</p></li>
+<li><p><strong>Collision Remove Small Parts</strong> <span class="cnum">10</span> and <strong>Collision Part Size %</strong>
+<span class="cnum">12</span>. This feature will allow the removal of small, non-essential
+parts of the object (e.g., small twigs or debris) based on their bounding
+box size. This will help optimize LODs and collisions.</p></li>
+</ul>
+</li>
+<li><p><strong>Support</strong></p>
+<ul class="simple">
+<li><p><strong>Open Local Documentation</strong> <span class="cnum">18</span>: provides access to this article.</p></li>
+<li><p><strong>Contact with Developer</strong> <span class="cnum">19</span>: provides access the developer’s web
+page.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fixing_illegal_characters.html" class="btn btn-neutral float-left" title="Dagor Fixing Illegal Characters Tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pivot_painter_vegetation_tool.html" class="btn btn-neutral float-right" title="Dagor Pivot Painter Vegetation Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

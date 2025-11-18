@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassDesc" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassDesc</compoundname>
+    <includes refid="dag__renderPass_8h" local="no">dag_renderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassDesc_1a10c65882d7504de102fa6a26e1c6e2d9" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* RenderPassDesc::debugName</definition>
+        <argsstring></argsstring>
+        <name>debugName</name>
+        <qualifiedname>RenderPassDesc::debugName</qualifiedname>
+        <briefdescription>
+<para>Name that is visible only in developer builds and inside graphics tools, if possible. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="64" column="14" bodyfile="dag_renderPass.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassDesc_1a55264431c437eefc29143cdfa8b15e45" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassDesc::targetCount</definition>
+        <argsstring></argsstring>
+        <name>targetCount</name>
+        <qualifiedname>RenderPassDesc::targetCount</qualifiedname>
+        <briefdescription>
+<para>Total amount of targets inside render pass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="66" column="12" bodyfile="dag_renderPass.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassDesc_1ad1bbfe0d049f985f8b738964fccdb758" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassDesc::bindCount</definition>
+        <argsstring></argsstring>
+        <name>bindCount</name>
+        <qualifiedname>RenderPassDesc::bindCount</qualifiedname>
+        <briefdescription>
+<para>Total amount of bindings for render pass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="68" column="12" bodyfile="dag_renderPass.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassDesc_1ae1ea021ad80fc94f89aa6228956624fe" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structRenderPassTargetDesc" kindref="compound">RenderPassTargetDesc</ref> *</type>
+        <definition>const RenderPassTargetDesc* RenderPassDesc::targetsDesc</definition>
+        <argsstring></argsstring>
+        <name>targetsDesc</name>
+        <qualifiedname>RenderPassDesc::targetsDesc</qualifiedname>
+        <briefdescription>
+<para>Array of targetCount elements, supplying early description of render target. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="71" column="30" bodyfile="dag_renderPass.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassDesc_1a83587cfef2f495314d3161324e4bde50" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structRenderPassBind" kindref="compound">RenderPassBind</ref> *</type>
+        <definition>const RenderPassBind* RenderPassDesc::binds</definition>
+        <argsstring></argsstring>
+        <name>binds</name>
+        <qualifiedname>RenderPassDesc::binds</qualifiedname>
+        <briefdescription>
+<para>Array of bindCount elements, describing all subpasses. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="73" column="24" bodyfile="dag_renderPass.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassDesc_1a7a6a51bace4c444b02ae4ddf90519141" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassDesc::subpassBindingOffset</definition>
+        <argsstring></argsstring>
+        <name>subpassBindingOffset</name>
+        <qualifiedname>RenderPassDesc::subpassBindingOffset</qualifiedname>
+        <briefdescription>
+<para>Texture binding offset for shader subpass reads used on APIs without native render passes. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Generic(emulated) implementation will use registers starting from this offset, to bind input attachments. This must be properly handled inside shader code for generic implementation to work properly! </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="78" column="12" bodyfile="dag_renderPass.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Render pass resource description, used to create RenderPass object. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="5">
+        <label>RenderPassBind</label>
+        <link refid="structRenderPassBind"/>
+      </node>
+      <node id="1">
+        <label>RenderPassDesc</label>
+        <link refid="structRenderPassDesc"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>targetsDesc</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>binds</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassTargetDesc</label>
+        <link refid="structRenderPassTargetDesc"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>templateResource</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_renderPass.h" line="61" column="1" bodyfile="dag_renderPass.h" bodystart="62" bodyend="79"/>
+    <listofallmembers>
+      <member refid="structRenderPassDesc_1ad1bbfe0d049f985f8b738964fccdb758" prot="public" virt="non-virtual"><scope>RenderPassDesc</scope><name>bindCount</name></member>
+      <member refid="structRenderPassDesc_1a83587cfef2f495314d3161324e4bde50" prot="public" virt="non-virtual"><scope>RenderPassDesc</scope><name>binds</name></member>
+      <member refid="structRenderPassDesc_1a10c65882d7504de102fa6a26e1c6e2d9" prot="public" virt="non-virtual"><scope>RenderPassDesc</scope><name>debugName</name></member>
+      <member refid="structRenderPassDesc_1a7a6a51bace4c444b02ae4ddf90519141" prot="public" virt="non-virtual"><scope>RenderPassDesc</scope><name>subpassBindingOffset</name></member>
+      <member refid="structRenderPassDesc_1a55264431c437eefc29143cdfa8b15e45" prot="public" virt="non-virtual"><scope>RenderPassDesc</scope><name>targetCount</name></member>
+      <member refid="structRenderPassDesc_1ae1ea021ad80fc94f89aa6228956624fe" prot="public" virt="non-virtual"><scope>RenderPassDesc</scope><name>targetsDesc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

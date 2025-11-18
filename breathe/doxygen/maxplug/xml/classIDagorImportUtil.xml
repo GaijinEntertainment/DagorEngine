@@ -1,0 +1,374 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorImportUtil" kind="class" language="C++" prot="public">
+    <compoundname>IDagorImportUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">FPStaticInterface</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classIDagorImportUtil_1a3d71062da66ad372ba6ad35b7d8b5964" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool IDagorImportUtil::separateLayers</definition>
+        <argsstring></argsstring>
+        <name>separateLayers</name>
+        <qualifiedname>IDagorImportUtil::separateLayers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3137" column="19" bodyfile="dagimp.cpp" bodystart="3137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1aad66939c76e6fc74eb05a723b18a6e81" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool IDagorImportUtil::suppressPrompts</definition>
+        <argsstring></argsstring>
+        <name>suppressPrompts</name>
+        <qualifiedname>IDagorImportUtil::suppressPrompts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3137" column="39" bodyfile="dagimp.cpp" bodystart="3137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a566409bc421efa357d78b5c26e0ef376" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool bool IDagorImportUtil::renameLayerCollision</definition>
+        <argsstring></argsstring>
+        <name>renameLayerCollision</name>
+        <qualifiedname>IDagorImportUtil::renameLayerCollision</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3137" column="60" bodyfile="dagimp.cpp" bodystart="3137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a40aa2893dc4d7388d6e890bfc2d1279f" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool bool bool IDagorImportUtil::useLegacyImport</definition>
+        <argsstring></argsstring>
+        <name>useLegacyImport</name>
+        <qualifiedname>IDagorImportUtil::useLegacyImport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3137" column="86" bodyfile="dagimp.cpp" bodystart="3137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a48f86e5af8faf14071c3b5dc10596752" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool bool bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool bool bool bool IDagorImportUtil::importLod</definition>
+        <argsstring></argsstring>
+        <name>importLod</name>
+        <qualifiedname>IDagorImportUtil::importLod</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3138" column="12" bodyfile="dagimp.cpp" bodystart="3138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1aa4e598060bbbc04df6c11c5d0dad1247" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool bool bool bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool bool bool bool bool IDagorImportUtil::importDestr</definition>
+        <argsstring></argsstring>
+        <name>importDestr</name>
+        <qualifiedname>IDagorImportUtil::importDestr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3138" column="27" bodyfile="dagimp.cpp" bodystart="3138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1ad887990e56e5c6d24194104af5018013" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool bool bool bool bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool bool bool bool bool bool IDagorImportUtil::importDp</definition>
+        <argsstring></argsstring>
+        <name>importDp</name>
+        <qualifiedname>IDagorImportUtil::importDp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3138" column="44" bodyfile="dagimp.cpp" bodystart="3138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1aa22edeadf70aba5b01b8fe6a6d6cd63d" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool bool bool bool bool bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool bool bool bool bool bool bool IDagorImportUtil::importDmg</definition>
+        <argsstring></argsstring>
+        <name>importDmg</name>
+        <qualifiedname>IDagorImportUtil::importDmg</qualifiedname>
+        <initializer>{
+    <ref refid="structDagImp_1_1Categories" kindref="compound">DagImp::Categories</ref> bkChecked = <ref refid="classDagImp_1a7b2fc6f616381d3743a667637b550f4b" kindref="member">DagImp::checked</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3138" column="58" bodyfile="dagimp.cpp" bodystart="3139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1ae3bf9ec962b1c37c587407529c423a67" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool IDagorImportUtil::bkLegacy</definition>
+        <argsstring></argsstring>
+        <name>bkLegacy</name>
+        <qualifiedname>IDagorImportUtil::bkLegacy</qualifiedname>
+        <initializer>= <ref refid="classDagImp_1ae89838cf454485eaab1a6f5b752f4c15" kindref="member">DagImp::useLegacyImport</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3141" column="10" bodyfile="dagimp.cpp" bodystart="3141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a774a10230221fff3739ae21526b5a219" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool IDagorImportUtil::bkReimportExisting</definition>
+        <argsstring></argsstring>
+        <name>bkReimportExisting</name>
+        <qualifiedname>IDagorImportUtil::bkReimportExisting</qualifiedname>
+        <initializer>= <ref refid="classDagImp_1a6a73e019f74e964f8a0121334ffb9903" kindref="member">DagImp::reimportExisting</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3142" column="10" bodyfile="dagimp.cpp" bodystart="3142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a00071ed211fe8e34a3eb0149ed2f55fd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool IDagorImportUtil::bkSeparate</definition>
+        <argsstring></argsstring>
+        <name>bkSeparate</name>
+        <qualifiedname>IDagorImportUtil::bkSeparate</qualifiedname>
+        <initializer>= <ref refid="classDagImp_1a1d12c2444eae41164409f661f59a25b8" kindref="member">DagImp::separateLayers</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3143" column="10" bodyfile="dagimp.cpp" bodystart="3143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1ad839223d02274f875bfd6566c00a69c3" prot="public" static="no" mutable="no">
+        <type><ref refid="classDagImp_1a7b2fc6f616381d3743a667637b550f4b" kindref="member">DagImp::checked</ref></type>
+        <definition>DagImp::checked IDagorImportUtil::lod</definition>
+        <argsstring></argsstring>
+        <name>lod</name>
+        <qualifiedname>IDagorImportUtil::lod</qualifiedname>
+        <initializer>= <ref refid="classIDagorImportUtil_1a48f86e5af8faf14071c3b5dc10596752" kindref="member">importLod</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3149" column="20" bodyfile="dagimp.cpp" bodystart="3149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a537e4af9fb4185f3e66340adabbc6089" prot="public" static="no" mutable="no">
+        <type><ref refid="classDagImp_1a7b2fc6f616381d3743a667637b550f4b" kindref="member">DagImp::checked</ref></type>
+        <definition>DagImp::checked IDagorImportUtil::destr</definition>
+        <argsstring></argsstring>
+        <name>destr</name>
+        <qualifiedname>IDagorImportUtil::destr</qualifiedname>
+        <initializer>= <ref refid="classIDagorImportUtil_1aa4e598060bbbc04df6c11c5d0dad1247" kindref="member">importDestr</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3150" column="20" bodyfile="dagimp.cpp" bodystart="3150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a591a3c2895236dab87ab9e145d148ac3" prot="public" static="no" mutable="no">
+        <type><ref refid="classDagImp_1a7b2fc6f616381d3743a667637b550f4b" kindref="member">DagImp::checked</ref></type>
+        <definition>DagImp::checked IDagorImportUtil::dp</definition>
+        <argsstring></argsstring>
+        <name>dp</name>
+        <qualifiedname>IDagorImportUtil::dp</qualifiedname>
+        <initializer>= <ref refid="classIDagorImportUtil_1ad887990e56e5c6d24194104af5018013" kindref="member">importDp</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3151" column="20" bodyfile="dagimp.cpp" bodystart="3151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a72e0eaf2ccf36e3f8e1d12e4a8debb38" prot="public" static="no" mutable="no">
+        <type><ref refid="classDagImp_1a7b2fc6f616381d3743a667637b550f4b" kindref="member">DagImp::checked</ref></type>
+        <definition>DagImp::checked IDagorImportUtil::dmg</definition>
+        <argsstring></argsstring>
+        <name>dmg</name>
+        <qualifiedname>IDagorImportUtil::dmg</qualifiedname>
+        <initializer>= <ref refid="classIDagorImportUtil_1aa22edeadf70aba5b01b8fe6a6d6cd63d" kindref="member">importDmg</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3152" column="20" bodyfile="dagimp.cpp" bodystart="3152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a8496c84bdbe4c501f0d14ebeae7d6559" prot="public" static="no" mutable="no">
+        <type>BOOL</type>
+        <definition>BOOL IDagorImportUtil::result</definition>
+        <argsstring></argsstring>
+        <name>result</name>
+        <qualifiedname>IDagorImportUtil::result</qualifiedname>
+        <initializer>= GetCOREInterface()-&gt;ImportFromFile(fn, <ref refid="classIDagorImportUtil_1aad66939c76e6fc74eb05a723b18a6e81" kindref="member">suppressPrompts</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3155" column="10" bodyfile="dagimp.cpp" bodystart="3155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorImportUtil_1a6c8fd7f0dced03c69829a605872e724e" prot="public" static="no" mutable="no">
+        <type><ref refid="polyBumpUtil_8cpp_1a9717e7bbecb906637e86cef6da3d83c2" kindref="member">return</ref></type>
+        <definition>return IDagorImportUtil::result</definition>
+        <argsstring></argsstring>
+        <name>result</name>
+        <qualifiedname>IDagorImportUtil::result</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3162" column="12" bodyfile="dagimp.cpp" bodystart="3162" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorImportUtil_1af0769700277192aeef1a9dff265e6b09" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>BEGIN_FUNCTION_MAP</type>
+        <definition>BEGIN_FUNCTION_MAP IDagorImportUtil::FN_9</definition>
+        <argsstring>(fun_import, TYPE_BOOL, import_dag, TYPE_STRING, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL) END_FUNCTION_MAP BOOL import_dag(const TCHAR *fn</argsstring>
+        <name>FN_9</name>
+        <qualifiedname>IDagorImportUtil::FN_9</qualifiedname>
+        <param>
+          <type><ref refid="dagimp_8cpp_1aedf2203f712fbe26b8b78029f109b331ad82a474a31c22cdf2df99a7172b4ed30" kindref="member">fun_import</ref></type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>import_dag</type>
+        </param>
+        <param>
+          <type>TYPE_STRING</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3134" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorImportUtil_1a05c543e81bdecf26dded46448a657bf0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref></type>
+        <definition>Autotoggle IDagorImportUtil::guard</definition>
+        <argsstring>(DagImp::nonInteractive)</argsstring>
+        <name>guard</name>
+        <qualifiedname>IDagorImportUtil::guard</qualifiedname>
+        <param>
+          <type><ref refid="classDagImp_1ab1597f608c0098f1df0acf54f9ca1b17" kindref="member">DagImp::nonInteractive</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="3154" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>FPStaticInterface</label>
+      </node>
+      <node id="1">
+        <label>IDagorImportUtil</label>
+        <link refid="classIDagorImportUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>FPStaticInterface</label>
+      </node>
+      <node id="1">
+        <label>IDagorImportUtil</label>
+        <link refid="classIDagorImportUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dagimp.cpp" line="3130" column="1" bodyfile="dagimp.cpp" bodystart="3131" bodyend="3164"/>
+    <listofallmembers>
+      <member refid="classIDagorImportUtil_1ae3bf9ec962b1c37c587407529c423a67" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>bkLegacy</name></member>
+      <member refid="classIDagorImportUtil_1a774a10230221fff3739ae21526b5a219" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>bkReimportExisting</name></member>
+      <member refid="classIDagorImportUtil_1a00071ed211fe8e34a3eb0149ed2f55fd" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>bkSeparate</name></member>
+      <member refid="classIDagorImportUtil_1a537e4af9fb4185f3e66340adabbc6089" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>destr</name></member>
+      <member refid="classIDagorImportUtil_1a72e0eaf2ccf36e3f8e1d12e4a8debb38" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>dmg</name></member>
+      <member refid="classIDagorImportUtil_1a591a3c2895236dab87ab9e145d148ac3" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>dp</name></member>
+      <member refid="classIDagorImportUtil_1af0769700277192aeef1a9dff265e6b09" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>FN_9</name></member>
+      <member refid="classIDagorImportUtil_1a05c543e81bdecf26dded46448a657bf0" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>guard</name></member>
+      <member refid="classIDagorImportUtil_1aa4e598060bbbc04df6c11c5d0dad1247" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>importDestr</name></member>
+      <member refid="classIDagorImportUtil_1aa22edeadf70aba5b01b8fe6a6d6cd63d" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>importDmg</name></member>
+      <member refid="classIDagorImportUtil_1ad887990e56e5c6d24194104af5018013" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>importDp</name></member>
+      <member refid="classIDagorImportUtil_1a48f86e5af8faf14071c3b5dc10596752" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>importLod</name></member>
+      <member refid="classIDagorImportUtil_1ad839223d02274f875bfd6566c00a69c3" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>lod</name></member>
+      <member refid="classIDagorImportUtil_1a566409bc421efa357d78b5c26e0ef376" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>renameLayerCollision</name></member>
+      <member refid="classIDagorImportUtil_1a8496c84bdbe4c501f0d14ebeae7d6559" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>result</name></member>
+      <member refid="classIDagorImportUtil_1a6c8fd7f0dced03c69829a605872e724e" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>result</name></member>
+      <member refid="classIDagorImportUtil_1a3d71062da66ad372ba6ad35b7d8b5964" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>separateLayers</name></member>
+      <member refid="classIDagorImportUtil_1aad66939c76e6fc74eb05a723b18a6e81" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>suppressPrompts</name></member>
+      <member refid="classIDagorImportUtil_1a40aa2893dc4d7388d6e890bfc2d1279f" prot="public" virt="non-virtual"><scope>IDagorImportUtil</scope><name>useLegacyImport</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

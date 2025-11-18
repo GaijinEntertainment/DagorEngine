@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagBone" kind="struct" language="C++" prot="public">
+    <compoundname>DagBone</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagBone_1a145563458792c88537d675f02ae3c3f2" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagBone::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>DagBone::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="144" column="18" bodyfile="dagfmt.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagBone_1a7e498473b976829559f180294bbf8865" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagBone::tm[4][3]</definition>
+        <argsstring>[4][3]</argsstring>
+        <name>tm</name>
+        <qualifiedname>DagBone::tm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="145" column="9" bodyfile="dagfmt.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagBone_1aae294f9cf8fabe3e232daa3f96574fb3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagBone::DagBone</definition>
+        <argsstring>()</argsstring>
+        <name>DagBone</name>
+        <qualifiedname>DagBone::DagBone</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="146" column="3" bodyfile="dagfmt.h" bodystart="146" bodyend="146"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="142" column="1" bodyfile="dagfmt.h" bodystart="143" bodyend="147"/>
+    <listofallmembers>
+      <member refid="structDagBone_1aae294f9cf8fabe3e232daa3f96574fb3" prot="public" virt="non-virtual"><scope>DagBone</scope><name>DagBone</name></member>
+      <member refid="structDagBone_1a145563458792c88537d675f02ae3c3f2" prot="public" virt="non-virtual"><scope>DagBone</scope><name>id</name></member>
+      <member refid="structDagBone_1a7e498473b976829559f180294bbf8865" prot="public" virt="non-virtual"><scope>DagBone</scope><name>tm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

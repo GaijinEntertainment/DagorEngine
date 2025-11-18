@@ -1,0 +1,983 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Physmats</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Proxymats" href="proxymats.html" />
+    <link rel="prev" title="Materials" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Materials</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Physmats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#placement-and-configuration">Placement and Configuration</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#file-structure">File Structure</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#physmat-parameters">Physmat Parameters</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#aircraft-specific-parameters">Aircraft-Specific Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#tank-specific-parameters">Tank-Specific Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#explosion-and-impact-parameters">Explosion and Impact Parameters</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#explosion-patch-parameters">Explosion Patch Parameters</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#alternative-explosion-material">Alternative Explosion Material</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#explosion-effects">Explosion Effects</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#physical-impact-modifiers">Physical Impact Modifiers</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#projectile-penetration-effects">Projectile Penetration Effects</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#gunfire-decal-parameters">Gunfire Decal Parameters</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#decal-textures">Decal Textures</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#decal-rendering-controls">Decal Rendering Controls</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#impact-effects">Impact Effects</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#vehicle-interaction-parameters">Vehicle Interaction Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#deprecated-or-unused-parameters">Deprecated or Unused Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#mandatory-physmat-parameters-for-render-instances">Mandatory Physmat Parameters for Render Instances</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#overriding-physmat-parameters-in-other-configurations">Overriding Physmat Parameters in Other Configurations</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#projectiles">Projectiles</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#defining-physmats-in-game-resources">Defining Physmats in Game Resources</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#prefabs">Prefabs</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#ground-decals">Ground Decals</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#limitations-and-tooling">Limitations and Tooling</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#render-instances">Render Instances</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#option-1-via-material-property">Option 1: Via Material Property</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#option-2-via-collision-node-script">Option 2: Via Collision Node Script</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#spline-classes">Spline Classes</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#method-1-via-script-parameter">Method 1: Via Script Parameter</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#method-2-via-material-name">Method 2: Via Material Name</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#limitations">Limitations</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#export-behavior">Export Behavior</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#land-classes">Land Classes</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#physmat-requirements">Physmat Requirements</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#assigning-physmats-in-landclass-files">Assigning Physmats in Landclass Files</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#method-1-per-channel-assignment-splatting-mask">Method 1: Per-Channel Assignment (Splatting Mask)</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#method-2-global-assignment-single-physmat">Method 2: Global Assignment (Single Physmat)</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#preventing-blending-issues">Preventing Blending Issues</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#biome-specific-physmats">Biome-Specific Physmats</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#testing-physmats-in-the-game">Testing Physmats in the Game</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#war-thunder-debug-commands">War Thunder Debug Commands</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#trace-debug-trace"><code class="docutils literal notranslate"><span class="pre">trace.debug_trace</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#landmesh-checkphysmat"><code class="docutils literal notranslate"><span class="pre">Landmesh.checkPhysmat</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#clipmap-physmap"><code class="docutils literal notranslate"><span class="pre">clipmap.physmap</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#app-debug"><code class="docutils literal notranslate"><span class="pre">app.debug</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#commands-for-danetgame-based-projects">Commands for daNetGame-based Projects</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#aim-ruler-mode"><code class="docutils literal notranslate"><span class="pre">aim.ruler</span> <span class="pre">&lt;mode&gt;</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#object-destruction-windows-by-characters">Object Destruction (Windows) by Characters</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#how-to-enable-character-based-object-breaking">How to Enable Character-based Object Breaking</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="proxymats.html">Proxymats</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Materials</a></li>
+      <li class="breadcrumb-item active">Physmats</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/materials/physmats.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="physmats">
+<h1>Physmats<a class="headerlink" href="#physmats" title="Link to this heading"></a></h1>
+<section id="placement-and-configuration">
+<h2>Placement and Configuration<a class="headerlink" href="#placement-and-configuration" title="Link to this heading"></a></h2>
+<p><strong>Physmats</strong> (short for <em>physical materials</em>) define the physical properties of
+surfaces and objects the player interacts with, such as terrain, environmental
+assets, or destructible objects. These interactions include driving over,
+colliding with, shooting at, or destroying the materials.</p>
+<p>The physical material configuration defines the following properties:</p>
+<ul class="simple">
+<li><p><strong>Passability</strong>: Specifies whether a surface or object can be traversed.</p></li>
+<li><p><strong>Interaction Effects</strong>: Determines the visual, audio, or gameplay effects
+triggered during player interaction.</p></li>
+<li><p><strong>Vehicle Behavior</strong>: Defines how each material type influences vehicle
+handling and response.</p></li>
+</ul>
+<p>The physmat configuration file is located at:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/gameBase/config/physmat.blk</span></code></p>
+<section id="file-structure">
+<h3>File Structure<a class="headerlink" href="#file-structure" title="Link to this heading"></a></h3>
+<p>The general structure of the physmat configuration file is as follows:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">PhysMats</span><span class="ni">{</span>          <span class="ge">// Container block for all physical materials</span>
+  <span class="se">__DefaultParams</span><span class="ni">{</span> <span class="ge">// Default parameters applied to all physmats unless explicitly overridden</span>
+    <span class="no">a</span>
+    <span class="no">b</span>
+    ...
+  <span class="ni">}</span>
+  <span class="se">physmat1</span><span class="ni">{}</span>       <span class="ge">// Individual physmat definition with its specific parameters</span>
+  <span class="se">physmat2</span><span class="ni">{}</span>
+  ...
+  <span class="se">physmatN</span><span class="ni">{}</span>
+<span class="ni">}</span>
+
+<span class="se">InteractPropsList</span><span class="ni">{</span>     <span class="ge">// Configuration block for player interactions with physical materials</span>
+  <span class="se">visibilityCamera</span><span class="ni">{</span>    <span class="ge">// Defines physmats that do not collide with the camera</span>
+    <span class="se">transparentCamera</span><span class="ni">{</span> <span class="ge">// A physmat excluded from camera collision</span>
+      <span class="no">en</span><span class="nt">:b=</span> <span class="si">no</span>         <span class="ge">// &#39;no&#39; disables collision with the camera</span>
+    <span class="ni">}</span>
+  <span class="ni">}</span>
+  <span class="se">visibilityRay</span><span class="ni">{</span>      <span class="ge">// Defines physmats that are transparent for ray tracing</span>
+                      <span class="ge">// For example, through which tank markers should remain visible.</span>
+    <span class="se">transparentBeton</span><span class="ni">{</span> <span class="ge">// A physmat through which tank markers remain visible</span>
+      <span class="no">en</span><span class="nt">:b=</span> <span class="si">no</span>        <span class="ge">// &#39;no&#39; disables collision with the tracing ray</span>
+    <span class="ni">}</span>
+  <span class="ni">}</span>
+  <span class="se">tankTrack</span><span class="ni">{</span>          <span class="ge">// Defines physmats that interact with tank tracks</span>
+                      <span class="ge">// All driveable physmats must be listed here</span>
+    <span class="se">default</span><span class="ni">{</span>          <span class="ge">// Physmat entry</span>
+      <span class="no">fk</span><span class="nt">:r=</span> <span class="m">1.0</span>       <span class="ge">/* Friction coefficient multiplier; 1.0 is standard, values &lt; 1 simulate slippery surfaces,</span>
+<span class="ge">                         e.g., setting &#39;0.5&#39; simulates ice. */</span>
+      <span class="no">rollingFrictionK</span><span class="nt">:r=</span> <span class="m">0.045</span>   <span class="ge">/* Rolling friction coefficient; lower values reduce rolling resistance</span>
+<span class="ge">                                     Hard surfaces typically have lower values than soft ones */</span>
+    <span class="ni">}</span>
+  <span class="ni">}</span>
+  <span class="se">wheel</span><span class="ni">{</span>              <span class="ge">/* Defines physmats that interact with vehicle wheels</span>
+<span class="ge">                         All driveable physmats must be listed here */</span>
+    <span class="se">default</span><span class="ni">{</span>          <span class="ge">// Physmat entry</span>
+      <span class="no">fk</span><span class="nt">:r=</span> <span class="m">1.0</span>       /  Friction coefficient multiplier<span class="gp">;</span> <span class="m">1.0</span> <span class="no">is</span> <span class="no">standard</span><span class="gp">,</span> <span class="no">values</span> &lt; 1 simulate slippery surfaces<span class="gp">,</span>
+                         <span class="no">e</span>.g.<span class="gp">,</span> <span class="no">setting</span> <span class="nf">&#39;0.5&#39;</span> <span class="no">simulates</span> <span class="no">ice</span>. */
+      <span class="no">rollingFrictionK</span><span class="nt">:r=</span> <span class="m">0.03</span>   <span class="ge">/* Rolling friction coefficient; lower values reduce rolling resistance</span>
+<span class="ge">                                    Hard surfaces typically have lower values than soft ones */</span>
+    <span class="ni">}</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="physmat-parameters">
+<h3>Physmat Parameters<a class="headerlink" href="#physmat-parameters" title="Link to this heading"></a></h3>
+<p>The following parameters are currently supported in physmat definitions. These
+are demonstrated using an example physmat named <code class="docutils literal notranslate"><span class="pre">horse{}</span></code>, which includes all
+known configurable properties:</p>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">horse{}</span></code></dt><dd><p>Name of the physical material. Must be unique within the configuration.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">bf_class:t</span> <span class="pre">=</span> <span class="pre">&quot;horse_class&quot;</span></code></dt><dd><p>Material class identifier. This acts as a tag used to reference the physmat in
+the <code class="docutils literal notranslate"><span class="pre">InteractPropsList{}</span></code> block.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">color:c</span> <span class="pre">=</span> <span class="pre">255,162,0,100</span></code></dt><dd><p>Debug render color in RGBA format. Typically used for visual debugging. Usage
+is currently uncommon.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">isWater:b</span> <span class="pre">=</span> <span class="pre">0</span></code></dt><dd><p>Specifies whether the material represents water. A value of <code class="docutils literal notranslate"><span class="pre">1</span></code> marks it as
+water.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">isUnit:b</span> <span class="pre">=</span> <span class="pre">1</span></code></dt><dd><p>Indicates whether the material represents a unit (e.g., a vehicle or
+character).</p>
+</dd>
+</dl>
+<section id="aircraft-specific-parameters">
+<h4>Aircraft-Specific Parameters<a class="headerlink" href="#aircraft-specific-parameters" title="Link to this heading"></a></h4>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">shakeMultiplier:r</span> <span class="pre">=</span> <span class="pre">1</span></code></dt><dd><p>Multiplier affecting screen shake when aircraft interact with this material.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">frictionMultiplier:r</span> <span class="pre">=</span> <span class="pre">1</span></code></dt><dd><p>Friction multiplier applied to aircraft interactions.</p>
+</dd>
+</dl>
+</section>
+<section id="tank-specific-parameters">
+<h4>Tank-Specific Parameters<a class="headerlink" href="#tank-specific-parameters" title="Link to this heading"></a></h4>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">dustFactor:r</span> <span class="pre">=</span> <span class="pre">0.14</span></code></dt><dd><p>Controls the amount of dust that accumulates on tanks from this material.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">mudFactor:r</span> <span class="pre">=</span> <span class="pre">0.1</span></code></dt><dd><p>Controls the amount of mud that accumulates on tanks.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">deformable_width:r</span> <span class="pre">=</span> <span class="pre">0.05</span></code></dt><dd><p>Defines the deformation depth of terrain under tank tracks.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">tankTracksTexId:i</span> <span class="pre">=</span> <span class="pre">0</span></code></dt><dd><p>Likely specifies the texture ID used for track marks left by tanks.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">resistanceK:r</span> <span class="pre">=</span> <span class="pre">0.00035</span></code></dt><dd><p>Friction coefficient for tank movement over this material.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">trackEffectsPreset:t</span> <span class="pre">=</span> <span class="pre">&quot;soil&quot;</span></code></dt><dd><p>References a named preset from the <code class="docutils literal notranslate"><span class="pre">trackEffectsPresets{}</span></code> block in
+<code class="docutils literal notranslate"><span class="pre">gameParams.blk</span></code>. Defines the visual and audio effects triggered when a tank
+drives over this material.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">trackDirtSpawnRateMult:r</span> <span class="pre">=</span> <span class="pre">1.2</span></code></dt><dd><p>Multiplier that controls the rate of dirt or particle effects generated by
+tank tracks on this material.</p>
+</dd>
+</dl>
+</section>
+<section id="explosion-and-impact-parameters">
+<h4>Explosion and Impact Parameters<a class="headerlink" href="#explosion-and-impact-parameters" title="Link to this heading"></a></h4>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">explosionPatch{}</span></code> block is interchangeable with the <code class="docutils literal notranslate"><span class="pre">explMat</span></code> parameter.
+Only one of these should be specified per physmat. Specifying both is
+unsupported. If neither is defined, the client may crash. Details below.</p>
+</div>
+<section id="explosion-patch-parameters">
+<h5>Explosion Patch Parameters<a class="headerlink" href="#explosion-patch-parameters" title="Link to this heading"></a></h5>
+<p>These parameters define the visual and physical behavior of bomb or rocket
+explosions (typically from aircraft). When used, they replace the need for
+<code class="docutils literal notranslate"><span class="pre">explMat</span></code>.</p>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">explosionPatchShader:t</span> <span class="pre">=</span> <span class="pre">&quot;explosion_patch&quot;</span></code></dt><dd><p>Presumed to define the decal shader for explosion effects. May involve both
+normal and diffuse maps. SDK did not reveal its effect.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">explosionPatchTexture:t</span> <span class="pre">=</span> <span class="pre">&quot;explosion_patch_rocks_n&quot;</span></code></dt><dd><p>Likely defines the normal map texture used for explosion decals.
+SDK did not reveal its effect.*</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">explosionPatchTexcoord:p4</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">1</span></code></dt><dd><p>Presumably sets the texture atlas coordinates used for explosion decals.
+SDK did not reveal its effect.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">explosionPatchHeightScale:r</span> <span class="pre">=</span> <span class="pre">0.01</span></code></dt><dd><p>Likely controls the heightmap deformation scale applied to explosion decals.
+SDK did not reveal its effect.</p>
+</dd>
+</dl>
+</section>
+<section id="alternative-explosion-material">
+<h5>Alternative Explosion Material<a class="headerlink" href="#alternative-explosion-material" title="Link to this heading"></a></h5>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">explMat:t</span> <span class="pre">=</span> <span class="pre">&quot;default&quot;</span></code></dt><dd><p>References an explosion material defined in the <code class="docutils literal notranslate"><span class="pre">explMat.blk</span></code> file.
+This parameter is interchangeable with the explosion patch parameters above.
+Only one should be used; otherwise, the client will crash.</p>
+</dd>
+</dl>
+</section>
+<section id="explosion-effects">
+<h5>Explosion Effects<a class="headerlink" href="#explosion-effects" title="Link to this heading"></a></h5>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">explosionWreckage:t</span> <span class="pre">=</span> <span class="pre">&quot;rocks_expl&quot;</span></code></dt><dd><p>Defines the model used for debris or wreckage generated during explosions.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">explosionFx:t</span> <span class="pre">=</span> <span class="pre">&quot;ground_explosion_fx&quot;</span></code></dt><dd><p>Specifies the visual effect triggered during an explosion.</p>
+</dd>
+</dl>
+</section>
+<section id="physical-impact-modifiers">
+<h5>Physical Impact Modifiers<a class="headerlink" href="#physical-impact-modifiers" title="Link to this heading"></a></h5>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">iak:r</span> <span class="pre">=</span> <span class="pre">0.2</span></code></dt><dd><p>Impulse absorption coefficient. Accepts values in the range <code class="docutils literal notranslate"><span class="pre">0.0</span></code> to <code class="docutils literal notranslate"><span class="pre">1.0</span></code>.
+<code class="docutils literal notranslate"><span class="pre">0</span></code> means no impulse is applied; <code class="docutils literal notranslate"><span class="pre">1</span></code> means full impulse is applied.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">damage_k:r</span> <span class="pre">=</span> <span class="pre">0.3</span></code></dt><dd><p>Multiplier for damage applied on impact.</p>
+</dd>
+</dl>
+</section>
+<section id="projectile-penetration-effects">
+<h5>Projectile Penetration Effects<a class="headerlink" href="#projectile-penetration-effects" title="Link to this heading"></a></h5>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">pierceFxType:t</span> <span class="pre">=</span> <span class="pre">&quot;ad_sand&quot;</span></code></dt><dd><p>Defines the effect triggered when a projectile penetrates the material without
+being stopped. This can be overridden for specific ammunition calibers.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">pierceFxScale:p2</span> <span class="pre">=</span> <span class="pre">0.1,</span> <span class="pre">0.2</span></code></dt><dd><p>Specifies the minimum and maximum scale for the <code class="docutils literal notranslate"><span class="pre">pierceFxType</span></code> effect.
+The default scale is <code class="docutils literal notranslate"><span class="pre">1.0</span></code>. Can be overridden per ammunition type.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="gunfire-decal-parameters">
+<h4>Gunfire Decal Parameters<a class="headerlink" href="#gunfire-decal-parameters" title="Link to this heading"></a></h4>
+<p>This block defines visual and physical properties for decals and effects
+generated by gunfire impacts on physical materials.</p>
+<section id="decal-textures">
+<h5>Decal Textures<a class="headerlink" href="#decal-textures" title="Link to this heading"></a></h5>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">rendinst_colorMap:t</span> <span class="pre">=</span> <span class="pre">&quot;explosion_patch_ground_c&quot;</span></code></dt><dd><p>Specifies the diffuse (albedo) texture used for gunfire decals. Transparency
+is determined by the alpha channel. If no alpha is present, the albedo
+defaults to black and a soft radial fade is applied, producing a dark circle.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">rendinst_normalMap:t</span> <span class="pre">=</span> <span class="pre">&quot;explosion_patch_n&quot;</span></code></dt><dd><p>Defines the normal map used for gunfire decals. Standard smoothness and
+metalness values are assumed unless otherwise overridden.</p>
+</dd>
+</dl>
+</section>
+<section id="decal-rendering-controls">
+<h5>Decal Rendering Controls<a class="headerlink" href="#decal-rendering-controls" title="Link to this heading"></a></h5>
+<p>The following optional parameters control which visual components of the decal
+are rendered. These are useful when selectively disabling certain effects such
+as color or normal influence:</p>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">writeAlbedo:b</span> <span class="pre">=</span> <span class="pre">no</span></code></dt><dd><p>Disables albedo (diffuse color) rendering. Useful when only normals are
+needed.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">writeSmoothness:b</span> <span class="pre">=</span> <span class="pre">no</span></code></dt><dd><p>Disables the smoothness (roughness) channel rendering.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">writeNormal:b</span> <span class="pre">=</span> <span class="pre">no</span></code></dt><dd><p>Disables normal map rendering.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">writeMetal:b</span> <span class="pre">=</span> <span class="pre">no</span></code></dt><dd><p>Disables metalness rendering.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">writeShadow:b</span> <span class="pre">=</span> <span class="pre">no</span></code></dt><dd><p>Disables shadow casting for the decal.</p>
+</dd>
+</dl>
+</section>
+<section id="impact-effects">
+<h5>Impact Effects<a class="headerlink" href="#impact-effects" title="Link to this heading"></a></h5>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">hitFxType:t</span> <span class="pre">=</span> <span class="pre">&quot;ad_sand&quot;</span></code></dt><dd><p>Specifies the visual effect triggered upon gunfire impact.
+This can be overridden for specific ammunition calibers.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">hitFxScale:p2</span> <span class="pre">=</span> <span class="pre">0.1,</span> <span class="pre">0.2</span></code></dt><dd><p>Sets the minimum and maximum scale for the <code class="docutils literal notranslate"><span class="pre">hitFxType</span></code> effect.
+Can also be overridden per ammo type.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">breachMat:t</span> <span class="pre">=</span> <span class="pre">&quot;steel&quot;</span></code></dt><dd><p>Defines the breach material type used when a projectile penetrates a vehicle.
+Common values include <code class="docutils literal notranslate"><span class="pre">&quot;steel&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;wood&quot;</span></code>, used to apply appropriate decal
+effects.</p>
+</dd>
+</dl>
+</section>
+<section id="vehicle-interaction-parameters">
+<h5>Vehicle Interaction Parameters<a class="headerlink" href="#vehicle-interaction-parameters" title="Link to this heading"></a></h5>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">shakeProps</span> <span class="pre">{</span> <span class="pre">period:p2</span> <span class="pre">=</span> <span class="pre">0.35,</span> <span class="pre">0.7;</span> <span class="pre">power:p2</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">1;</span> <span class="pre">mult:p2</span> <span class="pre">=</span> <span class="pre">0.5,</span> <span class="pre">0.2;</span> <span class="pre">}</span></code></dt><dd><p>Controls wheel shake when tanks drive over this material.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">period</span></code> defines the frequency range of the shake.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">power</span></code> controls the intensity.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mult</span></code> applies additional modulation.</p></li>
+</ul>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">arcadeProps</span> <span class="pre">{</span> <span class="pre">boost:r</span> <span class="pre">=</span> <span class="pre">1.0;</span> <span class="pre">}</span></code></dt><dd><p>Affects the arcade-mode boost calculation for tanks interacting with this
+material.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="deprecated-or-unused-parameters">
+<h4>Deprecated or Unused Parameters<a class="headerlink" href="#deprecated-or-unused-parameters" title="Link to this heading"></a></h4>
+<p>The following parameters are considered obsolete or are replaced by other
+blocks:</p>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">sizeInCalibers:r</span> <span class="pre">=</span> <span class="pre">2</span></code></dt><dd><p>Not currently used.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">shakePeriod:p2</span> <span class="pre">=</span> <span class="pre">0.35,</span> <span class="pre">0.7</span></code></dt><dd><p>Deprecated. Use <code class="docutils literal notranslate"><span class="pre">shakeProps</span></code> instead.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">shakePower:p2</span> <span class="pre">=</span> <span class="pre">1.0,</span> <span class="pre">1.0</span></code></dt><dd><p>Deprecated. Use <code class="docutils literal notranslate"><span class="pre">shakeProps</span></code> instead.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">shakeMult:p2</span> <span class="pre">=</span> <span class="pre">0.5,</span> <span class="pre">0.2</span></code></dt><dd><p>Deprecated. Use <code class="docutils literal notranslate"><span class="pre">shakeProps</span></code> instead.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">arcadeBoostMult:r</span> <span class="pre">=</span> <span class="pre">1.0</span></code></dt><dd><p>Deprecated. Use <code class="docutils literal notranslate"><span class="pre">arcadeProps</span></code> instead.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="mandatory-physmat-parameters-for-render-instances">
+<h3>Mandatory Physmat Parameters for Render Instances<a class="headerlink" href="#mandatory-physmat-parameters-for-render-instances" title="Link to this heading"></a></h3>
+<p>To reduce duplication, physmats are not divided into separate “prop” and
+“terrain” categories. As a result, <strong>all physmats are expected to include a
+common set of parameters</strong>, regardless of their intended use. While not all
+parameters are strictly required in every case, omitting key fields can result
+in missing effects or gameplay issues.</p>
+<p>If minimal setup is required, the following parameters are empirically known to
+be <strong>mandatory</strong> to ensure correct behavior. This list is not exhaustive:</p>
+<dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">hitFxType:t</span> <span class="pre">=</span> <span class="pre">&quot;ad_explosion_glass&quot;</span></code></dt><dd><p>Defines the particle effect triggered on impact. Without this parameter, the
+expected visual effect will not play.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">hitFxScale:p2</span> <span class="pre">=</span> <span class="pre">0.1,</span> <span class="pre">0.2</span></code></dt><dd><p>Specifies the scale range for the hit effect. If omitted, the effect will play
+at its default size, which may not suit the context.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">explMat:t</span> <span class="pre">=</span> <span class="pre">&quot;default&quot;</span></code> or <strong>explosion patch parameters</strong></dt><dd><p>Required for explosion handling. If neither <code class="docutils literal notranslate"><span class="pre">explMat</span></code> nor <code class="docutils literal notranslate"><span class="pre">explosionPatch</span></code>
+parameters are defined, explosion effects (e.g., tank shell impacts) may fail
+or cause visual bugs.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">tankTrack</span> <span class="pre">{}</span></code> and <code class="docutils literal notranslate"><span class="pre">wheel</span> <span class="pre">{}</span></code> blocks</dt><dd><p>Define friction and rolling behavior for tracked and wheeled vehicles. If
+these blocks are missing, vehicles will not be able to traverse the physmat at
+all.</p>
+</dd>
+</dl>
+</section>
+<section id="overriding-physmat-parameters-in-other-configurations">
+<h3>Overriding Physmat Parameters in Other Configurations<a class="headerlink" href="#overriding-physmat-parameters-in-other-configurations" title="Link to this heading"></a></h3>
+<p>Physmat parameters are frequently overridden within the configurations of other
+game objects, such as landscapes, projectiles, or vehicles. This can lead to
+unexpected physmat behavior if overrides conflict with the base physmat
+settings.</p>
+<p>If a physmat does not behave as intended, it is important to check related
+configurations for parameter overrides. Currently, the physmat system contains
+numerous such overrides, contributing to complexity and inconsistencies.</p>
+<p>The long-term objective is to establish a clean, well-defined physmat
+configuration set that minimizes or eliminates the need for overrides, thereby
+simplifying maintenance and improving predictability.</p>
+<section id="projectiles">
+<h4>Projectiles<a class="headerlink" href="#projectiles" title="Link to this heading"></a></h4>
+<p>Improper physmat behavior on projectiles most commonly appears in visual effects
+(FX). For example, a projectile may hit concrete, but trigger a glass impact
+effect, or the FX may appear at an incorrect scale (e.g. twice the intended
+size).</p>
+<p>This often results from FX overrides in projectile configuration files. All
+projectile-related configurations are located at:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/gameBase/gameData/weapons</span></code>.</p>
+<p>Each projectile can be used by different vehicle types. To trace and validate
+the applied physmat and FX settings, follow the steps below.</p>
+<ol class="arabic">
+<li><p><strong>Identify the Vehicle</strong></p>
+<p>Determine the vehicle in use by checking the mission file being launched. For
+example, the vehicle might be:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>`ussr_t64_b_1984`
+</pre></div>
+</div>
+</li>
+<li><p><strong>Locate the Weapon Preset</strong></p>
+<p>Find the weapon preset for that vehicle in:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;project_name&gt;/develop/gameBase/gameData/units/tankModels/weaponPresets
+</pre></div>
+</div>
+<p>For the example above, the corresponding file might be:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ussr_t_64_b_1984_common.blk
+</pre></div>
+</div>
+</li>
+<li><p><strong>Locate the Projectile Definitions</strong></p>
+<p>Assume you’re inspecting machine gun behavior. The process is identical for
+all projectile types. Common weapon configurations include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">groundModels_weapons/7_62mm_PKT_user_machinegun.blk</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">groundModels_weapons/12_7mm_NSV_user_cannon.blk</span></code></p></li>
+</ul>
+<p>Open the relevant file to inspect projectile includes. Go to the relevant
+configuration files and find references to the <code class="docutils literal notranslate"><span class="pre">fx</span></code> directory at
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/gameBase/gameData/weapons/fx</span></code> (this directory
+contains the FX settings for projectiles).</p>
+<p>For example, in <code class="docutils literal notranslate"><span class="pre">7_62mm_PKT_user_machinegun.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">include</span> <span class="nf">&quot;#/develop/gameBase/gameData/weapons/bullets/USSR/_7_62mm_shkas_b32_bullet.blk&quot;</span>
+</pre></div>
+</div>
+<p>In turn, this bullet definition includes an FX configuration:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">include</span> <span class="nf">&quot;#/develop/gameBase/gameData/weapons/fx/_8_11mm_ap_hit_fx.blk&quot;</span>
+</pre></div>
+</div>
+<p>Likewise, in <code class="docutils literal notranslate"><span class="pre">12_7mm_NSV_user_cannon.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">include</span> <span class="nf">&quot;bullets/ussr/_12_7mm_dshk_bzt_44_APIT_bullet.blk&quot;</span>
+<span class="se">include</span> <span class="nf">&quot;bullets/ussr/_12_7mm_dshk_mdz_HE_bullet.blk&quot;</span>
+<span class="se">include</span> <span class="nf">&quot;bullets/ussr/_12_7mm_dshk_bs41_API_bullet.blk&quot;</span>
+</pre></div>
+</div>
+<p>These include references like:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">include</span> <span class="nf">&quot;#/develop/gameBase/gameData/weapons/fx/_12_18mm_ap_hit_fx.blk&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Inspect FX Configuration Files</strong></p>
+<p>Open the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files under <code class="docutils literal notranslate"><span class="pre">weapons/fx/</span></code> to review their effect definitions.</p>
+<p>For example, in <code class="docutils literal notranslate"><span class="pre">_12_18mm_he_hit_fx.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">groundCollisionEffect</span><span class="nt">:t=</span> <span class="nf">&quot;hit_12_18mm_dirt_he&quot;</span>  <span class="ge">/* Default FX when hitting the ground.</span>
+<span class="ge">                                                   Used if the physmat lacks a defined &#39;hitFxType:t&#39;. */</span>
+<span class="no">ricochetEffect</span><span class="nt">:t=</span> <span class="nf">&quot;hit_12_18mm_metal_ap&quot;</span>        <span class="ge">// FX for ricochets on metal surfaces.</span>
+<span class="no">waterCollisionEffect</span><span class="nt">:t=</span> <span class="nf">&quot;hit_12_18mm_water&quot;</span>     <span class="ge">/* FX for impacts on water surfaces.</span>
+<span class="ge">                                                   Also used when no specific &#39;hitFxType:t&#39; is provided. */</span>
+</pre></div>
+</div>
+<p>The file may also contain a collisions block for physmat-specific overrides:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">collisions</span><span class="ni">{</span>
+  <span class="se">default</span><span class="ni">{</span>                       <span class="ge">// physmat name</span>
+    <span class="no">fx</span><span class="nt">:t=</span> <span class="nf">&quot;hit_12_18mm_dirt_he&quot;</span>  <span class="ge">// Overrides &#39;hitFxType:t&#39; with a hardcoded FX for this projectile.</span>
+  <span class="ni">}</span>
+  <span class="se">horLandMesh</span><span class="ni">{</span>
+    <span class="no">fx</span><span class="nt">:t=</span> <span class="nf">&quot;hit_12_18mm_dirt_he&quot;</span>
+  <span class="ni">}</span>
+  ...
+<span class="ni">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+</section>
+<section id="defining-physmats-in-game-resources">
+<h2>Defining Physmats in Game Resources<a class="headerlink" href="#defining-physmats-in-game-resources" title="Link to this heading"></a></h2>
+<p>Physmats can be assigned to various game assets such as prefabs or ground decals
+by modifying their material properties. Proper assignment ensures correct
+behavior during interactions like vehicle movement, projectile impacts, and
+environmental effects.</p>
+<section id="prefabs">
+<h3>Prefabs<a class="headerlink" href="#prefabs" title="Link to this heading"></a></h3>
+<p>To assign a physmat to a prefab, append the physmat name to the material
+definition using the <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> symbol:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">name</span><span class="nt">:t=</span> <span class="nf">&quot;lake@ice&quot;</span>
+</pre></div>
+</div>
+<p>In this example, the material “lake” is associated with the ice physmat.</p>
+</section>
+<section id="ground-decals">
+<h3>Ground Decals<a class="headerlink" href="#ground-decals" title="Link to this heading"></a></h3>
+<p>For decals that require explicit physmat behavior, the physmat can be defined
+using the script parameter in the material properties:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;phmat=concrete&quot;</span> <span class="ge">// where &quot;concrete&quot; is the desired physmat type.</span>
+</pre></div>
+</div>
+<p>This assigns the concrete physmat to the decal. It is typically used for decals
+that represent ground types, damage marks, or effects-sensitive surfaces.</p>
+<section id="limitations-and-tooling">
+<h4>Limitations and Tooling<a class="headerlink" href="#limitations-and-tooling" title="Link to this heading"></a></h4>
+<p>Physmats are not currently visible in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> or in the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a> and must be
+verified manually:</p>
+<p>When working with daNetGame-based projects:</p>
+<ul class="simple">
+<li><p>If a decal is placed on surfaces with mixed digging behavior (e.g., some allow
+shoveling, some do not), assigning a physmat to the decal is unnecessary.</p></li>
+<li><p>In such cases, the underlying terrain’s physmat will be used during
+interactions like digging.</p></li>
+</ul>
+</section>
+</section>
+<section id="render-instances">
+<h3>Render Instances<a class="headerlink" href="#render-instances" title="Link to this heading"></a></h3>
+<p>Physmats can be applied to render instances using one of the following methods:</p>
+<section id="option-1-via-material-property">
+<h4>Option 1: Via Material Property<a class="headerlink" href="#option-1-via-material-property" title="Link to this heading"></a></h4>
+<p>Add the physmat directly to the material definition in any <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file that
+describes object properties. Common files include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_buildings_dmg.blk</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_immortals.blk</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst_dmg.blk</span></code></p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">material</span><span class="nt">:t=</span> <span class="nf">&quot;ice&quot;</span>
+</pre></div>
+</div>
+<p>This assigns the <code class="docutils literal notranslate"><span class="pre">ice</span></code> physmat to the render instance.</p>
+</section>
+<section id="option-2-via-collision-node-script">
+<h4>Option 2: Via Collision Node Script<a class="headerlink" href="#option-2-via-collision-node-script" title="Link to this heading"></a></h4>
+<p>Physmats can also be assigned through the object’s collision node by adding a
+script block:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">script </span><span class="ni">{</span>
+  <span class="no">phmat</span><span class="nt">:t=</span> <span class="nf">&quot;ice&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This method is often more precise and ensures consistent interaction behavior.</p>
+</section>
+</section>
+<section id="spline-classes">
+<h3>Spline Classes<a class="headerlink" href="#spline-classes" title="Link to this heading"></a></h3>
+<p>Physmats can be assigned to spline classes in two ways:</p>
+<section id="method-1-via-script-parameter">
+<h4>Method 1: Via Script Parameter<a class="headerlink" href="#method-1-via-script-parameter" title="Link to this heading"></a></h4>
+<p>Add a <code class="docutils literal notranslate"><span class="pre">script</span></code> parameter to the spline material definition:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">script</span><span class="nt">:t=</span> <span class="nf">&quot;phmat=rocks~r~n&quot;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the material already uses a <code class="docutils literal notranslate"><span class="pre">script</span></code> parameter, append the physmat definition
+to the existing string.</p>
+</div>
+</section>
+<section id="method-2-via-material-name">
+<h4>Method 2: Via Material Name<a class="headerlink" href="#method-2-via-material-name" title="Link to this heading"></a></h4>
+<p>The more reliable method is to embed the physmat directly into the material name
+using the <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> syntax:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">matName</span><span class="nt">:t=</span> <span class="nf">&quot;town_pavement_asphalt_debris_a@ice&quot;</span>
+</pre></div>
+</div>
+<p>This binds the <code class="docutils literal notranslate"><span class="pre">ice</span></code> physmat to the spline material.</p>
+</section>
+<section id="limitations">
+<h4>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Physmats currently apply <strong>only to simple materials</strong> and <strong>loft objects</strong>.</p></li>
+<li><p>Assigning physmats to materials with <code class="docutils literal notranslate"><span class="pre">class_name:t</span> <span class="pre">=</span> <span class="pre">&quot;land_mesh_combined&quot;</span></code> is
+<strong>not supported</strong> and will have no effect.</p></li>
+</ul>
+</section>
+<section id="export-behavior">
+<h4>Export Behavior<a class="headerlink" href="#export-behavior" title="Link to this heading"></a></h4>
+<p>Physmats assigned to spline classes are automatically included in the
+<strong>physmap</strong> during level export. This ensures correct behavior in gameplay for
+movement, impact effects, and interaction logic.</p>
+</section>
+</section>
+<section id="land-classes">
+<h3>Land Classes<a class="headerlink" href="#land-classes" title="Link to this heading"></a></h3>
+<p>Physmats can be assigned to land classes and are included in the physmap during
+level export. Proper configuration is essential to ensure accurate in-game
+physics and interaction behavior on terrain surfaces.</p>
+<section id="physmat-requirements">
+<h4>Physmat Requirements<a class="headerlink" href="#physmat-requirements" title="Link to this heading"></a></h4>
+<p>Physmats can be stored within the landmesh, but they require a detailed
+heightmap to function correctly. Without a valid heightmap, the physmat
+assignment will not take effect.</p>
+</section>
+<section id="assigning-physmats-in-landclass-files">
+<h4>Assigning Physmats in Landclass Files<a class="headerlink" href="#assigning-physmats-in-landclass-files" title="Link to this heading"></a></h4>
+<p>There are two main approaches for assigning physmats in landclass definitions:</p>
+</section>
+<section id="method-1-per-channel-assignment-splatting-mask">
+<h4>Method 1: Per-Channel Assignment (Splatting Mask)<a class="headerlink" href="#method-1-per-channel-assignment-splatting-mask" title="Link to this heading"></a></h4>
+<p>Physmats can be mapped to each color channel of the splatting mask:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">physMatRed</span><span class="nt">:t=</span> <span class="nf">&quot;beton&quot;</span>
+<span class="no">physMatGreen</span><span class="nt">:t=</span> <span class="nf">&quot;beton&quot;</span>
+<span class="no">physMatBlue</span><span class="nt">:t=</span> <span class="nf">&quot;beton&quot;</span>
+<span class="no">physMatBlack</span><span class="nt">:t=</span> <span class="nf">&quot;beton&quot;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a specific color channel is not defined, the default physmat will be used in
+its place.</p>
+</div>
+</section>
+<section id="method-2-global-assignment-single-physmat">
+<h4>Method 2: Global Assignment (Single Physmat)<a class="headerlink" href="#method-2-global-assignment-single-physmat" title="Link to this heading"></a></h4>
+<p>To apply a single physmat to the entire land class, use the <code class="docutils literal notranslate"><span class="pre">physMat</span></code> parameter
+at the <strong>root level</strong> of the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span> <span class="nf">&quot;landClass&quot;</span>
+<span class="no">physMat</span><span class="nt">:t=</span> <span class="nf">&quot;beton&quot;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This parameter <strong>must be placed at the root</strong>. If nested inside another block,
+it will not function.</p>
+</div>
+</section>
+<section id="preventing-blending-issues">
+<h4>Preventing Blending Issues<a class="headerlink" href="#preventing-blending-issues" title="Link to this heading"></a></h4>
+<p>When blending materials in the splatting mask, undefined channels may fall back
+to an unintended default physmat. To avoid this, always define a global
+<code class="docutils literal notranslate"><span class="pre">physMat</span></code> in the root of the landclass <code class="docutils literal notranslate"><span class="pre">.blk</span></code>. This ensures a consistent
+fallback.</p>
+</section>
+<section id="biome-specific-physmats">
+<h4>Biome-Specific Physmats<a class="headerlink" href="#biome-specific-physmats" title="Link to this heading"></a></h4>
+<p>In biomes, landclass physmats can be assigned globally or overridden for
+specific detail indices:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">physMat</span><span class="nt">:t=</span> <span class="nf">&quot;roadSoil&quot;</span>   <span class="ge">// Global physmat applied to all details by default.</span>
+
+<span class="se">physMatIndices </span><span class="ni">{</span>        <span class="ge">// Overrides for specific detail indices.</span>
+  <span class="se">detail </span><span class="ni">{</span> <span class="no">index</span><span class="nt">:i=</span> <span class="m">4</span><span class="gp">;</span>  <span class="no">physMat</span><span class="nt">:t=</span> <span class="nf">&quot;roadSand&quot;</span> <span class="ni">}</span>
+  <span class="se">detail </span><span class="ni">{</span> <span class="no">index</span><span class="nt">:i=</span> <span class="m">15</span><span class="gp">;</span> <span class="no">physMat</span><span class="nt">:t=</span> <span class="nf">&quot;rocks&quot;</span>    <span class="ni">}</span>
+  <span class="se">detail </span><span class="ni">{</span> <span class="no">index</span><span class="nt">:i=</span> <span class="m">16</span><span class="gp">;</span> <span class="no">physMat</span><span class="nt">:t=</span> <span class="nf">&quot;beton&quot;</span>    <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="testing-physmats-in-the-game">
+<h2>Testing Physmats in the Game<a class="headerlink" href="#testing-physmats-in-the-game" title="Link to this heading"></a></h2>
+<p>To verify physmat behavior in-game especially for impact effects, vehicle
+interaction, or terrain response, a number of debug commands are available.</p>
+<section id="war-thunder-debug-commands">
+<h3>War Thunder Debug Commands<a class="headerlink" href="#war-thunder-debug-commands" title="Link to this heading"></a></h3>
+<section id="trace-debug-trace">
+<h4><code class="docutils literal notranslate"><span class="pre">trace.debug_trace</span></code><a class="headerlink" href="#trace-debug-trace" title="Link to this heading"></a></h4>
+<ul>
+<li><p>Casts a debug ray from the camera to the surface.</p></li>
+<li><p>Places a marker (sphere) at the point of intersection.</p></li>
+<li><p>Displays the <strong>name of the physmat</strong> at that point.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use this to confirm which physmat is being registered under the cursor in the
+game world.</p>
+</div>
+</li>
+</ul>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../_images/physmats_01.jpg"><img alt="trace.debug_trace" class="image-gap" src="../../_images/physmats_01.jpg" style="height: 30em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/physmats_02.jpg"><img alt="trace.debug_trace" src="../../_images/physmats_02.jpg" style="height: 30em;" />
+</a>
+</div>
+</div>
+</div>
+</section>
+<section id="landmesh-checkphysmat">
+<h4><code class="docutils literal notranslate"><span class="pre">Landmesh.checkPhysmat</span></code><a class="headerlink" href="#landmesh-checkphysmat" title="Link to this heading"></a></h4>
+<ul>
+<li><p>Similar to <code class="docutils literal notranslate"><span class="pre">trace.debug_trace</span></code>, but specific to <strong>landmesh surfaces</strong>.</p></li>
+<li><p>Casts a ray and creates a debug sphere at the intersection.</p></li>
+<li><p>Displays the physmat name at that point.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Landmesh physmats now function without a detailed heightmap, but <strong>only for
+visual effects and simulated interactions</strong> (e.g., decals, FX). They do not
+support full physics interactions.</p>
+</div>
+</li>
+</ul>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../_images/physmats_03.jpg"><img alt="Landmesh.checkPhysmat" class="image-gap" src="../../_images/physmats_03.jpg" style="height: 30em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/physmats_04.jpg"><img alt="Landmesh.checkPhysmat" src="../../_images/physmats_04.jpg" style="height: 30em;" />
+</a>
+</div>
+</div>
+</div>
+</section>
+<section id="clipmap-physmap">
+<h4><code class="docutils literal notranslate"><span class="pre">clipmap.physmap</span></code><a class="headerlink" href="#clipmap-physmap" title="Link to this heading"></a></h4>
+<ul>
+<li><p>Overlays the terrain with colors corresponding to physmats.</p></li>
+<li><p>Useful for visualizing physmat distribution across the level.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This command only works when <code class="docutils literal notranslate"><span class="pre">landquality:i</span> <span class="pre">=</span> <span class="pre">0</span></code> is set in <code class="docutils literal notranslate"><span class="pre">config.blk</span></code>, or
+when the <strong>terrain quality slider is set to Low</strong> in the game settings.</p>
+<p>The color used for each physmat is not explicitly defined. It is assumed to be
+controlled by the <code class="docutils literal notranslate"><span class="pre">color:c</span> <span class="pre">=</span> <span class="pre">R,G,B,A</span></code> parameter in the physmat configuration,
+but this has not been confirmed.</p>
+</div>
+<a class="reference internal image-reference" href="../../_images/physmats_05.jpg"><img alt="clipmap.physmap" class="align-center" src="../../_images/physmats_05.jpg" style="width: 55em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="app-debug">
+<h4><code class="docutils literal notranslate"><span class="pre">app.debug</span></code><a class="headerlink" href="#app-debug" title="Link to this heading"></a></h4>
+<ul>
+<li><p>Displays all active FX in the client.</p></li>
+<li><p>Useful for tracing visual issues, such as incorrect FX playing on impact.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a projectile plays the wrong FX on a physmat, use this command to inspect
+the effect in real time. This allows you to trace the FX back to projectile
+configuration overrides (see the <a class="reference internal" href="#projectiles">Projectiles</a> section for
+details).</p>
+</div>
+<a class="reference internal image-reference" href="../../_images/physmats_06.jpg"><img alt="clipmap.physmap" class="align-center" src="../../_images/physmats_06.jpg" style="width: 55em;" />
+</a>
+</li>
+</ul>
+</section>
+</section>
+<section id="commands-for-danetgame-based-projects">
+<h3>Commands for daNetGame-based Projects<a class="headerlink" href="#commands-for-danetgame-based-projects" title="Link to this heading"></a></h3>
+<section id="aim-ruler-mode">
+<h4><code class="docutils literal notranslate"><span class="pre">aim.ruler</span> <span class="pre">&lt;mode&gt;</span></code><a class="headerlink" href="#aim-ruler-mode" title="Link to this heading"></a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">aim.ruler</span></code> command traces a ray from the camera to the environment and
+visualizes physmat data at the point of intersection.</p>
+<p>Available modes:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">aim.ruler</span> <span class="pre">1</span></code>: Displays the <strong>physmat name</strong> and <strong>distance</strong> from the camera.</p>
+<a class="reference internal image-reference" href="../../_images/physmats_07.jpg"><img alt="aim.ruler 1" class="align-center" src="../../_images/physmats_07.jpg" style="width: 55em;" />
+</a>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aim.ruler</span> <span class="pre">2</span></code>: Adds <strong>pixel-sized visual markers</strong> for physmat representation
+at the hit point.</p>
+<a class="reference internal image-reference" href="../../_images/physmats_08.jpg"><img alt="aim.ruler 2" class="align-center" src="../../_images/physmats_08.jpg" style="width: 55em;" />
+</a>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aim.ruler</span> <span class="pre">3</span></code>: Adds a <strong>color map overlay</strong> showing physmat distribution
+across various surface types, including:</p>
+<ul class="simple">
+<li><p>Landscapes</p></li>
+<li><p>Decals</p></li>
+<li><p>Road splines</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/physmats_09.jpg"><img alt="aim.ruler 3" class="align-center" src="../../_images/physmats_09.jpg" style="width: 55em;" />
+</a>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use this command during runtime to confirm physmat mappings and identify
+mismatches in surface interaction behavior.</p>
+</div>
+</li>
+</ul>
+</section>
+</section>
+<section id="object-destruction-windows-by-characters">
+<h3>Object Destruction (Windows) by Characters<a class="headerlink" href="#object-destruction-windows-by-characters" title="Link to this heading"></a></h3>
+<p>A specialized physmat named <code class="docutils literal notranslate"><span class="pre">window_wood</span></code> is used to enable window-breaking
+behavior when characters jump through or push against certain objects. This
+physmat is finely tuned and should not be modified directly.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">window_wood</span></code> physmat is configured to break only under specific physical
+conditions, such as a character jumping through the window at a velocity near
+<code class="docutils literal notranslate"><span class="pre">impulseSpeed:r</span> <span class="pre">=</span> <span class="pre">2.5</span></code>. It does not trigger from light contact.</p>
+</div>
+<section id="how-to-enable-character-based-object-breaking">
+<h4>How to Enable Character-based Object Breaking<a class="headerlink" href="#how-to-enable-character-based-object-breaking" title="Link to this heading"></a></h4>
+<p>To configure destructible windows (or similar objects) for character
+interaction:</p>
+<ol class="arabic">
+<li><p><strong>Assign the correct physmat</strong></p>
+<p>Replace the existing physmat (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;wood&quot;</span></code>) with:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">phmat</span><span class="nt">:t=</span> <span class="nf">&quot;window_wood&quot;</span>
+</pre></div>
+</div>
+<p>in the collision node or object definition.</p>
+</li>
+<li><p><strong>Enable physics for the object</strong></p>
+<p>Ensure that physical collisions are active so the object can respond to
+character movement.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../collisions/static_object_collision.html"><span class="std std-doc">Static Object Collisions</span></a>.</p>
+</div>
+</li>
+<li><p><strong>Tag the object in <code class="docutils literal notranslate"><span class="pre">rendinst_dmg</span></code></strong></p>
+<p>Add the following to the corresponding damage instance block <code class="docutils literal notranslate"><span class="pre">rendinst_dmg{}</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">material</span><span class="nt">:t=</span> <span class="nf">&quot;window_wood&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Rebuild resources</strong></p>
+<p>After making changes:</p>
+<ul class="simple">
+<li><p>Rebuild <a class="reference internal" href="../../dagor-tools/building-resources/vromfs.html"><span class="std std-doc">Vromfs</span></a></p></li>
+<li><p>Rebuild <strong>collision models</strong> for the updated assets</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Materials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="proxymats.html" class="btn btn-neutral float-right" title="Proxymats" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,142 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceblk__util" kind="namespace" language="C++">
+    <compoundname>blk_util</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceblk__util_1aa2d0312c3bece395639840c224f8862e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool blk_util::copyBlkParam</definition>
+        <argsstring>(const DataBlock &amp;source, const int s_ind, DataBlock &amp;dest, const char *new_name=NULL)</argsstring>
+        <name>copyBlkParam</name>
+        <qualifiedname>blk_util::copyBlkParam</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>source</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>s_ind</declname>
+        </param>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>new_name</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blkUtil.h" line="13" column="6" declfile="blkUtil.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceblk__util_1a5f46d0e3759ebee44f2807cb2a01852f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool blk_util::cmpBlkParam</definition>
+        <argsstring>(const DataBlock &amp;source, const int s_ind, DataBlock &amp;dest, const int d_ind)</argsstring>
+        <name>cmpBlkParam</name>
+        <qualifiedname>blk_util::cmpBlkParam</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>source</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>s_ind</declname>
+        </param>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>d_ind</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blkUtil.h" line="14" column="6" declfile="blkUtil.h" declline="14" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceblk__util_1a1faff8876f0dda11beb7c6322b07d82c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>SimpleString</type>
+        <definition>SimpleString blk_util::paramStrValue</definition>
+        <argsstring>(const DataBlock &amp;source, const int s_ind, const bool with_param_name=true)</argsstring>
+        <name>paramStrValue</name>
+        <qualifiedname>blk_util::paramStrValue</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>source</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>s_ind</declname>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>with_param_name</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blkUtil.h" line="15" column="14" declfile="blkUtil.h" declline="15" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceblk__util_1a2d6efda6834f6b9788398ad700f29ff1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>SimpleString</type>
+        <definition>SimpleString blk_util::blockStrValue</definition>
+        <argsstring>(const DataBlock &amp;source, const char *line_separator=&quot;\r\n&quot;)</argsstring>
+        <name>blockStrValue</name>
+        <qualifiedname>blk_util::blockStrValue</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>source</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>line_separator</declname>
+          <defval>&quot;\r\n&quot;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blkUtil.h" line="16" column="14" declfile="blkUtil.h" declline="16" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceblk__util_1a51df6ef62742eee97ddf35032ba48476" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>SimpleString</type>
+        <definition>SimpleString blk_util::blkTextData</definition>
+        <argsstring>(const DataBlock &amp;source)</argsstring>
+        <name>blkTextData</name>
+        <qualifiedname>blk_util::blkTextData</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blkUtil.h" line="17" column="14" declfile="blkUtil.h" declline="17" declcolumn="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="blkUtil.h" line="11" column="1"/>
+  </compounddef>
+</doxygen>

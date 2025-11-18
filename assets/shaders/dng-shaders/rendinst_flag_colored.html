@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rendinst_flag_colored</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="rendinst_flag_layered" href="rendinst_flag_layered.html" />
+    <link rel="prev" title="rendinst_emissive" href="rendinst_emissive.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">daNetGame-based Shaders</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="dynamic_painted_by_mask.html"><code class="docutils literal notranslate"><span class="pre">dynamic_painted_by_mask</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="land_mesh_height_decal.html"><code class="docutils literal notranslate"><span class="pre">land_mesh_height_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_normal_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_normal_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_modulate2x_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_modulate2x_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_emissive</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_colored</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#functionality">Functionality</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#animated-geometry">Animated Geometry</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#global-wind-in-danetgame-based-projects">Global Wind in daNetGame-based projects</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_mask_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_modulate2x_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_modulate2x_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_refraction.html"><code class="docutils literal notranslate"><span class="pre">rendinst_refraction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code>/<code class="docutils literal notranslate"><span class="pre">simple_aces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_emissive_anim.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive_anim</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_illum_anim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_glass.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_glass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_painted.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_colored.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_colored</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_perlin_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_vcolor_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_vcolor_layered</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Shaders</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daNetGame-based Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_colored</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/shaders/dng-shaders/rendinst_flag_colored.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="rendinst-flag-colored">
+<h1><code class="docutils literal notranslate"><span class="pre">rendinst_flag_colored</span></code><a class="headerlink" href="#rendinst-flag-colored" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This is a simple shader designed for cloth simulation.</p>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;frequency_amplitude=1,1,1,1&quot;</span></code> – intervals for random frequency and
+amplitude;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;wave_length=1&quot;</span></code> – wave length;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;wind_direction=0,0,1,0&quot;</span></code> – wind direction;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;use_painting=1&quot;</span></code> – main parameter to enable painting;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_palette_row=1&quot;</span></code> – painting parameters in <em>daNetGame</em>–based
+projects, similar to <a class="reference internal" href="rendinst_simple_painted.html"><span class="std std-doc">rendinst_simple_painted</span></a>
+shader;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_white_point=0.1&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_black_point=0.05&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_mult=1&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;micro_detail_layer=0&quot;</span></code> – microdetail settings;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;micro_detail_layer_v_scale=1&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;micro_detail_layer_uv_scale=1&quot;</span></code></p></li>
+</ul>
+</section>
+<section id="functionality">
+<h2>Functionality<a class="headerlink" href="#functionality" title="Link to this heading"></a></h2>
+<p>This shader uses two textures (diffuse and normal) to enable basic geometry
+animation. You can configure sinusoidal parameters for vertex displacement, with
+smoother results achieved on denser meshes.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Ensure the shader is applied only to geometry that is painted with vertex color,
+as using it otherwise may cause errors in the game.</p>
+</div>
+</section>
+<section id="animated-geometry">
+<h2>Animated Geometry<a class="headerlink" href="#animated-geometry" title="Link to this heading"></a></h2>
+<p>The area of the mesh to be animated is defined by the R-channel of the vertex
+color. G and B channels are not used.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Vertex Color</strong></p>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Result</strong></p>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_01.jpg"><img alt="../../../_images/rendinst_flag_colored_01.jpg" class="align-center" src="../../../_images/rendinst_flag_colored_01.jpg" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_02.gif"><img alt="../../../_images/rendinst_flag_colored_02.gif" class="align-center" src="../../../_images/rendinst_flag_colored_02.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_03.jpg"><img alt="../../../_images/rendinst_flag_colored_03.jpg" class="align-center" src="../../../_images/rendinst_flag_colored_03.jpg" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_04.gif"><img alt="../../../_images/rendinst_flag_colored_04.gif" class="align-center" src="../../../_images/rendinst_flag_colored_04.gif" style="height: 300px;" />
+</a>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Always reset unused vertex color channels to black, since they default to white
+(with all channels set to maximum).</p>
+</div>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;frequency_amplitude=1,1,1,1&quot;</span></code> – Defines the frequency and amplitude
+intervals. (In this case, frequency controls the speed of the wave oscillations,
+not the wavelength):</p>
+<ul>
+<li><p>1st and 2nd components – frequency range (min, max),</p></li>
+<li><p>3rd and 4th components – amplitude range (min, max).</p></li>
+</ul>
+</li>
+</ul>
+<p>At the start of the mission, random values are selected from these intervals,
+and remain static throughout the game. Different assets across the location will
+animate with varying values.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Frequency = 1</strong></p>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Amplitude = 1</strong></p>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_05.gif"><img alt="../../../_images/rendinst_flag_colored_05.gif" class="align-center" src="../../../_images/rendinst_flag_colored_05.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_06.gif"><img alt="../../../_images/rendinst_flag_colored_06.gif" class="align-center" src="../../../_images/rendinst_flag_colored_06.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Frequency = 3</strong></p>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Amplitude = 3</strong></p>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_07.gif"><img alt="../../../_images/rendinst_flag_colored_07.gif" class="align-center" src="../../../_images/rendinst_flag_colored_07.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_08.gif"><img alt="../../../_images/rendinst_flag_colored_08.gif" class="align-center" src="../../../_images/rendinst_flag_colored_08.gif" style="height: 300px;" />
+</a>
+</div>
+</div>
+</div>
+<p>Random values are not visible in the <em>Asset Viewer</em>, so first verify the maximum
+values in components 1 and 3 (as these are displayed in the <em>Asset Viewer</em>).
+After that, move these values to components 2 and 4, and set the minimum values
+in components 1 and 3.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;wave_length=1&quot;</span></code> – Defines the wavelength.</p></li>
+</ul>
+<p>A longer wavelength reduces oscillation detail, as the sinusoidal wave stretches
+and the model only captures a small portion of it.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-3 sd-row-cols-xs-3 sd-row-cols-sm-3 sd-row-cols-md-3 sd-row-cols-lg-3 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Wavelength = 1</strong></p>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Wavelength = 0.5</strong></p>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>Wavelength = 5</strong></p>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_07.gif"><img alt="../../../_images/rendinst_flag_colored_07.gif" class="align-center" src="../../../_images/rendinst_flag_colored_07.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_08.gif"><img alt="../../../_images/rendinst_flag_colored_08.gif" class="align-center" src="../../../_images/rendinst_flag_colored_08.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_09.gif"><img alt="../../../_images/rendinst_flag_colored_09.gif" class="align-center" src="../../../_images/rendinst_flag_colored_09.gif" style="height: 300px;" />
+</a>
+</div>
+</div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;wind_direction=0,0,1,0&quot;</span></code> (temporary parameter) – Wind direction is
+defined by a temporary parameter, as a global wind system is planned. In the
+<em>Asset Viewer</em> and <em>daEditor</em>, the wind direction operates based on global
+axes, so make sure to verify the wave direction in–game:</p>
+<ul>
+<li><p>1st component controls oscillations along the X–axis;</p></li>
+<li><p>2nd component controls oscillations along the Z–axis (vertical);</p></li>
+<li><p>3rd component controls oscillations along the Y–axis.</p></li>
+</ul>
+</li>
+</ul>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>wind_direction=1,0,0,0</strong></p>
+</div>
+<div class="sd-col sd-d-flex-row sd-align-major-center docutils">
+<p><strong>wind_direction=0,0,1,0</strong></p>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_10.gif"><img alt="../../../_images/rendinst_flag_colored_10.gif" class="align-center" src="../../../_images/rendinst_flag_colored_10.gif" style="height: 300px;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/rendinst_flag_colored_11.gif"><img alt="../../../_images/rendinst_flag_colored_11.gif" class="align-center" src="../../../_images/rendinst_flag_colored_11.gif" style="height: 300px;" />
+</a>
+</div>
+</div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;use_painting=1&quot;</span></code> – The painting parameters for the
+<em>daNetGame</em>–based projects work similarly to
+<a class="reference internal" href="rendinst_simple_painted.html"><span class="std std-doc">rendinst_simple_painted</span></a> shader, with the
+exception that this shader does not paint by default. To enable painting, set
+the parameter as follows:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> – enable painting;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> – disable painting (optional).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="global-wind-in-danetgame-based-projects">
+<h2>Global Wind in daNetGame-based projects<a class="headerlink" href="#global-wind-in-danetgame-based-projects" title="Link to this heading"></a></h2>
+<p>This shader also supports wind animation using a global wind map and an
+additional set of parameters. The previous algorithm remains available, with
+wind behavior controlled by the <code class="docutils literal notranslate"><span class="pre">shadervar</span> <span class="pre">wind_type</span></code> parameter.</p>
+<p>The new algorithm is preferred, as it takes into account wind strength
+variations, including wind emitters.</p>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">wind_type</span> <span class="pre">=</span> <span class="pre">0</span></code> – Uses the old animation algorithm, independent of external
+factors, and configured using <code class="docutils literal notranslate"><span class="pre">frequency_amplitude</span></code>, <code class="docutils literal notranslate"><span class="pre">wind_direction</span></code>,
+<code class="docutils literal notranslate"><span class="pre">wind_strength</span></code>, and <code class="docutils literal notranslate"><span class="pre">wave_length</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wind_type</span> <span class="pre">=</span> <span class="pre">1</span></code> – New algorithm that ignores the R-channel in the vertex
+color, instead using the normalized distance from the flagpole axis (ranging
+from <code class="docutils literal notranslate"><span class="pre">0</span></code> at the attachment points to <code class="docutils literal notranslate"><span class="pre">1</span></code> at the flag’s end).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wind_type</span> <span class="pre">=</span> <span class="pre">2</span></code> – New algorithm that uses the R-channel in the vertex color.
+For correct operation, the R-channel must continuously increase from <code class="docutils literal notranslate"><span class="pre">0</span></code> at
+the attachment points to <code class="docutils literal notranslate"><span class="pre">1</span></code> at the flag’s end, although the increase does not
+need to be linear. If a large portion of the flag is uniformly colored,
+incorrect behavior may occur.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">flagpole_pos_0</span></code>, <code class="docutils literal notranslate"><span class="pre">flagpole_pos_1</span></code> – Define a segment in the model’s
+coordinate system where the flag is attached. Points along this segment remain
+stationary. For a single fixed point, a very short segment can be used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">flag_length</span></code> – Defines the length of the flag, or the distance from the axis
+to the flag’s end. This value doesn’t need to be exact; setting it 10-15%
+larger than the actual size is acceptable, but setting it smaller is not
+recommended.</p></li>
+</ul>
+<p>Additional optional parameters include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">flag_movement_scale</span> <span class="pre">=</span> <span class="pre">1</span></code> – Controls how much the wind bends and shifts the
+flag from its resting position.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stiffness</span> <span class="pre">=</span> <span class="pre">0.1</span></code> – Determines the flag’s resistance to bending.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stretch</span> <span class="pre">=</span> <span class="pre">0.1</span></code> – Controls how much the flag stretches:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> – no stretch,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> – unlimited stretch.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sway_speed</span> <span class="pre">=</span> <span class="pre">1</span></code> – Defines how quickly the flag bends.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bend</span> <span class="pre">=</span> <span class="pre">2</span></code> – Shapes how the flag bends.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deviation</span> <span class="pre">=</span> <span class="pre">4</span></code> – Controls the flag’s form when deviating from its equilibrium
+position.</p></li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>You can view the shader results with different parameter configurations
+<a class="reference external" href="https://drive.google.com/drive/folders/10mY9r2kewTMMaSTC5YUr2pLRlPb2b-LA?usp=sharing">here</a>.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_emissive.html" class="btn btn-neutral float-left" title="rendinst_emissive" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rendinst_flag_layered.html" class="btn btn-neutral float-right" title="rendinst_flag_layered" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

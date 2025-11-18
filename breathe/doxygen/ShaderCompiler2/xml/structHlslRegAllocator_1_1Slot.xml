@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structHlslRegAllocator_1_1Slot" kind="struct" language="C++" prot="private">
+    <compoundname>HlslRegAllocator::Slot</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1Slot_1a9e110306b764d8f55f64700a96719aae" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool HlslRegAllocator::Slot::used</definition>
+        <argsstring></argsstring>
+        <name>used</name>
+        <qualifiedname>HlslRegAllocator::Slot::used</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="123" column="10" bodyfile="hlslRegisters.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1Slot_1a8ccea06302be1c1078b8bf9dc59e3438" prot="public" static="no" mutable="no">
+        <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+        <definition>HlslSlotSemantic HlslRegAllocator::Slot::semantic</definition>
+        <argsstring></argsstring>
+        <name>semantic</name>
+        <qualifiedname>HlslRegAllocator::Slot::semantic</qualifiedname>
+        <bitfield> 7 = HlslSlotSemantic::ALLOCATED</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="124" column="22" bodyfile="hlslRegisters.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hlslRegisters.h" line="121" column="3" bodyfile="hlslRegisters.h" bodystart="122" bodyend="125"/>
+    <listofallmembers>
+      <member refid="structHlslRegAllocator_1_1Slot_1a8ccea06302be1c1078b8bf9dc59e3438" prot="public" virt="non-virtual"><scope>HlslRegAllocator::Slot</scope><name>semantic</name></member>
+      <member refid="structHlslRegAllocator_1_1Slot_1a9e110306b764d8f55f64700a96719aae" prot="public" virt="non-virtual"><scope>HlslRegAllocator::Slot</scope><name>used</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

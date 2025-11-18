@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagNodeData" kind="struct" language="C++" prot="public">
+    <compoundname>DagNodeData</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagNodeData_1a7f59307c5bb4e2c54998f58d83fd8101" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagNodeData::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>DagNodeData::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="112" column="18" bodyfile="dagfmt.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagNodeData_1a13d181080f2bec849922b5b5e255fc98" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagNodeData::cnum</definition>
+        <argsstring></argsstring>
+        <name>cnum</name>
+        <qualifiedname>DagNodeData::cnum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="112" column="21" bodyfile="dagfmt.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagNodeData_1a1bd2388447c485c5c1a42a0ef7d72588" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DagNodeData::flg</definition>
+        <argsstring></argsstring>
+        <name>flg</name>
+        <qualifiedname>DagNodeData::flg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="113" column="12" bodyfile="dagfmt.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagNodeData_1a2bfcbe4af50a1798973f8bd920ce2801" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagNodeData::DagNodeData</definition>
+        <argsstring>()</argsstring>
+        <name>DagNodeData</name>
+        <qualifiedname>DagNodeData::DagNodeData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="116" column="3" bodyfile="dagfmt.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="110" column="1" bodyfile="dagfmt.h" bodystart="111" bodyend="117"/>
+    <listofallmembers>
+      <member refid="structDagNodeData_1a13d181080f2bec849922b5b5e255fc98" prot="public" virt="non-virtual"><scope>DagNodeData</scope><name>cnum</name></member>
+      <member refid="structDagNodeData_1a2bfcbe4af50a1798973f8bd920ce2801" prot="public" virt="non-virtual"><scope>DagNodeData</scope><name>DagNodeData</name></member>
+      <member refid="structDagNodeData_1a1bd2388447c485c5c1a42a0ef7d72588" prot="public" virt="non-virtual"><scope>DagNodeData</scope><name>flg</name></member>
+      <member refid="structDagNodeData_1a7f59307c5bb4e2c54998f58d83fd8101" prot="public" virt="non-virtual"><scope>DagNodeData</scope><name>id</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

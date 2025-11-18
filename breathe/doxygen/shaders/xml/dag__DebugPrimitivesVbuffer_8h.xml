@@ -1,0 +1,311 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__DebugPrimitivesVbuffer_8h" kind="file" language="C++">
+    <compoundname>dag_DebugPrimitivesVbuffer.h</compoundname>
+    <includes refid="dag__shaders_8h" local="no">shaders/dag_shaders.h</includes>
+    <includes local="no">3d/dag_sbufferIDHolder.h</includes>
+    <includes local="no">math/dag_Point3.h</includes>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <includes local="no">math/dag_TMatrix.h</includes>
+    <includes local="no">ska_hash_map/flat_hash_map2.hpp</includes>
+    <includes local="no">hash/wyhash.h</includes>
+    <includes local="no">debug/dag_debug3dStates.h</includes>
+    <includes local="no">util/dag_simpleString.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_DebugPrimitivesVbuffer.h</label>
+        <link refid="dag__DebugPrimitivesVbuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="4">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="11">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>3d/dag_sbufferIDHolder.h</label>
+      </node>
+      <node id="5">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="24">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="22">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="23">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="35">
+        <label>debug/dag_debug3dStates.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="21">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="26">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="25">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="7">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="34">
+        <label>hash/wyhash.h</label>
+      </node>
+      <node id="17">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="30">
+        <label>math/dag_Point3.h</label>
+      </node>
+      <node id="32">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="14">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="18">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="31">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="16">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="27">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="33">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="13">
+        <label>stdint.h</label>
+      </node>
+      <node id="28">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="36">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="15">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classDebugPrimitivesVbuffer" prot="public">DebugPrimitivesVbuffer</innerclass>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1Pass" prot="private">DebugPrimitivesVbuffer::Pass</innerclass>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1Line" prot="private">DebugPrimitivesVbuffer::Line</innerclass>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1Triangle" prot="private">DebugPrimitivesVbuffer::Triangle</innerclass>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1VertexHasher" prot="private">DebugPrimitivesVbuffer::VertexHasher</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_sbufferIDHolder.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point3.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_TMatrix.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ska_hash_map/flat_hash_map2.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;hash/wyhash.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug3dStates.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_simpleString.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classDebugPrimitivesVbuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDebugPrimitivesVbuffer" kindref="compound">DebugPrimitivesVbuffer</ref></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><ref refid="classDebugPrimitivesVbuffer" kindref="compound">DebugPrimitivesVbuffer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="classDebugPrimitivesVbuffer" kindref="compound">~DebugPrimitivesVbuffer</ref>();</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addVertex(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>addLine(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p0,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p1,<sp/>E3DCOLOR<sp/>c);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>addBox(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;ax,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;ay,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;az,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>addBox(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BBox3<sp/>&amp;box,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>addSolidBox(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;ax,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;ay,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;az,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>addTriangle(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>p[3],<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>invalidate();</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>beginCache();</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>endCache();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>renderOverrideColor(Color4<sp/>color_multiplier);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>render();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>renderEx(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>z_test,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>z_write,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>z_func_less,<sp/>Color4<sp/>color_multiplier);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setTm(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;tm);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isValid()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>vbuffer<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>renderEx(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>E3DCOLOR<sp/>*color);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>SimpleString<sp/>name;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>TMatrix<sp/>tm;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*vbuffer<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*ibuffer<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderMaterial&gt;<sp/>shaderMat;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderElement&gt;<sp/>shaderElem;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>debug3d::CachedStates<sp/>renderStates;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Pass</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>E3DCOLOR<sp/>color;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>firstPrimitive;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lastPrimitive;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>Tab&lt;Pass&gt;<sp/>linesPasses,<sp/>trianglesPasses;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Line</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>id0;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>id1;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>E3DCOLOR<sp/>c;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Triangle</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>id0;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>id1;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>id2;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>E3DCOLOR<sp/>c;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>Tab&lt;Line&gt;<sp/>linesCache;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>Tab&lt;Triangle&gt;<sp/>trianglesCache;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>trianglesStartIndex<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">VertexHasher</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>__forceinline<sp/>operator()(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>wyhash(&amp;p.x,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(Point3),<sp/>0);<sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>ska::flat_hash_map&lt;Point3,<sp/>int,<sp/>VertexHasher&gt;<sp/>vertexMap;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>Tab&lt;Point3&gt;<sp/>vertexList;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_DebugPrimitivesVbuffer.h"/>
+  </compounddef>
+</doxygen>

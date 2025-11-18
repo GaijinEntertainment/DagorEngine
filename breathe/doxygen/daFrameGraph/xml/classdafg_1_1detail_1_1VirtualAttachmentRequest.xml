@@ -1,0 +1,381 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1detail_1_1VirtualAttachmentRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::detail::VirtualAttachmentRequest</compoundname>
+    <includes refid="virtualPassRequest_8h" local="no">virtualPassRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>detail::ResourceRequestPolicy</type>
+        <declname>disallowPolicies</declname>
+        <defname>disallowPolicies</defname>
+      </param>
+      <param>
+        <type>detail::ResourceRequestPolicy</type>
+        <declname>requirePolicies</declname>
+        <defname>requirePolicies</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1af70bafe91ce24832a728880ffaced8f4" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::RRP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="43" column="3" bodyfile="virtualPassRequest.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a274ff6dcca53429ecb6f7630a38c8cfc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class dafg::VirtualPassRequest</definition>
+        <argsstring></argsstring>
+        <name>dafg::VirtualPassRequest</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::VirtualPassRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">dafg::VirtualPassRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="53" column="16" bodyfile="virtualPassRequest.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a6ae9f5cc7af6329675caa24786c6be68" prot="private" static="no" mutable="no">
+        <type>eastl::variant&lt; ResUid, const char * &gt;</type>
+        <definition>eastl::variant&lt;ResUid, const char *&gt; dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::image</definition>
+        <argsstring></argsstring>
+        <name>image</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::image</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="114" column="18" bodyfile="virtualPassRequest.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a2f62b5c0432682fd70339181e4f65c62" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::mipLevel</definition>
+        <argsstring></argsstring>
+        <name>mipLevel</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::mipLevel</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="115" column="12" bodyfile="virtualPassRequest.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a59af5901e8b5c610ab52d24c18775a78" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::layer</definition>
+        <argsstring></argsstring>
+        <name>layer</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::layer</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="116" column="12" bodyfile="virtualPassRequest.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a9ebfdb95984b94121d727975c96ae952" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::policyAllowed</definition>
+        <argsstring>(RRP policy)</argsstring>
+        <name>policyAllowed</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::policyAllowed</qualifiedname>
+        <param>
+          <type>RRP</type>
+          <declname>policy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="45" column="25" bodyfile="virtualPassRequest.h" bodystart="45" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1af7a1834f4c48fffbec990f483e3dc7a7" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::policyAllowed</definition>
+        <argsstring>(RRP policy, const char *)</argsstring>
+        <name>policyAllowed</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::policyAllowed</qualifiedname>
+        <param>
+          <type>RRP</type>
+          <declname>policy</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="51" column="25" bodyfile="virtualPassRequest.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a6efd55640b703ca907b36c9fea52e4b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(VirtualResourceRequest&lt; BaseTexture, policy &gt; res)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::VirtualAttachmentRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, policy &gt;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from a resource request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Resource request of an appropriate type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="69" column="3" bodyfile="virtualPassRequest.h" bodystart="69" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a942108c38526631f2594935ded116781" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(VirtualResourceRequest&lt; BaseTexture, policy &gt; res, uint32_t mip_level, uint32_t layer)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::VirtualAttachmentRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, policy &gt;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>mip_level</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from an init list specifying a request, a mip level and a layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Resource request of an appropriate type. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mip_level</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Mip level of the texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>layer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Layer of an array texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="82" column="3" bodyfile="virtualPassRequest.h" bodystart="82" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a62a1354cdef979469e16e149682066c2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::VirtualAttachmentRequest</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from a string name of a resource. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Automatically requests this resource for modification and marks appropriate usage type and stage for it.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>String name of a resource. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="94" column="3" bodyfile="virtualPassRequest.h" bodystart="94" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a2488d04e8fd8038ca130ca0af4241553" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dafg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(const char *name, uint32_t mip_level, uint32_t layer)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <qualifiedname>dafg::detail::VirtualAttachmentRequest::VirtualAttachmentRequest</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>mip_level</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from an init list specifying a string name of a resource, a mip level and a layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Automatically requests this resource for modification and marks appropriate usage type and stage for it.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>String name of a resource. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mip_level</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Mip level of the texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>layer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Level of an array texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualPassRequest.h" line="108" column="3" bodyfile="virtualPassRequest.h" bodystart="108" bodyend="109"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A helper class to make calling .color() and .depth() convenient. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This class wraps around either a request or a string name of a resource, validating that the request is appropriate in the first case and automatically selecting sensible request defaults in the second case. Generally speaking, we can use certain mips/layers as attachments, so an attachment request can specify them too.</para>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>disallowPolicies</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bitmask of request policies that are not allowed for this attachment type. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>requirePolicies</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bitmask of request policies that are required for this attachment type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="virtualPassRequest.h" line="41" column="1" bodyfile="virtualPassRequest.h" bodystart="42" bodyend="117"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a274ff6dcca53429ecb6f7630a38c8cfc" prot="public" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>dafg::VirtualPassRequest</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a6ae9f5cc7af6329675caa24786c6be68" prot="private" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>image</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a59af5901e8b5c610ab52d24c18775a78" prot="private" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>layer</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a2f62b5c0432682fd70339181e4f65c62" prot="private" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>mipLevel</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a9ebfdb95984b94121d727975c96ae952" prot="private" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>policyAllowed</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1af7a1834f4c48fffbec990f483e3dc7a7" prot="private" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>policyAllowed</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1af70bafe91ce24832a728880ffaced8f4" prot="private" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>RRP</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a6efd55640b703ca907b36c9fea52e4b2" prot="public" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a942108c38526631f2594935ded116781" prot="public" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a62a1354cdef979469e16e149682066c2" prot="public" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a2488d04e8fd8038ca130ca0af4241553" prot="public" virt="non-virtual"><scope>dafg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

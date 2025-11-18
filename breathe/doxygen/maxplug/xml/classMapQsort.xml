@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMapQsort" kind="class" language="C++" prot="public">
+    <compoundname>MapQsort</compoundname>
+    <includes refid="qsort_8h" local="no">qsort.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class C</type>
+      </param>
+      <param>
+        <type>class D</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMapQsort_1aedbc094e1b9bb783c5f565cc74d76815" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; MapQsort&lt; C, D &gt;::map</definition>
+        <argsstring></argsstring>
+        <name>map</name>
+        <qualifiedname>MapQsort::map</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="191" column="7" bodyfile="qsort.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMapQsort_1a40b12061f089df1e76805a0b12aec26a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MapQsort&lt; C, D &gt;::sort</definition>
+        <argsstring>(int num, D *data)</argsstring>
+        <name>sort</name>
+        <qualifiedname>MapQsort::sort</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <param>
+          <type>D *</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="192" column="8" bodyfile="qsort.h" bodystart="192" bodyend="200"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="qsort.h" line="188" column="1" bodyfile="qsort.h" bodystart="189" bodyend="201"/>
+    <listofallmembers>
+      <member refid="classMapQsort_1aedbc094e1b9bb783c5f565cc74d76815" prot="public" virt="non-virtual"><scope>MapQsort</scope><name>map</name></member>
+      <member refid="classMapQsort_1a40b12061f089df1e76805a0b12aec26a" prot="public" virt="non-virtual"><scope>MapQsort</scope><name>sort</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

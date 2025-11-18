@@ -1,0 +1,2537 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceShaderGlobal" kind="namespace" language="C++">
+    <compoundname>ShaderGlobal</compoundname>
+    <innernamespace refid="namespaceShaderGlobal_1_1detail">ShaderGlobal::detail</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__shaderBlock_8h_1adc283f0f56216089cd6c19f0229e9bd2" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>ShaderGlobal</qualifiedname>
+        <enumvalue id="dag__shaderBlock_8h_1adc283f0f56216089cd6c19f0229e9bd2aa1e60abda7e354bd8c54fdbf856ff812" prot="public">
+          <name>LAYER_FRAME</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderBlock_8h_1adc283f0f56216089cd6c19f0229e9bd2a4da06c3b3d14ebc1eca6609ac2c60365" prot="public">
+          <name>LAYER_SCENE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderBlock_8h_1adc283f0f56216089cd6c19f0229e9bd2aa9b53ea92cbfc156b0a7ee250bd35c25" prot="public">
+          <name>LAYER_OBJECT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderBlock_8h_1adc283f0f56216089cd6c19f0229e9bd2ab593a4987f997d7d079532d55c918b0e" prot="public">
+          <name>LAYER_GLOBAL_CONST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="11" column="1" bodyfile="dag_shaderBlock.h" bodystart="12" bodyend="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shaderVar_8h_1a39866c50b12dea1c5ad61c163c2873f2" prot="public" static="no">
+        <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">detail::StringToHash</ref>&lt; true &gt;</type>
+        <definition>using ShaderGlobal::Interval = typedef detail::StringToHash&lt;true&gt;</definition>
+        <argsstring></argsstring>
+        <name>Interval</name>
+        <qualifiedname>ShaderGlobal::Interval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="90" column="1" bodyfile="dag_shaderVar.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__shaderVar_8h_1a0bb6dce4ea6088cb632c38a3c17736b5" prot="public" static="no">
+        <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">detail::StringToHash</ref>&lt; false &gt;</type>
+        <definition>using ShaderGlobal::Subinterval = typedef detail::StringToHash&lt;false&gt;</definition>
+        <argsstring></argsstring>
+        <name>Subinterval</name>
+        <qualifiedname>ShaderGlobal::Subinterval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="91" column="1" bodyfile="dag_shaderVar.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__shaderVar_8h_1ace746c29b924c4e0ef4152ae0ae366cc" prot="public" static="no">
+        <type>eastl::pair&lt; <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref>, <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref> &gt;</type>
+        <definition>using ShaderGlobal::Variant = typedef eastl::pair&lt;Interval, Subinterval&gt;</definition>
+        <argsstring></argsstring>
+        <name>Variant</name>
+        <qualifiedname>ShaderGlobal::Variant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="92" column="1" bodyfile="dag_shaderVar.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shaderVar_8h_1ab051551a729c329b69a7a53ea6a9edba" prot="public" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>uint32_t</type>
+            <declname>h</declname>
+            <defname>h</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref></type>
+        <definition>constexpr Interval ShaderGlobal::interval</definition>
+        <argsstring></argsstring>
+        <name>interval</name>
+        <qualifiedname>ShaderGlobal::interval</qualifiedname>
+        <initializer>= <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref>(h)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="95" column="27" bodyfile="dag_shaderVar.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shaderVar_8h_1a4ccab4616ef60eaef13d0e5803f10a33" prot="public" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>uint32_t</type>
+            <declname>h</declname>
+            <defname>h</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref></type>
+        <definition>constexpr Subinterval ShaderGlobal::subinterval</definition>
+        <argsstring></argsstring>
+        <name>subinterval</name>
+        <qualifiedname>ShaderGlobal::subinterval</qualifiedname>
+        <initializer>= <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref>(h)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="98" column="30" bodyfile="dag_shaderVar.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shaderVar_8h_1acfc2ffb6757fbdbacb8bcabe56c97629" prot="public" static="yes" constexpr="yes" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>uint32_t</type>
+            <declname>interv_h</declname>
+            <defname>interv_h</defname>
+          </param>
+          <param>
+            <type>uint32_t</type>
+            <declname>subinterv_h</declname>
+            <defname>subinterv_h</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr Variant</type>
+        <definition>constexpr Variant ShaderGlobal::variant</definition>
+        <argsstring></argsstring>
+        <name>variant</name>
+        <qualifiedname>ShaderGlobal::variant</qualifiedname>
+        <initializer>= Variant(interval&lt;interv_h&gt;, subinterval&lt;subinterv_h&gt;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="101" column="26" bodyfile="dag_shaderVar.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaderBlock_8h_1a280e63baf26e21aa9e791217b8a81136" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::getBlockId</definition>
+        <argsstring>(const char *block_name, int layer=-1)</argsstring>
+        <name>getBlockId</name>
+        <qualifiedname>ShaderGlobal::getBlockId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>block_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>searches shader block by name and returns ID param &apos;layer&apos; is optional and can be specified to assert that block belongs to this level </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="21" column="5" declfile="dag_shaderBlock.h" declline="21" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1a15fc62c3880cc33452ffa330c2b51394" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderGlobal::getBlockName</definition>
+        <argsstring>(int block_id)</argsstring>
+        <name>getBlockName</name>
+        <qualifiedname>ShaderGlobal::getBlockName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>block_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="23" column="12" declfile="dag_shaderBlock.h" declline="23" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1add652c290882b3e879a9301ccb925824" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::setBlock</definition>
+        <argsstring>(int block_id, int layer, bool invalidate_cached_stblk=true)</argsstring>
+        <name>setBlock</name>
+        <qualifiedname>ShaderGlobal::setBlock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>block_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>invalidate_cached_stblk</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>sets shader block by ID to proper layer; changes global state and executes corresponding stcode param &apos;layer&apos; is optional and can be specified to assert that block belongs to this level param &apos;block_id&apos; can be -1, this imply that NULL state is set to destination layer </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="28" column="6" declfile="dag_shaderBlock.h" declline="28" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1ad7bfdeb38cfbeee1584cd1c0db4baf16" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::getBlock</definition>
+        <argsstring>(int layer)</argsstring>
+        <name>getBlock</name>
+        <qualifiedname>ShaderGlobal::getBlock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+<para>gets currently set shader block ID for a layer </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="31" column="5" declfile="dag_shaderBlock.h" declline="31" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1a9f6604a86086d9e01888967f605cd9a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::checkBlockCompatible</definition>
+        <argsstring>(int block_id, int layer=-1)</argsstring>
+        <name>checkBlockCompatible</name>
+        <qualifiedname>ShaderGlobal::checkBlockCompatible</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>block_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>checks whether shader block (specified by ID and optionaly with layer) is allowed to be set in current circumstances (i.e., it supports currently set blocks) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="35" column="6" declfile="dag_shaderBlock.h" declline="35" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1a4d816d2608ebe4622ce2e92741ff6281" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned ShaderGlobal::getCurBlockStateWord</definition>
+        <argsstring>()</argsstring>
+        <name>getCurBlockStateWord</name>
+        <qualifiedname>ShaderGlobal::getCurBlockStateWord</qualifiedname>
+        <briefdescription>
+<para>returns encoded state word that contains information about blocks set in each layer </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="38" column="10" declfile="dag_shaderBlock.h" declline="38" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1a1842ea4e75a5c87ea2c20d641649e30f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::decodeBlock</definition>
+        <argsstring>(unsigned block_state_word, int layer)</argsstring>
+        <name>decodeBlock</name>
+        <qualifiedname>ShaderGlobal::decodeBlock</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>block_state_word</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>returns ID of block set in specified layer of block_state_word; can be rather slow since StateWord -&gt; blockId resolution requires linear search </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="42" column="5" declfile="dag_shaderBlock.h" declline="42" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1a25bba4af5ddf2874cfecf067bf416117" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::enableAutoBlockChange</definition>
+        <argsstring>(bool enable)</argsstring>
+        <name>enableAutoBlockChange</name>
+        <qualifiedname>ShaderGlobal::enableAutoBlockChange</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>enables/disables automatic state block changes; returns previous permission state when automatic state block changes are disabled (default), attempt to draw anything with shader that doesn&apos;t support currently set blocks produces fatal error when enabled, drawing anything with shader that doesn&apos;t support currently set blocks causes changing set blocks to first suitable block configuration (can be slower than default mode, but definetely more safe to use in editors, etc.) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="50" column="6" declfile="dag_shaderBlock.h" declline="50" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderBlock_8h_1a17d739c4e35d152347370b7832b95a07" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::changeStateWord</definition>
+        <argsstring>(unsigned new_block_state_word)</argsstring>
+        <name>changeStateWord</name>
+        <qualifiedname>ShaderGlobal::changeStateWord</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>new_block_state_word</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>sets state blocks to change current state word to specified; designed primarily for internal use (in auto-block-change mode) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="54" column="6" declfile="dag_shaderBlock.h" declline="54" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ac8adf742f795d250a9317bf22bb5ed46" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_variant</definition>
+        <argsstring>(Interval interv, Subinterval subinterv)</argsstring>
+        <name>set_variant</name>
+        <qualifiedname>ShaderGlobal::set_variant</qualifiedname>
+        <param>
+          <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref></type>
+          <declname>interv</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref></type>
+          <declname>subinterv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="103" column="6" declfile="dag_shaderVar.h" declline="103" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a0e05605b419592de073f28a388f23589" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_variant</definition>
+        <argsstring>(Variant var)</argsstring>
+        <name>set_variant</name>
+        <qualifiedname>ShaderGlobal::set_variant</qualifiedname>
+        <param>
+          <type>Variant</type>
+          <declname>var</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="104" column="13" bodyfile="dag_shaderVar.h" bodystart="104" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a57dbcf5a674be888158815c1f4e57cea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref></type>
+        <definition>Subinterval ShaderGlobal::get_variant</definition>
+        <argsstring>(Interval interv)</argsstring>
+        <name>get_variant</name>
+        <qualifiedname>ShaderGlobal::get_variant</qualifiedname>
+        <param>
+          <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref></type>
+          <declname>interv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="105" column="13" declfile="dag_shaderVar.h" declline="105" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a1783306b7d35b27a70eb346bebe4a474" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::is_glob_interval_presented</definition>
+        <argsstring>(Interval interv)</argsstring>
+        <name>is_glob_interval_presented</name>
+        <qualifiedname>ShaderGlobal::is_glob_interval_presented</qualifiedname>
+        <param>
+          <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref></type>
+          <declname>interv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="106" column="6" declfile="dag_shaderVar.h" declline="106" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a0237f7f286ad4d2aaa54ce8cc94bab57" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::Vector&lt; String &gt;</type>
+        <definition>dag::Vector&lt; String &gt; ShaderGlobal::get_subinterval_names</definition>
+        <argsstring>(Interval interv)</argsstring>
+        <name>get_subinterval_names</name>
+        <qualifiedname>ShaderGlobal::get_subinterval_names</qualifiedname>
+        <param>
+          <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref></type>
+          <declname>interv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="107" column="13" declfile="dag_shaderVar.h" declline="107" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad3fc13b6354a3a07779e4d947187af50" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_var_type</definition>
+        <argsstring>(int variable_id)</argsstring>
+        <name>get_var_type</name>
+        <qualifiedname>ShaderGlobal::get_var_type</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>SHVT_INT, SHVT_REAL, SHVT_COLOR4 or SHVT_TEXTURE. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="110" column="5" declfile="dag_shaderVar.h" declline="110" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a9b0ce2920d5b65fe8df7074b51c7d018" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::is_var_assumed</definition>
+        <argsstring>(int variable_id)</argsstring>
+        <name>is_var_assumed</name>
+        <qualifiedname>ShaderGlobal::is_var_assumed</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="111" column="6" declfile="dag_shaderVar.h" declline="111" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ada99df390ca07f24386191f7945c090b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_interval_assumed_value</definition>
+        <argsstring>(int variable_id)</argsstring>
+        <name>get_interval_assumed_value</name>
+        <qualifiedname>ShaderGlobal::get_interval_assumed_value</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="112" column="5" declfile="dag_shaderVar.h" declline="112" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aa1fc2a95381bd8844b4058f1bc1273e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_interval_current_value</definition>
+        <argsstring>(int variable_id)</argsstring>
+        <name>get_interval_current_value</name>
+        <qualifiedname>ShaderGlobal::get_interval_current_value</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="113" column="5" declfile="dag_shaderVar.h" declline="113" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad5769a05bd215bcac49070886e11b5cb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::has_associated_interval</definition>
+        <argsstring>(int variable_id)</argsstring>
+        <name>has_associated_interval</name>
+        <qualifiedname>ShaderGlobal::has_associated_interval</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="114" column="6" declfile="dag_shaderVar.h" declline="114" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a036cef45e3a2ed47fd711088423faf32" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; float &gt;</type>
+        <definition>dag::ConstSpan&lt; float &gt; ShaderGlobal::get_interval_ranges</definition>
+        <argsstring>(int variable_id)</argsstring>
+        <name>get_interval_ranges</name>
+        <qualifiedname>ShaderGlobal::get_interval_ranges</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="115" column="16" declfile="dag_shaderVar.h" declline="115" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a5c041f51ccde440e2f7a9d324a63a5a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; float &gt;</type>
+        <definition>dag::ConstSpan&lt; float &gt; ShaderGlobal::get_interval_ranges</definition>
+        <argsstring>(Interval interv)</argsstring>
+        <name>get_interval_ranges</name>
+        <qualifiedname>ShaderGlobal::get_interval_ranges</qualifiedname>
+        <param>
+          <type><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref></type>
+          <declname>interv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="116" column="16" declfile="dag_shaderVar.h" declline="116" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a185497089fee326604e88314b445bc74" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int</definition>
+        <argsstring>(int variable_id, int v)</argsstring>
+        <name>set_int</name>
+        <qualifiedname>ShaderGlobal::set_int</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="118" column="6" declfile="dag_shaderVar.h" declline="118" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aa66676d8eede662cc2ba64557b53c74a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_real</definition>
+        <argsstring>(int variable_id, float v)</argsstring>
+        <name>set_real</name>
+        <qualifiedname>ShaderGlobal::set_real</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="119" column="6" declfile="dag_shaderVar.h" declline="119" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a6ed9504bb4d927b60a01e4db35e1f4e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const Point2 &amp;rg, const Point2 &amp;ba=Point2(0, 0))</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>rg</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>ba</declname>
+          <defval>Point2(0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="120" column="6" declfile="dag_shaderVar.h" declline="120" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a7baf2e36bb72c1b90898099cf3027d97" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const Point3 &amp;rgb, float a=0.f)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>rgb</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="121" column="6" declfile="dag_shaderVar.h" declline="121" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a8dbd0d0a5b1fe97f0a5be138500c08bb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const Point4 &amp;v)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const Point4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="122" column="6" declfile="dag_shaderVar.h" declline="122" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a229406e029a2d5c456815284f1a36089" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const Color4 &amp;v)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="123" column="6" declfile="dag_shaderVar.h" declline="123" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a55ca29bb9c014fb5614d5c796446cb7d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const Color3 &amp;rgb, float a=0.f)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const Color3 &amp;</type>
+          <declname>rgb</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="124" column="6" declfile="dag_shaderVar.h" declline="124" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1af4b52fa23a1380e59275c8d0b25a54ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, float r, float g, float b=0.f, float a=0.f)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>g</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>b</declname>
+          <defval>0.f</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="125" column="6" declfile="dag_shaderVar.h" declline="125" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a1cf1febe766c4cf0ead81f5cb2fb24fb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4_array</definition>
+        <argsstring>(int variable_id, const Color4 *data, int count)</argsstring>
+        <name>set_color4_array</name>
+        <qualifiedname>ShaderGlobal::set_color4_array</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const Color4 *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="126" column="6" declfile="dag_shaderVar.h" declline="126" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a606b31cd2b0e0c303d47a0049900fdd2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4_array</definition>
+        <argsstring>(int variable_id, const Point4 *data, int count)</argsstring>
+        <name>set_color4_array</name>
+        <qualifiedname>ShaderGlobal::set_color4_array</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const Point4 *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="127" column="6" declfile="dag_shaderVar.h" declline="127" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a7c7a2a9c68eb5478b89372983f7bf466" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, E3DCOLOR c)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="128" column="6" declfile="dag_shaderVar.h" declline="128" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aef564f7db61d02746d664d51279de2a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const XMFLOAT2 &amp;rg, const XMFLOAT2 &amp;ba)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const XMFLOAT2 &amp;</type>
+          <declname>rg</declname>
+        </param>
+        <param>
+          <type>const XMFLOAT2 &amp;</type>
+          <declname>ba</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="129" column="6" declfile="dag_shaderVar.h" declline="129" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a1f603e1b838fd681e3787c6d90daf573" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const XMFLOAT3 &amp;rgb, float a=0.f)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const XMFLOAT3 &amp;</type>
+          <declname>rgb</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="130" column="6" declfile="dag_shaderVar.h" declline="130" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a184b14f8e4967579e155c3f780e32985" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, const XMFLOAT4 &amp;v)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const XMFLOAT4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="131" column="6" declfile="dag_shaderVar.h" declline="131" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a0e80dde0da4d8da0007313df96581db2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(int variable_id, FXMVECTOR v)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>FXMVECTOR</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="132" column="6" declfile="dag_shaderVar.h" declline="132" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a2a2a0d5e72dbbe7d93423a8f0470a6e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_float4x4</definition>
+        <argsstring>(int variable_id, const TMatrix4 &amp;mat)</argsstring>
+        <name>set_float4x4</name>
+        <qualifiedname>ShaderGlobal::set_float4x4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const TMatrix4 &amp;</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="133" column="6" declfile="dag_shaderVar.h" declline="133" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a918ea434acb21ed43b12dad73dc298ef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_float4x4</definition>
+        <argsstring>(int variable_id, const XMFLOAT4X4 &amp;mat)</argsstring>
+        <name>set_float4x4</name>
+        <qualifiedname>ShaderGlobal::set_float4x4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const XMFLOAT4X4 &amp;</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="134" column="6" declfile="dag_shaderVar.h" declline="134" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a4ee7e1701fac458c24bb36f731d80e6f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_float4x4</definition>
+        <argsstring>(int variable_id, FXMMATRIX mat)</argsstring>
+        <name>set_float4x4</name>
+        <qualifiedname>ShaderGlobal::set_float4x4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>FXMMATRIX</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="135" column="6" declfile="dag_shaderVar.h" declline="135" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aa988907bda9acc5e31aa8fc654ab9d63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int4</definition>
+        <argsstring>(int variable_id, const IPoint4 &amp;v)</argsstring>
+        <name>set_int4</name>
+        <qualifiedname>ShaderGlobal::set_int4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const IPoint4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="136" column="6" declfile="dag_shaderVar.h" declline="136" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad4783888b4e93d55b87a2eb68db05ee9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int4_array</definition>
+        <argsstring>(int variable_id, const IPoint4 *data, int count)</argsstring>
+        <name>set_int4_array</name>
+        <qualifiedname>ShaderGlobal::set_int4_array</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const IPoint4 *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="137" column="6" declfile="dag_shaderVar.h" declline="137" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a0a74da1db1e0e65e2716866dd623825e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_texture</definition>
+        <argsstring>(int variable_id, TEXTUREID texture_id)</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>ShaderGlobal::set_texture</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texture_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="138" column="6" declfile="dag_shaderVar.h" declline="138" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad55c55d601a1638460cb1da51133d407" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_texture</definition>
+        <argsstring>(int variable_id, const ManagedTex &amp;texture)</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>ShaderGlobal::set_texture</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedTex</ref> &amp;</type>
+          <declname>texture</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="139" column="6" declfile="dag_shaderVar.h" declline="139" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad18c16c9b8a061b4c0112a0859f9da94" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_sampler</definition>
+        <argsstring>(int variable_id, d3d::SamplerHandle handle)</argsstring>
+        <name>set_sampler</name>
+        <qualifiedname>ShaderGlobal::set_sampler</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle</type>
+          <declname>handle</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="140" column="6" declfile="dag_shaderVar.h" declline="140" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ab3a9a5ddaf3c74504802699689086f04" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_buffer</definition>
+        <argsstring>(int variable_id, D3DRESID buffer_id)</argsstring>
+        <name>set_buffer</name>
+        <qualifiedname>ShaderGlobal::set_buffer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>D3DRESID</type>
+          <declname>buffer_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="141" column="6" declfile="dag_shaderVar.h" declline="141" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a01ec078b6c7bd2aa742a1a6519cf0631" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_buffer</definition>
+        <argsstring>(int variable_id, const ManagedBuf &amp;buffer)</argsstring>
+        <name>set_buffer</name>
+        <qualifiedname>ShaderGlobal::set_buffer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedBuf</ref> &amp;</type>
+          <declname>buffer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="142" column="6" declfile="dag_shaderVar.h" declline="142" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a48beae64300400037033f23c27fb2cc0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_texture</definition>
+        <argsstring>(const ShaderVariableInfo &amp;, const ManagedTex &amp;texture)</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>ShaderGlobal::set_texture</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+        </param>
+        <param>
+          <type>const <ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedTex</ref> &amp;</type>
+          <declname>texture</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="143" column="6" declfile="dag_shaderVar.h" declline="143" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a392ae1d8486525c29cb26c458210b0f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_buffer</definition>
+        <argsstring>(const ShaderVariableInfo &amp;, const ManagedBuf &amp;buffer)</argsstring>
+        <name>set_buffer</name>
+        <qualifiedname>ShaderGlobal::set_buffer</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+        </param>
+        <param>
+          <type>const <ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedBuf</ref> &amp;</type>
+          <declname>buffer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="144" column="6" declfile="dag_shaderVar.h" declline="144" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a2ec41aa6e9383cdd88960fd6a1ae8489" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_tlas</definition>
+        <argsstring>(int variable_id, RaytraceTopAccelerationStructure *ptr)</argsstring>
+        <name>set_tlas</name>
+        <qualifiedname>ShaderGlobal::set_tlas</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variable_id</declname>
+        </param>
+        <param>
+          <type>RaytraceTopAccelerationStructure *</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="145" column="6" declfile="dag_shaderVar.h" declline="145" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a2196def4c981fc18118830fdcd2b47c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::reset_textures</definition>
+        <argsstring>(bool removed_tex_only=false)</argsstring>
+        <name>reset_textures</name>
+        <qualifiedname>ShaderGlobal::reset_textures</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>removed_tex_only</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Set all texture global vars to BAD_TEXTUREID and issue release_managed_tex() on them. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="148" column="6" declfile="dag_shaderVar.h" declline="148" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a4ad655f89863376dcd1580b98adfca1f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::reset_stale_vars</definition>
+        <argsstring>()</argsstring>
+        <name>reset_stale_vars</name>
+        <qualifiedname>ShaderGlobal::reset_stale_vars</qualifiedname>
+        <briefdescription>
+<para>Reset all var types, that are not valid after reset. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="150" column="6" declfile="dag_shaderVar.h" declline="150" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad99d956170c6b33594f55c8dca4a82a6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::reset_from_vars</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>reset_from_vars</name>
+        <qualifiedname>ShaderGlobal::reset_from_vars</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Reset references to texture from all global shader vars. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="153" column="6" declfile="dag_shaderVar.h" declline="153" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ae71a5ade344f98496afdf6644276a962" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::reset_from_vars_and_release_managed_tex</definition>
+        <argsstring>(TEXTUREID &amp;id)</argsstring>
+        <name>reset_from_vars_and_release_managed_tex</name>
+        <qualifiedname>ShaderGlobal::reset_from_vars_and_release_managed_tex</qualifiedname>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Reset references to texture from all global shader vars and than calls release_managed_tex(id) and clears id. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="155" column="13" bodyfile="dag_shaderVar.h" bodystart="155" bodyend="162"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ac10d3b2bfea90a915043cb291bd155b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ShaderGlobal::reset_from_vars_and_release_managed_tex_verified</definition>
+        <argsstring>(TEXTUREID &amp;id, T &amp;check_tex)</argsstring>
+        <name>reset_from_vars_and_release_managed_tex_verified</name>
+        <qualifiedname>ShaderGlobal::reset_from_vars_and_release_managed_tex_verified</qualifiedname>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>T &amp;</type>
+          <declname>check_tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="164" column="13" bodyfile="dag_shaderVar.h" bodystart="164" bodyend="170"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad05f0b0babe8eb81ab8c3e18fc623fc9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_int_fast</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_int_fast</name>
+        <qualifiedname>ShaderGlobal::get_int_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Global shader variables using glob_var_id; tolerant to glob_var_id=-1 (return 0); with DAGOR_DBGLEVEL&gt;0 uses G_ASSERT to check that glob_var_id is in range and to check type. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="176" column="5" declfile="dag_shaderVar.h" declline="176" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aff2593c38d686fe0e7b302efed36fa7f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float ShaderGlobal::get_real_fast</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_real_fast</name>
+        <qualifiedname>ShaderGlobal::get_real_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="177" column="7" declfile="dag_shaderVar.h" declline="177" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a84de73665d16c2014092f2eff2f8e98a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Color4</type>
+        <definition>Color4 ShaderGlobal::get_color4_fast</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_color4_fast</name>
+        <qualifiedname>ShaderGlobal::get_color4_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="178" column="8" declfile="dag_shaderVar.h" declline="178" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aa51ea3e218891e2ba454eef6644b6633" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ShaderGlobal::get_tex_fast</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_tex_fast</name>
+        <qualifiedname>ShaderGlobal::get_tex_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="179" column="11" declfile="dag_shaderVar.h" declline="179" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a33c0ad61c18e412068ae77c19f5ce8ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID ShaderGlobal::get_buf_fast</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_buf_fast</name>
+        <qualifiedname>ShaderGlobal::get_buf_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="180" column="10" declfile="dag_shaderVar.h" declline="180" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aefb46188c4670319a3d9b06f98d90daf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>d3d::SamplerHandle</type>
+        <definition>d3d::SamplerHandle ShaderGlobal::get_sampler</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>get_sampler</name>
+        <qualifiedname>ShaderGlobal::get_sampler</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="181" column="20" declfile="dag_shaderVar.h" declline="181" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a631d074eac215c836f90f4fbda6b2470" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::get_int_by_name</definition>
+        <argsstring>(const char *name, int &amp;val)</argsstring>
+        <name>get_int_by_name</name>
+        <qualifiedname>ShaderGlobal::get_int_by_name</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="183" column="13" bodyfile="dag_shaderVar.h" bodystart="183" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a99ac1f0751e4e4b67db340a65804c74d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::get_real_by_name</definition>
+        <argsstring>(const char *name, float &amp;val)</argsstring>
+        <name>get_real_by_name</name>
+        <qualifiedname>ShaderGlobal::get_real_by_name</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="197" column="13" bodyfile="dag_shaderVar.h" bodystart="197" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ab815dd9b2fee6b5ebcdbc9d64bffc5e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::get_color4_by_name</definition>
+        <argsstring>(const char *name, Color4 &amp;val)</argsstring>
+        <name>get_color4_by_name</name>
+        <qualifiedname>ShaderGlobal::get_color4_by_name</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="211" column="6" declfile="dag_shaderVar.h" declline="211" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a10020a6c4d15dce22bbcbf22d05260a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_vars_from_blk</definition>
+        <argsstring>(const DataBlock &amp;blk, bool loadTexures=false, bool allowAddTextures=false)</argsstring>
+        <name>set_vars_from_blk</name>
+        <qualifiedname>ShaderGlobal::set_vars_from_blk</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>loadTexures</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allowAddTextures</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Read list of global var values from DataBlock and sets them to shadr global variables. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="214" column="6" declfile="dag_shaderVar.h" declline="214" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a5ff754859c9dedbeef5f4e228fed706d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_vars_from_blk</definition>
+        <argsstring>(const RoDataBlock &amp;blk)</argsstring>
+        <name>set_vars_from_blk</name>
+        <qualifiedname>ShaderGlobal::set_vars_from_blk</qualifiedname>
+        <param>
+          <type>const RoDataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="215" column="6" declfile="dag_shaderVar.h" declline="215" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ab1e34112a9fb56e0fb4804dde2ca6a14" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::reset_vars_from_blk</definition>
+        <argsstring>()</argsstring>
+        <name>reset_vars_from_blk</name>
+        <qualifiedname>ShaderGlobal::reset_vars_from_blk</qualifiedname>
+        <briefdescription>
+<para>Reset variables set by the set_vars_from_blk to their initial value (before setting any block, except textures). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="218" column="6" declfile="dag_shaderVar.h" declline="218" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a229c5d34bffb61695892463e84fa5d7e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_glob_var_id</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>get_glob_var_id</name>
+        <qualifiedname>ShaderGlobal::get_glob_var_id</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="223" column="12" bodyfile="dag_shaderVar.h" bodystart="223" bodyend="223"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ae503f114f999947907c19303c5f224e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_int_fast</definition>
+        <argsstring>(int glob_var_id, int v)</argsstring>
+        <name>set_int_fast</name>
+        <qualifiedname>ShaderGlobal::set_int_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="224" column="13" bodyfile="dag_shaderVar.h" bodystart="224" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aa9cca03675fa771f954df785ff3bd678" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_real_fast</definition>
+        <argsstring>(int glob_var_id, float v)</argsstring>
+        <name>set_real_fast</name>
+        <qualifiedname>ShaderGlobal::set_real_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="225" column="13" bodyfile="dag_shaderVar.h" bodystart="225" bodyend="225"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ae67debc2b5c61f00908fc2370263ea69" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_color4_fast</definition>
+        <argsstring>(int glob_var_id, const Color4 &amp;v)</argsstring>
+        <name>set_color4_fast</name>
+        <qualifiedname>ShaderGlobal::set_color4_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="226" column="13" bodyfile="dag_shaderVar.h" bodystart="226" bodyend="226"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a6a4b53f3aeadb2075e5bf833fe0b8114" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_color4_fast</definition>
+        <argsstring>(int glob_var_id, float r, float g, float b, float a)</argsstring>
+        <name>set_color4_fast</name>
+        <qualifiedname>ShaderGlobal::set_color4_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>g</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>b</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="227" column="13" bodyfile="dag_shaderVar.h" bodystart="227" bodyend="227"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a94f0830f33bffc0d4ec50ede76e14b5a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::set_texture_fast</definition>
+        <argsstring>(int glob_var_id, TEXTUREID tex_id)</argsstring>
+        <name>set_texture_fast</name>
+        <qualifiedname>ShaderGlobal::set_texture_fast</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="228" column="13" bodyfile="dag_shaderVar.h" bodystart="228" bodyend="228"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1af34aa17a0a34b2fb0044cccfb53b1a09" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_int</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_int</name>
+        <qualifiedname>ShaderGlobal::get_int</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="230" column="12" bodyfile="dag_shaderVar.h" bodystart="230" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1acaa78d943915a812f2e88b4e25361ac9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float ShaderGlobal::get_real</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_real</name>
+        <qualifiedname>ShaderGlobal::get_real</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="231" column="14" bodyfile="dag_shaderVar.h" bodystart="231" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a3f24245856473fa1d21d26a10b602cef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Color4</type>
+        <definition>Color4 ShaderGlobal::get_color4</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_color4</name>
+        <qualifiedname>ShaderGlobal::get_color4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="232" column="8" declfile="dag_shaderVar.h" declline="232" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ae01b69c7d1cb318623e31543d56cf97b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 ShaderGlobal::get_float4x4</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_float4x4</name>
+        <qualifiedname>ShaderGlobal::get_float4x4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="233" column="10" declfile="dag_shaderVar.h" declline="233" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a88ba665ae2befc29d2f6262fd102a44a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IPoint4</type>
+        <definition>IPoint4 ShaderGlobal::get_int4</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_int4</name>
+        <qualifiedname>ShaderGlobal::get_int4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="234" column="9" declfile="dag_shaderVar.h" declline="234" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a2972adb85d903af6e4224f68388d4aba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ShaderGlobal::get_tex</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_tex</name>
+        <qualifiedname>ShaderGlobal::get_tex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="235" column="18" bodyfile="dag_shaderVar.h" bodystart="235" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a6cc4c6f7a29707034d0d800dc24eb416" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID ShaderGlobal::get_buf</definition>
+        <argsstring>(int glob_var_id)</argsstring>
+        <name>get_buf</name>
+        <qualifiedname>ShaderGlobal::get_buf</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>glob_var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="236" column="17" bodyfile="dag_shaderVar.h" bodystart="236" bodyend="236"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a877da06ac17d250bc96ef0fc7f258f2c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::is_var_assumed</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>is_var_assumed</name>
+        <qualifiedname>ShaderGlobal::is_var_assumed</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="238" column="13" bodyfile="dag_shaderVar.h" bodystart="238" bodyend="238"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad479ab900c33d218c72aa17f88d09e6a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_interval_assumed_value</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_interval_assumed_value</name>
+        <qualifiedname>ShaderGlobal::get_interval_assumed_value</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="239" column="12" bodyfile="dag_shaderVar.h" bodystart="239" bodyend="239"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a6f81fc2342b188c9d52025d3fb0e647a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_interval_current_value</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_interval_current_value</name>
+        <qualifiedname>ShaderGlobal::get_interval_current_value</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="240" column="12" bodyfile="dag_shaderVar.h" bodystart="240" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ad88fa8bc40315c5aa329424409544973" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::has_associated_interval</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>has_associated_interval</name>
+        <qualifiedname>ShaderGlobal::has_associated_interval</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="241" column="13" bodyfile="dag_shaderVar.h" bodystart="241" bodyend="241"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a3ce4466b20de7298216f02fca0df2ec4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_slot_by_name</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>get_slot_by_name</name>
+        <qualifiedname>ShaderGlobal::get_slot_by_name</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="243" column="12" bodyfile="dag_shaderVar.h" bodystart="243" bodyend="250"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a46b8209e0d7d645686ca77ad8b5229e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_var_type</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_var_type</name>
+        <qualifiedname>ShaderGlobal::get_var_type</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="244" column="12" bodyfile="dag_shaderVariableInfo.h" bodystart="244" bodyend="244"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a57350d2da044a23717c5f87f337c5ce2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::get_int</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_int</name>
+        <qualifiedname>ShaderGlobal::get_int</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="246" column="12" bodyfile="dag_shaderVariableInfo.h" bodystart="246" bodyend="246"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a44d5f09e18aeae887fa9828c2fe214c9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float ShaderGlobal::get_real</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_real</name>
+        <qualifiedname>ShaderGlobal::get_real</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="247" column="14" bodyfile="dag_shaderVariableInfo.h" bodystart="247" bodyend="247"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a53494fe20efd66c0b7a4ba2b58810906" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ShaderGlobal::get_texture</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_texture</name>
+        <qualifiedname>ShaderGlobal::get_texture</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="248" column="18" bodyfile="dag_shaderVariableInfo.h" bodystart="248" bodyend="248"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a14f77990425537004103ae39854a7e14" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID ShaderGlobal::get_buffer</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_buffer</name>
+        <qualifiedname>ShaderGlobal::get_buffer</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="249" column="17" bodyfile="dag_shaderVariableInfo.h" bodystart="249" bodyend="249"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a70bd134907ad31956ae16613bf212418" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Color4 &amp;</type>
+        <definition>const Color4 &amp; ShaderGlobal::get_color4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_color4</name>
+        <qualifiedname>ShaderGlobal::get_color4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="250" column="21" bodyfile="dag_shaderVariableInfo.h" bodystart="250" bodyend="250"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a4af6a3466abee1e63fa0493950a2ccc0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const IPoint4 &amp;</type>
+        <definition>const IPoint4 &amp; ShaderGlobal::get_int4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_int4</name>
+        <qualifiedname>ShaderGlobal::get_int4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="251" column="22" bodyfile="dag_shaderVariableInfo.h" bodystart="251" bodyend="251"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1abc86b9b5f6f9515067c8fe23886f2db2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix4 &amp;</type>
+        <definition>const TMatrix4 &amp; ShaderGlobal::get_float4x4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v)</argsstring>
+        <name>get_float4x4</name>
+        <qualifiedname>ShaderGlobal::get_float4x4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="252" column="23" bodyfile="dag_shaderVariableInfo.h" bodystart="252" bodyend="252"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a6ea5c094d481a109a509ea7768178349" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, int val)</argsstring>
+        <name>set_int</name>
+        <qualifiedname>ShaderGlobal::set_int</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="254" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="254" bodyend="254"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a5052bf4f196c81ffca7437b2e1a68c6a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_real</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, float val)</argsstring>
+        <name>set_real</name>
+        <qualifiedname>ShaderGlobal::set_real</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="255" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="255" bodyend="255"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a29ec029211886ceaa2013d44d28e5e1e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const Color4 &amp;val)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="256" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="256" bodyend="256"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1ad4689c066db684af0e16b567a79c0b37" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4_array</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const Color4 *val, int count)</argsstring>
+        <name>set_color4_array</name>
+        <qualifiedname>ShaderGlobal::set_color4_array</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const Color4 *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="257" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="257" bodyend="257"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a07c764096ff168aeb7414c97a51f7194" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4_array</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const Point4 *val, int count)</argsstring>
+        <name>set_color4_array</name>
+        <qualifiedname>ShaderGlobal::set_color4_array</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const Point4 *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="258" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="258" bodyend="261"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1aa8e3e4ea411e60989420a06b9c93060a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const IPoint4 &amp;val)</argsstring>
+        <name>set_int4</name>
+        <qualifiedname>ShaderGlobal::set_int4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const IPoint4 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="262" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="262" bodyend="262"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a0a3957fd39fdf2f022e812b95c8bc8a8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const vec4i &amp;val)</argsstring>
+        <name>set_int4</name>
+        <qualifiedname>ShaderGlobal::set_int4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const vec4i &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="263" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="263" bodyend="263"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a1cc960cc8b8b0904d993adf5c5322073" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int4_array</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const IPoint4 *val, int count)</argsstring>
+        <name>set_int4_array</name>
+        <qualifiedname>ShaderGlobal::set_int4_array</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const IPoint4 *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="264" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="264" bodyend="264"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1afe04948d6c841ad0aaaed18d67adb6b8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_texture</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, TEXTUREID val)</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>ShaderGlobal::set_texture</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="265" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="265" bodyend="265"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a9396ae82e31c102348926838ac734e7b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_buffer</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, D3DRESID val)</argsstring>
+        <name>set_buffer</name>
+        <qualifiedname>ShaderGlobal::set_buffer</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>D3DRESID</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="266" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="266" bodyend="266"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a10cb024b26b025f5e8478ab56698768a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_sampler</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, d3d::SamplerHandle val)</argsstring>
+        <name>set_sampler</name>
+        <qualifiedname>ShaderGlobal::set_sampler</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="267" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="267" bodyend="267"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1ade675e697695ecb148e900675ceee505" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_float4x4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const TMatrix4 &amp;val)</argsstring>
+        <name>set_float4x4</name>
+        <qualifiedname>ShaderGlobal::set_float4x4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const TMatrix4 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="268" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="268" bodyend="268"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a40f6eb3f1fe408e155035e474b3bda87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, float r, float g, float b=0, float a=0)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>g</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>b</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="269" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="269" bodyend="269"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1ac1b23bd22a2fd93b6cb82a23f44a794e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const Point4 &amp;c)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const Point4 &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="270" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="270" bodyend="270"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1acd02d15904f3edbc8642f857a4215f77" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const vec4f &amp;c)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const vec4f &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="271" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="271" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1abfbd8377cf8507060d72db2b65cf4f42" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const Point3 &amp;rgb, float a=0)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>rgb</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="272" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="272" bodyend="275"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1acaf736eaa14244b8e29197dff55f3e42" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_color4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, const Point2 &amp;rg, float b=0, float a=0)</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderGlobal::set_color4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>rg</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>b</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="276" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="276" bodyend="279"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVariableInfo_8h_1a6c804bfad449a66173bb2280a9f6d78c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::set_int4</definition>
+        <argsstring>(const ShaderVariableInfo &amp;v, int x, int y, int z, int w)</argsstring>
+        <name>set_int4</name>
+        <qualifiedname>ShaderGlobal::set_int4</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>z</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="280" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="280" bodyend="280"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderBlock.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>

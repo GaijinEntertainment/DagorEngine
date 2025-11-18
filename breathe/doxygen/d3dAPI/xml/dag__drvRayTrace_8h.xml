@@ -1,0 +1,1022 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__drvRayTrace_8h" kind="file" language="C++">
+    <compoundname>dag_drvRayTrace.h</compoundname>
+    <includes local="no">generic/dag_enumBitMask.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__shaderLibraryObject_8h" local="no">drv/3d/dag_shaderLibraryObject.h</includes>
+    <includes refid="dag__samplerHandle_8h" local="no">drv/3d/dag_samplerHandle.h</includes>
+    <includes local="no">EASTL/variant.h</includes>
+    <includes local="no">EASTL/span.h</includes>
+    <includedby refid="dag__driver_8h" local="yes">dag_driver.h</includedby>
+    <includedby refid="dag__interface__table_8h" local="no">dag_interface_table.h</includedby>
+    <incdepgraph>
+      <node id="4">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driverCode_8h"/>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__samplerHandle_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_shaderLibraryObject.h</label>
+        <link refid="dag__shaderLibraryObject_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shaderModelVersion_8h"/>
+      </node>
+      <node id="1">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+        <link refid="dag__drvRayTrace_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>EASTL/span.h</label>
+      </node>
+      <node id="6">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="5">
+        <label>cstdint</label>
+      </node>
+      <node id="3">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="2">
+        <label>generic/dag_enumBitMask.h</label>
+      </node>
+      <node id="12">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h"/>
+      </node>
+      <node id="2">
+        <label>dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h"/>
+      </node>
+      <node id="9">
+        <label>dag_interface_table.h</label>
+        <link refid="dag__interface__table_8h"/>
+      </node>
+      <node id="5">
+        <label>dag_lock.h</label>
+        <link refid="dag__lock_8h"/>
+      </node>
+      <node id="7">
+        <label>dag_platform.h</label>
+        <link refid="dag__platform_8h"/>
+      </node>
+      <node id="6">
+        <label>dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h"/>
+      </node>
+      <node id="1">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+        <link refid="dag__drvRayTrace_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structRaytraceAnyAccelerationStructure" prot="public">RaytraceAnyAccelerationStructure</innerclass>
+    <innerclass refid="structRaytraceAccelerationStructureGpuHandle" prot="public">RaytraceAccelerationStructureGpuHandle</innerclass>
+    <innerclass refid="structRaytraceGeometryDescription" prot="public">RaytraceGeometryDescription</innerclass>
+    <innerclass refid="structRaytraceGeometryDescription_1_1AABBsInfo" prot="public">RaytraceGeometryDescription::AABBsInfo</innerclass>
+    <innerclass refid="structRaytraceGeometryDescription_1_1TrianglesInfo" prot="public">RaytraceGeometryDescription::TrianglesInfo</innerclass>
+    <innerclass refid="unionRaytraceGeometryDescription_1_1AnyInfo" prot="public">RaytraceGeometryDescription::AnyInfo</innerclass>
+    <innerclass refid="structRaytraceGeometryInstanceDescription" prot="public">RaytraceGeometryInstanceDescription</innerclass>
+    <innerclass refid="structRaytraceShaderGroup" prot="public">RaytraceShaderGroup</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationCreateInfo" prot="public">raytrace::BottomAccelerationCreateInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" prot="public">raytrace::BottomAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" prot="public">raytrace::BatchedBottomAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1TopAccelerationStructureBuildInfo" prot="public">raytrace::TopAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" prot="public">raytrace::BatchedTopAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1AccelerationStructurePoolCreateInfo" prot="public">raytrace::AccelerationStructurePoolCreateInfo</innerclass>
+    <innerclass refid="structraytrace_1_1AccelerationStructureSizes" prot="public">raytrace::AccelerationStructureSizes</innerclass>
+    <innerclass refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo" prot="public">raytrace::TopAccelerationStructureSizeCalculcationInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo" prot="public">raytrace::BottomAccelerationStructureSizeCalculcationInfo</innerclass>
+    <innerclass refid="structraytrace_1_1TopAccelerationStructurePlacementInfo" prot="public">raytrace::TopAccelerationStructurePlacementInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo" prot="public">raytrace::BottomAccelerationStructurePlacementInfo</innerclass>
+    <innerclass refid="structraytrace_1_1AccelerationStructureBuildParameters" prot="public">raytrace::AccelerationStructureBuildParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayGenShaderGroupMember" prot="public">raytrace::RayGenShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1MissShaderGroupMember" prot="public">raytrace::MissShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1CallableShaderGroupMember" prot="public">raytrace::CallableShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1TriangleShaderGroupMember" prot="public">raytrace::TriangleShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1ProceduralShaderGroupMember" prot="public">raytrace::ProceduralShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderGroupMember" prot="public">raytrace::ShaderGroupMember</innerclass>
+    <innerclass refid="classraytrace_1_1Pipeline" prot="public">raytrace::Pipeline</innerclass>
+    <innerclass refid="structraytrace_1_1PipelineExpandInfo" prot="public">raytrace::PipelineExpandInfo</innerclass>
+    <innerclass refid="structraytrace_1_1PipelineCreateInfo" prot="public">raytrace::PipelineCreateInfo</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableGroupInfo" prot="public">raytrace::ShaderBindingTableGroupInfo</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableDefinition" prot="public">raytrace::ShaderBindingTableDefinition</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableGroupProperties" prot="public">raytrace::ShaderBindingTableGroupProperties</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableBufferProperties" prot="public">raytrace::ShaderBindingTableBufferProperties</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts" prot="public">raytrace::ShaderBindingTableBufferProperties::GroupCounts</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable" prot="public">raytrace::ResourceBindingTable</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead" prot="public">raytrace::ResourceBindingTable::ConstBufferRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead" prot="public">raytrace::ResourceBindingTable::BufferRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead" prot="public">raytrace::ResourceBindingTable::TextureRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead" prot="public">raytrace::ResourceBindingTable::AccelerationStructureRead</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite" prot="public">raytrace::ResourceBindingTable::BufferWrite</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite" prot="public">raytrace::ResourceBindingTable::TextureWrite</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead" prot="public">raytrace::ResourceBindingTable::SamplerRead</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableOffset" prot="public">raytrace::ShaderBindingTableOffset</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableSubRange" prot="public">raytrace::ShaderBindingTableSubRange</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableSet" prot="public">raytrace::ShaderBindingTableSet</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchGroup" prot="public">raytrace::RayDispatchGroup</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchGroupTable" prot="public">raytrace::RayDispatchGroupTable</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchGroupTableSet" prot="public">raytrace::RayDispatchGroupTableSet</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectArguments" prot="public">raytrace::RayDispatchIndirectArguments</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchParameters" prot="public">raytrace::RayDispatchParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectBaseParameters" prot="public">raytrace::RayDispatchIndirectBaseParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectParameters" prot="public">raytrace::RayDispatchIndirectParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectCountParameters" prot="public">raytrace::RayDispatchIndirectCountParameters</innerclass>
+    <innernamespace refid="namespaceraytrace">raytrace</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__drvRayTrace_8h_1a8e8a1c503ed0db118713c7cd43a8e7e9" prot="public" static="no">
+        <name>D3D_HAS_RAY_TRACING</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="10" column="9" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>RaytraceBuildFlags</name>
+        <enumvalue id="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" prot="public">
+          <name>NONE</name>
+          <initializer>= 0x00</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a079a30b0592505b5965a5db0388c511c" prot="public">
+          <name>ALLOW_UPDATE</name>
+          <initializer>= 0x01</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a8585657419da99db0fece0a26d2e432a" prot="public">
+          <name>ALLOW_COMPACTION</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a3f684dca71b75eb53a8a25920db6a67f" prot="public">
+          <name>FAST_TRACE</name>
+          <initializer>= 0x04</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a8f43d2d9234f74c301bb1cb64f947505" prot="public">
+          <name>FAST_BUILD</name>
+          <initializer>= 0x08</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a1ac936c6099d748126623800307c83a3" prot="public">
+          <name>LOW_MEMORY</name>
+          <initializer>= 0x10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="98" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="99" bodyend="108"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>RaytraceShaderType</name>
+        <enumvalue id="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6ae2e0760b08306724749bbafbf64dbee2" prot="public">
+          <name>RAYGEN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6a9f17ef70afd2cd2a6d66bdea3d854520" prot="public">
+          <name>ANY_HIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6aefb7a4cb28b14a8e32f148ca73571524" prot="public">
+          <name>CLOSEST_HIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6a5a0759bdf01c86f4e79757c43e947fa6" prot="public">
+          <name>MISS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6aa0494c90519e4a08049470357751e736" prot="public">
+          <name>INTERSECTION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6a9c3998b2e73a5844afbdc197712c5e02" prot="public">
+          <name>CALLABLE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="132" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="133" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761d" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>RaytraceShaderGroupType</name>
+        <enumvalue id="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761dab61773b9b3968a9988d765d728985862" prot="public">
+          <name>GENERAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761da0a8c935862f51478e007bda0cbb30f2a" prot="public">
+          <name>TRIANGLES_HIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761da64f4d5ce0cc9a37f43ee6688e52f4a32" prot="public">
+          <name>PROCEDURAL_HIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="142" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="143" bodyend="147"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__drvRayTrace_8h_1ab0383c618d8e8790d3e0cc3820c3a7de" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DAGOR_ENABLE_ENUM_BITMASK</definition>
+        <argsstring>(RaytraceGeometryDescription::Flags)</argsstring>
+        <name>DAGOR_ENABLE_ENUM_BITMASK</name>
+        <param>
+          <type><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" kindref="member">RaytraceGeometryDescription::Flags</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="96" column="1" declfile="rayTrace/dag_drvRayTrace.h" declline="96" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__drvRayTrace_8h_1aacde09ab793e5a9fa93a7f50b5895352" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DAGOR_ENABLE_ENUM_BITMASK</definition>
+        <argsstring>(RaytraceBuildFlags)</argsstring>
+        <name>DAGOR_ENABLE_ENUM_BITMASK</name>
+        <param>
+          <type><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="109" column="1" declfile="rayTrace/dag_drvRayTrace.h" declline="109" declcolumn="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>raytrace<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC<sp/>||<sp/>_TARGET_SCARLETT<sp/>||<sp/>_TARGET_ANDROID<sp/>||<sp/>_TARGET_IOS<sp/>||<sp/>_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="dag__drvRayTrace_8h_1a8e8a1c503ed0db118713c7cd43a8e7e9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>D3D_HAS_RAY_TRACING<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>it<sp/>somehow<sp/>screws<sp/>with<sp/>some<sp/>ps4<sp/>platform<sp/>headers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_enumBitMask.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__consts_8h" kindref="compound">drv/3d/dag_consts.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__shaderLibraryObject_8h" kindref="compound">drv/3d/dag_shaderLibraryObject.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__samplerHandle_8h" kindref="compound">drv/3d/dag_samplerHandle.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/variant.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Opaque<sp/>handle<sp/>type,<sp/>there<sp/>is<sp/>no<sp/>interface<sp/>needed.<sp/>Everything<sp/>goes<sp/>through<sp/>the<sp/>d3d<sp/>functions</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>as<sp/>all<sp/>operations<sp/>require<sp/>a<sp/>execution<sp/>context.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RaytraceTopAccelerationStructure;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RaytraceBottomAccelerationStructure;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Simple<sp/>wrapper<sp/>for<sp/>API<sp/>functions<sp/>that<sp/>can<sp/>take<sp/>either<sp/>top<sp/>or<sp/>bottom<sp/>acceleration<sp/>structures.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="structRaytraceAnyAccelerationStructure" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30" refid="structRaytraceAnyAccelerationStructure_1a9f93559886d8ce381fb60611262123d6" refkind="member"><highlight class="normal"><sp/><sp/>RaytraceTopAccelerationStructure<sp/>*<ref refid="structRaytraceAnyAccelerationStructure_1a9f93559886d8ce381fb60611262123d6" kindref="member">top</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31" refid="structRaytraceAnyAccelerationStructure_1a72e1475e74affc4e170017763336b3f9" refkind="member"><highlight class="normal"><sp/><sp/>RaytraceBottomAccelerationStructure<sp/>*<ref refid="structRaytraceAnyAccelerationStructure_1a72e1475e74affc4e170017763336b3f9" kindref="member">bottom</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="structRaytraceAnyAccelerationStructure_1a5c13e66624cd137f5d988d33d6941632" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceAnyAccelerationStructure_1a5c13e66624cd137f5d988d33d6941632" kindref="member">RaytraceAnyAccelerationStructure</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34" refid="structRaytraceAnyAccelerationStructure_1a2fc00a617b7b7ed4249a4af2c2cbbd52" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceAnyAccelerationStructure_1a2fc00a617b7b7ed4249a4af2c2cbbd52" kindref="member">RaytraceAnyAccelerationStructure</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35" refid="structRaytraceAnyAccelerationStructure_1a2cea709cefecf5210afff36ad1a164a8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref><sp/>&amp;<ref refid="structRaytraceAnyAccelerationStructure_1a2cea709cefecf5210afff36ad1a164a8" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="36" refid="structRaytraceAnyAccelerationStructure_1ad6715308051381d8552fe549fa17769c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceAnyAccelerationStructure_1ad6715308051381d8552fe549fa17769c" kindref="member">RaytraceAnyAccelerationStructure</ref>(RaytraceTopAccelerationStructure<sp/>*t)<sp/>:<sp/><ref refid="structRaytraceAnyAccelerationStructure_1a9f93559886d8ce381fb60611262123d6" kindref="member">top</ref>{t}<sp/>{}</highlight></codeline>
+<codeline lineno="37" refid="structRaytraceAnyAccelerationStructure_1a61fc8aaecbbf95c8f97d87c4fa1fa095" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceAnyAccelerationStructure_1a61fc8aaecbbf95c8f97d87c4fa1fa095" kindref="member">RaytraceAnyAccelerationStructure</ref>(RaytraceBottomAccelerationStructure<sp/>*b)<sp/>:<sp/><ref refid="structRaytraceAnyAccelerationStructure_1a72e1475e74affc4e170017763336b3f9" kindref="member">bottom</ref>{b}<sp/>{}</highlight></codeline>
+<codeline lineno="38" refid="structRaytraceAnyAccelerationStructure_1aad752b4e4a740ef29b03cd4aab359578" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal"><sp/>!=<sp/><ref refid="structRaytraceAnyAccelerationStructure_1a9f93559886d8ce381fb60611262123d6" kindref="member">top</ref>)<sp/>||<sp/>(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal"><sp/>!=<sp/><ref refid="structRaytraceAnyAccelerationStructure_1a72e1475e74affc4e170017763336b3f9" kindref="member">bottom</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="structRaytraceAccelerationStructureGpuHandle" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRaytraceAccelerationStructureGpuHandle" kindref="compound">RaytraceAccelerationStructureGpuHandle</ref></highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43" refid="structRaytraceAccelerationStructureGpuHandle_1a2cb5bc959a88e4bd92f8ee72e2e9efec" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="structRaytraceAccelerationStructureGpuHandle_1a2cb5bc959a88e4bd92f8ee72e2e9efec" kindref="member">handle</ref>;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="structRaytraceGeometryDescription" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRaytraceGeometryDescription" kindref="compound">RaytraceGeometryDescription</ref></highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="50" refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" kindref="member">Flags</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756ab50339a10e1de285ac99d4c3990b8693" kindref="member">NONE</ref><sp/>=<sp/>0x00,</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756ae2f9fd48951e26b1b462801104b30cb0" kindref="member">IS_OPAQUE</ref><sp/>=<sp/>0x01,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756af0e7d156e324d5227c262ff2e13b22d0" kindref="member">NO_DUPLICATE_ANY_HIT_INVOCATION</ref><sp/>=<sp/>0x02</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="56" refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94" kindref="member">Type</ref></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94add3bfee8042d1b85c224f08b42a3fc2e" kindref="member">TRIANGLES</ref>,</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94a55940c67e181c2df0e888038d15b7a3e" kindref="member">AABBS</ref>,</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structRaytraceGeometryDescription_1_1AABBsInfo" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRaytraceGeometryDescription_1_1AABBsInfo" kindref="compound">AABBsInfo</ref></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64" refid="structRaytraceGeometryDescription_1_1AABBsInfo_1a1fad0b071da74b3d60dacab034ba96a4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structRaytraceGeometryDescription_1_1AABBsInfo_1a1fad0b071da74b3d60dacab034ba96a4" kindref="member">buffer</ref>;</highlight></codeline>
+<codeline lineno="65" refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ad2a71e6bc22e4b2c58da6f7cef96fbc3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ad2a71e6bc22e4b2c58da6f7cef96fbc3" kindref="member">count</ref>;</highlight></codeline>
+<codeline lineno="66" refid="structRaytraceGeometryDescription_1_1AABBsInfo_1a4703345ead327ce6d60a01b6c2d6f144" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1AABBsInfo_1a4703345ead327ce6d60a01b6c2d6f144" kindref="member">stride</ref>;</highlight></codeline>
+<codeline lineno="67" refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ab6f1cab3da901c63da14b041bf5e452f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ab6f1cab3da901c63da14b041bf5e452f" kindref="member">offset</ref>;</highlight></codeline>
+<codeline lineno="68" refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ae50ab93bfb7b03b18e8eeb715b1d0933" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" kindref="member">Flags</ref><sp/><ref refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ae50ab93bfb7b03b18e8eeb715b1d0933" kindref="member">flags</ref>;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="70" refid="structRaytraceGeometryDescription_1_1TrianglesInfo" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo" kindref="compound">TrianglesInfo</ref></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="72" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8f9ef2224551c5715f426ee55eeb2c63" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8f9ef2224551c5715f426ee55eeb2c63" kindref="member">transformBuffer</ref>;</highlight></codeline>
+<codeline lineno="73" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1aa28576131893b4ec0418effec5de2eef" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1aa28576131893b4ec0418effec5de2eef" kindref="member">vertexBuffer</ref>;</highlight></codeline>
+<codeline lineno="74" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1d1bb606a4ba21acb17b392fadce3d4b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1d1bb606a4ba21acb17b392fadce3d4b" kindref="member">indexBuffer</ref>;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>In<sp/>matrices<sp/>(12<sp/>floats)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a3123af9e2c468be11a758cec837a04e8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a3123af9e2c468be11a758cec837a04e8" kindref="member">transformOffset</ref>;</highlight></codeline>
+<codeline lineno="77" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a9b754a0ab2ffa2e691093ad9a1c47979" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a9b754a0ab2ffa2e691093ad9a1c47979" kindref="member">vertexCount</ref>;</highlight></codeline>
+<codeline lineno="78" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1ae2432aa744257614bbb8f6358127b63f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1ae2432aa744257614bbb8f6358127b63f" kindref="member">vertexStride</ref>;</highlight></codeline>
+<codeline lineno="79" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a61a581a6f99f20ec1b08d1127232b755" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a61a581a6f99f20ec1b08d1127232b755" kindref="member">vertexOffset</ref>;</highlight></codeline>
+<codeline lineno="80" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1034ba31eb3e7d8c1e37728b8b8b2a69" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1034ba31eb3e7d8c1e37728b8b8b2a69" kindref="member">vertexOffsetExtraBytes</ref>;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>use<sp/>VSDT_*<sp/>vertex<sp/>format<sp/>types</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a67a287cb935a20d033dd4d1ffed89076" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a67a287cb935a20d033dd4d1ffed89076" kindref="member">vertexFormat</ref>;</highlight></codeline>
+<codeline lineno="83" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8fdde3f20014f8912a82996d35a0b881" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8fdde3f20014f8912a82996d35a0b881" kindref="member">indexCount</ref>;</highlight></codeline>
+<codeline lineno="84" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a59c97fc76e62293718fa7cea5a85651c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a59c97fc76e62293718fa7cea5a85651c" kindref="member">indexOffset</ref>;</highlight></codeline>
+<codeline lineno="85" refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a4da86f3cdf5483aa24f01dade8d96d60" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" kindref="member">Flags</ref><sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a4da86f3cdf5483aa24f01dade8d96d60" kindref="member">flags</ref>;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="87" refid="unionRaytraceGeometryDescription_1_1AnyInfo" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union<sp/></highlight><highlight class="normal"><ref refid="unionRaytraceGeometryDescription_1_1AnyInfo" kindref="compound">AnyInfo</ref></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="89" refid="unionRaytraceGeometryDescription_1_1AnyInfo_1af7f540e5c6b88c1dd5fe0b67044ead1e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1_1AABBsInfo" kindref="compound">AABBsInfo</ref><sp/><ref refid="unionRaytraceGeometryDescription_1_1AnyInfo_1af7f540e5c6b88c1dd5fe0b67044ead1e" kindref="member">aabbs</ref>;</highlight></codeline>
+<codeline lineno="90" refid="unionRaytraceGeometryDescription_1_1AnyInfo_1a2b493aa446012b943560e6573f865181" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo" kindref="compound">TrianglesInfo</ref><sp/><ref refid="unionRaytraceGeometryDescription_1_1AnyInfo_1a2b493aa446012b943560e6573f865181" kindref="member">triangles</ref>;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="structRaytraceGeometryDescription_1a350113cb1703c37c5712a3fe9de528ba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94" kindref="member">Type</ref><sp/><ref refid="structRaytraceGeometryDescription_1a350113cb1703c37c5712a3fe9de528ba" kindref="member">type</ref><sp/>=<sp/><ref refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94add3bfee8042d1b85c224f08b42a3fc2e" kindref="member">Type::TRIANGLES</ref>;</highlight></codeline>
+<codeline lineno="94" refid="structRaytraceGeometryDescription_1ae92ef81c39f76b085cc24bbd2a7911e8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="unionRaytraceGeometryDescription_1_1AnyInfo" kindref="compound">AnyInfo</ref><sp/><ref refid="structRaytraceGeometryDescription_1ae92ef81c39f76b085cc24bbd2a7911e8" kindref="member">data</ref><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="96" refid="dag__drvRayTrace_8h_1ab0383c618d8e8790d3e0cc3820c3a7de" refkind="member"><highlight class="normal"><ref refid="dag__drvRayTrace_8h_1ab0383c618d8e8790d3e0cc3820c3a7de" kindref="member">DAGOR_ENABLE_ENUM_BITMASK</ref>(<ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" kindref="member">RaytraceGeometryDescription::Flags</ref>);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">NONE</ref><sp/>=<sp/>0x00,</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>you<sp/>want<sp/>to<sp/>update<sp/>the<sp/>acceleration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>structure<sp/>then<sp/>you<sp/>need<sp/>to<sp/>set<sp/>this<sp/>flag</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a079a30b0592505b5965a5db0388c511c" kindref="member">ALLOW_UPDATE</ref><sp/>=<sp/>0x01,</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a8585657419da99db0fece0a26d2e432a" kindref="member">ALLOW_COMPACTION</ref><sp/>=<sp/>0x02,</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a3f684dca71b75eb53a8a25920db6a67f" kindref="member">FAST_TRACE</ref><sp/>=<sp/>0x04,</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a8f43d2d9234f74c301bb1cb64f947505" kindref="member">FAST_BUILD</ref><sp/>=<sp/>0x08,</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a1ac936c6099d748126623800307c83a3" kindref="member">LOW_MEMORY</ref><sp/>=<sp/>0x10</highlight></codeline>
+<codeline lineno="108"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="109" refid="dag__drvRayTrace_8h_1aacde09ab793e5a9fa93a7f50b5895352" refkind="member"><highlight class="normal"><ref refid="dag__drvRayTrace_8h_1ab0383c618d8e8790d3e0cc3820c3a7de" kindref="member">DAGOR_ENABLE_ENUM_BITMASK</ref>(<ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref>);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111" refid="structRaytraceGeometryInstanceDescription" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRaytraceGeometryInstanceDescription" kindref="compound">RaytraceGeometryInstanceDescription</ref></highlight></codeline>
+<codeline lineno="112"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="113" refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1" kindref="member">Flags</ref></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="115" refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a15da39cc73ecbdecd33d9bf88b93449a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a15da39cc73ecbdecd33d9bf88b93449a" kindref="member">NONE</ref><sp/>=<sp/>0x00,</highlight></codeline>
+<codeline lineno="116" refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a0dd079025c2a8491bb7780684c361b7f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a0dd079025c2a8491bb7780684c361b7f" kindref="member">TRIANGLE_CULL_DISABLE</ref><sp/>=<sp/>0x01,</highlight></codeline>
+<codeline lineno="117" refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a7b5f1045f0b47d4f11ea5c95a124eb01" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a7b5f1045f0b47d4f11ea5c95a124eb01" kindref="member">TRIANGLE_CULL_FLIP_WINDING</ref><sp/>=<sp/>0x02,</highlight></codeline>
+<codeline lineno="118" refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1aa28624280b51d09a27343523d432a1af" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1aa28624280b51d09a27343523d432a1af" kindref="member">FORCE_OPAQUE</ref><sp/>=<sp/>0x04,</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a66f55c1097b53afd7b3dd2cd91aa3723" kindref="member">FORCE_NO_OPAQUE</ref><sp/>=<sp/>0x08</highlight></codeline>
+<codeline lineno="120" refid="structRaytraceGeometryInstanceDescription_1ab17e564b1dcd77fa90ff01b077cec8e1a66f55c1097b53afd7b3dd2cd91aa3723" refkind="member"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="121" refid="structRaytraceGeometryInstanceDescription_1a23b4badf7d6109540a4c194df0f5f06f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structRaytraceGeometryInstanceDescription_1a23b4badf7d6109540a4c194df0f5f06f" kindref="member">transform</ref>[12];</highlight></codeline>
+<codeline lineno="122" refid="structRaytraceGeometryInstanceDescription_1ae5d283531f9a0520a40054733f228232" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryInstanceDescription_1ae5d283531f9a0520a40054733f228232" kindref="member">instanceId</ref><sp/>:<sp/>24;</highlight></codeline>
+<codeline lineno="123" refid="structRaytraceGeometryInstanceDescription_1a83716c8d0405a3d3598e32093f7b4274" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryInstanceDescription_1a83716c8d0405a3d3598e32093f7b4274" kindref="member">mask</ref><sp/>:<sp/>8;</highlight></codeline>
+<codeline lineno="124" refid="structRaytraceGeometryInstanceDescription_1af203744dc06baa319c85e548cd12b80f" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryInstanceDescription_1af203744dc06baa319c85e548cd12b80f" kindref="member">instanceOffset</ref><sp/>:<sp/>24;</highlight></codeline>
+<codeline lineno="125" refid="structRaytraceGeometryInstanceDescription_1a3073a49261bcd0946a4bf3159ae80bba" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryInstanceDescription_1a3073a49261bcd0946a4bf3159ae80bba" kindref="member">flags</ref><sp/>:<sp/>8;<sp/></highlight><highlight class="comment">//<sp/>can<sp/>not<sp/>use<sp/>typesafe<sp/>bitflags<sp/>here<sp/>or<sp/>compiler<sp/>starts<sp/>to<sp/>padd</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126" refid="structRaytraceGeometryInstanceDescription_1a06bb7b1a4e8931b2c55d6fdb061d2f61" refkind="member"><highlight class="normal"><sp/><sp/>RaytraceBottomAccelerationStructure<sp/>*<ref refid="structRaytraceGeometryInstanceDescription_1a06bb7b1a4e8931b2c55d6fdb061d2f61" kindref="member">accelerationStructure</ref>;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!_TARGET_64BIT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="structRaytraceGeometryInstanceDescription_1a26d52337de672e257ef8c379b58280fb" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceGeometryInstanceDescription_1a26d52337de672e257ef8c379b58280fb" kindref="member">paddToMatchTarget</ref>;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6" kindref="member">RaytraceShaderType</ref></highlight></codeline>
+<codeline lineno="133"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6ae2e0760b08306724749bbafbf64dbee2" kindref="member">RAYGEN</ref>,</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6a9f17ef70afd2cd2a6d66bdea3d854520" kindref="member">ANY_HIT</ref>,</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6aefb7a4cb28b14a8e32f148ca73571524" kindref="member">CLOSEST_HIT</ref>,</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6a5a0759bdf01c86f4e79757c43e947fa6" kindref="member">MISS</ref>,</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6aa0494c90519e4a08049470357751e736" kindref="member">INTERSECTION</ref>,</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a019666a0e496c17b6fbf4d268244fbc6a9c3998b2e73a5844afbdc197712c5e02" kindref="member">CALLABLE</ref></highlight></codeline>
+<codeline lineno="140"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142" refid="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761d" kindref="member">RaytraceShaderGroupType</ref></highlight></codeline>
+<codeline lineno="143"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761dab61773b9b3968a9988d765d728985862" kindref="member">GENERAL</ref>,</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761da0a8c935862f51478e007bda0cbb30f2a" kindref="member">TRIANGLES_HIT</ref>,</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761da64f4d5ce0cc9a37f43ee6688e52f4a32" kindref="member">PROCEDURAL_HIT</ref>,</highlight></codeline>
+<codeline lineno="147"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="148" refid="structRaytraceShaderGroup" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRaytraceShaderGroup" kindref="compound">RaytraceShaderGroup</ref></highlight></codeline>
+<codeline lineno="149"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="150" refid="structRaytraceShaderGroup_1a04c4e95c45284d367c97b5c33f36a0fe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761d" kindref="member">RaytraceShaderGroupType</ref><sp/><ref refid="structRaytraceShaderGroup_1a04c4e95c45284d367c97b5c33f36a0fe" kindref="member">type</ref>;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>refers<sp/>to<sp/>either<sp/>a<sp/>raygen,<sp/>miss<sp/>or<sp/>callable<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>only<sp/>used<sp/>if<sp/>type<sp/>is<sp/>GENERAL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="structRaytraceShaderGroup_1a3fee8cac8a3c44166bb446c817dca28c" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceShaderGroup_1a3fee8cac8a3c44166bb446c817dca28c" kindref="member">indexToGeneralShader</ref>;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>refers<sp/>to<sp/>a<sp/>closest<sp/>hit<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>only<sp/>used<sp/>if<sp/>type<sp/>is<sp/>TRIANGLES_HIT<sp/>or<sp/>PROCEDURAL_HIT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>can<sp/>be<sp/>~0<sp/>to<sp/>indicate<sp/>no<sp/>shader<sp/>is<sp/>used</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157" refid="structRaytraceShaderGroup_1adc2a491984deb7112a0728358781f1f0" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceShaderGroup_1adc2a491984deb7112a0728358781f1f0" kindref="member">indexToClosestHitShader</ref>;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>refers<sp/>to<sp/>a<sp/>any<sp/>hit<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>only<sp/>used<sp/>if<sp/>type<sp/>is<sp/>TRIANGLES_HIT<sp/>or<sp/>PROCEDURAL_HIT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>can<sp/>be<sp/>~0<sp/>to<sp/>indicate<sp/>no<sp/>shader<sp/>is<sp/>used</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="161" refid="structRaytraceShaderGroup_1a859b381bd20ef61b93243b22e7b54a6d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceShaderGroup_1a859b381bd20ef61b93243b22e7b54a6d" kindref="member">indexToAnyHitShader</ref>;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>refers<sp/>to<sp/>a<sp/>intersection<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>only<sp/>used<sp/>if<sp/>type<sp/>is<sp/>PROCEDURAL_HIT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>is<sp/>required<sp/>if<sp/>used</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="165" refid="structRaytraceShaderGroup_1a9c6eed2be701617a0bd2fd72b9421e7b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structRaytraceShaderGroup_1a9c6eed2be701617a0bd2fd72b9421e7b" kindref="member">indexToIntersecionShader</ref>;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceraytrace" kindref="compound">raytrace</ref></highlight></codeline>
+<codeline lineno="169"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="170" refid="structraytrace_1_1BottomAccelerationCreateInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1BottomAccelerationCreateInfo" kindref="compound">BottomAccelerationCreateInfo</ref></highlight></codeline>
+<codeline lineno="171"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="173" refid="structraytrace_1_1BottomAccelerationCreateInfo_1a00d0d9477498782178c362b54a8efb30" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRaytraceGeometryDescription" kindref="compound">RaytraceGeometryDescription</ref><sp/>*<ref refid="structraytrace_1_1BottomAccelerationCreateInfo_1a00d0d9477498782178c362b54a8efb30" kindref="member">geometryDesc</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="175" refid="structraytrace_1_1BottomAccelerationCreateInfo_1a7fdae582d957f54a415d9e56072c6f16" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1BottomAccelerationCreateInfo_1a7fdae582d957f54a415d9e56072c6f16" kindref="member">geometryDescCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="177" refid="structraytrace_1_1BottomAccelerationCreateInfo_1a08b2b87e1886d937d9ff43e6ba5d97ba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref><sp/><ref refid="structraytrace_1_1BottomAccelerationCreateInfo_1a08b2b87e1886d937d9ff43e6ba5d97ba" kindref="member">flags</ref><sp/>=<sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref>;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="180" refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" kindref="compound">BottomAccelerationStructureBuildInfo</ref><sp/>:<sp/><ref refid="structraytrace_1_1BottomAccelerationCreateInfo" kindref="compound">BottomAccelerationCreateInfo</ref></highlight></codeline>
+<codeline lineno="181"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="184" refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a3fe9827a4cccd6ed0d88d12efcdb0c15" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a3fe9827a4cccd6ed0d88d12efcdb0c15" kindref="member">doUpdate</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="189" refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a857531c7812eb496188178946c49cdc9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a857531c7812eb496188178946c49cdc9" kindref="member">compactedSizeOutputBuffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="193" refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa0c39c94a88cc21433247a9691a483c2" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa0c39c94a88cc21433247a9691a483c2" kindref="member">compactedSizeOutputBufferOffsetInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="204" refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa691f78681c696f0e3bc622126784682" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa691f78681c696f0e3bc622126784682" kindref="member">scratchSpaceBuffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="207" refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a0c2e8b7a9f3a8fedd329477d19861adf" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a0c2e8b7a9f3a8fedd329477d19861adf" kindref="member">scratchSpaceBufferOffsetInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="211" refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a48bbc58152d391a3999c0f5da9cd965f" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo_1a48bbc58152d391a3999c0f5da9cd965f" kindref="member">scratchSpaceBufferSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="212"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight></codeline>
+<codeline lineno="214" refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" kindref="compound">BatchedBottomAccelerationStructureBuildInfo</ref></highlight></codeline>
+<codeline lineno="215"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="217" refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a717b43c91ece316eacc885e4c748706b" refkind="member"><highlight class="normal"><sp/><sp/>RaytraceBottomAccelerationStructure<sp/>*<ref refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a717b43c91ece316eacc885e4c748706b" kindref="member">as</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="219" refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a12cbb09372af55ebe14c353db3ad3064" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" kindref="compound">BottomAccelerationStructureBuildInfo</ref><sp/><ref refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo_1a12cbb09372af55ebe14c353db3ad3064" kindref="member">basbi</ref>;</highlight></codeline>
+<codeline lineno="220"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight></codeline>
+<codeline lineno="223" refid="structraytrace_1_1TopAccelerationStructureBuildInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo" kindref="compound">TopAccelerationStructureBuildInfo</ref></highlight></codeline>
+<codeline lineno="224"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="227" refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1ace5bf05e1a07e436bb364bc868967c5e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1ace5bf05e1a07e436bb364bc868967c5e" kindref="member">doUpdate</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="229" refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a44be890d589d4253401195daf28bb3c0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a44be890d589d4253401195daf28bb3c0" kindref="member">instanceBuffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="231" refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a8ca4d52e651caf4672bb85eeb851b215" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a8ca4d52e651caf4672bb85eeb851b215" kindref="member">instanceCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="242" refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1ad83b361e6c918bce04971139d0448586" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1ad83b361e6c918bce04971139d0448586" kindref="member">scratchSpaceBuffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="245" refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a5e88af7a2bf94ec9ccb68ca8a9221ed6" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a5e88af7a2bf94ec9ccb68ca8a9221ed6" kindref="member">scratchSpaceBufferOffsetInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="249" refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a343765f3dd95910083be83601b86fe28" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a343765f3dd95910083be83601b86fe28" kindref="member">scratchSpaceBufferSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="251" refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1acf63b0c4fb1dc86b123fc77e47e3cd63" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref><sp/><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1acf63b0c4fb1dc86b123fc77e47e3cd63" kindref="member">flags</ref><sp/>=<sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref>;</highlight></codeline>
+<codeline lineno="252"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"></highlight></codeline>
+<codeline lineno="254" refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" kindref="compound">BatchedTopAccelerationStructureBuildInfo</ref></highlight></codeline>
+<codeline lineno="255"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="257" refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1a981b8a33f650b93e033543ccf422e76c" refkind="member"><highlight class="normal"><sp/><sp/>RaytraceTopAccelerationStructure<sp/>*<ref refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1a981b8a33f650b93e033543ccf422e76c" kindref="member">as</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="259" refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1ad56cac5af637f429ae7b15e800e65ad1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1TopAccelerationStructureBuildInfo" kindref="compound">TopAccelerationStructureBuildInfo</ref><sp/><ref refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo_1ad56cac5af637f429ae7b15e800e65ad1" kindref="member">tasbi</ref>;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight></codeline>
+<codeline lineno="267"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a41b9a5472c76e1feb2f7c83e559a7a03" kindref="member">check_vertex_format_support_for_acceleration_structure_build</ref>(uint32_t<sp/>format);</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="270" refid="structraytrace_1_1AccelerationStructurePoolCreateInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo" kindref="compound">AccelerationStructurePoolCreateInfo</ref></highlight></codeline>
+<codeline lineno="271"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="273" refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a82a6e9374bb0c402bdf7729dda8fd9f7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a82a6e9374bb0c402bdf7729dda8fd9f7" kindref="member">debugName</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="276" refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a53980de1dea19cecb28ece6d685f3596" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a53980de1dea19cecb28ece6d685f3596" kindref="member">sizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="280" refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a7773d04a9b949b3b2849d693310945f7" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a7773d04a9b949b3b2849d693310945f7" kindref="member">topLevelStructureCountHint</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="283" refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a06d5c59c6a27706bc02f33dc14e7653d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo_1a06d5c59c6a27706bc02f33dc14e7653d" kindref="member">bottomLevelStructureCountHint</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="284"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"></highlight></codeline>
+<codeline lineno="295" refid="namespaceraytrace_1a5b943c5b46f1a20371d43024cc9277e7" refkind="member"><highlight class="normal"><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a11f8dd511152264622dab7631570d209" kindref="member">create_acceleration_structure_pool</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo" kindref="compound">AccelerationStructurePoolCreateInfo</ref><sp/>&amp;info);</highlight></codeline>
+<codeline lineno="301" refid="namespaceraytrace_1aa0e61ad095081547a09cd69c710242a7" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a66bf86593da499ac3175beaadbead5f8" kindref="member">destroy_acceleration_structure_pool</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref><sp/>pool);</highlight></codeline>
+<codeline lineno="308" refid="namespaceraytrace_1a163143b44cc8022a0a9801dbf8ac49d3" refkind="member"><highlight class="normal"><ref refid="structRaytraceAccelerationStructureGpuHandle" kindref="compound">RaytraceAccelerationStructureGpuHandle</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a281a4a3d6f7d65f8e3b798ef3295d703" kindref="member">get_pool_base_address</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref><sp/>pool);</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"></highlight></codeline>
+<codeline lineno="312" refid="structraytrace_1_1AccelerationStructureSizes" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1AccelerationStructureSizes" kindref="compound">AccelerationStructureSizes</ref></highlight></codeline>
+<codeline lineno="313"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="315" refid="structraytrace_1_1AccelerationStructureSizes_1acdd0972877800ed1f1f0f99803845ddd" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1AccelerationStructureSizes_1acdd0972877800ed1f1f0f99803845ddd" kindref="member">structureSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="317" refid="structraytrace_1_1AccelerationStructureSizes_1ab7a6e754c46c38b04d9a33a21e3c5254" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1AccelerationStructureSizes_1ab7a6e754c46c38b04d9a33a21e3c5254" kindref="member">buildScratchBufferSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="319" refid="structraytrace_1_1AccelerationStructureSizes_1ac0a91e7d00ab25beb864c5312b3ce12f" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1AccelerationStructureSizes_1ac0a91e7d00ab25beb864c5312b3ce12f" kindref="member">updateScratchBufferSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="320"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"></highlight></codeline>
+<codeline lineno="323" refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo" kindref="compound">TopAccelerationStructureSizeCalculcationInfo</ref></highlight></codeline>
+<codeline lineno="324"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="326" refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1aabb5bcb6f1cc80d6e292bae22054e96e" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1aabb5bcb6f1cc80d6e292bae22054e96e" kindref="member">elementCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="328" refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1a4ca3c6257d29b00a7b17bdb90825fe09" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref><sp/><ref refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1a4ca3c6257d29b00a7b17bdb90825fe09" kindref="member">flags</ref><sp/>=<sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref>;</highlight></codeline>
+<codeline lineno="329"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"></highlight></codeline>
+<codeline lineno="332" refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo" kindref="compound">BottomAccelerationStructureSizeCalculcationInfo</ref></highlight></codeline>
+<codeline lineno="333"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="335" refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo_1aeecf399bab03638a693e7376305e40a7" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>RaytraceGeometryDescription&gt;<sp/><ref refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo_1aeecf399bab03638a693e7376305e40a7" kindref="member">geometryDesc</ref>;</highlight></codeline>
+<codeline lineno="337" refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo_1ab1aad50ff26962b02ba7db162d656435" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref><sp/><ref refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo_1ab1aad50ff26962b02ba7db162d656435" kindref="member">flags</ref><sp/>=<sp/><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref>;</highlight></codeline>
+<codeline lineno="338"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"></highlight></codeline>
+<codeline lineno="341" refid="namespaceraytrace_1a4a5cdc17776ebd8b25a23a012179988f" refkind="member"><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaceraytrace_1a4a5cdc17776ebd8b25a23a012179988f" kindref="member">AccelerationStructureSizeCalculcationInfo</ref><sp/>=</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/>eastl::variant&lt;TopAccelerationStructureSizeCalculcationInfo,<sp/>BottomAccelerationStructureSizeCalculcationInfo&gt;;</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"></highlight></codeline>
+<codeline lineno="348" refid="namespaceraytrace_1acf092ba36b5b40be978b8b457eeae191" refkind="member"><highlight class="normal"><ref refid="structraytrace_1_1AccelerationStructureSizes" kindref="compound">AccelerationStructureSizes</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a1133aa409e9f183e7ab598428e7f8654" kindref="member">calculate_acceleration_structure_sizes</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a4a5cdc17776ebd8b25a23a012179988f" kindref="member">AccelerationStructureSizeCalculcationInfo</ref><sp/>&amp;info);</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"></highlight></codeline>
+<codeline lineno="350"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Alias<sp/>the<sp/>types<sp/>to<sp/>pull<sp/>them<sp/>into<sp/>the<sp/>raytrace<sp/>namespace</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="351" refid="namespaceraytrace_1ac85e5877995cba71908c8cb710fa0424" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaceraytrace_1ac85e5877995cba71908c8cb710fa0424" kindref="member">BottomAccelerationStructure</ref><sp/>=<sp/>RaytraceBottomAccelerationStructure;</highlight></codeline>
+<codeline lineno="352" refid="namespaceraytrace_1a8c32a7f9c3f9b96a2871abe28b75bef0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaceraytrace_1a8c32a7f9c3f9b96a2871abe28b75bef0" kindref="member">TopAccelerationStructure</ref><sp/>=<sp/>RaytraceTopAccelerationStructure;</highlight></codeline>
+<codeline lineno="353" refid="namespaceraytrace_1a154c80bfc8cf2aae689a30803b9d030b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">AnyAccelerationStructure</ref><sp/>=<sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref>;</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"></highlight></codeline>
+<codeline lineno="356" refid="structraytrace_1_1TopAccelerationStructurePlacementInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1TopAccelerationStructurePlacementInfo" kindref="compound">TopAccelerationStructurePlacementInfo</ref></highlight></codeline>
+<codeline lineno="357"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="360" refid="structraytrace_1_1TopAccelerationStructurePlacementInfo_1a3c77eec68152f5d6a838e4402249cbdf" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1TopAccelerationStructurePlacementInfo_1a3c77eec68152f5d6a838e4402249cbdf" kindref="member">offsetInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="362" refid="structraytrace_1_1TopAccelerationStructurePlacementInfo_1ad3593d10ffd9c2e1a0802dd2fd3a65bf" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1TopAccelerationStructurePlacementInfo_1ad3593d10ffd9c2e1a0802dd2fd3a65bf" kindref="member">sizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="363"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"></highlight></codeline>
+<codeline lineno="366" refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo" kindref="compound">BottomAccelerationStructurePlacementInfo</ref></highlight></codeline>
+<codeline lineno="367"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="370" refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo_1a2517f8bbb4427a5b6376c12318b07a12" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo_1a2517f8bbb4427a5b6376c12318b07a12" kindref="member">offsetInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="372" refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo_1a57112bc663c916f0298c26e84d7e1333" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo_1a57112bc663c916f0298c26e84d7e1333" kindref="member">sizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="373"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"></highlight></codeline>
+<codeline lineno="376" refid="namespaceraytrace_1a4b7a6497c85405669b8704fcae539eaa" refkind="member"><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaceraytrace_1a4b7a6497c85405669b8704fcae539eaa" kindref="member">AccelerationStructurePlacementInfo</ref><sp/>=</highlight></codeline>
+<codeline lineno="377"><highlight class="normal"><sp/><sp/>eastl::variant&lt;TopAccelerationStructurePlacementInfo,<sp/>BottomAccelerationStructurePlacementInfo&gt;;</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"></highlight></codeline>
+<codeline lineno="393" refid="namespaceraytrace_1afded2e162d667ffe9c0c0e68e50d0601" refkind="member"><highlight class="normal"><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">AnyAccelerationStructure</ref><sp/><ref refid="rayTrace3di_8inl_8h_1afb2a1395e4c213ceb4a7c7003c6eeb3e" kindref="member">create_acceleration_structure</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref><sp/>pool,</highlight></codeline>
+<codeline lineno="394"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a4b7a6497c85405669b8704fcae539eaa" kindref="member">AccelerationStructurePlacementInfo</ref><sp/>&amp;placement_info);</highlight></codeline>
+<codeline lineno="399" refid="namespaceraytrace_1a274bfebaa40708d8874ef0b81d173022" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a3c8f301a0f67f01d41ea1244f526027f" kindref="member">destroy_acceleration_structure</ref>(<ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref><sp/>pool,<sp/><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">AnyAccelerationStructure</ref><sp/>structure);</highlight></codeline>
+<codeline lineno="400"><highlight class="normal"></highlight></codeline>
+<codeline lineno="408" refid="structraytrace_1_1AccelerationStructureBuildParameters" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1AccelerationStructureBuildParameters" kindref="compound">AccelerationStructureBuildParameters</ref></highlight></codeline>
+<codeline lineno="409"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="412" refid="structraytrace_1_1AccelerationStructureBuildParameters_1a1cfb0c14f4d0ed4cf6eca13ea0e75c17" refkind="member"><highlight class="normal"><sp/><sp/>eastl::span&lt;BatchedBottomAccelerationStructureBuildInfo&gt;<sp/><ref refid="structraytrace_1_1AccelerationStructureBuildParameters_1a1cfb0c14f4d0ed4cf6eca13ea0e75c17" kindref="member">bottomBuilds</ref>;</highlight></codeline>
+<codeline lineno="415" refid="structraytrace_1_1AccelerationStructureBuildParameters_1a2060fb119d2c7aa19b548c28b545e86c" refkind="member"><highlight class="normal"><sp/><sp/>eastl::span&lt;BatchedTopAccelerationStructureBuildInfo&gt;<sp/><ref refid="structraytrace_1_1AccelerationStructureBuildParameters_1a2060fb119d2c7aa19b548c28b545e86c" kindref="member">topBuilds</ref>;</highlight></codeline>
+<codeline lineno="418" refid="structraytrace_1_1AccelerationStructureBuildParameters_1ab83f12d318ed190cf92a772525564980" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1AccelerationStructureBuildParameters_1ab83f12d318ed190cf92a772525564980" kindref="member">flushAfterBottomBuild</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="421" refid="structraytrace_1_1AccelerationStructureBuildParameters_1a7199a8b4aeb9b4b06d502e6bf0b4f612" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1AccelerationStructureBuildParameters_1a7199a8b4aeb9b4b06d502e6bf0b4f612" kindref="member">flushAfterTopBuild</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="422"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="423"><highlight class="normal"></highlight></codeline>
+<codeline lineno="424" refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216" kindref="member">AccelerationStructureBuildMode</ref></highlight></codeline>
+<codeline lineno="425"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="427"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216a2fe4167817733fec8e6ba1afddf78f1b" kindref="member">Synchronous</ref>,</highlight></codeline>
+<codeline lineno="448"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216aa805c160c8eb333fde4a672b1044fc21" kindref="member">FrameParallel</ref>,</highlight></codeline>
+<codeline lineno="449"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="450"><highlight class="normal"></highlight></codeline>
+<codeline lineno="453" refid="namespaceraytrace_1af44d1f98bc3b8604ac1cb310094680c6" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aa9b62c6767a6489fd63e62f40e25d573" kindref="member">build_acceleration_structure</ref>(<ref refid="structraytrace_1_1AccelerationStructureBuildParameters" kindref="compound">AccelerationStructureBuildParameters</ref><sp/>build_params,</highlight></codeline>
+<codeline lineno="454"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216" kindref="member">AccelerationStructureBuildMode</ref><sp/>build_mode<sp/>=<sp/><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216a2fe4167817733fec8e6ba1afddf78f1b" kindref="member">AccelerationStructureBuildMode::Synchronous</ref>);</highlight></codeline>
+<codeline lineno="455"><highlight class="normal"></highlight></codeline>
+<codeline lineno="457" refid="structraytrace_1_1RayGenShaderGroupMember" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayGenShaderGroupMember" kindref="compound">RayGenShaderGroupMember</ref></highlight></codeline>
+<codeline lineno="458"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="461" refid="structraytrace_1_1RayGenShaderGroupMember_1ae8e1b49c361c967808b0ecb8e5aa235e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref><sp/><ref refid="structraytrace_1_1RayGenShaderGroupMember_1ae8e1b49c361c967808b0ecb8e5aa235e" kindref="member">rayGen</ref>;</highlight></codeline>
+<codeline lineno="462"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="464" refid="structraytrace_1_1MissShaderGroupMember" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1MissShaderGroupMember" kindref="compound">MissShaderGroupMember</ref></highlight></codeline>
+<codeline lineno="465"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="468" refid="structraytrace_1_1MissShaderGroupMember_1ad7f7194d05e79a85c8dbfd0a8f94bc2b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref><sp/><ref refid="structraytrace_1_1MissShaderGroupMember_1ad7f7194d05e79a85c8dbfd0a8f94bc2b" kindref="member">miss</ref>;</highlight></codeline>
+<codeline lineno="469"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="471" refid="structraytrace_1_1CallableShaderGroupMember" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1CallableShaderGroupMember" kindref="compound">CallableShaderGroupMember</ref></highlight></codeline>
+<codeline lineno="472"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="475" refid="structraytrace_1_1CallableShaderGroupMember_1a3bd2c3d6ae4549d95bcf158d30dfa2f3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref><sp/><ref refid="structraytrace_1_1CallableShaderGroupMember_1a3bd2c3d6ae4549d95bcf158d30dfa2f3" kindref="member">callable</ref>;</highlight></codeline>
+<codeline lineno="476"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="479" refid="structraytrace_1_1TriangleShaderGroupMember" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1TriangleShaderGroupMember" kindref="compound">TriangleShaderGroupMember</ref></highlight></codeline>
+<codeline lineno="480"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="483" refid="structraytrace_1_1TriangleShaderGroupMember_1a12800061b6ef780dc96cd45b118249d1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref><sp/><ref refid="structraytrace_1_1TriangleShaderGroupMember_1a12800061b6ef780dc96cd45b118249d1" kindref="member">anyHit</ref>;</highlight></codeline>
+<codeline lineno="486" refid="structraytrace_1_1TriangleShaderGroupMember_1aabceaf23c6e4ad358246879109fbd1ab" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref><sp/><ref refid="structraytrace_1_1TriangleShaderGroupMember_1aabceaf23c6e4ad358246879109fbd1ab" kindref="member">closestHit</ref>;</highlight></codeline>
+<codeline lineno="487"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="489" refid="structraytrace_1_1ProceduralShaderGroupMember" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ProceduralShaderGroupMember" kindref="compound">ProceduralShaderGroupMember</ref><sp/>:<sp/><ref refid="structraytrace_1_1TriangleShaderGroupMember" kindref="compound">TriangleShaderGroupMember</ref></highlight></codeline>
+<codeline lineno="490"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="493" refid="structraytrace_1_1ProceduralShaderGroupMember_1a8897f06c74203954f6107979c7af0818" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref><sp/><ref refid="structraytrace_1_1ProceduralShaderGroupMember_1a8897f06c74203954f6107979c7af0818" kindref="member">intersection</ref>;</highlight></codeline>
+<codeline lineno="494"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="496" refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" refkind="member"><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref></highlight></codeline>
+<codeline lineno="497"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="499"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776aec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">Undefined</ref>,</highlight></codeline>
+<codeline lineno="501"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b2766e948a345bc42a34d6ae00b329a" kindref="member">RayGen</ref>,</highlight></codeline>
+<codeline lineno="503"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776ae7ddb7cd777b59610b220bcfa80bd95f" kindref="member">Miss</ref>,</highlight></codeline>
+<codeline lineno="505"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a79ace5b2a7206c5d0aa286a5b33385f8" kindref="member">Callable</ref>,</highlight></codeline>
+<codeline lineno="507"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a5e5500cb2b82eb72d550de644bd1b64b" kindref="member">Triangle</ref>,</highlight></codeline>
+<codeline lineno="509"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b729261cf45327870528920781485f4" kindref="member">Procedural</ref></highlight></codeline>
+<codeline lineno="510"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="512" refid="structraytrace_1_1ShaderGroupMember" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderGroupMember" kindref="compound">ShaderGroupMember</ref></highlight></codeline>
+<codeline lineno="513"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="515" refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" kindref="member">group</ref><sp/>=<sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776aec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">ShaderGroup::Undefined</ref>;</highlight></codeline>
+<codeline lineno="516"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="517"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="520" refid="structraytrace_1_1ShaderGroupMember_1a72cdd780536c110b13548e61d031901f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structraytrace_1_1RayGenShaderGroupMember" kindref="compound">RayGenShaderGroupMember</ref><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a72cdd780536c110b13548e61d031901f" kindref="member">rayGen</ref>;</highlight></codeline>
+<codeline lineno="523" refid="structraytrace_1_1ShaderGroupMember_1a2e1610da32f945c764143d7aa0505147" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structraytrace_1_1MissShaderGroupMember" kindref="compound">MissShaderGroupMember</ref><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a2e1610da32f945c764143d7aa0505147" kindref="member">miss</ref>;</highlight></codeline>
+<codeline lineno="526" refid="structraytrace_1_1ShaderGroupMember_1a0e4d61f7fe0f897d1720927430635179" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structraytrace_1_1CallableShaderGroupMember" kindref="compound">CallableShaderGroupMember</ref><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a0e4d61f7fe0f897d1720927430635179" kindref="member">callable</ref>;</highlight></codeline>
+<codeline lineno="529" refid="structraytrace_1_1ShaderGroupMember_1aaf4510a4224dbb57c77a60e34b9bd03d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structraytrace_1_1TriangleShaderGroupMember" kindref="compound">TriangleShaderGroupMember</ref><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1aaf4510a4224dbb57c77a60e34b9bd03d" kindref="member">triangle</ref>;</highlight></codeline>
+<codeline lineno="532" refid="structraytrace_1_1ShaderGroupMember_1af42478209a386ecb1f41c2cf421a7d30" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structraytrace_1_1ProceduralShaderGroupMember" kindref="compound">ProceduralShaderGroupMember</ref><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af42478209a386ecb1f41c2cf421a7d30" kindref="member">procedural</ref>;</highlight></codeline>
+<codeline lineno="533"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="534"><highlight class="normal"></highlight></codeline>
+<codeline lineno="536" refid="structraytrace_1_1ShaderGroupMember_1a50e7de0aee583b4a77ee31740b67ce78" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a50e7de0aee583b4a77ee31740b67ce78" kindref="member">ShaderGroupMember</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="538" refid="structraytrace_1_1ShaderGroupMember_1aad32506a29e72184c7737694ef5c0e8a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1aad32506a29e72184c7737694ef5c0e8a" kindref="member">ShaderGroupMember</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ShaderGroupMember" kindref="compound">ShaderGroupMember</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="540" refid="structraytrace_1_1ShaderGroupMember_1a94b3950e8a8a3a3683f67ae0120271d2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a94b3950e8a8a3a3683f67ae0120271d2" kindref="member">ShaderGroupMember</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1RayGenShaderGroupMember" kindref="compound">RayGenShaderGroupMember</ref><sp/>&amp;rg)<sp/>:<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" kindref="member">group</ref>{<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref>::<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b2766e948a345bc42a34d6ae00b329a" kindref="member">RayGen</ref>},<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a72cdd780536c110b13548e61d031901f" kindref="member">rayGen</ref>{rg}<sp/>{}</highlight></codeline>
+<codeline lineno="542" refid="structraytrace_1_1ShaderGroupMember_1a62a9cc7531a310352b448d7594327e94" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a62a9cc7531a310352b448d7594327e94" kindref="member">ShaderGroupMember</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1MissShaderGroupMember" kindref="compound">MissShaderGroupMember</ref><sp/>&amp;m)<sp/>:<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" kindref="member">group</ref>{<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref>::<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776ae7ddb7cd777b59610b220bcfa80bd95f" kindref="member">Miss</ref>},<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a2e1610da32f945c764143d7aa0505147" kindref="member">miss</ref>{m}<sp/>{}</highlight></codeline>
+<codeline lineno="544" refid="structraytrace_1_1ShaderGroupMember_1a1afa01b3e210babb82c4c498784616b7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a1afa01b3e210babb82c4c498784616b7" kindref="member">ShaderGroupMember</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1CallableShaderGroupMember" kindref="compound">CallableShaderGroupMember</ref><sp/>&amp;c)<sp/>:<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" kindref="member">group</ref>{<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref>::<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a79ace5b2a7206c5d0aa286a5b33385f8" kindref="member">Callable</ref>},<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a0e4d61f7fe0f897d1720927430635179" kindref="member">callable</ref>{c}<sp/>{}</highlight></codeline>
+<codeline lineno="546" refid="structraytrace_1_1ShaderGroupMember_1a0961543e522320a1b22b75c630e318a5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a0961543e522320a1b22b75c630e318a5" kindref="member">ShaderGroupMember</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1TriangleShaderGroupMember" kindref="compound">TriangleShaderGroupMember</ref><sp/>&amp;tr)<sp/>:<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" kindref="member">group</ref>{<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref>::<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a5e5500cb2b82eb72d550de644bd1b64b" kindref="member">Triangle</ref>},<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1aaf4510a4224dbb57c77a60e34b9bd03d" kindref="member">triangle</ref>{tr}<sp/>{}</highlight></codeline>
+<codeline lineno="548" refid="structraytrace_1_1ShaderGroupMember_1ae1c206166734b3d75b89a062352b772b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1ae1c206166734b3d75b89a062352b772b" kindref="member">ShaderGroupMember</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ProceduralShaderGroupMember" kindref="compound">ProceduralShaderGroupMember</ref><sp/>&amp;pr)<sp/>:<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" kindref="member">group</ref>{<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" kindref="member">ShaderGroup</ref>::<ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b729261cf45327870528920781485f4" kindref="member">Procedural</ref>},<sp/><ref refid="structraytrace_1_1ShaderGroupMember_1af42478209a386ecb1f41c2cf421a7d30" kindref="member">procedural</ref>{pr}<sp/>{}</highlight></codeline>
+<codeline lineno="549"><highlight class="normal"></highlight></codeline>
+<codeline lineno="552"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="553" refid="structraytrace_1_1ShaderGroupMember_1a8a17b1099daeb20af1322aa499e7b980" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ShaderGroupMember_1a8a17b1099daeb20af1322aa499e7b980" kindref="member">visit</ref>(T<sp/>clb)</highlight></codeline>
+<codeline lineno="554"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="555"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(<ref refid="structraytrace_1_1ShaderGroupMember_1af33a4f899f16e708f4399a1dc660fc7e" kindref="member">group</ref>)</highlight></codeline>
+<codeline lineno="556"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="557"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776aec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">ShaderGroup::Undefined</ref>:<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="558"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b2766e948a345bc42a34d6ae00b329a" kindref="member">ShaderGroup::RayGen</ref>:<sp/>clb(<ref refid="structraytrace_1_1ShaderGroupMember_1a72cdd780536c110b13548e61d031901f" kindref="member">rayGen</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="559"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776ae7ddb7cd777b59610b220bcfa80bd95f" kindref="member">ShaderGroup::Miss</ref>:<sp/>clb(<ref refid="structraytrace_1_1ShaderGroupMember_1a2e1610da32f945c764143d7aa0505147" kindref="member">miss</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="560"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a79ace5b2a7206c5d0aa286a5b33385f8" kindref="member">ShaderGroup::Callable</ref>:<sp/>clb(<ref refid="structraytrace_1_1ShaderGroupMember_1a0e4d61f7fe0f897d1720927430635179" kindref="member">callable</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="561"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a5e5500cb2b82eb72d550de644bd1b64b" kindref="member">ShaderGroup::Triangle</ref>:<sp/>clb(<ref refid="structraytrace_1_1ShaderGroupMember_1aaf4510a4224dbb57c77a60e34b9bd03d" kindref="member">triangle</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="562"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b729261cf45327870528920781485f4" kindref="member">ShaderGroup::Procedural</ref>:<sp/>clb(<ref refid="structraytrace_1_1ShaderGroupMember_1af42478209a386ecb1f41c2cf421a7d30" kindref="member">procedural</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="563"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="564"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="565"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="566"><highlight class="normal"></highlight></codeline>
+<codeline lineno="572" refid="classraytrace_1_1Pipeline" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref></highlight></codeline>
+<codeline lineno="573"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="574"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="576" refid="classraytrace_1_1Pipeline_1a6affa6e295241f1cc88ecfefdc2d771f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classraytrace_1_1Pipeline_1a6affa6e295241f1cc88ecfefdc2d771f" kindref="member">driverObject</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="578" refid="classraytrace_1_1Pipeline_1a7fb6de3153de40a3d2a869c0635a7f7d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*<ref refid="classraytrace_1_1Pipeline_1a7fb6de3153de40a3d2a869c0635a7f7d" kindref="member">shaderHandleTable</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="580" refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="582" refid="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" kindref="member">shaderCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="583"><highlight class="normal"></highlight></codeline>
+<codeline lineno="585" refid="classraytrace_1_1Pipeline_1ab5b0723459cef5f78b2cca5bd45c47d7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classraytrace_1_1Pipeline_1ab5b0723459cef5f78b2cca5bd45c47d7" kindref="member">Pipeline</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*obj,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>*sht,<sp/>uint32_t<sp/>shs,<sp/>uint32_t<sp/>sc)<sp/>:</highlight></codeline>
+<codeline lineno="586"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classraytrace_1_1Pipeline_1a6affa6e295241f1cc88ecfefdc2d771f" kindref="member">driverObject</ref>{obj},<sp/><ref refid="classraytrace_1_1Pipeline_1a7fb6de3153de40a3d2a869c0635a7f7d" kindref="member">shaderHandleTable</ref>{sht},<sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref>{shs},<sp/><ref refid="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" kindref="member">shaderCount</ref>{sc}</highlight></codeline>
+<codeline lineno="587"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="588"><highlight class="normal"></highlight></codeline>
+<codeline lineno="589"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="590" refid="classraytrace_1_1Pipeline_1a99cbaf3302abcb8d0ec6e9d35c23567b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline_1a99cbaf3302abcb8d0ec6e9d35c23567b" kindref="member">Pipeline</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="591"><highlight class="normal"></highlight></codeline>
+<codeline lineno="592" refid="classraytrace_1_1Pipeline_1ae779797e28d8d55aa9ffdc4150f5d49a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classraytrace_1_1Pipeline_1ae779797e28d8d55aa9ffdc4150f5d49a" kindref="member">Pipeline</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="593" refid="classraytrace_1_1Pipeline_1acd67ce4b41805dc80fe2f9bedbb31961" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;<ref refid="classraytrace_1_1Pipeline_1acd67ce4b41805dc80fe2f9bedbb31961" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="594"><highlight class="normal"></highlight></codeline>
+<codeline lineno="595" refid="classraytrace_1_1Pipeline_1a8adbebfe2e8b447126fa210ff5c64930" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classraytrace_1_1Pipeline_1a8adbebfe2e8b447126fa210ff5c64930" kindref="member">Pipeline</ref>(<ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="596" refid="classraytrace_1_1Pipeline_1a8d6619a88cfd0df230a2cb59320d6aba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;<ref refid="classraytrace_1_1Pipeline_1a8d6619a88cfd0df230a2cb59320d6aba" kindref="member">operator=</ref>(<ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="597"><highlight class="normal"></highlight></codeline>
+<codeline lineno="599" refid="classraytrace_1_1Pipeline_1a2801f408bea2003cc4bd3aa56b4c0f7e" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classraytrace_1_1Pipeline_1a2801f408bea2003cc4bd3aa56b4c0f7e" kindref="member">getShaderCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" kindref="member">shaderCount</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="601" refid="classraytrace_1_1Pipeline_1a426320145e28d42bbcfb555593259286" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>uint8_t&gt;<sp/><ref refid="classraytrace_1_1Pipeline_1a426320145e28d42bbcfb555593259286" kindref="member">getShaderHandle</ref>(uint32_t<sp/>index)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="602"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="603"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT_RETURN(index<sp/>&lt;<sp/><ref refid="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" kindref="member">shaderCount</ref>,<sp/>{});</highlight></codeline>
+<codeline lineno="604"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>make_span_const(&amp;<ref refid="classraytrace_1_1Pipeline_1a7fb6de3153de40a3d2a869c0635a7f7d" kindref="member">shaderHandleTable</ref>[index<sp/>*<sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref>],<sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref>);</highlight></codeline>
+<codeline lineno="605"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="607" refid="classraytrace_1_1Pipeline_1a0ac57595d2fac7568a8cdfb5f696ab3d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline_1a0ac57595d2fac7568a8cdfb5f696ab3d" kindref="member">writeShaderHandleTo</ref>(uint32_t<sp/>index,<sp/>dag::Span&lt;uint8_t&gt;<sp/>target)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="608"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="609"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT_RETURN(index<sp/>&lt;<sp/><ref refid="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" kindref="member">shaderCount</ref>,<sp/>);</highlight></codeline>
+<codeline lineno="610"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT_RETURN(target.size()<sp/>&gt;=<sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref>,<sp/>);</highlight></codeline>
+<codeline lineno="611"><highlight class="normal"><sp/><sp/><sp/><sp/>memcpy(target.data(),<sp/>&amp;<ref refid="classraytrace_1_1Pipeline_1a7fb6de3153de40a3d2a869c0635a7f7d" kindref="member">shaderHandleTable</ref>[index<sp/>*<sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref>],<sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref>);</highlight></codeline>
+<codeline lineno="612"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="614" refid="classraytrace_1_1Pipeline_1a063a079aada14125fd5f9e622e522756" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classraytrace_1_1Pipeline_1a063a079aada14125fd5f9e622e522756" kindref="member">getShaderHandleSize</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" kindref="member">shaderHandleSize</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="615"><highlight class="normal"></highlight></codeline>
+<codeline lineno="616" refid="classraytrace_1_1Pipeline_1aa21c102f2565fa7eb17b2a33c6cf50d0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline_1aa21c102f2565fa7eb17b2a33c6cf50d0" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;r)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>l.<ref refid="classraytrace_1_1Pipeline_1a6affa6e295241f1cc88ecfefdc2d771f" kindref="member">driverObject</ref><sp/>==<sp/>r.<ref refid="classraytrace_1_1Pipeline_1a6affa6e295241f1cc88ecfefdc2d771f" kindref="member">driverObject</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="617" refid="classraytrace_1_1Pipeline_1acd67bdd9a2d9729bd75a3f5d9ae70673" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline_1acd67bdd9a2d9729bd75a3f5d9ae70673" kindref="member">operator!=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;l,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;r)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(l<sp/>==<sp/>r);<sp/>}</highlight></codeline>
+<codeline lineno="618"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="619"><highlight class="normal"></highlight></codeline>
+<codeline lineno="621" refid="namespaceraytrace_1a1d5e11386fd4a9628c4aff5ee7092ae7" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/><ref refid="namespaceraytrace_1a1d5e11386fd4a9628c4aff5ee7092ae7" kindref="member">InvalidPipeline</ref>{};</highlight></codeline>
+<codeline lineno="622"><highlight class="normal"></highlight></codeline>
+<codeline lineno="624" refid="structraytrace_1_1PipelineExpandInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1PipelineExpandInfo" kindref="compound">PipelineExpandInfo</ref></highlight></codeline>
+<codeline lineno="625"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="627" refid="structraytrace_1_1PipelineExpandInfo_1ae6b940dcc2e188c0f24c5802061c28ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structraytrace_1_1PipelineExpandInfo_1ae6b940dcc2e188c0f24c5802061c28ee" kindref="member">name</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="629" refid="structraytrace_1_1PipelineExpandInfo_1a4223d4566ac5f851f0eb13489f71f031" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>ShaderGroupMember&gt;<sp/><ref refid="structraytrace_1_1PipelineExpandInfo_1a4223d4566ac5f851f0eb13489f71f031" kindref="member">groupMemebers</ref>;</highlight></codeline>
+<codeline lineno="634" refid="structraytrace_1_1PipelineExpandInfo_1af338f9b022721c7943e945e71881fe0d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1PipelineExpandInfo_1af338f9b022721c7943e945e71881fe0d" kindref="member">expandable</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="637" refid="structraytrace_1_1PipelineExpandInfo_1a816fcdfcccf9b74e05caf8fb249f469e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1PipelineExpandInfo_1a816fcdfcccf9b74e05caf8fb249f469e" kindref="member">alwaysIgnoreTriangleGeometry</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="640" refid="structraytrace_1_1PipelineExpandInfo_1a5badffdd8cfe653b9b8c5e24d398fb59" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1PipelineExpandInfo_1a5badffdd8cfe653b9b8c5e24d398fb59" kindref="member">alwaysIgnoreProceduralGeometry</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="641"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="642"><highlight class="normal"></highlight></codeline>
+<codeline lineno="644" refid="structraytrace_1_1PipelineCreateInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1PipelineCreateInfo" kindref="compound">PipelineCreateInfo</ref><sp/>:<sp/><ref refid="structraytrace_1_1PipelineExpandInfo" kindref="compound">PipelineExpandInfo</ref></highlight></codeline>
+<codeline lineno="645"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="648" refid="structraytrace_1_1PipelineCreateInfo_1af99189b6d80255fd50d760697af79fc6" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>ShaderLibrary&gt;<sp/><ref refid="structraytrace_1_1PipelineCreateInfo_1af99189b6d80255fd50d760697af79fc6" kindref="member">rayGenForwardRefernces</ref>;</highlight></codeline>
+<codeline lineno="651" refid="structraytrace_1_1PipelineCreateInfo_1a9889cc56764b12c0ce7f8037bf877dd8" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>ShaderLibrary&gt;<sp/><ref refid="structraytrace_1_1PipelineCreateInfo_1a9889cc56764b12c0ce7f8037bf877dd8" kindref="member">missForwardReferences</ref>;</highlight></codeline>
+<codeline lineno="654" refid="structraytrace_1_1PipelineCreateInfo_1af08ef8294a07ce0e69130d22eabaf323" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>ShaderLibrary&gt;<sp/><ref refid="structraytrace_1_1PipelineCreateInfo_1af08ef8294a07ce0e69130d22eabaf323" kindref="member">hitForwardRefrences</ref>;</highlight></codeline>
+<codeline lineno="657" refid="structraytrace_1_1PipelineCreateInfo_1a833504d5c5045bd8b37968bbaf22b35a" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>ShaderLibrary&gt;<sp/><ref refid="structraytrace_1_1PipelineCreateInfo_1a833504d5c5045bd8b37968bbaf22b35a" kindref="member">callableForwardReferences</ref>;</highlight></codeline>
+<codeline lineno="661" refid="structraytrace_1_1PipelineCreateInfo_1a8ac96cadf67c53549941ec33dade0bc3" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1PipelineCreateInfo_1a8ac96cadf67c53549941ec33dade0bc3" kindref="member">maxRecursionDepth</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="664" refid="structraytrace_1_1PipelineCreateInfo_1aef90bbbb007cbb5ccc009e0c75c3a741" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1PipelineCreateInfo_1aef90bbbb007cbb5ccc009e0c75c3a741" kindref="member">maxPayloadSize</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="670" refid="structraytrace_1_1PipelineCreateInfo_1aadabf54c52911aef381ee83c76a5403e" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1PipelineCreateInfo_1aadabf54c52911aef381ee83c76a5403e" kindref="member">maxAttributeSize</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="671"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="672"><highlight class="normal"></highlight></codeline>
+<codeline lineno="676" refid="namespaceraytrace_1a24293d09eb2f7bc6f932334ca537c95b" refkind="member"><highlight class="normal"><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a14c3d6a80e4845de4f0925dd7c5cd3fe" kindref="member">create_pipeline</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1PipelineCreateInfo" kindref="compound">PipelineCreateInfo</ref><sp/>&amp;pci);</highlight></codeline>
+<codeline lineno="687" refid="namespaceraytrace_1aaa5009767f704ef3e7c4f7e8c2b09db0" refkind="member"><highlight class="normal"><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a80e7f53d50020aeb59bca9d748023696" kindref="member">expand_pipeline</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;pipeline,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1PipelineExpandInfo" kindref="compound">PipelineExpandInfo</ref><sp/>&amp;pei);</highlight></codeline>
+<codeline lineno="690" refid="namespaceraytrace_1af415da54c6df1e89330b160503becafc" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a5b37f27c76a6695a52490bd2b1a0937b" kindref="member">destroy_pipeline</ref>(<ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;p);</highlight></codeline>
+<codeline lineno="691"><highlight class="normal"></highlight></codeline>
+<codeline lineno="693" refid="structraytrace_1_1ShaderBindingTableGroupInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableGroupInfo" kindref="compound">ShaderBindingTableGroupInfo</ref></highlight></codeline>
+<codeline lineno="694"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="699" refid="structraytrace_1_1ShaderBindingTableGroupInfo_1a768a0a4b69dd77888eec7f45f854f828" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupInfo_1a768a0a4b69dd77888eec7f45f854f828" kindref="member">minResourceReferences</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="704" refid="structraytrace_1_1ShaderBindingTableGroupInfo_1a825b075808d47b62fe162b8e3d2bd255" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupInfo_1a825b075808d47b62fe162b8e3d2bd255" kindref="member">minConstantDataSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="705"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="706"><highlight class="normal"></highlight></codeline>
+<codeline lineno="708" refid="structraytrace_1_1ShaderBindingTableDefinition" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableDefinition" kindref="compound">ShaderBindingTableDefinition</ref></highlight></codeline>
+<codeline lineno="709"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="711" refid="structraytrace_1_1ShaderBindingTableDefinition_1a626707d5b8852e9801031314f3aec092" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupInfo" kindref="compound">ShaderBindingTableGroupInfo</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableDefinition_1a626707d5b8852e9801031314f3aec092" kindref="member">rayGenGroup</ref>;</highlight></codeline>
+<codeline lineno="713" refid="structraytrace_1_1ShaderBindingTableDefinition_1ae063c26bb31cbe4666b7c98067a0620d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupInfo" kindref="compound">ShaderBindingTableGroupInfo</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableDefinition_1ae063c26bb31cbe4666b7c98067a0620d" kindref="member">missGroup</ref>;</highlight></codeline>
+<codeline lineno="715" refid="structraytrace_1_1ShaderBindingTableDefinition_1a4efdd843e40a86041a6a4cd7fc7b64fa" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupInfo" kindref="compound">ShaderBindingTableGroupInfo</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableDefinition_1a4efdd843e40a86041a6a4cd7fc7b64fa" kindref="member">hitGroup</ref>;</highlight></codeline>
+<codeline lineno="717" refid="structraytrace_1_1ShaderBindingTableDefinition_1add9b6058626c9be92fa15e5532f2ac38" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupInfo" kindref="compound">ShaderBindingTableGroupInfo</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableDefinition_1add9b6058626c9be92fa15e5532f2ac38" kindref="member">callableGroup</ref>;</highlight></codeline>
+<codeline lineno="722" refid="structraytrace_1_1ShaderBindingTableDefinition_1a458cf02bd72435db929aeee151329d51" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableDefinition_1a458cf02bd72435db929aeee151329d51" kindref="member">bufferCreateFlags</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="723"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="724"><highlight class="normal"></highlight></codeline>
+<codeline lineno="726" refid="structraytrace_1_1ShaderBindingTableGroupProperties" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref></highlight></codeline>
+<codeline lineno="727"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="730" refid="structraytrace_1_1ShaderBindingTableGroupProperties_1acdfac2ac28229d2caf1372494c89d2a5" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties_1acdfac2ac28229d2caf1372494c89d2a5" kindref="member">dataSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="735" refid="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" kindref="member">entryAlignedSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="736"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="737"><highlight class="normal"></highlight></codeline>
+<codeline lineno="745" refid="structraytrace_1_1ShaderBindingTableBufferProperties" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties" kindref="compound">ShaderBindingTableBufferProperties</ref></highlight></codeline>
+<codeline lineno="746"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="750" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a3c7dab5f0878dc2b1526912b906b43c2" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a3c7dab5f0878dc2b1526912b906b43c2" kindref="member">createStructSize</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="753" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a405e3224800438780d954c234051bcc9" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a405e3224800438780d954c234051bcc9" kindref="member">createFlags</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="756" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a95f1ae143a7452431c008259a6e30afb" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a95f1ae143a7452431c008259a6e30afb" kindref="member">createFormat</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="759" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b0ec37e826b73bc9beee918ceaa1dae" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b0ec37e826b73bc9beee918ceaa1dae" kindref="member">groupOffsetAlignmentSizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="761" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b796c7404138879b6c932077a631d9e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b796c7404138879b6c932077a631d9e" kindref="member">rayGenGroup</ref>;</highlight></codeline>
+<codeline lineno="763" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a0ec3ce9ac259a10028fd4753a82e9527" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a0ec3ce9ac259a10028fd4753a82e9527" kindref="member">missGroup</ref>;</highlight></codeline>
+<codeline lineno="765" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a56ea1b71893b6f15f2e787281c88c63a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a56ea1b71893b6f15f2e787281c88c63a" kindref="member">hitGroup</ref>;</highlight></codeline>
+<codeline lineno="767" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a21f09e22f156752a70c1cc6764fbc68a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableGroupProperties" kindref="compound">ShaderBindingTableGroupProperties</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a21f09e22f156752a70c1cc6764fbc68a" kindref="member">callableGroup</ref>;</highlight></codeline>
+<codeline lineno="768"><highlight class="normal"></highlight></codeline>
+<codeline lineno="770" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts" kindref="compound">GroupCounts</ref></highlight></codeline>
+<codeline lineno="771"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="773" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a91f299ba3f2c722315606e8a837e7be2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a91f299ba3f2c722315606e8a837e7be2" kindref="member">rayGenGroupCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="775" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a4702935ee1950c024ed4cd865915cf42" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a4702935ee1950c024ed4cd865915cf42" kindref="member">missGroupCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="777" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a266984fe243695edbbad1d297cc5317b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a266984fe243695edbbad1d297cc5317b" kindref="member">hitGroupCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="779" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a557320bf1fbadc81bebf784d3d5acba5" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a557320bf1fbadc81bebf784d3d5acba5" kindref="member">callableGroupCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="780"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="781"><highlight class="normal"></highlight></codeline>
+<codeline lineno="783" refid="structraytrace_1_1ShaderBindingTableBufferProperties_1ad6e0fbda7043e2b0de7124f05a798716" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1ad6e0fbda7043e2b0de7124f05a798716" kindref="member">calculateElementCount</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts" kindref="compound">GroupCounts</ref><sp/>&amp;counts)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="784"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="785"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>groupAlignAdd<sp/>=<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b0ec37e826b73bc9beee918ceaa1dae" kindref="member">groupOffsetAlignmentSizeInBytes</ref><sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="786"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>groupAlignMask<sp/>=<sp/>~groupAlignAdd;</highlight></codeline>
+<codeline lineno="787"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>rayGenGroupBytes<sp/>=<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a8b796c7404138879b6c932077a631d9e" kindref="member">rayGenGroup</ref>.<ref refid="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" kindref="member">entryAlignedSizeInBytes</ref><sp/>*<sp/>counts.<ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a91f299ba3f2c722315606e8a837e7be2" kindref="member">rayGenGroupCount</ref>;</highlight></codeline>
+<codeline lineno="788"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>missGroupBytes<sp/>=<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a0ec3ce9ac259a10028fd4753a82e9527" kindref="member">missGroup</ref>.<ref refid="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" kindref="member">entryAlignedSizeInBytes</ref><sp/>*<sp/>counts.<ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a4702935ee1950c024ed4cd865915cf42" kindref="member">missGroupCount</ref>;</highlight></codeline>
+<codeline lineno="789"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>hitGroupBytes<sp/>=<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a56ea1b71893b6f15f2e787281c88c63a" kindref="member">hitGroup</ref>.<ref refid="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" kindref="member">entryAlignedSizeInBytes</ref><sp/>*<sp/>counts.<ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a266984fe243695edbbad1d297cc5317b" kindref="member">hitGroupCount</ref>;</highlight></codeline>
+<codeline lineno="790"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>callableGroupBytes<sp/>=<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a21f09e22f156752a70c1cc6764fbc68a" kindref="member">callableGroup</ref>.<ref refid="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" kindref="member">entryAlignedSizeInBytes</ref><sp/>*<sp/>counts.<ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a557320bf1fbadc81bebf784d3d5acba5" kindref="member">callableGroupCount</ref>;</highlight></codeline>
+<codeline lineno="791"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>each<sp/>group<sp/>has<sp/>to<sp/>be<sp/>aligned<sp/>to<sp/>groupOffsetAlignmentSizeInBytes,<sp/>technically<sp/>we<sp/>could<sp/>save<sp/>some<sp/>bytes<sp/>on<sp/>the<sp/>last<sp/>group<sp/>a<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="792"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>end.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="793"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Note<sp/>rayGenGroupBytes<sp/>is<sp/>already<sp/>aligned<sp/>because<sp/>we<sp/>can&apos;t<sp/>have<sp/>packed<sp/>arrays<sp/>of<sp/>ray<sp/>gen<sp/>entries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="794"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>totalBytes<sp/>=<sp/>rayGenGroupBytes<sp/>+<sp/>((missGroupBytes<sp/>+<sp/>groupAlignAdd)<sp/>&amp;<sp/>groupAlignMask)<sp/>+</highlight></codeline>
+<codeline lineno="795"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>((hitGroupBytes<sp/>+<sp/>groupAlignAdd)<sp/>&amp;<sp/>groupAlignMask)<sp/>+<sp/>((callableGroupBytes<sp/>+<sp/>groupAlignAdd)<sp/>&amp;<sp/>groupAlignMask);</highlight></codeline>
+<codeline lineno="796"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>convert<sp/>to<sp/>number<sp/>of<sp/>elements<sp/>and<sp/>with<sp/>rounding<sp/>up<sp/>to<sp/>next<sp/>full<sp/>element</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="797"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(totalBytes<sp/>+<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a3c7dab5f0878dc2b1526912b906b43c2" kindref="member">createStructSize</ref><sp/>-<sp/>1)<sp/>/<sp/><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties_1a3c7dab5f0878dc2b1526912b906b43c2" kindref="member">createStructSize</ref>;</highlight></codeline>
+<codeline lineno="798"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="799"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="800"><highlight class="normal"></highlight></codeline>
+<codeline lineno="803" refid="namespaceraytrace_1a23c502084a2f2a97589bbec3a4f57a1a" refkind="member"><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties" kindref="compound">ShaderBindingTableBufferProperties</ref><sp/><ref refid="rayTrace3di_8inl_8h_1a17d5959d61ea5017d45d14ab993c9bfb" kindref="member">get_shader_binding_table_buffer_properties</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ShaderBindingTableDefinition" kindref="compound">ShaderBindingTableDefinition</ref><sp/>&amp;sbtd,</highlight></codeline>
+<codeline lineno="804"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;pipeline);</highlight></codeline>
+<codeline lineno="805"><highlight class="normal"></highlight></codeline>
+<codeline lineno="815" refid="structraytrace_1_1ResourceBindingTable" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">ResourceBindingTable</ref></highlight></codeline>
+<codeline lineno="816"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="818" refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead" kindref="compound">ConstBufferRead</ref></highlight></codeline>
+<codeline lineno="819"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="821" refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a9ec74fa8a67452732740fa0b116e4c71" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a9ec74fa8a67452732740fa0b116e4c71" kindref="member">buffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="823" refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a659e3536eee8c0edb37c4102ebdcf088" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a659e3536eee8c0edb37c4102ebdcf088" kindref="member">slot</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="825" refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1ac1ab9d33f9e496d2eaada36b0dfb1b14" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1ac1ab9d33f9e496d2eaada36b0dfb1b14" kindref="member">offsetInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="827" refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a652f36ecb70d15ec382007bfda3084b3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1ConstBufferRead_1a652f36ecb70d15ec382007bfda3084b3" kindref="member">sizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="828"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="830" refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead" kindref="compound">BufferRead</ref></highlight></codeline>
+<codeline lineno="831"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="833" refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae75fabac3fc4fc99b4822549f20d4234" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae75fabac3fc4fc99b4822549f20d4234" kindref="member">buffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="835" refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae7e32795189735356d9c23712177104e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferRead_1ae7e32795189735356d9c23712177104e" kindref="member">slot</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="836"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="838" refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead" kindref="compound">TextureRead</ref></highlight></codeline>
+<codeline lineno="839"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="841" refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1a201bf3a857504dd39b9317ebd493cbf6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1a201bf3a857504dd39b9317ebd493cbf6" kindref="member">texture</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="843" refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1ab4dba41b9446656f3fd6b96da859aaca" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1ab4dba41b9446656f3fd6b96da859aaca" kindref="member">slot</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="844"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="846" refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead" kindref="compound">AccelerationStructureRead</ref></highlight></codeline>
+<codeline lineno="847"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="849" refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead_1a8fd6f630bed7b6e35ae90864812010ae" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>RaytraceTopAccelerationStructure<sp/>*<ref refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead_1a8fd6f630bed7b6e35ae90864812010ae" kindref="member">structure</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="851" refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead_1aed93b314fcdae2ffd8ed3e35c350ae8f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1AccelerationStructureRead_1aed93b314fcdae2ffd8ed3e35c350ae8f" kindref="member">slot</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="852"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="854" refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite" kindref="compound">BufferWrite</ref></highlight></codeline>
+<codeline lineno="855"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="857" refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1aa23f0a72cce20bd8af0583de9a4370ce" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1aa23f0a72cce20bd8af0583de9a4370ce" kindref="member">buffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="859" refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1a90cce9ba007c81dee25d168963550a20" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1BufferWrite_1a90cce9ba007c81dee25d168963550a20" kindref="member">slot</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="860"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="862" refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite" kindref="compound">TextureWrite</ref></highlight></codeline>
+<codeline lineno="863"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="865" refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a38bfa0ec45a7082b705af4550869e541" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a38bfa0ec45a7082b705af4550869e541" kindref="member">texture</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="867" refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a07f532615384ff035810540d0c6360e3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a07f532615384ff035810540d0c6360e3" kindref="member">slot</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="869" refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a159c5d0ba81080a7717a2b356305e644" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1a159c5d0ba81080a7717a2b356305e644" kindref="member">mipIndex</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="871" refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1ace608c7ebcaa31b660aa9d12eb43b70f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1ace608c7ebcaa31b660aa9d12eb43b70f" kindref="member">arrayIndex</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="873" refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1abdc25d204deb30790c4b2aaa853b9b32" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1TextureWrite_1abdc25d204deb30790c4b2aaa853b9b32" kindref="member">viewAsUI32</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="874"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="876" refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead" kindref="compound">SamplerRead</ref></highlight></codeline>
+<codeline lineno="877"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="879" refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a6bf324a3c7b577b01798c00314171869" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaced3d_1aee766f4273f69e0942fff59ab388cfe2" kindref="member">d3d::SamplerHandle</ref><sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a6bf324a3c7b577b01798c00314171869" kindref="member">sampler</ref><sp/>=<sp/><ref refid="namespaced3d_1ac4554f9e2d21dfb2dade16cb321bb65d" kindref="member">d3d::INVALID_SAMPLER_HANDLE</ref>;</highlight></codeline>
+<codeline lineno="881" refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a59fbb280d9db86c7105cffe08628b570" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a59fbb280d9db86c7105cffe08628b570" kindref="member">slot</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="882"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="885" refid="structraytrace_1_1ResourceBindingTable_1aeed1a47821a9e278bf8c36731909b38e" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>uint32_t&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1aeed1a47821a9e278bf8c36731909b38e" kindref="member">immediateConstants</ref>;</highlight></codeline>
+<codeline lineno="887" refid="structraytrace_1_1ResourceBindingTable_1aa3067a678c7049184316383dc2d95d77" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;ConstBufferRead&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1aa3067a678c7049184316383dc2d95d77" kindref="member">constantBufferReads</ref>;</highlight></codeline>
+<codeline lineno="889" refid="structraytrace_1_1ResourceBindingTable_1a7e21606c08c3e992e76bb35fea19b322" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;BufferRead&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1a7e21606c08c3e992e76bb35fea19b322" kindref="member">bufferReads</ref>;</highlight></codeline>
+<codeline lineno="891" refid="structraytrace_1_1ResourceBindingTable_1af4d3573b5083e804c1199fc31cc64e24" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;TextureRead&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1af4d3573b5083e804c1199fc31cc64e24" kindref="member">textureReads</ref>;</highlight></codeline>
+<codeline lineno="893" refid="structraytrace_1_1ResourceBindingTable_1ad593430f3c041a0b59a9a211151bc04a" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;AccelerationStructureRead&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1ad593430f3c041a0b59a9a211151bc04a" kindref="member">accelerationStructureReads</ref>;</highlight></codeline>
+<codeline lineno="895" refid="structraytrace_1_1ResourceBindingTable_1a951b5087e01bbe7820a94b980e95e6f7" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;BufferWrite&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1a951b5087e01bbe7820a94b980e95e6f7" kindref="member">bufferWrites</ref>;</highlight></codeline>
+<codeline lineno="897" refid="structraytrace_1_1ResourceBindingTable_1a8192ec4e8a014256e259a9bc81ac664e" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;TextureWrite&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1a8192ec4e8a014256e259a9bc81ac664e" kindref="member">textureWrites</ref>;</highlight></codeline>
+<codeline lineno="899" refid="structraytrace_1_1ResourceBindingTable_1a039898bb372b39a16253eae58f837325" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;SamplerRead&gt;<sp/><ref refid="structraytrace_1_1ResourceBindingTable_1a039898bb372b39a16253eae58f837325" kindref="member">samples</ref>;</highlight></codeline>
+<codeline lineno="900"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="901"><highlight class="normal"></highlight></codeline>
+<codeline lineno="903" refid="structraytrace_1_1ShaderBindingTableOffset" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableOffset" kindref="compound">ShaderBindingTableOffset</ref></highlight></codeline>
+<codeline lineno="904"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="906" refid="structraytrace_1_1ShaderBindingTableOffset_1a9b939b93f894003ad70c88962eb61984" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1ShaderBindingTableOffset_1a9b939b93f894003ad70c88962eb61984" kindref="member">bindingTableBuffer</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="908" refid="structraytrace_1_1ShaderBindingTableOffset_1a6a671f34b7d1f6c1941a01c3084d7dc6" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableOffset_1a6a671f34b7d1f6c1941a01c3084d7dc6" kindref="member">offsetInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="910" refid="structraytrace_1_1ShaderBindingTableOffset_1a6d0641b3442b640a24e55183309c2ecc" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableOffset_1a6d0641b3442b640a24e55183309c2ecc" kindref="member">sizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="911"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="912"><highlight class="normal"></highlight></codeline>
+<codeline lineno="914" refid="structraytrace_1_1ShaderBindingTableSubRange" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableSubRange" kindref="compound">ShaderBindingTableSubRange</ref><sp/>:<sp/><ref refid="structraytrace_1_1ShaderBindingTableOffset" kindref="compound">ShaderBindingTableOffset</ref></highlight></codeline>
+<codeline lineno="915"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="917" refid="structraytrace_1_1ShaderBindingTableSubRange_1a8027459f0a0a1c78cbbf03c5ee2b974a" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1ShaderBindingTableSubRange_1a8027459f0a0a1c78cbbf03c5ee2b974a" kindref="member">strideInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="918"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="919"><highlight class="normal"></highlight></codeline>
+<codeline lineno="921" refid="structraytrace_1_1ShaderBindingTableSet" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1ShaderBindingTableSet" kindref="compound">ShaderBindingTableSet</ref></highlight></codeline>
+<codeline lineno="922"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="924" refid="structraytrace_1_1ShaderBindingTableSet_1a904b37ad4e5c10d8770821fd4503d67e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableOffset" kindref="compound">ShaderBindingTableOffset</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableSet_1a904b37ad4e5c10d8770821fd4503d67e" kindref="member">rayGenGroup</ref>;</highlight></codeline>
+<codeline lineno="926" refid="structraytrace_1_1ShaderBindingTableSet_1a26a0ec26a9e6031b0c581d672ee6294d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableSubRange" kindref="compound">ShaderBindingTableSubRange</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableSet_1a26a0ec26a9e6031b0c581d672ee6294d" kindref="member">missGroup</ref>;</highlight></codeline>
+<codeline lineno="928" refid="structraytrace_1_1ShaderBindingTableSet_1ae79b31835f274477efaca586bad322e5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableSubRange" kindref="compound">ShaderBindingTableSubRange</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableSet_1ae79b31835f274477efaca586bad322e5" kindref="member">hitGroup</ref>;</highlight></codeline>
+<codeline lineno="930" refid="structraytrace_1_1ShaderBindingTableSet_1af1295426b2e92f41509e4a7053eb11ca" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableSubRange" kindref="compound">ShaderBindingTableSubRange</ref><sp/><ref refid="structraytrace_1_1ShaderBindingTableSet_1af1295426b2e92f41509e4a7053eb11ca" kindref="member">callableGroup</ref>;</highlight></codeline>
+<codeline lineno="931"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="932"><highlight class="normal"></highlight></codeline>
+<codeline lineno="934" refid="structraytrace_1_1RayDispatchGroup" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchGroup" kindref="compound">RayDispatchGroup</ref></highlight></codeline>
+<codeline lineno="935"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="937" refid="structraytrace_1_1RayDispatchGroup_1a49bfd27cd1e03bedf16c8240b7fa853b" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="structraytrace_1_1RayDispatchGroup_1a49bfd27cd1e03bedf16c8240b7fa853b" kindref="member">virtualGpuAddress</ref>;</highlight></codeline>
+<codeline lineno="939" refid="structraytrace_1_1RayDispatchGroup_1ae6c890b49b6d5fee5135807b0744d54e" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="structraytrace_1_1RayDispatchGroup_1ae6c890b49b6d5fee5135807b0744d54e" kindref="member">sizeInBytes</ref>;</highlight></codeline>
+<codeline lineno="940"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="941"><highlight class="normal"></highlight></codeline>
+<codeline lineno="943" refid="structraytrace_1_1RayDispatchGroupTable" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchGroupTable" kindref="compound">RayDispatchGroupTable</ref><sp/>:<sp/><ref refid="structraytrace_1_1RayDispatchGroup" kindref="compound">RayDispatchGroup</ref></highlight></codeline>
+<codeline lineno="944"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="946" refid="structraytrace_1_1RayDispatchGroupTable_1a70f18ae6b0730aefda1e5c2ecfcfe5a1" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="structraytrace_1_1RayDispatchGroupTable_1a70f18ae6b0730aefda1e5c2ecfcfe5a1" kindref="member">strideInBytes</ref>;</highlight></codeline>
+<codeline lineno="947"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="948"><highlight class="normal"></highlight></codeline>
+<codeline lineno="950" refid="structraytrace_1_1RayDispatchGroupTableSet" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchGroupTableSet" kindref="compound">RayDispatchGroupTableSet</ref></highlight></codeline>
+<codeline lineno="951"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="953" refid="structraytrace_1_1RayDispatchGroupTableSet_1a8d406a53829eada3085ab358b3e63b25" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1RayDispatchGroup" kindref="compound">RayDispatchGroup</ref><sp/><ref refid="structraytrace_1_1RayDispatchGroupTableSet_1a8d406a53829eada3085ab358b3e63b25" kindref="member">rayGen</ref>;</highlight></codeline>
+<codeline lineno="955" refid="structraytrace_1_1RayDispatchGroupTableSet_1ab7c48131f8d93edc708adb3042d23cfa" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1RayDispatchGroupTable" kindref="compound">RayDispatchGroupTable</ref><sp/><ref refid="structraytrace_1_1RayDispatchGroupTableSet_1ab7c48131f8d93edc708adb3042d23cfa" kindref="member">miss</ref>;</highlight></codeline>
+<codeline lineno="957" refid="structraytrace_1_1RayDispatchGroupTableSet_1ab73fd3e6dfd68fd9f5d27a2812a51bac" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1RayDispatchGroupTable" kindref="compound">RayDispatchGroupTable</ref><sp/><ref refid="structraytrace_1_1RayDispatchGroupTableSet_1ab73fd3e6dfd68fd9f5d27a2812a51bac" kindref="member">hit</ref>;</highlight></codeline>
+<codeline lineno="959" refid="structraytrace_1_1RayDispatchGroupTableSet_1a1fee3675dd364c1e0de775d75b61b83a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1RayDispatchGroupTable" kindref="compound">RayDispatchGroupTable</ref><sp/><ref refid="structraytrace_1_1RayDispatchGroupTableSet_1a1fee3675dd364c1e0de775d75b61b83a" kindref="member">callable</ref>;</highlight></codeline>
+<codeline lineno="960"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="961"><highlight class="normal"></highlight></codeline>
+<codeline lineno="963" refid="structraytrace_1_1RayDispatchIndirectArguments" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchIndirectArguments" kindref="compound">RayDispatchIndirectArguments</ref></highlight></codeline>
+<codeline lineno="964"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="966" refid="structraytrace_1_1RayDispatchIndirectArguments_1a45c81e7c592d4263978d54b4f5669cc6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1RayDispatchGroupTableSet" kindref="compound">RayDispatchGroupTableSet</ref><sp/><ref refid="structraytrace_1_1RayDispatchIndirectArguments_1a45c81e7c592d4263978d54b4f5669cc6" kindref="member">dispatchTableSet</ref>;</highlight></codeline>
+<codeline lineno="968" refid="structraytrace_1_1RayDispatchIndirectArguments_1ab0a95a39561fbb9d0233bf4fe1ded5d2" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectArguments_1ab0a95a39561fbb9d0233bf4fe1ded5d2" kindref="member">width</ref>;</highlight></codeline>
+<codeline lineno="970" refid="structraytrace_1_1RayDispatchIndirectArguments_1a0e9690829efdf806b889ea653f67cd77" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectArguments_1a0e9690829efdf806b889ea653f67cd77" kindref="member">height</ref>;</highlight></codeline>
+<codeline lineno="972" refid="structraytrace_1_1RayDispatchIndirectArguments_1a89b166e88e623c48ddde1f8a2cccb071" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectArguments_1a89b166e88e623c48ddde1f8a2cccb071" kindref="member">depth</ref>;</highlight></codeline>
+<codeline lineno="973"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="974"><highlight class="normal"></highlight></codeline>
+<codeline lineno="976" refid="structraytrace_1_1RayDispatchParameters" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchParameters" kindref="compound">RayDispatchParameters</ref></highlight></codeline>
+<codeline lineno="977"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="979" refid="structraytrace_1_1RayDispatchParameters_1abf5ecf3f8a09d3fcae70babfa89ef4ab" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structraytrace_1_1ShaderBindingTableSet" kindref="compound">ShaderBindingTableSet</ref><sp/><ref refid="structraytrace_1_1RayDispatchParameters_1abf5ecf3f8a09d3fcae70babfa89ef4ab" kindref="member">shaderBindingTableSet</ref>;</highlight></codeline>
+<codeline lineno="981" refid="structraytrace_1_1RayDispatchParameters_1a102b14cc302a8776f611d68526482bbd" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchParameters_1a102b14cc302a8776f611d68526482bbd" kindref="member">width</ref>;</highlight></codeline>
+<codeline lineno="983" refid="structraytrace_1_1RayDispatchParameters_1adab47bf17373d165952e3fe45282719d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchParameters_1adab47bf17373d165952e3fe45282719d" kindref="member">height</ref>;</highlight></codeline>
+<codeline lineno="985" refid="structraytrace_1_1RayDispatchParameters_1a3b852620e2c7859eae11c37402ed10c4" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchParameters_1a3b852620e2c7859eae11c37402ed10c4" kindref="member">depth</ref>;</highlight></codeline>
+<codeline lineno="986"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="987"><highlight class="normal"></highlight></codeline>
+<codeline lineno="989" refid="structraytrace_1_1RayDispatchIndirectBaseParameters" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchIndirectBaseParameters" kindref="compound">RayDispatchIndirectBaseParameters</ref></highlight></codeline>
+<codeline lineno="990"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="992" refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1af2a246f71e76b6c7813a0decd0619b8f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1af2a246f71e76b6c7813a0decd0619b8f" kindref="member">indirectBuffer</ref>;</highlight></codeline>
+<codeline lineno="994" refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1a66bb693b8fa84bce8d1425cea5ffc80b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1a66bb693b8fa84bce8d1425cea5ffc80b" kindref="member">indirectByteOffset</ref>;</highlight></codeline>
+<codeline lineno="996" refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1a56e10c694cc47e3bb7919ade7d7b8771" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1a56e10c694cc47e3bb7919ade7d7b8771" kindref="member">indirectByteStride</ref>;</highlight></codeline>
+<codeline lineno="997"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="998"><highlight class="normal"></highlight></codeline>
+<codeline lineno="1000" refid="structraytrace_1_1RayDispatchIndirectParameters" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchIndirectParameters" kindref="compound">RayDispatchIndirectParameters</ref><sp/>:<sp/><ref refid="structraytrace_1_1RayDispatchIndirectBaseParameters" kindref="compound">RayDispatchIndirectBaseParameters</ref></highlight></codeline>
+<codeline lineno="1001"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="1003" refid="structraytrace_1_1RayDispatchIndirectParameters_1a730f29e16fd38c377ed84c0adc45856e" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectParameters_1a730f29e16fd38c377ed84c0adc45856e" kindref="member">count</ref>;</highlight></codeline>
+<codeline lineno="1004"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="1005"><highlight class="normal"></highlight></codeline>
+<codeline lineno="1007" refid="structraytrace_1_1RayDispatchIndirectCountParameters" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structraytrace_1_1RayDispatchIndirectCountParameters" kindref="compound">RayDispatchIndirectCountParameters</ref><sp/>:<sp/><ref refid="structraytrace_1_1RayDispatchIndirectBaseParameters" kindref="compound">RayDispatchIndirectBaseParameters</ref></highlight></codeline>
+<codeline lineno="1008"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="1010" refid="structraytrace_1_1RayDispatchIndirectCountParameters_1a0fca142afc68a5ce1235661132b3324d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structraytrace_1_1RayDispatchIndirectCountParameters_1a0fca142afc68a5ce1235661132b3324d" kindref="member">countBuffer</ref>;</highlight></codeline>
+<codeline lineno="1012" refid="structraytrace_1_1RayDispatchIndirectCountParameters_1a6ab6fde8cc53249716861dda062626ec" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectCountParameters_1a6ab6fde8cc53249716861dda062626ec" kindref="member">countByteOffset</ref>;</highlight></codeline>
+<codeline lineno="1014" refid="structraytrace_1_1RayDispatchIndirectCountParameters_1a548fff41188ef75438c0dad9a73de43d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structraytrace_1_1RayDispatchIndirectCountParameters_1a548fff41188ef75438c0dad9a73de43d" kindref="member">maxCount</ref>;</highlight></codeline>
+<codeline lineno="1015"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="1016"><highlight class="normal"></highlight></codeline>
+<codeline lineno="1020" refid="namespaceraytrace_1af9d8e925a496024535ed6758ec6aca9b" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aa1af0a0b0dce6b18b80603c3e1e29bca" kindref="member">dispatch</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">ResourceBindingTable</ref><sp/>&amp;rbt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;pipeline,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1RayDispatchParameters" kindref="compound">RayDispatchParameters</ref><sp/>&amp;rdp,</highlight></codeline>
+<codeline lineno="1021"><highlight class="normal"><sp/><sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline<sp/>=<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref>);</highlight></codeline>
+<codeline lineno="1026" refid="namespaceraytrace_1a779451cfcb9aa15bcd553626d6686e41" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1aef7b44ac7bc5cb5b6197b2a19eb7879f" kindref="member">dispatch_indirect</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">ResourceBindingTable</ref><sp/>&amp;rbt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;pipeline,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1RayDispatchIndirectParameters" kindref="compound">RayDispatchIndirectParameters</ref><sp/>&amp;rdip,</highlight></codeline>
+<codeline lineno="1027"><highlight class="normal"><sp/><sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline<sp/>=<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref>);</highlight></codeline>
+<codeline lineno="1033" refid="namespaceraytrace_1a8b8526ad0b1fdc357ef580cda30c9120" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="rayTrace3di_8inl_8h_1a0647a9f63adbf6ca6480c770e3621343" kindref="member">dispatch_indirect_count</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">ResourceBindingTable</ref><sp/>&amp;rbt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref><sp/>&amp;pipeline,</highlight></codeline>
+<codeline lineno="1034"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structraytrace_1_1RayDispatchIndirectCountParameters" kindref="compound">RayDispatchIndirectCountParameters</ref><sp/>&amp;rdicp,<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline<sp/>=<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref>);</highlight></codeline>
+<codeline lineno="1035"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>raytrace</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="1036"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="rayTrace/dag_drvRayTrace.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dagUuid_8h" kind="file" language="C++">
+    <compoundname>dagUuid.h</compoundname>
+    <includes local="no">string.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dagUuid.h</label>
+        <link refid="dagUuid_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structDagUUID" prot="public">DagUUID</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="structDagUUID" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagUUID" kindref="compound">DagUUID</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16" refid="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71" kindref="member">uuid</ref>[4];</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="structDagUUID_1a8cf8847712128b149e908186a86fa386" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDagUUID_1a8cf8847712128b149e908186a86fa386" kindref="member">clear</ref>()<sp/>{<sp/>memset(<ref refid="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71" kindref="member">uuid</ref>,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71" kindref="member">uuid</ref>));<sp/>}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="structDagUUID_1a6eb3342a3534307c3b81ce926f1bb3dc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structDagUUID_1a6eb3342a3534307c3b81ce926f1bb3dc" kindref="member">equal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDagUUID" kindref="compound">DagUUID</ref><sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!memcmp(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="structDagUUID_1a9fdf89c88f7304232c685d1b6b0d129d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structDagUUID_1a9fdf89c88f7304232c685d1b6b0d129d" kindref="member">generate</ref>(<ref refid="structDagUUID" kindref="compound">DagUUID</ref><sp/>&amp;out);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dagUuid.h"/>
+  </compounddef>
+</doxygen>

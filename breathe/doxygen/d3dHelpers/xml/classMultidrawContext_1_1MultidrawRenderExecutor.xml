@@ -1,0 +1,230 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMultidrawContext_1_1MultidrawRenderExecutor" kind="class" language="C++" prot="public">
+    <compoundname>MultidrawContext::MultidrawRenderExecutor</compoundname>
+    <includes refid="dag__multidrawContext_8h" local="no">dag_multidrawContext.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classMultidrawContext_1_1MultidrawRenderExecutor_1ad8e864c6bf3164a8ca3a3b2d85f59062" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class MultidrawContext</definition>
+        <argsstring></argsstring>
+        <name>MultidrawContext</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::MultidrawContext</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="145" column="18" bodyfile="dag_multidrawContext.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classMultidrawContext_1_1MultidrawRenderExecutor_1ae7e6f18d0765c7f498d8c174be539cfe" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> *</type>
+        <definition>const MultidrawContext* MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::context</definition>
+        <argsstring></argsstring>
+        <name>context</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::context</qualifiedname>
+        <briefdescription>
+<para>Pointer to a context that is used for rendering. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="149" column="28" bodyfile="dag_multidrawContext.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a29d04ce59455837c367457f96ef3703a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::MultidrawRenderExecutor</definition>
+        <argsstring>()=delete</argsstring>
+        <name>MultidrawRenderExecutor</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor</qualifiedname>
+        <briefdescription>
+<para>Default constructors and operator= are deleted. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="153" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1_1MultidrawRenderExecutor_1abb7da099b9fc1e0c7645a4da4dfa8fb4" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::MultidrawRenderExecutor</definition>
+        <argsstring>(MultidrawRenderExecutor &amp;&amp;)=delete</argsstring>
+        <name>MultidrawRenderExecutor</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="154" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1_1MultidrawRenderExecutor_1af9bbfde02d68cd847cdd62a02f566fc5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref> &amp;</type>
+        <definition>MultidrawRenderExecutor &amp; MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::operator=</definition>
+        <argsstring>(MultidrawRenderExecutor &amp;&amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="155" column="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a25ea5eb7c8b9ce7343d6017873d2fe9b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::MultidrawRenderExecutor</definition>
+        <argsstring>(MultidrawRenderExecutor &amp;)=delete</argsstring>
+        <name>MultidrawRenderExecutor</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="156" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a43f75453155d891ab821555e8b6a5e91" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref> &amp;</type>
+        <definition>MultidrawRenderExecutor &amp; MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::operator=</definition>
+        <argsstring>(MultidrawRenderExecutor &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="157" column="29"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a74a1dd2d7023aa3a56e67c81901dfb11" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::MultidrawRenderExecutor</definition>
+        <argsstring>(const MultidrawContext *context)</argsstring>
+        <name>MultidrawRenderExecutor</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor</qualifiedname>
+        <param>
+          <type>const <ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> *</type>
+          <declname>context</declname>
+        </param>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>context</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>reference to a context that is used for rendering. If context is a nullptr, render method does nothing. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="164" column="5" bodyfile="dag_multidrawContext.h" bodystart="164" bodyend="164"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1_1MultidrawRenderExecutor_1affbe689ead63d464c84504d64f9a9d8d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MultidrawContext&lt; PerDrawDataT &gt;::MultidrawRenderExecutor::render</definition>
+        <argsstring>(uint32_t primitive_type, uint32_t first_drawcall, uint32_t drawcalls_count) const</argsstring>
+        <name>render</name>
+        <qualifiedname>MultidrawContext::MultidrawRenderExecutor::render</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>primitive_type</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_drawcall</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>drawcalls_count</declname>
+        </param>
+        <briefdescription>
+<para>Renders draw calls. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>primitive_type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>type of primitive. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>first_drawcall</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>index of first draw call in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>drawcalls_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>number of draw calls to execute.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+This method renders draw calls using multidraw indirect buffers. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="173" column="10" bodyfile="dag_multidrawContext.h" bodystart="173" bodyend="184"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Executor for multidraw calls. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This class is used to pass multidraw buffers to a draw call. It could be constructed only by <ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref>. It is used to hide multidraw buffers from a user. </para>
+    </detaileddescription>
+    <location file="dag_multidrawContext.h" line="143" column="3" bodyfile="dag_multidrawContext.h" bodystart="144" bodyend="185"/>
+    <listofallmembers>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1ae7e6f18d0765c7f498d8c174be539cfe" prot="private" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>context</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1ad8e864c6bf3164a8ca3a3b2d85f59062" prot="private" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>MultidrawContext</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1a29d04ce59455837c367457f96ef3703a" prot="private" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>MultidrawRenderExecutor</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1abb7da099b9fc1e0c7645a4da4dfa8fb4" prot="private" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>MultidrawRenderExecutor</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1a25ea5eb7c8b9ce7343d6017873d2fe9b" prot="private" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>MultidrawRenderExecutor</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1a74a1dd2d7023aa3a56e67c81901dfb11" prot="public" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>MultidrawRenderExecutor</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1af9bbfde02d68cd847cdd62a02f566fc5" prot="private" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>operator=</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1a43f75453155d891ab821555e8b6a5e91" prot="private" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>operator=</name></member>
+      <member refid="classMultidrawContext_1_1MultidrawRenderExecutor_1affbe689ead63d464c84504d64f9a9d8d" prot="public" virt="non-virtual"><scope>MultidrawContext::MultidrawRenderExecutor</scope><name>render</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

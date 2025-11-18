@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ver__obj__spirv_8cpp" kind="file" language="C++">
+    <compoundname>ver_obj_spirv.cpp</compoundname>
+    <includes refid="ver__obj__spirv_8h" local="yes">ver_obj_spirv.h</includes>
+    <includes local="yes">util/dag_baseDef.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ver_obj_spirv.cpp</label>
+        <link refid="ver__obj__spirv_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ver_obj_spirv.h</label>
+        <link refid="ver__obj__spirv_8h"/>
+      </node>
+      <node id="3">
+        <label>util/dag_baseDef.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ver__obj__spirv_8cpp_1a2ccd99994f3c7105490a2099b88ee9ab" prot="public" static="no" mutable="no">
+        <type>const int</type>
+        <definition>const int VER_OBJ_SPIRV_VAL</definition>
+        <argsstring></argsstring>
+        <name>VER_OBJ_SPIRV_VAL</name>
+        <initializer>= _MAKE4C(&apos;13.7&apos;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ver_obj_spirv.cpp" line="8" column="18" declfile="ver_obj_spirv.cpp" declline="8" declcolumn="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="ver__obj__spirv_8h" kindref="compound">ver_obj_spirv.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;util/dag_baseDef.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Increase<sp/>this<sp/>number<sp/>if<sp/>changes<sp/>in<sp/>the<sp/>compiler<sp/>invalidate<sp/>.obj<sp/>for<sp/>SPIR-V</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="ver__obj__spirv_8cpp_1a2ccd99994f3c7105490a2099b88ee9ab" kindref="member">VER_OBJ_SPIRV_VAL</ref><sp/>=<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;13.7&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_SPIRV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/shadersMetaData/spirv/compiled_meta_data.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Assertions<sp/>made<sp/>to<sp/>make<sp/>sure<sp/>cache<sp/>version<sp/>is<sp/>up<sp/>to<sp/>date</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">G_STATIC_ASSERT(spirv::REGISTER_ENTRIES<sp/>==<sp/>85);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">G_STATIC_ASSERT(spirv::B_REGISTER_INDEX_MAX<sp/>==<sp/>8);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">G_STATIC_ASSERT(spirv::T_REGISTER_INDEX_MAX<sp/>==<sp/>32);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">G_STATIC_ASSERT(spirv::U_REGISTER_INDEX_MAX<sp/>==<sp/>13);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">G_STATIC_ASSERT(spirv::WORK_GROUP_SIZE_X_CONSTANT_ID<sp/>==<sp/>1);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">G_STATIC_ASSERT(spirv::WORK_GROUP_SIZE_Y_CONSTANT_ID<sp/>==<sp/>2);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">G_STATIC_ASSERT(spirv::WORK_GROUP_SIZE_Z_CONSTANT_ID<sp/>==<sp/>3);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">G_STATIC_ASSERT(spirv::B_CONST_BUFFER_OFFSET<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="ver_obj_spirv.cpp"/>
+  </compounddef>
+</doxygen>

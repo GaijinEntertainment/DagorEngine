@@ -1,0 +1,173 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="debug_8h" kind="file" language="C++">
+    <compoundname>debug.h</compoundname>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="datablk_8cpp" local="yes">datablk.cpp</includedby>
+    <includedby refid="debug_8cpp" local="yes">debug.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="expanim2_8h" local="yes">expanim2.h</includedby>
+    <includedby refid="freecam_8cpp" local="yes">freecam.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="meshtrace_8cpp" local="yes">meshtrace.cpp</includedby>
+    <includedby refid="milkShapeAnimImport_8cpp" local="yes">milkShapeAnimImport.cpp</includedby>
+    <includedby refid="namemap_8cpp" local="yes">namemap.cpp</includedby>
+    <includedby refid="objonsrf_8cpp" local="yes">objonsrf.cpp</includedby>
+    <includedby refid="polyBumpUtil_8cpp" local="yes">polyBumpUtil.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="3">
+        <label>datablk.cpp</label>
+        <link refid="datablk_8cpp"/>
+      </node>
+      <node id="4">
+        <label>debug.cpp</label>
+        <link refid="debug_8cpp"/>
+      </node>
+      <node id="1">
+        <label>debug.h</label>
+        <link refid="debug_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="7">
+        <label>expanim2.cpp</label>
+        <link refid="expanim2_8cpp"/>
+      </node>
+      <node id="6">
+        <label>expanim2.h</label>
+        <link refid="expanim2_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>freecam.cpp</label>
+        <link refid="freecam_8cpp"/>
+      </node>
+      <node id="9">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="10">
+        <label>meshtrace.cpp</label>
+        <link refid="meshtrace_8cpp"/>
+      </node>
+      <node id="11">
+        <label>milkShapeAnimImport.cpp</label>
+        <link refid="milkShapeAnimImport_8cpp"/>
+      </node>
+      <node id="12">
+        <label>namemap.cpp</label>
+        <link refid="namemap_8cpp"/>
+      </node>
+      <node id="13">
+        <label>objonsrf.cpp</label>
+        <link refid="objonsrf_8cpp"/>
+      </node>
+      <node id="14">
+        <label>polyBumpUtil.cpp</label>
+        <link refid="polyBumpUtil_8cpp"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="debug_8h_1a9cc535ee972d841dc95a7249c7e4629c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug</definition>
+        <argsstring>(const char *,...)</argsstring>
+        <name>debug</name>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="4" column="6" bodyfile="debug.cpp" bodystart="28" bodyend="39" declfile="debug.h" declline="4" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8h_1a524e64b220d24c4171e1ac8ed5132afe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug</definition>
+        <argsstring>(const wchar_t *,...)</argsstring>
+        <name>debug</name>
+        <param>
+          <type>const wchar_t *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="5" column="6" bodyfile="debug.cpp" bodystart="40" bodyend="89" declfile="debug.h" declline="5" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8h_1a4a054a8768d50108dce0c8b7206f2508" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void close_debug</definition>
+        <argsstring>()</argsstring>
+        <name>close_debug</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="7" column="6" bodyfile="debug.cpp" bodystart="18" bodyend="24" declfile="debug.h" declline="7" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1a9cc535ee972d841dc95a7249c7e4629c" kindref="member">debug</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*,<sp/>...);</highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1a9cc535ee972d841dc95a7249c7e4629c" kindref="member">debug</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*,<sp/>...);</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1a4a054a8768d50108dce0c8b7206f2508" kindref="member">close_debug</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="debug.h"/>
+  </compounddef>
+</doxygen>

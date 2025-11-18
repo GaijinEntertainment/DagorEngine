@@ -1,0 +1,776 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="deSerializationContext_8h" kind="file" language="C++">
+    <compoundname>deSerializationContext.h</compoundname>
+    <includes refid="shTargetContext_8h" local="yes">shTargetContext.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includedby refid="deSerializationContext_8cpp" local="yes">deSerializationContext.cpp</includedby>
+    <includedby refid="intervals_8cpp" local="yes">intervals.cpp</includedby>
+    <includedby refid="shaderSave_8cpp" local="yes">shaderSave.cpp</includedby>
+    <incdepgraph>
+      <node id="87">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="80">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="72">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="88">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="63">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="86">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="68">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="58">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="17">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="81">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="90">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="77">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="62">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="2">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="65">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="67">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="76">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="56">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="82">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="23">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="31">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="85">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="83">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="84">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="64">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="70">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="39">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="73">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="79">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="89">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="32">
+        <label>cstdint</label>
+      </node>
+      <node id="26">
+        <label>cstring</label>
+      </node>
+      <node id="22">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="21">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="78">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="38">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="66">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="55">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="29">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="43">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="19">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="25">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="48">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="52">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="53">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="71">
+        <label>memory</label>
+      </node>
+      <node id="34">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="74">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="37">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="46">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="35">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="36">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="41">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="33">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="60">
+        <label>shsyn.h</label>
+      </node>
+      <node id="40">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="20">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="18">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="75">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="50">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="45">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="6">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="1">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="4">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShadersDeSerializationScope" prot="public">ShadersDeSerializationScope</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="deSerializationContext_8h_1afede1412dc1f58bdedb1e2ebcdd7fa50" prot="public" static="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> *</type>
+        <definition>using ShadersDeSerializationContext =  shc::TargetContext *</definition>
+        <argsstring></argsstring>
+        <name>ShadersDeSerializationContext</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="deSerializationContext.h" line="12" column="1" bodyfile="deSerializationContext.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="deSerializationContext_8h_1af4b7d79883d66472dc6703f57cd64d5a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="deSerializationContext_8h_1afede1412dc1f58bdedb1e2ebcdd7fa50" kindref="member">ShadersDeSerializationContext</ref></type>
+        <definition>ShadersDeSerializationContext get_shaders_de_serialization_ctx</definition>
+        <argsstring>()</argsstring>
+        <name>get_shaders_de_serialization_ctx</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="deSerializationContext.h" line="14" column="31" bodyfile="deSerializationContext.cpp" bodystart="11" bodyend="16" declfile="deSerializationContext.h" declline="14" declcolumn="31"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>thread<sp/>local<sp/>variable<sp/>is<sp/>a<sp/>hacky<sp/>way<sp/>to<sp/>provide<sp/>context<sp/>to<sp/>logic<sp/>run<sp/>in<sp/>operator=<sp/>or<sp/>serialization/deserialization<sp/>when<sp/>using</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//<sp/>the<sp/>bindump<sp/>library.<sp/>Since<sp/>we<sp/>can&apos;t<sp/>inject<sp/>a<sp/>regular<sp/>context<sp/>ref<sp/>into<sp/>deserialized<sp/>objects,<sp/>this<sp/>is<sp/>the<sp/>only<sp/>way<sp/>to<sp/>do<sp/>this<sp/>(and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>comes<sp/>in<sp/>handy<sp/>for<sp/>NameId<sp/>class).<sp/>This<sp/>context<sp/>is<sp/>a<sp/>thread-local<sp/>pointer<sp/>which<sp/>has<sp/>to<sp/>be<sp/>intialized<sp/>for<sp/>the<sp/>scope<sp/>of</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(de)serialization,<sp/>and<sp/>is<sp/>asserted<sp/>to<sp/>be<sp/>non-nested<sp/>and<sp/>present<sp/>when<sp/>called<sp/>through<sp/>the<sp/>getter.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="deSerializationContext_8h_1afede1412dc1f58bdedb1e2ebcdd7fa50" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classshc_1_1TargetContext" kindref="compound">ShadersDeSerializationContext</ref><sp/>=<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>*;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><ref refid="classshc_1_1TargetContext" kindref="compound">ShadersDeSerializationContext</ref><sp/><ref refid="deSerializationContext_8h_1af4b7d79883d66472dc6703f57cd64d5a" kindref="member">get_shaders_de_serialization_ctx</ref>();</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="structShadersDeSerializationScope" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShadersDeSerializationScope" kindref="compound">ShadersDeSerializationScope</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="structShadersDeSerializationScope" kindref="compound">ShadersDeSerializationScope</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><ref refid="structShadersDeSerializationScope_1af3565bf13f2d8b3d78e16996ba7d85da" kindref="member">~ShadersDeSerializationScope</ref>();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="deSerializationContext.h"/>
+  </compounddef>
+</doxygen>

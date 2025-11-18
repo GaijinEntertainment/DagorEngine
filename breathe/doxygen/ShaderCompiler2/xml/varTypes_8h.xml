@@ -1,0 +1,486 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="varTypes_8h" kind="file" language="C++">
+    <compoundname>varTypes.h</compoundname>
+    <includedby refid="globVar_8h" local="yes">globVar.h</includedby>
+    <includedby refid="shaderVariant_8h" local="yes">shaderVariant.h</includedby>
+    <invincdepgraph>
+      <node id="18">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="17">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="19">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="37">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="32">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="26">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>globvar.cpp</label>
+        <link refid="globvar_8cpp"/>
+      </node>
+      <node id="28">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="5">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="4">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="14">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="7">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="12">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="13">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="30">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="31">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="29">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="23">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="21">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="45">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="25">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="34">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="36">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceShaderVariant">ShaderVariant</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8" prot="public" static="no" strong="no">
+        <type></type>
+        <name>VarTypeIntervalID</name>
+        <enumvalue id="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" prot="public">
+          <name>INTERVAL_NOT_INIT</name>
+          <initializer>= 65535U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varTypes.h" line="62" column="1" bodyfile="varTypes.h" bodystart="63" bodyend="65"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>common<sp/>variant<sp/>types</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__VARTYPES_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__VARTYPES_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_range.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>you<sp/>must<sp/>recompile<sp/>compiler,<sp/>program<sp/>&amp;<sp/>recompile<sp/>all<sp/>shader-cache<sp/>files<sp/>after<sp/>changing<sp/>this<sp/>defile</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>#define<sp/>NO_SHVAR_SPACE_OPT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderVariant" kindref="compound">ShaderVariant</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/>limitations<sp/>of<sp/>this<sp/>variant<sp/>system:</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"></highlight><highlight class="comment">//<sp/>variable<sp/>flag<sp/>types<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0..255</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(mode<sp/>id<sp/>or<sp/>interval<sp/>index)<sp/><sp/><sp/><sp/><sp/><sp/>0..65535</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//<sp/>max<sp/>number<sp/>of<sp/>intervals<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>65534</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/>num<sp/>of<sp/>different<sp/>interval<sp/>values<sp/>127</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>number<sp/>of<sp/>static<sp/>variables<sp/><sp/><sp/><sp/><sp/><sp/><sp/>unlimited</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>number<sp/>of<sp/>dynamic<sp/>variables<sp/><sp/><sp/><sp/><sp/><sp/>unlimited</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(NO_SHVAR_SPACE_OPT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref>;</highlight></codeline>
+<codeline lineno="27" refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref>;</highlight></codeline>
+<codeline lineno="28" refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref>;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref>;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref>;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">signed</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref>;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="namespaceShaderVariant_1a30542012bafd43dafa933051e8c289c3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>Range&lt;ValueType&gt;<sp/><ref refid="namespaceShaderVariant_1a30542012bafd43dafa933051e8c289c3" kindref="member">ValueRange</ref>;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>variant<sp/>types</highlight></codeline>
+<codeline lineno="39"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">VarType</ref><sp/>:<sp/><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42" refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa4d49e14b2742d348bc6aff506284e60b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa4d49e14b2742d348bc6aff506284e60b" kindref="member">VARTYPE_MODE</ref><sp/>=<sp/>(<ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref>)1,</highlight></codeline>
+<codeline lineno="43" refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa9315b7bd780786690166d34c4a9841ac" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa9315b7bd780786690166d34c4a9841ac" kindref="member">VARTYPE_INTERVAL</ref><sp/>=<sp/>(<ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref>)2,</highlight></codeline>
+<codeline lineno="44" refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa7f3628fe65b99b6d908e5238c40bc485" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa7f3628fe65b99b6d908e5238c40bc485" kindref="member">VARTYPE_GLOBAL_INTERVAL</ref><sp/>=<sp/>(<ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref>)3,</highlight></codeline>
+<codeline lineno="45" refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfac22d8297449dcba859360b19c391cd08" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfac22d8297449dcba859360b19c391cd08" kindref="member">VARTYPE_GL_OVERRIDE_INTERVAL</ref><sp/>=<sp/>(<ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref>)4,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>variant<sp/>subtype<sp/>for<sp/>VARTYPE_MODE<sp/>(must<sp/>be<sp/>&lt;<sp/>__VARTYPE_BASE)</highlight></codeline>
+<codeline lineno="51"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27" kindref="member">VarTypeModeID</ref></highlight></codeline>
+<codeline lineno="53"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54" refid="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27a0869757dbb6efe5a2870cbc7b2df5a38" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27a0869757dbb6efe5a2870cbc7b2df5a38" kindref="member">TWO_SIDED</ref><sp/>=<sp/>(<ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref>)5,</highlight></codeline>
+<codeline lineno="55" refid="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27a68463dca0990df6b3c699d05b2272845" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27a68463dca0990df6b3c699d05b2272845" kindref="member">REAL_TWO_SIDED</ref><sp/>=<sp/>(<ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref>)6,</highlight></codeline>
+<codeline lineno="56"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderVariant</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>variant<sp/>subtype<sp/>for<sp/>VARTYPE_INTERVAL<sp/>(must<sp/>be<sp/>&lt;<sp/>__VARTYPE_BASE)</highlight></codeline>
+<codeline lineno="61"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8" kindref="member">VarTypeIntervalID</ref></highlight></codeline>
+<codeline lineno="63"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64" refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" kindref="member">INTERVAL_NOT_INIT</ref><sp/>=<sp/>65535U,</highlight></codeline>
+<codeline lineno="65"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">//__VARTYPES_H</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="varTypes.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__IRenderWrapperControl_8h" kind="file" language="C++">
+    <compoundname>dag_IRenderWrapperControl.h</compoundname>
+    <includes local="no">math/dag_mathBase.h</includes>
+    <includedby refid="dag__dynSceneRes_8h" local="no">dag_dynSceneRes.h</includedby>
+    <includedby refid="dag__renderScene_8h" local="no">dag_renderScene.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_IRenderWrapperControl.h</label>
+        <link refid="dag__IRenderWrapperControl_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>math/dag_mathBase.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>dag_IRenderWrapperControl.h</label>
+        <link refid="dag__IRenderWrapperControl_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_dynSceneRes.h</label>
+        <link refid="dag__dynSceneRes_8h_source"/>
+      </node>
+      <node id="3">
+        <label>dag_renderScene.h</label>
+        <link refid="dag__renderScene_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classIRenderWrapperControl" prot="public">IRenderWrapperControl</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_mathBase.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Interface<sp/>for<sp/>applying<sp/>beforeRender<sp/>and<sp/>BeforeRenderTrans<sp/>policies</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="classIRenderWrapperControl" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIRenderWrapperControl" kindref="compound">IRenderWrapperControl</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>checkVisible(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BSphere3<sp/>&amp;sph,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BBox3<sp/>*bbox)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>beforeRender(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>trans)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>afterRender(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>trans)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>destroy()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_IRenderWrapperControl.h"/>
+  </compounddef>
+</doxygen>

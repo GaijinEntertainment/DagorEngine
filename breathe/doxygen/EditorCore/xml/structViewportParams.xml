@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structViewportParams" kind="struct" language="C++" prot="public">
+    <compoundname>ViewportParams</compoundname>
+    <includes refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structViewportParams_1a563fb4ae3786404e0d4fe9c06246e38c" prot="public" static="no" mutable="no">
+        <type>TMatrix</type>
+        <definition>TMatrix ViewportParams::view</definition>
+        <argsstring></argsstring>
+        <name>view</name>
+        <qualifiedname>ViewportParams::view</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="37" column="11" bodyfile="ec_ViewportWindow.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportParams_1a7a2a0e7f8290888a7fbaa50dbe3d52d6" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real ViewportParams::fov</definition>
+        <argsstring></argsstring>
+        <name>fov</name>
+        <qualifiedname>ViewportParams::fov</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="38" column="8" bodyfile="ec_ViewportWindow.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ViewportWindow.h" line="35" column="1" bodyfile="ec_ViewportWindow.h" bodystart="36" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structViewportParams_1a7a2a0e7f8290888a7fbaa50dbe3d52d6" prot="public" virt="non-virtual"><scope>ViewportParams</scope><name>fov</name></member>
+      <member refid="structViewportParams_1a563fb4ae3786404e0d4fe9c06246e38c" prot="public" virt="non-virtual"><scope>ViewportParams</scope><name>view</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

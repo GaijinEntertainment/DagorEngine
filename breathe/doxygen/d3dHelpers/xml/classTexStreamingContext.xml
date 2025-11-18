@@ -1,0 +1,164 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTexStreamingContext" kind="class" language="C++" prot="public">
+    <compoundname>TexStreamingContext</compoundname>
+    <includes refid="dag__texStreamingContext_8h" local="no">dag_texStreamingContext.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTexStreamingContext_1a8834876042726c281da2c811bc4b5cc6" prot="private" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TexStreamingContext::multiplicator</definition>
+        <argsstring></argsstring>
+        <name>multiplicator</name>
+        <qualifiedname>TexStreamingContext::multiplicator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="11" column="9" bodyfile="dag_texStreamingContext.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classTexStreamingContext_1ab26035df834e6b24de8a5127cce9263e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int TexStreamingContext::MIN_TEX_LEVEL</definition>
+        <argsstring></argsstring>
+        <name>MIN_TEX_LEVEL</name>
+        <qualifiedname>TexStreamingContext::MIN_TEX_LEVEL</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="26" column="24" bodyfile="dag_texStreamingContext.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTexStreamingContext_1ac74929552df808bdae4eb95c37ab6d2f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int TexStreamingContext::MIN_NON_STUB_LEVEL</definition>
+        <argsstring></argsstring>
+        <name>MIN_NON_STUB_LEVEL</name>
+        <qualifiedname>TexStreamingContext::MIN_NON_STUB_LEVEL</qualifiedname>
+        <initializer>= <ref refid="classTexStreamingContext_1ab26035df834e6b24de8a5127cce9263e" kindref="member">MIN_TEX_LEVEL</ref> + 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="27" column="24" bodyfile="dag_texStreamingContext.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTexStreamingContext_1a69506bbf531f1bf98e06954a6829bce8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int TexStreamingContext::MAX_TEX_LEVEL</definition>
+        <argsstring></argsstring>
+        <name>MAX_TEX_LEVEL</name>
+        <qualifiedname>TexStreamingContext::MAX_TEX_LEVEL</qualifiedname>
+        <initializer>= 15</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="28" column="24" bodyfile="dag_texStreamingContext.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTexStreamingContext_1a9adc5e6cd5bc81015e70a9c8728efa36" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TexStreamingContext::TexStreamingContext</definition>
+        <argsstring>()</argsstring>
+        <name>TexStreamingContext</name>
+        <qualifiedname>TexStreamingContext::TexStreamingContext</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="20" column="3" bodyfile="dag_texStreamingContext.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexStreamingContext_1aeebafdb483924d1fba4ca71eab5a3c48" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TexStreamingContext::TexStreamingContext</definition>
+        <argsstring>(float mul)</argsstring>
+        <name>TexStreamingContext</name>
+        <qualifiedname>TexStreamingContext::TexStreamingContext</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>mul</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="21" column="3" bodyfile="dag_texStreamingContext.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexStreamingContext_1a4c7f79ad9eb478c0c3c68edb79c7aa3e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TexStreamingContext::TexStreamingContext</definition>
+        <argsstring>(const Driver3dPerspective &amp;persp, int width)</argsstring>
+        <name>TexStreamingContext</name>
+        <qualifiedname>TexStreamingContext::TexStreamingContext</qualifiedname>
+        <param>
+          <type>const Driver3dPerspective &amp;</type>
+          <declname>persp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>width</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="23" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexStreamingContext_1a464073347d16eb35f4f9f4f9a7f7238f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int TexStreamingContext::getTexLevel</definition>
+        <argsstring>(float texScale, float distSq=0.0f) const</argsstring>
+        <name>getTexLevel</name>
+        <qualifiedname>TexStreamingContext::getTexLevel</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>texScale</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>distSq</declname>
+          <defval>0.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texStreamingContext.h" line="24" column="7"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_texStreamingContext.h" line="9" column="1" bodyfile="dag_texStreamingContext.h" bodystart="10" bodyend="29"/>
+    <listofallmembers>
+      <member refid="classTexStreamingContext_1a464073347d16eb35f4f9f4f9a7f7238f" prot="public" virt="non-virtual"><scope>TexStreamingContext</scope><name>getTexLevel</name></member>
+      <member refid="classTexStreamingContext_1a69506bbf531f1bf98e06954a6829bce8" prot="public" virt="non-virtual"><scope>TexStreamingContext</scope><name>MAX_TEX_LEVEL</name></member>
+      <member refid="classTexStreamingContext_1ac74929552df808bdae4eb95c37ab6d2f" prot="public" virt="non-virtual"><scope>TexStreamingContext</scope><name>MIN_NON_STUB_LEVEL</name></member>
+      <member refid="classTexStreamingContext_1ab26035df834e6b24de8a5127cce9263e" prot="public" virt="non-virtual"><scope>TexStreamingContext</scope><name>MIN_TEX_LEVEL</name></member>
+      <member refid="classTexStreamingContext_1a8834876042726c281da2c811bc4b5cc6" prot="private" virt="non-virtual"><scope>TexStreamingContext</scope><name>multiplicator</name></member>
+      <member refid="classTexStreamingContext_1a9adc5e6cd5bc81015e70a9c8728efa36" prot="public" virt="non-virtual"><scope>TexStreamingContext</scope><name>TexStreamingContext</name></member>
+      <member refid="classTexStreamingContext_1aeebafdb483924d1fba4ca71eab5a3c48" prot="public" virt="non-virtual"><scope>TexStreamingContext</scope><name>TexStreamingContext</name></member>
+      <member refid="classTexStreamingContext_1a4c7f79ad9eb478c0c3c68edb79c7aa3e" prot="public" virt="non-virtual"><scope>TexStreamingContext</scope><name>TexStreamingContext</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

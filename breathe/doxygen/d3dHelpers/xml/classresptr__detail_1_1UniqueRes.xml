@@ -1,0 +1,322 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1UniqueRes" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::UniqueRes</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ManagedResType</basecompoundref>
+    <basecompoundref refid="classresptr__detail_1_1WeakMoveAssignable" prot="public" virt="non-virtual">resptr_detail::WeakMoveAssignable</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ManagedResType</type>
+      </param>
+      <param>
+        <type>typename Deleter</type>
+        <defval><ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper</ref>&lt;typename ManagedResType::resource_t&gt;</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1UniqueRes_1a03529350bb9154296fe385268f08581a" prot="public" static="no">
+        <type><ref refid="classresptr__detail_1_1WeakMoveAssignable" kindref="compound">WeakMoveAssignable</ref></type>
+        <definition>using resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::move_assignable_t =  WeakMoveAssignable</definition>
+        <argsstring></argsstring>
+        <name>move_assignable_t</name>
+        <qualifiedname>resptr_detail::UniqueRes::move_assignable_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="372" column="3" bodyfile="dag_resPtr.h" bodystart="372" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classresptr__detail_1_1UniqueRes_1ae547c0129fcb7bf4b949bc1d527253bf" prot="public" static="no">
+        <type>ManagedResType</type>
+        <definition>using resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::BaseType =  ManagedResType</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>resptr_detail::UniqueRes::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="373" column="3" bodyfile="dag_resPtr.h" bodystart="373" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" prot="public" static="no">
+        <type>typename BaseType::resource_t</type>
+        <definition>using resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::ResType =  typename BaseType::resource_t</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>resptr_detail::UniqueRes::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="374" column="3" bodyfile="dag_resPtr.h" bodystart="374" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1affe26023c2f3a22f24a354cc26ca1eb0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::UniqueRes</definition>
+        <argsstring>()=default</argsstring>
+        <name>UniqueRes</name>
+        <qualifiedname>resptr_detail::UniqueRes::UniqueRes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="376" column="4"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1ae7da99e96a71b55e118d9c9e04cd060e" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::UniqueRes</definition>
+        <argsstring>(UniqueRes &amp;&amp;other) noexcept</argsstring>
+        <name>UniqueRes</name>
+        <qualifiedname>resptr_detail::UniqueRes::UniqueRes</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="376" column="28" bodyfile="dag_resPtr.h" bodystart="376" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1a1775ce19a964a6bb2acf80fa495ec673" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes</ref> &amp;</type>
+        <definition>UniqueRes &amp; resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::operator=</definition>
+        <argsstring>(UniqueRes &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::UniqueRes::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="376" column="86" bodyfile="dag_resPtr.h" bodystart="376" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>resptr_detail::UniqueRes::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="376" column="243" bodyfile="dag_resPtr.h" bodystart="376" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1a9bafa532cd2fcf5b526c6fcc26fcc3c8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes</ref> &amp;</type>
+        <definition>UniqueRes &amp; resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::operator=</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::UniqueRes::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; <ref refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" kindref="member">ResType</ref> &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="377" column="15" bodyfile="dag_resPtr.h" bodystart="377" bodyend="377"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1a148fcdc5bdea01888ecfb7c7164a9523" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes</ref> &amp;</type>
+        <definition>UniqueRes &amp; resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::operator=</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;factory)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::UniqueRes::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; <ref refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" kindref="member">ResType</ref> &gt; &amp;&amp;</type>
+          <declname>factory</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="378" column="15" bodyfile="dag_resPtr.h" bodystart="378" bodyend="378"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1aff4f4ce47532e7514840e8ea21a13cc9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::UniqueRes</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res, const char *managed_name=nullptr)</argsstring>
+        <name>UniqueRes</name>
+        <qualifiedname>resptr_detail::UniqueRes::UniqueRes</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; <ref refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" kindref="member">ResType</ref> &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>managed_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="380" column="3" bodyfile="dag_resPtr.h" bodystart="380" bodyend="387"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1a019ba364e2035a8b54eb3c5bc1a852f4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::UniqueRes</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;res, const char *managed_name=nullptr)</argsstring>
+        <name>UniqueRes</name>
+        <qualifiedname>resptr_detail::UniqueRes::UniqueRes</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; <ref refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" kindref="member">ResType</ref> &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>managed_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="389" column="3" bodyfile="dag_resPtr.h" bodystart="389" bodyend="391"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1a826944d326c203b3e4a0d8b0d5d8db21" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::changeResource</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res)</argsstring>
+        <name>changeResource</name>
+        <qualifiedname>resptr_detail::UniqueRes::changeResource</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; <ref refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" kindref="member">ResType</ref> &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="393" column="8" bodyfile="dag_resPtr.h" bodystart="393" bodyend="397"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1a1b5786fef008748a2081dabc130c8176" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::~UniqueRes</definition>
+        <argsstring>()</argsstring>
+        <name>~UniqueRes</name>
+        <qualifiedname>resptr_detail::UniqueRes::~UniqueRes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="399" column="3" bodyfile="dag_resPtr.h" bodystart="399" bodyend="399"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classresptr__detail_1_1UniqueRes_1ad13d8398a7176707d364df4bd5df9f9f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;::release</definition>
+        <argsstring>(typename Helper&lt; ResType &gt;::resid_t &amp;res_id, ResType *res)</argsstring>
+        <name>release</name>
+        <qualifiedname>resptr_detail::UniqueRes::release</qualifiedname>
+        <param>
+          <type>typename <ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper</ref>&lt; <ref refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" kindref="member">ResType</ref> &gt;::resid_t &amp;</type>
+          <declname>res_id</declname>
+        </param>
+        <param>
+          <type><ref refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" kindref="member">ResType</ref> *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="401" column="15" bodyfile="dag_resPtr.h" bodystart="401" bodyend="408"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>resptr_detail::WeakMoveAssignable</label>
+        <link refid="classresptr__detail_1_1WeakMoveAssignable"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>resptr_detail::WeakMoveAssignable</label>
+        <link refid="classresptr__detail_1_1WeakMoveAssignable"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="369" column="1" bodyfile="dag_resPtr.h" bodystart="370" bodyend="409"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1UniqueRes_1ae547c0129fcb7bf4b949bc1d527253bf" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>BaseType</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a826944d326c203b3e4a0d8b0d5d8db21" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>changeResource</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>close</name></member>
+      <member refid="classresptr__detail_1_1WeakMoveAssignable_1ab6af4cdd799f3fa49395ea369342133f" prot="protected" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>isValidForMoveAssignment</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a03529350bb9154296fe385268f08581a" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>move_assignable_t</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a1775ce19a964a6bb2acf80fa495ec673" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a9bafa532cd2fcf5b526c6fcc26fcc3c8" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a148fcdc5bdea01888ecfb7c7164a9523" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1ad13d8398a7176707d364df4bd5df9f9f" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>release</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1aca7593481930522cd0b3c65480be3815" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>ResType</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1affe26023c2f3a22f24a354cc26ca1eb0" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>UniqueRes</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1ae7da99e96a71b55e118d9c9e04cd060e" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>UniqueRes</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1aff4f4ce47532e7514840e8ea21a13cc9" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>UniqueRes</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a019ba364e2035a8b54eb3c5bc1a852f4" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>UniqueRes</name></member>
+      <member refid="classresptr__detail_1_1UniqueRes_1a1b5786fef008748a2081dabc130c8176" prot="public" virt="non-virtual"><scope>resptr_detail::UniqueRes</scope><name>~UniqueRes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

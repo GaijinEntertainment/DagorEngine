@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="conTextOutStream_8h" kind="file" language="C++">
+    <compoundname>conTextOutStream.h</compoundname>
+    <includes local="no">ioSys/dag_genIo.h</includes>
+    <includes refid="iLogWriter_8h" local="no">libTools/util/iLogWriter.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>conTextOutStream.h</label>
+        <link refid="conTextOutStream_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>libTools/util/iLogWriter.h</label>
+        <link refid="iLogWriter_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ioSys/dag_genIo.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structConTextOutStream" prot="public">ConTextOutStream</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_genIo.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="iLogWriter_8h" kindref="compound">libTools/util/iLogWriter.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="structConTextOutStream" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structConTextOutStream" kindref="compound">ConTextOutStream</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>IGenSave</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14" refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classILogWriter" kindref="compound">ILogWriter</ref><sp/>&amp;<ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>;</highlight></codeline>
+<codeline lineno="15" refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="structConTextOutStream_1a5eb5e7bf6303d720032955b8ef11e9fd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structConTextOutStream_1a5eb5e7bf6303d720032955b8ef11e9fd" kindref="member">ConTextOutStream</ref>(<ref refid="classILogWriter" kindref="compound">ILogWriter</ref><sp/>&amp;l)<sp/>:<sp/><ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>(l)<sp/>{}</highlight></codeline>
+<codeline lineno="18" refid="structConTextOutStream_1af48c403ba0bf00e3cea31f68650b10fd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structConTextOutStream_1af48c403ba0bf00e3cea31f68650b10fd" kindref="member">~ConTextOutStream</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/><ref refid="structConTextOutStream_1ae0266705f54dc0891940d00c037f9245" kindref="member">flush</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="structConTextOutStream_1ac8ac1731dd9d7883456b40801718e1fe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1ac8ac1731dd9d7883456b40801718e1fe" kindref="member">write</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*_ptr,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>size)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="21"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*ptr<sp/>=<sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)_ptr;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((size<sp/>==<sp/>1<sp/>&amp;&amp;<sp/>memcmp(ptr,<sp/></highlight><highlight class="stringliteral">&quot;\n&quot;</highlight><highlight class="normal">,<sp/>size)<sp/>==<sp/>0)<sp/>||<sp/>(size<sp/>==<sp/>2<sp/>&amp;&amp;<sp/>memcmp(ptr,<sp/></highlight><highlight class="stringliteral">&quot;\r\n&quot;</highlight><highlight class="normal">,<sp/>size)<sp/>==<sp/>0))</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>.addMessage(<ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" kindref="member">NOTE</ref>,<sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>.clear();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)memchr(ptr,<sp/></highlight><highlight class="charliteral">&apos;\n&apos;</highlight><highlight class="normal">,<sp/>size))</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>.append((</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)ptr,<sp/>(p<sp/>&gt;<sp/>ptr<sp/>&amp;&amp;<sp/>p[-1]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;\r&apos;</highlight><highlight class="normal">)<sp/>?<sp/>p<sp/>-<sp/>1<sp/>-<sp/>ptr<sp/>:<sp/>p<sp/>-<sp/>ptr);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>.addMessage(<ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" kindref="member">NOTE</ref>,<sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>.clear();</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>size<sp/>-=<sp/>p<sp/>-<sp/>ptr<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ptr<sp/>=<sp/>p<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(size)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>.append((</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)ptr,<sp/>size);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="structConTextOutStream_1abad1e8d53e46573db9fc9236b1ab70c0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1abad1e8d53e46573db9fc9236b1ab70c0" kindref="member">tell</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="43" refid="structConTextOutStream_1a51a3c282d97639240be45cabb039af1b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1a51a3c282d97639240be45cabb039af1b" kindref="member">seekto</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="44" refid="structConTextOutStream_1a8a5e1e31ef84f6d8435b51b489f19761" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1a8a5e1e31ef84f6d8435b51b489f19761" kindref="member">seektoend</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*ofs*/</highlight><highlight class="normal"><sp/>=<sp/>0)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="structConTextOutStream_1a49a59af6c67bd18cb0139b2052bb71c3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structConTextOutStream_1a49a59af6c67bd18cb0139b2052bb71c3" kindref="member">getTargetName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;consoleTextOut://&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="structConTextOutStream_1a01604e56e21b13f179352e11a3541f6c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1a01604e56e21b13f179352e11a3541f6c" kindref="member">beginBlock</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="49" refid="structConTextOutStream_1a1fe0407104b672e13e02a9d563236a91" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1a1fe0407104b672e13e02a9d563236a91" kindref="member">endBlock</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*block_flg*/</highlight><highlight class="normal"><sp/>=<sp/>0)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="50" refid="structConTextOutStream_1a9d490d463e278ef1323dc60b7bbb7545" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1a9d490d463e278ef1323dc60b7bbb7545" kindref="member">getBlockLevel</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="structConTextOutStream_1ae0266705f54dc0891940d00c037f9245" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structConTextOutStream_1ae0266705f54dc0891940d00c037f9245" kindref="member">flush</ref>()</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="54"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>.length())</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>.addMessage(<ref refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" kindref="member">log</ref>.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" kindref="member">NOTE</ref>,<sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" kindref="member">ln</ref>.clear();</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="conTextOutStream.h"/>
+  </compounddef>
+</doxygen>

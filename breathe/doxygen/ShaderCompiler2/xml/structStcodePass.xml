@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodePass" kind="struct" language="C++" prot="public">
+    <compoundname>StcodePass</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodePass_1afa8af3e7f8aeba50095318fbd536a0c4" prot="public" static="no" mutable="no">
+        <type><ref refid="structDynamicStcodeRoutine" kindref="compound">DynamicStcodeRoutine</ref></type>
+        <definition>DynamicStcodeRoutine StcodePass::cppStcode</definition>
+        <argsstring></argsstring>
+        <name>cppStcode</name>
+        <qualifiedname>StcodePass::cppStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="342" column="24" bodyfile="cppStcodeAssembly.h" bodystart="342" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodePass_1ab7862ff68f12bb13c123a66f608226a2" prot="public" static="no" mutable="no">
+        <type><ref refid="structStaticStcodeRoutine" kindref="compound">StaticStcodeRoutine</ref></type>
+        <definition>StaticStcodeRoutine StcodePass::cppStblkcode</definition>
+        <argsstring></argsstring>
+        <name>cppStblkcode</name>
+        <qualifiedname>StcodePass::cppStblkcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="343" column="23" bodyfile="cppStcodeAssembly.h" bodystart="343" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodePass_1acd2deac1b760dadc131622af4cbc701b" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StcodePass::StcodePass</definition>
+        <argsstring>(bool uses_dynamic_branching=false)</argsstring>
+        <name>StcodePass</name>
+        <qualifiedname>StcodePass::StcodePass</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>uses_dynamic_branching</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="345" column="12" bodyfile="cppStcodeAssembly.h" bodystart="345" bodyend="345"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodePass_1a89f89cfd5de40f512e9b47d5c0874512" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodePass::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>StcodePass::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="347" column="8" bodyfile="cppStcodeAssembly.h" bodystart="347" bodyend="351"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="1">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="3">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="340" column="1" bodyfile="cppStcodeAssembly.h" bodystart="341" bodyend="352"/>
+    <listofallmembers>
+      <member refid="structStcodePass_1ab7862ff68f12bb13c123a66f608226a2" prot="public" virt="non-virtual"><scope>StcodePass</scope><name>cppStblkcode</name></member>
+      <member refid="structStcodePass_1afa8af3e7f8aeba50095318fbd536a0c4" prot="public" virt="non-virtual"><scope>StcodePass</scope><name>cppStcode</name></member>
+      <member refid="structStcodePass_1a89f89cfd5de40f512e9b47d5c0874512" prot="public" virt="non-virtual"><scope>StcodePass</scope><name>reset</name></member>
+      <member refid="structStcodePass_1acd2deac1b760dadc131622af4cbc701b" prot="public" virt="non-virtual"><scope>StcodePass</scope><name>StcodePass</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

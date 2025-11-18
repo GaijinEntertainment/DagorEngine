@@ -1,0 +1,315 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shCompilationInfo_8cpp" kind="file" language="C++">
+    <compoundname>shCompilationInfo.cpp</compoundname>
+    <includes local="no">shaders/dag_shaders.h</includes>
+    <includes local="no">shaders/shUtils.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includes refid="shCompilationInfo_8h" local="yes">shCompilationInfo.h</includes>
+    <incdepgraph>
+      <node id="44">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="6">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>shCompilationInfo.cpp</label>
+        <link refid="shCompilationInfo_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="16">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="31">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="39">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="32">
+        <label>cstdint</label>
+      </node>
+      <node id="27">
+        <label>cstring</label>
+      </node>
+      <node id="23">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="22">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="38">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="29">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="43">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="20">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="26">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="34">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="37">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="35">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="36">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="3">
+        <label>shaders/shUtils.h</label>
+      </node>
+      <node id="41">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="33">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="40">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="21">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="45">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="7">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shCompilationInfo_8h" kindref="compound">shCompilationInfo.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShHardwareOptions_1a40b3f6ee176b01628919bf7785a625e3" kindref="member">ShHardwareOptions::appendOptsTo</ref>(String<sp/>&amp;fname)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="9"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>str<sp/>=<sp/>d3d::as_ps_string(<ref refid="structShHardwareOptions_1a4762074f79c1638ccf8bab0dd76db8c5" kindref="member">fshVersion</ref>);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/>G_ASSERT(str[0]<sp/>!=<sp/></highlight><highlight class="charliteral">&apos;\0&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/>fname.aprintf(8,<sp/></highlight><highlight class="stringliteral">&quot;.%s&quot;</highlight><highlight class="normal">,<sp/>str);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShHardwareOptions_1ae09ce6b24618d08ee4e1f8af91ff1b0b" kindref="member">ShHardwareOptions::dumpInfo</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca0012c8acb382f295fe614046a64bba11" kindref="member">SHLOG_INFO</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Shader<sp/>hardware<sp/>options:<sp/>ps=%s&quot;</highlight><highlight class="normal">,<sp/>ShUtils::fsh_version(<ref refid="structShHardwareOptions_1a4762074f79c1638ccf8bab0dd76db8c5" kindref="member">fshVersion</ref>));<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="shCompilationInfo.cpp"/>
+  </compounddef>
+</doxygen>

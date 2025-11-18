@@ -1,0 +1,216 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="enumnode_8h" kind="file" language="C++">
+    <compoundname>enumnode.h</compoundname>
+    <includes local="no">ilayer.h</includes>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="font_8cpp" local="yes">font.cpp</includedby>
+    <includedby refid="objectPropertiesEditor_8cpp" local="yes">objectPropertiesEditor.cpp</includedby>
+    <includedby refid="objonsrf_8cpp" local="yes">objonsrf.cpp</includedby>
+    <includedby refid="physExport_8cpp" local="yes">physExport.cpp</includedby>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <includedby refid="util2_8cpp" local="yes">util2.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>enumnode.h</label>
+        <link refid="enumnode_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ilayer.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="1">
+        <label>enumnode.h</label>
+        <link refid="enumnode_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="4">
+        <label>font.cpp</label>
+        <link refid="font_8cpp"/>
+      </node>
+      <node id="5">
+        <label>objectPropertiesEditor.cpp</label>
+        <link refid="objectPropertiesEditor_8cpp"/>
+      </node>
+      <node id="6">
+        <label>objonsrf.cpp</label>
+        <link refid="objonsrf_8cpp"/>
+      </node>
+      <node id="7">
+        <label>physExport.cpp</label>
+        <link refid="physExport_8cpp"/>
+      </node>
+      <node id="8">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="9">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+      <node id="10">
+        <label>util2.cpp</label>
+        <link refid="util2_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classENodeCB" prot="public">ENodeCB</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2d" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" prot="public">
+          <name>ECB_CONT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da82f2d62a910a95b53a40e91b2767907e" prot="public">
+          <name>ECB_STOP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2dacbefaba1b42bd929f08178a53fb8d881" prot="public">
+          <name>ECB_SKIP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="enumnode.h" line="13" column="1" bodyfile="enumnode.h" bodystart="14" bodyend="18"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="enumnode_8h_1a21ec496f2d47311f5a23a9575be288d7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int enum_nodes</definition>
+        <argsstring>(INode *node, ENodeCB *cb)</argsstring>
+        <name>enum_nodes</name>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type><ref refid="classENodeCB" kindref="compound">ENodeCB</ref> *</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="enumnode.h" line="20" column="5" bodyfile="util.cpp" bodystart="5613" bodyend="5630" declfile="enumnode.h" declline="20" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="enumnode_8h_1abdeb1a5821e1c4a6559af37a29033c1b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enum_layer_nodes</definition>
+        <argsstring>(ILayer *layer, ENodeCB *cb)</argsstring>
+        <name>enum_layer_nodes</name>
+        <param>
+          <type>ILayer *</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type><ref refid="classENodeCB" kindref="compound">ENodeCB</ref> *</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="enumnode.h" line="21" column="6" bodyfile="util.cpp" bodystart="5632" bodyend="5644" declfile="enumnode.h" declline="21" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="enumnode_8h_1ae35c7235ed4f8cfd7c6d5c7530ebaea1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enum_nodes_by_node</definition>
+        <argsstring>(INode *node, ENodeCB *cb)</argsstring>
+        <name>enum_nodes_by_node</name>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type><ref refid="classENodeCB" kindref="compound">ENodeCB</ref> *</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="enumnode.h" line="22" column="6" bodyfile="util.cpp" bodystart="5646" bodyend="5650" declfile="enumnode.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ilayer.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="classENodeCB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classENodeCB" kindref="compound">ENodeCB</ref></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="9" refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" kindref="member">~ENodeCB</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="10" refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17" kindref="member">proc</ref>(INode<sp/>*)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15" refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" kindref="member">ECB_CONT</ref>,</highlight></codeline>
+<codeline lineno="16" refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da82f2d62a910a95b53a40e91b2767907e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da82f2d62a910a95b53a40e91b2767907e" kindref="member">ECB_STOP</ref>,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2dacbefaba1b42bd929f08178a53fb8d881" kindref="member">ECB_SKIP</ref></highlight></codeline>
+<codeline lineno="18" refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2dacbefaba1b42bd929f08178a53fb8d881" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1a21ec496f2d47311f5a23a9575be288d7" kindref="member">enum_nodes</ref>(INode<sp/>*node,<sp/><ref refid="classENodeCB" kindref="compound">ENodeCB</ref><sp/>*cb);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1abdeb1a5821e1c4a6559af37a29033c1b" kindref="member">enum_layer_nodes</ref>(ILayer<sp/>*layer,<sp/><ref refid="classENodeCB" kindref="compound">ENodeCB</ref><sp/>*cb);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1ae35c7235ed4f8cfd7c6d5c7530ebaea1" kindref="member">enum_nodes_by_node</ref>(INode<sp/>*node,<sp/><ref refid="classENodeCB" kindref="compound">ENodeCB</ref><sp/>*cb);</highlight></codeline>
+    </programlisting>
+    <location file="enumnode.h"/>
+  </compounddef>
+</doxygen>

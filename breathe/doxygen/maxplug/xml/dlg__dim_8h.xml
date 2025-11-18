@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dlg__dim_8h" kind="file" language="C++">
+    <compoundname>dlg_dim.h</compoundname>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <invincdepgraph>
+      <node id="1">
+        <label>dlg_dim.h</label>
+        <link refid="dlg__dim_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dlg__dim_8h_1a3afd91193ee5cc2d45b7979b993dd17b" prot="public" static="no">
+        <name>OBJ_PROP_DLG_WIDTH</name>
+        <initializer>221</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dlg_dim.h" line="4" column="9" bodyfile="dlg_dim.h" bodystart="4" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dlg__dim_8h_1a8f2ba2c7ac50037d2104efbe1804491f" prot="public" static="no">
+        <name>OBJ_PROP_ROLL_TEST_WIDTH</name>
+        <initializer>(<ref refid="dlg__dim_8h_1a3afd91193ee5cc2d45b7979b993dd17b" kindref="member">OBJ_PROP_DLG_WIDTH</ref> - 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dlg_dim.h" line="5" column="9" bodyfile="dlg_dim.h" bodystart="5" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dlg__dim_8h_1a0f0626b502b9dbc3f38b27eace212ef2" prot="public" static="no">
+        <name>OBJ_PROP_ROLLUP_WIDTH</name>
+        <initializer>(<ref refid="dlg__dim_8h_1a3afd91193ee5cc2d45b7979b993dd17b" kindref="member">OBJ_PROP_DLG_WIDTH</ref> - 8)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dlg_dim.h" line="6" column="9" bodyfile="dlg_dim.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="dlg__dim_8h_1a3afd91193ee5cc2d45b7979b993dd17b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OBJ_PROP_DLG_WIDTH<sp/><sp/><sp/><sp/><sp/><sp/><sp/>221</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5" refid="dlg__dim_8h_1a8f2ba2c7ac50037d2104efbe1804491f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OBJ_PROP_ROLL_TEST_WIDTH<sp/>(OBJ_PROP_DLG_WIDTH<sp/>-<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="dlg__dim_8h_1a0f0626b502b9dbc3f38b27eace212ef2" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OBJ_PROP_ROLLUP_WIDTH<sp/><sp/><sp/><sp/>(OBJ_PROP_DLG_WIDTH<sp/>-<sp/>8)</highlight></codeline>
+    </programlisting>
+    <location file="dlg_dim.h"/>
+  </compounddef>
+</doxygen>

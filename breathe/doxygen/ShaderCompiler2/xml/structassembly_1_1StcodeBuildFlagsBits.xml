@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structassembly_1_1StcodeBuildFlagsBits" kind="struct" language="C++" prot="public">
+    <compoundname>assembly::StcodeBuildFlagsBits</compoundname>
+    <includes refid="variantAssembly_8h" local="no">variantAssembly.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structassembly_1_1StcodeBuildFlagsBits_1a3ef5928b0782d6f7a0b6b39b1245e5f3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="namespaceassembly_1ade16b36c2019dc901e5798ece3dce754" kindref="member">StcodeBuildFlags</ref></type>
+        <definition>constexpr StcodeBuildFlags assembly::StcodeBuildFlagsBits::BYTECODE</definition>
+        <argsstring></argsstring>
+        <name>BYTECODE</name>
+        <qualifiedname>assembly::StcodeBuildFlagsBits::BYTECODE</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.h" line="17" column="37" bodyfile="variantAssembly.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structassembly_1_1StcodeBuildFlagsBits_1a3bc117f2628c89fc9fa9d099c3357c22" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="namespaceassembly_1ade16b36c2019dc901e5798ece3dce754" kindref="member">StcodeBuildFlags</ref></type>
+        <definition>constexpr StcodeBuildFlags assembly::StcodeBuildFlagsBits::CPP</definition>
+        <argsstring></argsstring>
+        <name>CPP</name>
+        <qualifiedname>assembly::StcodeBuildFlagsBits::CPP</qualifiedname>
+        <initializer>= 1 &lt;&lt; 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.h" line="18" column="37" bodyfile="variantAssembly.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structassembly_1_1StcodeBuildFlagsBits_1a1b6381af5b3e8bba4df9b80940a9e5af" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="namespaceassembly_1ade16b36c2019dc901e5798ece3dce754" kindref="member">StcodeBuildFlags</ref></type>
+        <definition>constexpr StcodeBuildFlags assembly::StcodeBuildFlagsBits::ALL</definition>
+        <argsstring></argsstring>
+        <name>ALL</name>
+        <qualifiedname>assembly::StcodeBuildFlagsBits::ALL</qualifiedname>
+        <initializer>= <ref refid="structassembly_1_1StcodeBuildFlagsBits_1a3ef5928b0782d6f7a0b6b39b1245e5f3" kindref="member">BYTECODE</ref> | <ref refid="structassembly_1_1StcodeBuildFlagsBits_1a3bc117f2628c89fc9fa9d099c3357c22" kindref="member">CPP</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.h" line="20" column="37" bodyfile="variantAssembly.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variantAssembly.h" line="15" column="1" bodyfile="variantAssembly.h" bodystart="16" bodyend="21"/>
+    <listofallmembers>
+      <member refid="structassembly_1_1StcodeBuildFlagsBits_1a1b6381af5b3e8bba4df9b80940a9e5af" prot="public" virt="non-virtual"><scope>assembly::StcodeBuildFlagsBits</scope><name>ALL</name></member>
+      <member refid="structassembly_1_1StcodeBuildFlagsBits_1a3ef5928b0782d6f7a0b6b39b1245e5f3" prot="public" virt="non-virtual"><scope>assembly::StcodeBuildFlagsBits</scope><name>BYTECODE</name></member>
+      <member refid="structassembly_1_1StcodeBuildFlagsBits_1a3bc117f2628c89fc9fa9d099c3357c22" prot="public" virt="non-virtual"><scope>assembly::StcodeBuildFlagsBits</scope><name>CPP</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

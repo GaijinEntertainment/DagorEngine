@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ver__obj__pcdx_8h" kind="file" language="C++">
+    <compoundname>ver_obj_pcdx.h</compoundname>
+    <includedby refid="shCacheVer_8h" local="yes">shCacheVer.h</includedby>
+    <invincdepgraph>
+      <node id="3">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="2">
+        <label>shCacheVer.h</label>
+        <link refid="shCacheVer_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ver_obj_pcdx.h</label>
+        <link refid="ver__obj__pcdx_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Increase<sp/>this<sp/>number<sp/>if<sp/>changes<sp/>in<sp/>the<sp/>compiler<sp/>invalidate<sp/>.obj<sp/>for<sp/>dx11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">_MAKE4C(</highlight><highlight class="stringliteral">&apos;10.2&apos;</highlight><highlight class="normal">)</highlight></codeline>
+    </programlisting>
+    <location file="ver_obj_pcdx.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,606 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D3D API for Working with Matrices and Perspective Object</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Mesh Shader Dispatch API" href="MeshShaderDispatch.html" />
+    <link rel="prev" title="GPU Related Locks" href="Lock.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">D3D API for Working with Matrices and Perspective Object</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv48Matrix44"><code class="docutils literal notranslate"><span class="pre">Matrix44</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d5settmEiPK8Matrix44"><code class="docutils literal notranslate"><span class="pre">d3d::settm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d5settmEiRK7TMatrix"><code class="docutils literal notranslate"><span class="pre">d3d::settm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d5settmEiRK6mat44f"><code class="docutils literal notranslate"><span class="pre">d3d::settm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d5gettmEiP8Matrix44"><code class="docutils literal notranslate"><span class="pre">d3d::gettm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d5gettmEiR7TMatrix"><code class="docutils literal notranslate"><span class="pre">d3d::gettm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d5gettmEiR6mat44f"><code class="docutils literal notranslate"><span class="pre">d3d::gettm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10gettm_crefEi"><code class="docutils literal notranslate"><span class="pre">d3d::gettm_cref()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d8getm2vtmER7TMatrix"><code class="docutils literal notranslate"><span class="pre">d3d::getm2vtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9getglobtmER8Matrix44"><code class="docutils literal notranslate"><span class="pre">d3d::getglobtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9setglobtmER8Matrix44"><code class="docutils literal notranslate"><span class="pre">d3d::setglobtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9getglobtmER6mat44f"><code class="docutils literal notranslate"><span class="pre">d3d::getglobtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9setglobtmERK6mat44f"><code class="docutils literal notranslate"><span class="pre">d3d::setglobtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d8setperspERK19Driver3dPerspectiveP8TMatrix4"><code class="docutils literal notranslate"><span class="pre">d3d::setpersp()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d8getperspER19Driver3dPerspective"><code class="docutils literal notranslate"><span class="pre">d3d::getpersp()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d13validateperspERK19Driver3dPerspective"><code class="docutils literal notranslate"><span class="pre">d3d::validatepersp()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d8calcprojERK19Driver3dPerspectiveR6mat44f"><code class="docutils literal notranslate"><span class="pre">d3d::calcproj()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d8calcprojERK19Driver3dPerspectiveR8TMatrix4"><code class="docutils literal notranslate"><span class="pre">d3d::calcproj()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10calcglobtmERK6mat44fRK6mat44fR6mat44f"><code class="docutils literal notranslate"><span class="pre">d3d::calcglobtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10calcglobtmERK6mat44fRK19Driver3dPerspectiveR6mat44f"><code class="docutils literal notranslate"><span class="pre">d3d::calcglobtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10calcglobtmERK7TMatrixRK8TMatrix4R8TMatrix4"><code class="docutils literal notranslate"><span class="pre">d3d::calcglobtm()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10calcglobtmERK7TMatrixRK19Driver3dPerspectiveR8TMatrix4"><code class="docutils literal notranslate"><span class="pre">d3d::calcglobtm()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">D3D API for Working with Matrices and Perspective Object</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/MatricesAndPerspective.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="d3d-api-for-working-with-matrices-and-perspective-object">
+<h1>D3D API for Working with Matrices and Perspective Object<a class="headerlink" href="#d3d-api-for-working-with-matrices-and-perspective-object" title="Link to this heading"></a></h1>
+<p>The file contains deprecated methods that should not be part of the D3D API. We
+are going to remove the getters and setters, as they are used for accessing
+global state. Other matrix calculation methods should be moved out of the
+<code class="docutils literal notranslate"><span class="pre">d3d</span></code> namespace.</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv48Matrix44">
+<span id="_CPPv38Matrix44"></span><span id="_CPPv28Matrix44"></span><span class="target" id="dag__matricesAndPerspective_8h_1a7f8a2e7770f595ec85ae968ce28e2c1f"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Matrix44</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">TMatrix4</span></span><a class="headerlink" href="#_CPPv48Matrix44" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d5settmEiPK8Matrix44">
+<span id="_CPPv3N3d3d5settmEiPK8Matrix44"></span><span id="_CPPv2N3d3d5settmEiPK8Matrix44"></span><span id="d3d::settm__i.Matrix44CP"></span><span class="target" id="namespaced3d_1af4072a2cceac5995f5388c7a22fcc1c5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">settm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">which</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv48Matrix44" title="Matrix44"><span class="n"><span class="pre">Matrix44</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d5settmEiPK8Matrix44" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the transformation matrix for the specified index. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>which</strong> – The index of the transformation matrix. One of TM_XXX enum. </p></li>
+<li><p><strong>tm</strong> – Pointer to a Matrix44 object. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the transformation matrix is set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d5settmEiRK7TMatrix">
+<span id="_CPPv3N3d3d5settmEiRK7TMatrix"></span><span id="_CPPv2N3d3d5settmEiRK7TMatrix"></span><span id="d3d::settm__i.TMatrixCR"></span><span class="target" id="namespaced3d_1a673aabd2c490c197722dcadf8ec1f488"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">settm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">which</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d5settmEiRK7TMatrix" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the transformation matrix for the specified index. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>which</strong> – The index of the transformation matrix. One of TM_XXX enum. </p></li>
+<li><p><strong>tm</strong> – Reference to a TMatrix object. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the transformation matrix is set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d5settmEiRK6mat44f">
+<span id="_CPPv3N3d3d5settmEiRK6mat44f"></span><span id="_CPPv2N3d3d5settmEiRK6mat44f"></span><span id="d3d::settm__i.mat44fCR"></span><span class="target" id="namespaced3d_1a292268fd3bca69e7c8a3c015d41bbece"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">settm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">which</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d5settmEiRK6mat44f" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the transformation matrix for the specified index. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>which</strong> – The index of the transformation matrix. One of TM_XXX enum. </p></li>
+<li><p><strong>tm</strong> – The output mat44f object. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the transformation matrix is set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d5gettmEiP8Matrix44">
+<span id="_CPPv3N3d3d5gettmEiP8Matrix44"></span><span id="_CPPv2N3d3d5gettmEiP8Matrix44"></span><span id="d3d::gettm__i.Matrix44P"></span><span class="target" id="namespaced3d_1a65183d3b8ddd93cf9c90410150849725"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gettm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">which</span></span>, <a class="reference internal" href="#_CPPv48Matrix44" title="Matrix44"><span class="n"><span class="pre">Matrix44</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out_tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d5gettmEiP8Matrix44" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the transformation matrix for the specified index. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>which</strong> – The index of the transformation matrix. One of TM_XXX enum. </p></li>
+<li><p><strong>out_tm</strong> – Pointer to a Matrix44 object to store the result. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the transformation matrix is retrieved successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d5gettmEiR7TMatrix">
+<span id="_CPPv3N3d3d5gettmEiR7TMatrix"></span><span id="_CPPv2N3d3d5gettmEiR7TMatrix"></span><span id="d3d::gettm__i.TMatrixR"></span><span class="target" id="namespaced3d_1a753de7137efe4815dfe733f259939fcf"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gettm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">which</span></span>, <a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d5gettmEiR7TMatrix" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the transformation matrix for the specified index. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>which</strong> – The index of the transformation matrix. One of TM_XXX enum. </p></li>
+<li><p><strong>out_tm</strong> – Reference to a TMatrix object to store the result. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the transformation matrix is retrieved successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d5gettmEiR6mat44f">
+<span id="_CPPv3N3d3d5gettmEiR6mat44f"></span><span id="_CPPv2N3d3d5gettmEiR6mat44f"></span><span id="d3d::gettm__i.mat44fR"></span><span class="target" id="namespaced3d_1a5c501a5c13ce5250256aa427ee437ea7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gettm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">which</span></span>, <span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d5gettmEiR6mat44f" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the transformation matrix for the specified index. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>which</strong> – The index of the transformation matrix. One of TM_XXX enum. </p></li>
+<li><p><strong>out_tm</strong> – The output mat44f object. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10gettm_crefEi">
+<span id="_CPPv3N3d3d10gettm_crefEi"></span><span id="_CPPv2N3d3d10gettm_crefEi"></span><span id="d3d::gettm_cref__i"></span><span class="target" id="namespaced3d_1a0adc48a974938b6555b007ed36af3005"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">gettm_cref</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">which</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10gettm_crefEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the constant reference to the transformation matrix for the specified index. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which</strong> – The index of the transformation matrix. One of TM_XXX enum. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The constant reference to the transformation matrix. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d8getm2vtmER7TMatrix">
+<span id="_CPPv3N3d3d8getm2vtmER7TMatrix"></span><span id="_CPPv2N3d3d8getm2vtmER7TMatrix"></span><span id="d3d::getm2vtm__TMatrixR"></span><span class="target" id="namespaced3d_1a84f7ca4a4b476bb7514cdbc3e5b006f8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getm2vtm</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_m2v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d8getm2vtmER7TMatrix" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the model to view matrix. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out_m2v</strong> – Reference to a TMatrix object to store the result. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9getglobtmER8Matrix44">
+<span id="_CPPv3N3d3d9getglobtmER8Matrix44"></span><span id="_CPPv2N3d3d9getglobtmER8Matrix44"></span><span id="d3d::getglobtm__Matrix44R"></span><span class="target" id="namespaced3d_1ae994d9ffbc69f1173d41f9e895aff55b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getglobtm</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv48Matrix44" title="Matrix44"><span class="n"><span class="pre">Matrix44</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9getglobtmER8Matrix44" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the current globtm matrix. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out</strong> – Reference to a Matrix44 object to store the result. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9setglobtmER8Matrix44">
+<span id="_CPPv3N3d3d9setglobtmER8Matrix44"></span><span id="_CPPv2N3d3d9setglobtmER8Matrix44"></span><span id="d3d::setglobtm__Matrix44R"></span><span class="target" id="namespaced3d_1a98b0466baa1794ce99fea2feaea16f00"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setglobtm</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv48Matrix44" title="Matrix44"><span class="n"><span class="pre">Matrix44</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">globtm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9setglobtmER8Matrix44" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the custom globtm matrix. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>globtm</strong> – Reference to a Matrix44 object representing the custom globtm matrix. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9getglobtmER6mat44f">
+<span id="_CPPv3N3d3d9getglobtmER6mat44f"></span><span id="_CPPv2N3d3d9getglobtmER6mat44f"></span><span id="d3d::getglobtm__mat44fR"></span><span class="target" id="namespaced3d_1a0c08cfdf31217c419b2bdb8311dbc60b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getglobtm</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9getglobtmER6mat44f" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the current globtm matrix. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out</strong> – Reference to a mat44f object to store the result. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9setglobtmERK6mat44f">
+<span id="_CPPv3N3d3d9setglobtmERK6mat44f"></span><span id="_CPPv2N3d3d9setglobtmERK6mat44f"></span><span id="d3d::setglobtm__mat44fCR"></span><span class="target" id="namespaced3d_1ad7d37a3c61518c3595a65909fdd67e95"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setglobtm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">globtm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9setglobtmERK6mat44f" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the custom globtm matrix. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>globtm</strong> – Reference to a mat44f object representing the custom globtm matrix. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d8setperspERK19Driver3dPerspectiveP8TMatrix4">
+<span id="_CPPv3N3d3d8setperspERK19Driver3dPerspectiveP8TMatrix4"></span><span id="_CPPv2N3d3d8setperspERK19Driver3dPerspectiveP8TMatrix4"></span><span id="d3d::setpersp__Driver3dPerspectiveCR.TMatrix4P"></span><span class="target" id="namespaced3d_1ac05952d66d795ed0eb567c51018d2cbf"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setpersp</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Driver3dPerspective</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="n"><span class="pre">TMatrix4</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">proj_tm</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d8setperspERK19Driver3dPerspectiveP8TMatrix4" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate and set the perspective matrix. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – The Driver3dPerspective object representing the perspective parameters. </p></li>
+<li><p><strong>proj_tm</strong> – Pointer to a TMatrix4 object to store the perspective matrix. Optional. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the perspective matrix is calculated and set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d8getperspER19Driver3dPerspective">
+<span id="_CPPv3N3d3d8getperspER19Driver3dPerspective"></span><span id="_CPPv2N3d3d8getperspER19Driver3dPerspective"></span><span id="d3d::getpersp__Driver3dPerspectiveR"></span><span class="target" id="namespaced3d_1ae329e546e7635ff77e65b4c2ce39301b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getpersp</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">Driver3dPerspective</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d8getperspER19Driver3dPerspective" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the last values set by <a class="reference internal" href="#namespaced3d_1ac05952d66d795ed0eb567c51018d2cbf"><span class="std std-ref">setpersp()</span></a>. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd></dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> – Reference to a Driver3dPerspective object to store the result. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the last values are retrieved successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d13validateperspERK19Driver3dPerspective">
+<span id="_CPPv3N3d3d13validateperspERK19Driver3dPerspective"></span><span id="_CPPv2N3d3d13validateperspERK19Driver3dPerspective"></span><span id="d3d::validatepersp__Driver3dPerspectiveCR"></span><span class="target" id="namespaced3d_1abe023d441e457494773cb2328cf90c62"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">validatepersp</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Driver3dPerspective</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d13validateperspERK19Driver3dPerspective" title="Link to this definition"></a><br /></dt>
+<dd><p>Check if the given perspective parameters are valid. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> – The Driver3dPerspective object representing the perspective parameters. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the perspective parameters are valid, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d8calcprojERK19Driver3dPerspectiveR6mat44f">
+<span id="_CPPv3N3d3d8calcprojERK19Driver3dPerspectiveR6mat44f"></span><span id="_CPPv2N3d3d8calcprojERK19Driver3dPerspectiveR6mat44f"></span><span id="d3d::calcproj__Driver3dPerspectiveCR.mat44fR"></span><span class="target" id="namespaced3d_1aa2d9f17dd49100f45964e03fe115bd62"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcproj</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Driver3dPerspective</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">proj_tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d8calcprojERK19Driver3dPerspectiveR6mat44f" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the perspective matrix without setting it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – The Driver3dPerspective object representing the perspective parameters. </p></li>
+<li><p><strong>proj_tm</strong> – Reference to a mat44f object to store the perspective matrix. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the perspective matrix is calculated successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d8calcprojERK19Driver3dPerspectiveR8TMatrix4">
+<span id="_CPPv3N3d3d8calcprojERK19Driver3dPerspectiveR8TMatrix4"></span><span id="_CPPv2N3d3d8calcprojERK19Driver3dPerspectiveR8TMatrix4"></span><span id="d3d::calcproj__Driver3dPerspectiveCR.TMatrix4R"></span><span class="target" id="namespaced3d_1aa8f9b7e00678fb2bc6efafcd203d1fd1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcproj</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Driver3dPerspective</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="n"><span class="pre">TMatrix4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">proj_tm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d8calcprojERK19Driver3dPerspectiveR8TMatrix4" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the perspective matrix without setting it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – The Driver3dPerspective object representing the perspective parameters. </p></li>
+<li><p><strong>proj_tm</strong> – Reference to a TMatrix4 object to store the perspective matrix. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the perspective matrix is calculated successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10calcglobtmERK6mat44fRK6mat44fR6mat44f">
+<span id="_CPPv3N3d3d10calcglobtmERK6mat44fRK6mat44fR6mat44f"></span><span id="_CPPv2N3d3d10calcglobtmERK6mat44fRK6mat44fR6mat44f"></span><span id="d3d::calcglobtm__mat44fCR.mat44fCR.mat44fR"></span><span class="target" id="namespaced3d_1aa70dc096983e0bfd4250d9109722f897"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcglobtm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">view_tm</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">proj_tm</span></span>, <span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10calcglobtmERK6mat44fRK6mat44fR6mat44f" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the globtm matrix without setting it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>view_tm</strong> – The view matrix. </p></li>
+<li><p><strong>proj_tm</strong> – The perspective matrix. </p></li>
+<li><p><strong>result</strong> – Reference to a mat44f object to store the result. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10calcglobtmERK6mat44fRK19Driver3dPerspectiveR6mat44f">
+<span id="_CPPv3N3d3d10calcglobtmERK6mat44fRK19Driver3dPerspectiveR6mat44f"></span><span id="_CPPv2N3d3d10calcglobtmERK6mat44fRK19Driver3dPerspectiveR6mat44f"></span><span id="d3d::calcglobtm__mat44fCR.Driver3dPerspectiveCR.mat44fR"></span><span class="target" id="namespaced3d_1afc112df52a6b69fb6402a0663e3872d1"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcglobtm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">view_tm</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Driver3dPerspective</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">persp</span></span>, <span class="n"><span class="pre">mat44f</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10calcglobtmERK6mat44fRK19Driver3dPerspectiveR6mat44f" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the globtm matrix without setting it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>view_tm</strong> – The view matrix. </p></li>
+<li><p><strong>persp</strong> – The Driver3dPerspective object representing the perspective parameters. </p></li>
+<li><p><strong>result</strong> – Reference to a mat44f object to store the result. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10calcglobtmERK7TMatrixRK8TMatrix4R8TMatrix4">
+<span id="_CPPv3N3d3d10calcglobtmERK7TMatrixRK8TMatrix4R8TMatrix4"></span><span id="_CPPv2N3d3d10calcglobtmERK7TMatrixRK8TMatrix4R8TMatrix4"></span><span id="d3d::calcglobtm__TMatrixCR.TMatrix4CR.TMatrix4R"></span><span class="target" id="namespaced3d_1a961cc594e4eb4848ff8dbbbbc4815286"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcglobtm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">view_tm</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TMatrix4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">proj_tm</span></span>, <span class="n"><span class="pre">TMatrix4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10calcglobtmERK7TMatrixRK8TMatrix4R8TMatrix4" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the globtm matrix without setting it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>view_tm</strong> – The view matrix. </p></li>
+<li><p><strong>proj_tm</strong> – The perspective matrix. </p></li>
+<li><p><strong>result</strong> – Reference to a TMatrix4 object to store the result. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10calcglobtmERK7TMatrixRK19Driver3dPerspectiveR8TMatrix4">
+<span id="_CPPv3N3d3d10calcglobtmERK7TMatrixRK19Driver3dPerspectiveR8TMatrix4"></span><span id="_CPPv2N3d3d10calcglobtmERK7TMatrixRK19Driver3dPerspectiveR8TMatrix4"></span><span id="d3d::calcglobtm__TMatrixCR.Driver3dPerspectiveCR.TMatrix4R"></span><span class="target" id="namespaced3d_1a0d6c6a6667660ed4b72de6ee3d173c09"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calcglobtm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">view_tm</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Driver3dPerspective</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">persp</span></span>, <span class="n"><span class="pre">TMatrix4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10calcglobtmERK7TMatrixRK19Driver3dPerspectiveR8TMatrix4" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the globtm matrix without setting it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>view_tm</strong> – The view matrix. </p></li>
+<li><p><strong>persp</strong> – The Driver3dPerspective object representing the perspective parameters. </p></li>
+<li><p><strong>result</strong> – Reference to a TMatrix4 object to store the result. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Lock.html" class="btn btn-neutral float-left" title="GPU Related Locks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="MeshShaderDispatch.html" class="btn btn-neutral float-right" title="Mesh Shader Dispatch API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

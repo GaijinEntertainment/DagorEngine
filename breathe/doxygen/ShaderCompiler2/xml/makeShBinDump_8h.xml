@@ -1,0 +1,324 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="makeShBinDump_8h" kind="file" language="C++">
+    <compoundname>makeShBinDump.h</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="yes">cppStcodeAssembly.h</includes>
+    <includedby refid="main_8cpp" local="yes">main.cpp</includedby>
+    <includedby refid="makeShBinDump_8cpp" local="yes">makeShBinDump.cpp</includedby>
+    <incdepgraph>
+      <node id="4">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>makeShBinDump.h</label>
+        <link refid="makeShBinDump_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="11">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="27">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="35">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="28">
+        <label>cstdint</label>
+      </node>
+      <node id="22">
+        <label>cstring</label>
+      </node>
+      <node id="18">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="17">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="34">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="25">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="26">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="15">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="21">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="30">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="33">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="31">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="32">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="37">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="29">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="36">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="16">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="5">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="3">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="1">
+        <label>makeShBinDump.h</label>
+        <link refid="makeShBinDump_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structBindumpPackingFlagsBits" prot="public">BindumpPackingFlagsBits</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="makeShBinDump_8h_1a7e4c9039c4d793938486d7f1c089329f" prot="public" static="no">
+        <type>uint32_t</type>
+        <definition>using BindumpPackingFlags =  uint32_t</definition>
+        <argsstring></argsstring>
+        <name>BindumpPackingFlags</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.h" line="17" column="1" bodyfile="makeShBinDump.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="makeShBinDump_8h_1ae7f4166574586836d89736ca05ad6090" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool make_scripted_shaders_dump</definition>
+        <argsstring>(const char *dump_name, const char *cache_filename, bool strip_shaders_and_stcode, BindumpPackingFlags packing_flags, const shc::CompilationContext &amp;ctx)</argsstring>
+        <name>make_scripted_shaders_dump</name>
+        <param>
+          <type>const char *</type>
+          <declname>dump_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>cache_filename</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>strip_shaders_and_stcode</declname>
+        </param>
+        <param>
+          <type><ref refid="makeShBinDump_8h_1a7e4c9039c4d793938486d7f1c089329f" kindref="member">BindumpPackingFlags</ref></type>
+          <declname>packing_flags</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.h" line="19" column="6" bodyfile="makeShBinDump.cpp" bodystart="935" bodyend="1791" declfile="makeShBinDump.h" declline="19" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="cppStcodeAssembly_8h" kindref="compound">cppStcodeAssembly.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">CompilationContext;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="structBindumpPackingFlagsBits" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structBindumpPackingFlagsBits" kindref="compound">BindumpPackingFlagsBits</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13" refid="structBindumpPackingFlagsBits_1a8f1b8124ca43e20fc82a5acfa0060a35" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structBindumpPackingFlagsBits_1a8f1b8124ca43e20fc82a5acfa0060a35" kindref="member">NONE</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="14" refid="structBindumpPackingFlagsBits_1af6ce521b95d1ea33e3463753a874e8da" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structBindumpPackingFlagsBits_1af6ce521b95d1ea33e3463753a874e8da" kindref="member">SHADER_GROUPS</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="15" refid="structBindumpPackingFlagsBits_1a62bee7765f0657bba97f2a5924cb6c5d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structBindumpPackingFlagsBits_1a62bee7765f0657bba97f2a5924cb6c5d" kindref="member">WHOLE_BINARY</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/>1;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17" refid="makeShBinDump_8h_1a7e4c9039c4d793938486d7f1c089329f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="makeShBinDump_8h_1a7e4c9039c4d793938486d7f1c089329f" kindref="member">BindumpPackingFlags</ref><sp/>=<sp/>uint32_t;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="makeShBinDump_8h_1ae7f4166574586836d89736ca05ad6090" kindref="member">make_scripted_shaders_dump</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*dump_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*cache_filename,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>strip_shaders_and_stcode,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><ref refid="makeShBinDump_8h_1a7e4c9039c4d793938486d7f1c089329f" kindref="member">BindumpPackingFlags</ref><sp/>packing_flags,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref><sp/>&amp;ctx);</highlight></codeline>
+    </programlisting>
+    <location file="makeShBinDump.h"/>
+  </compounddef>
+</doxygen>

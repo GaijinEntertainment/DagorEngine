@@ -1,0 +1,417 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderSemCode" kind="class" language="C++" prot="public">
+    <compoundname>ShaderSemCode</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+    <innerclass refid="structShaderSemCode_1_1PassTab" prot="public">ShaderSemCode::PassTab</innerclass>
+    <innerclass refid="structShaderSemCode_1_1StVarMapping" prot="public">ShaderSemCode::StVarMapping</innerclass>
+    <innerclass refid="structShaderSemCode_1_1Var" prot="public">ShaderSemCode::Var</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>shc::TargetContext&amp; ShaderSemCode::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>ShaderSemCode::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="208" column="22" bodyfile="shSemCode.h" bodystart="208" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1a8b32469ee07d07ba8dd9b6a7d2d20805" prot="public" static="no" mutable="no">
+        <type>Tab&lt; ShaderChannelId &gt;</type>
+        <definition>Tab&lt;ShaderChannelId&gt; ShaderSemCode::channel</definition>
+        <argsstring></argsstring>
+        <name>channel</name>
+        <qualifiedname>ShaderSemCode::channel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="210" column="7" bodyfile="shSemCode.h" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1ac5254af5ecdf0f52e2d648e94a90d2e8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSemCode::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>ShaderSemCode::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="212" column="7" bodyfile="shSemCode.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1acbae3ddeaf15f11dbef5e0de44097ea0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSemCode::renderStageIdx</definition>
+        <argsstring></argsstring>
+        <name>renderStageIdx</name>
+        <qualifiedname>ShaderSemCode::renderStageIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="213" column="7" bodyfile="shSemCode.h" bodystart="213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeStaticVars" kindref="compound">StcodeStaticVars</ref></type>
+        <definition>StcodeStaticVars ShaderSemCode::staticStcodeVars</definition>
+        <argsstring></argsstring>
+        <name>staticStcodeVars</name>
+        <qualifiedname>ShaderSemCode::staticStcodeVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="215" column="20" bodyfile="shSemCode.h" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderSemCode_1_1Var" kindref="compound">Var</ref> &gt;</type>
+        <definition>Tab&lt;Var&gt; ShaderSemCode::vars</definition>
+        <argsstring></argsstring>
+        <name>vars</name>
+        <qualifiedname>ShaderSemCode::vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="217" column="7" bodyfile="shSemCode.h" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1af8edbdef53e3a9de78f27f09f1611ddd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSemCode::regsize</definition>
+        <argsstring></argsstring>
+        <name>regsize</name>
+        <qualifiedname>ShaderSemCode::regsize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="218" column="7" bodyfile="shSemCode.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1a63a202d1e669c2a0a09e709e8e962d93" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; ShaderSemCode::initcode</definition>
+        <argsstring></argsstring>
+        <name>initcode</name>
+        <qualifiedname>ShaderSemCode::initcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="220" column="7" bodyfile="shSemCode.h" bodystart="220" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderSemCode_1_1StVarMapping" kindref="compound">StVarMapping</ref> &gt;</type>
+        <definition>Tab&lt;StVarMapping&gt; ShaderSemCode::stvarmap</definition>
+        <argsstring></argsstring>
+        <name>stvarmap</name>
+        <qualifiedname>ShaderSemCode::stvarmap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="221" column="7" bodyfile="shSemCode.h" bodystart="221" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; eastl::unique_ptr&lt; <ref refid="structShaderSemCode_1_1PassTab" kindref="compound">PassTab</ref> &gt; &gt;</type>
+        <definition>dag::Vector&lt;eastl::unique_ptr&lt;PassTab&gt; &gt; ShaderSemCode::passes</definition>
+        <argsstring></argsstring>
+        <name>passes</name>
+        <qualifiedname>ShaderSemCode::passes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="223" column="15" bodyfile="shSemCode.h" bodystart="223" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderSemCode_1a47557d06e0cb28e5bf0069124e4acb20" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderSemCode::ShaderSemCode</definition>
+        <argsstring>(shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>ShaderSemCode</name>
+        <qualifiedname>ShaderSemCode::ShaderSemCode</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="226" column="12" bodyfile="shSemCode.cpp" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSemCode_1a65b81634f689797e098f940d0029be3f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderSemCode::find_var</definition>
+        <argsstring>(const int variable_id)</argsstring>
+        <name>find_var</name>
+        <qualifiedname>ShaderSemCode::find_var</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="228" column="7" bodyfile="shsem.cpp" bodystart="108" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSemCode_1add322f136e40abda10f755b23b652907" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderSemCode::equal</definition>
+        <argsstring>(ShaderSemCode &amp;, bool compare_passes_and_vars)</argsstring>
+        <name>equal</name>
+        <qualifiedname>ShaderSemCode::equal</qualifiedname>
+        <param>
+          <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+          <defname>c</defname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>compare_passes_and_vars</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="230" column="14" bodyfile="shsem.cpp" bodystart="196" bodyend="256"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSemCode_1abfd30ee047bb5e92b5e403ed62191bf0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSemCode::dump</definition>
+        <argsstring>()</argsstring>
+        <name>dump</name>
+        <qualifiedname>ShaderSemCode::dump</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="231" column="8" bodyfile="shsem.cpp" bodystart="54" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSemCode_1a5152815192d39ea106f827b07955b044" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSemCode::initPassMap</definition>
+        <argsstring>(int pass_id)</argsstring>
+        <name>initPassMap</name>
+        <qualifiedname>ShaderSemCode::initPassMap</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pass_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="233" column="8" bodyfile="shSemCode.cpp" bodystart="31" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSemCode_1a0f6ee922626b00aaf01a7268de9b742a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSemCode::mergeVars</definition>
+        <argsstring>(Tab&lt; Var &gt; &amp;&amp;other_vars, Tab&lt; StVarMapping &gt; &amp;&amp;other_stvarmap, int pass_id)</argsstring>
+        <name>mergeVars</name>
+        <qualifiedname>ShaderSemCode::mergeVars</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="structShaderSemCode_1_1Var" kindref="compound">Var</ref> &gt; &amp;&amp;</type>
+          <declname>other_vars</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structShaderSemCode_1_1StVarMapping" kindref="compound">StVarMapping</ref> &gt; &amp;&amp;</type>
+          <declname>other_stvarmap</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>pass_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="234" column="8" bodyfile="shSemCode.cpp" bodystart="44" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSemCode_1aef25e17512cd2562d12377a47b3433b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderCode" kindref="compound">ShaderCode</ref> *</type>
+        <definition>ShaderCode * ShaderSemCode::generateShaderCode</definition>
+        <argsstring>(const ShaderVariant::VariantTableSrc &amp;dynVariants)</argsstring>
+        <name>generateShaderCode</name>
+        <qualifiedname>ShaderSemCode::generateShaderCode</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantTableSrc" kindref="compound">ShaderVariant::VariantTableSrc</ref> &amp;</type>
+          <declname>dynVariants</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="236" column="14" bodyfile="shSemCode.cpp" bodystart="87" bodyend="202"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderSemCode_1a21b2f76ceb7600016e0f88b4a9a41c11" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSemCode::convert_passes</definition>
+        <argsstring>(SemanticShaderPass &amp;semP, ShaderCode::Pass &amp;p, Tab&lt; int &gt; &amp;cvar, const Tab&lt; int &gt; &amp;var_map)</argsstring>
+        <name>convert_passes</name>
+        <qualifiedname>ShaderSemCode::convert_passes</qualifiedname>
+        <param>
+          <type><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> &amp;</type>
+          <declname>semP</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderCode_1_1Pass" kindref="compound">ShaderCode::Pass</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>cvar</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; int &gt; &amp;</type>
+          <declname>var_map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="239" column="8" bodyfile="shSemCode.cpp" bodystart="289" bodyend="349"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classShaderSemCode_1abb4cd1ba6556bdc388b2e0220dceced6" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSemCode::convert_stcode</definition>
+        <argsstring>(dag::Span&lt; int &gt; cod, Tab&lt; int &gt; &amp;cvar, const Tab&lt; int &gt; &amp;var_map)</argsstring>
+        <name>convert_stcode</name>
+        <qualifiedname>ShaderSemCode::convert_stcode</qualifiedname>
+        <param>
+          <type>dag::Span&lt; int &gt;</type>
+          <declname>cod</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>cvar</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; int &gt; &amp;</type>
+          <declname>var_map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="240" column="15" bodyfile="shSemCode.cpp" bodystart="204" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSemCode_1a1dc9872c776a4b337d236bf04a545d64" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int ShaderSemCode::find_var_in_tab</definition>
+        <argsstring>(const Tab&lt; Var &gt; &amp;vars, const int variable_id)</argsstring>
+        <name>find_var_in_tab</name>
+        <qualifiedname>ShaderSemCode::find_var_in_tab</qualifiedname>
+        <param>
+          <type>const Tab&lt; <ref refid="structShaderSemCode_1_1Var" kindref="compound">Var</ref> &gt; &amp;</type>
+          <declname>vars</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="242" column="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderSemCode</label>
+        <link refid="classShaderSemCode"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>staticStcodeVars</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>StcodeStaticVars</label>
+        <link refid="structStcodeStaticVars"/>
+      </node>
+      <node id="2">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="shSemCode.h" line="179" column="1" bodyfile="shSemCode.h" bodystart="180" bodyend="243"/>
+    <listofallmembers>
+      <member refid="classShaderSemCode_1a8b32469ee07d07ba8dd9b6a7d2d20805" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>channel</name></member>
+      <member refid="classShaderSemCode_1a21b2f76ceb7600016e0f88b4a9a41c11" prot="private" virt="non-virtual"><scope>ShaderSemCode</scope><name>convert_passes</name></member>
+      <member refid="classShaderSemCode_1abb4cd1ba6556bdc388b2e0220dceced6" prot="private" virt="non-virtual"><scope>ShaderSemCode</scope><name>convert_stcode</name></member>
+      <member refid="classShaderSemCode_1aac5b79e9cfe65d45977555aee81fc734" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>ctx</name></member>
+      <member refid="classShaderSemCode_1abfd30ee047bb5e92b5e403ed62191bf0" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>dump</name></member>
+      <member refid="classShaderSemCode_1add322f136e40abda10f755b23b652907" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>equal</name></member>
+      <member refid="classShaderSemCode_1a65b81634f689797e098f940d0029be3f" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>find_var</name></member>
+      <member refid="classShaderSemCode_1a1dc9872c776a4b337d236bf04a545d64" prot="private" virt="non-virtual"><scope>ShaderSemCode</scope><name>find_var_in_tab</name></member>
+      <member refid="classShaderSemCode_1ac5254af5ecdf0f52e2d648e94a90d2e8" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>flags</name></member>
+      <member refid="classShaderSemCode_1aef25e17512cd2562d12377a47b3433b5" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>generateShaderCode</name></member>
+      <member refid="classShaderSemCode_1a63a202d1e669c2a0a09e709e8e962d93" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>initcode</name></member>
+      <member refid="classShaderSemCode_1a5152815192d39ea106f827b07955b044" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>initPassMap</name></member>
+      <member refid="classShaderSemCode_1a0f6ee922626b00aaf01a7268de9b742a" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>mergeVars</name></member>
+      <member refid="classShaderSemCode_1a7c17fae1acb3407d2a29e9a6d771851e" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>passes</name></member>
+      <member refid="classShaderSemCode_1af8edbdef53e3a9de78f27f09f1611ddd" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>regsize</name></member>
+      <member refid="classShaderSemCode_1acbae3ddeaf15f11dbef5e0de44097ea0" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>renderStageIdx</name></member>
+      <member refid="classShaderSemCode_1a47557d06e0cb28e5bf0069124e4acb20" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>ShaderSemCode</name></member>
+      <member refid="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>staticStcodeVars</name></member>
+      <member refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>stvarmap</name></member>
+      <member refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" prot="public" virt="non-virtual"><scope>ShaderSemCode</scope><name>vars</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIEnvironmentSettings" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IEnvironmentSettings</compoundname>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIEnvironmentSettings_1aad7e12e28feb4cd833c15755741a8473" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned IEnvironmentSettings::HUID</definition>
+        <argsstring></argsstring>
+        <name>HUID</name>
+        <qualifiedname>IEnvironmentSettings::HUID</qualifiedname>
+        <initializer>= 0x62B95DA4u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="79" column="29" bodyfile="ec_interface_ex.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIEnvironmentSettings_1ae64dde1475071d5689745c9b3751f1c1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEnvironmentSettings::getEnvironmentSettings</definition>
+        <argsstring>(DataBlock &amp;blk)=0</argsstring>
+        <name>getEnvironmentSettings</name>
+        <qualifiedname>IEnvironmentSettings::getEnvironmentSettings</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="80" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEnvironmentSettings_1aa07d689502b74976ce792ee9be87444c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEnvironmentSettings::setEnvironmentSettings</definition>
+        <argsstring>(DataBlock &amp;blk)=0</argsstring>
+        <name>setEnvironmentSettings</name>
+        <qualifiedname>IEnvironmentSettings::setEnvironmentSettings</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="81" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_interface_ex.h" line="76" column="1" bodyfile="ec_interface_ex.h" bodystart="77" bodyend="82"/>
+    <listofallmembers>
+      <member refid="classIEnvironmentSettings_1ae64dde1475071d5689745c9b3751f1c1" prot="public" virt="pure-virtual"><scope>IEnvironmentSettings</scope><name>getEnvironmentSettings</name></member>
+      <member refid="classIEnvironmentSettings_1aad7e12e28feb4cd833c15755741a8473" prot="public" virt="non-virtual"><scope>IEnvironmentSettings</scope><name>HUID</name></member>
+      <member refid="classIEnvironmentSettings_1aa07d689502b74976ce792ee9be87444c" prot="public" virt="pure-virtual"><scope>IEnvironmentSettings</scope><name>setEnvironmentSettings</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

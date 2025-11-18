@@ -1,0 +1,413 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resource Slot in Daslang + ECS</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Resource Slot in Daslang" href="resource_slot_das.html" />
+    <link rel="prev" title="Perform Access Requests" href="resolveAccess.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="registerAccess.html">Register Request for Access to Slots Storage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nodeHandleWithSlotsAccess.html">Node and Slot Access Handle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="resolveAccess.html">Perform Access Requests</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Resource Slot in Daslang + ECS</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#difference-with-fg-ecs">Difference with fg_ecs</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#function-annotations">Function Annotations</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="resource_slot_das.html">Resource Slot in Daslang</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResourceSlotCore.html">ResourceSlotCore Daslang Module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../resourceSlot.html">Resource Slots</a></li>
+      <li class="breadcrumb-item active">Resource Slot in Daslang + ECS</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/resourceSlot/resource_slot_ecs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="resource-slot-in-daslang-ecs">
+<span id="stdlib-resource-slot-ecs"></span><h1>Resource Slot in Daslang + ECS<a class="headerlink" href="#resource-slot-in-daslang-ecs" title="Link to this heading"></a></h1>
+<p>We can handle in ECS <a class="reference internal" href="ResourceSlotCore.html#handle-resourceslotcore-nodehandlewithslotsaccess"><span class="std std-ref">NodeHandleWithSlotsAccess</span></a> as we handle <a class="reference internal" href="../daFrameGraph/daFgCore.html#handle-dafgcore-nodehandle"><span class="std std-ref">NodeHandle</span></a>.</p>
+<p>Let’s say we have Daslang code for node:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>require daFrameGraph.fg_ecs
+
+[fg_ecs_node(on_appear)]
+def register_some_node(var some_node_handle : NodeHandle&amp;)
+
+  some_node_handle &lt;- root() |&gt; registerNode(&quot;some_node&quot;) &lt;| @(slots_state; var registry : Registry)
+
+    registry |&gt; create(&quot;some_node_output_tex&quot;, History No) |&gt; texture(...)
+    registry |&gt; requestRenderPass |&gt; color([[auto[] &quot;some_node_output_tex&quot;]])
+
+    registry |&gt; read(&quot;some_node_input_tex&quot;) |&gt; texture |&gt; atStage(Stage POST_RASTER) |&gt; bindToShaderVar(&quot;some_shader_var&quot;)
+
+    return &lt;- @ &lt;|
+      query() &lt;| $ [es] (some_renderer : PostFxRenderer)
+        some_renderer |&gt; render
+</pre></div>
+</div>
+<p>We can convert it to read texture from and write back to resource slot <code class="docutils literal notranslate"><span class="pre">slot_name</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>require daFrameGraph.resource_slot_ecs
+
+[resource_slot_ecs(on_appear)]
+def register_some_node(var some_node_handle : NodeHandleWithSlotsAccess&amp;)
+
+  some_node_handle &lt;- root() |&gt; registerAccess(&quot;some_node&quot;, [[SlotActions update &lt;- [{Update slot=&quot;slot_name&quot;, resource=&quot;some_node_output_tex&quot;, priority=100}] ]]) &lt;| @(slots_state; var registry : Registry)
+
+    registry |&gt; create(slots_state |&gt; resourceToCreateFor(&quot;slot_name&quot;), History No) |&gt; texture(...)
+    registry |&gt; requestRenderPass |&gt; color([[auto[] slots_state |&gt; resourceToCreateFor(&quot;postfx_input_slot&quot;)]])
+
+    registry |&gt; read(slots_state |&gt; resourceToReadFrom(&quot;slot_name&quot;)) |&gt; texture |&gt; atStage(Stage POST_RASTER) |&gt; bindToShaderVar(&quot;some_shader_var&quot;)
+
+    return &lt;- @ &lt;|
+      query() &lt;| $ [es] (some_renderer : PostFxRenderer)
+        some_renderer |&gt; render
+</pre></div>
+</div>
+<section id="difference-with-fg-ecs">
+<h2>Difference with fg_ecs<a class="headerlink" href="#difference-with-fg-ecs" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>fg_ecs</p></th>
+<th class="head" rowspan="2"><p>resource_slot_ecs</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>require daFrameGraph.fg_ecs</p></td>
+<td rowspan="2"><p>require daFrameGraph.resource_slot_ecs</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>[fg_ecs_node(on_appear)]</p></td>
+<td rowspan="2"><p>[resource_slot_ecs(on_appear)]</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>NodeHandle</p></td>
+<td rowspan="2"><p>NodeHandleWithSlotsAccess</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>registerNode(“node_name”)</p></td>
+<td rowspan="2"><p>registerAccess(“node_name”, [[SlotActions … ]])</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>&#64;(var registry : Registry)</p></td>
+<td rowspan="2"><p>&#64;(slots_state; var registry : Registry)</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>“some_node_input_tex”</p></td>
+<td rowspan="2"><p>`slots_state <a href="#id1"><span class="problematic" id="id2">|</span></a>&gt; resourceToReadFrom(“slot_name”)`</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>“some_node_output_tex”</p></td>
+<td rowspan="2"><p>`slots_state <a href="#id3"><span class="problematic" id="id4">|</span></a>&gt; resourceToCreateFor(“slot_name”)`</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a class="reference internal" href="resource_slot_das.html#struct-resource-slot-slotactions"><span class="std std-ref">SlotActions</span></a> have 3 possible properties:</p>
+<ul class="simple">
+<li><p>create : array&lt;<a class="reference internal" href="resource_slot_das.html#struct-resource-slot-create"><span class="std std-ref">Create</span></a>&gt;</p></li>
+<li><p>update : array&lt;<a class="reference internal" href="resource_slot_das.html#struct-resource-slot-update"><span class="std std-ref">Update</span></a>&gt;</p></li>
+<li><p>read : array&lt;<a class="reference internal" href="resource_slot_das.html#struct-resource-slot-read"><span class="std std-ref">Read</span></a>&gt;</p></li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see <a class="reference internal" href="resource_slot_das.html#function-at-resource-slot-c-c-registeraccess-s-ls-daframegraph-c-c-namespace-gr-cs-cs-ls-resource-slot-c-c-slotactions-gr-n-ls-slots-state-reg-gr-0-ls-ch-ls-resourceslotcore-c-c-state-gr-s-ls-daframegraph-c-c-registry-gr-gr-1-ls-1-ls-v-gr-at-gr-at"><span class="std std-ref">registerAccess</span></a>.</p>
+</div>
+</section>
+<section id="function-annotations">
+<h2>Function Annotations<a class="headerlink" href="#function-annotations" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="handle-resource-slot-ecs-resource-slot-ecs">
+<dt class="sig sig-object das" id="resource_slot_ecs">
+<span class="sig-name descname"><span class="pre">resource_slot_ecs</span></span><a class="headerlink" href="#resource_slot_ecs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="struct-resource-slot-ecs-resourceslotecsannotation">
+<dt class="sig sig-object das" id="ResourceSlotEcsAnnotation : AstFunctionAnnotation">
+<span class="sig-name descname"><span class="pre">ResourceSlotEcsAnnotation</span> <span class="pre">:</span> <span class="pre">AstFunctionAnnotation</span></span><a class="headerlink" href="#ResourceSlotEcsAnnotation : AstFunctionAnnotation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="das function">
+<dt class="sig sig-object das" id="ResourceSlotEcsAnnotation.apply">
+<span class="sig-prename descclassname"><span class="pre">ResourceSlotEcsAnnotation.</span></span><span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">AstFunctionAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">group:</span> <span class="pre">ModuleGroup;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const;</span> <span class="pre">errors:</span> <span class="pre">das_string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ResourceSlotEcsAnnotation.apply" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><code class="docutils literal notranslate"><span class="pre">apply</span></code> returns bool.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>Argument</p></th>
+<th class="head" rowspan="2"><p>Argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>ast::AstFunctionAnnotation</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p>FunctionPtr</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>group</p></td>
+<td rowspan="2"><p>rtti::ModuleGroup</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p>rtti::AnnotationArgumentList  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>errors</p></td>
+<td rowspan="2"><p>:builtin::das_string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<dl class="das function">
+<dt class="sig sig-object das" id="ResourceSlotEcsAnnotation.parseArgs">
+<span class="sig-prename descclassname"><span class="pre">ResourceSlotEcsAnnotation.</span></span><span class="sig-name descname"><span class="pre">parseArgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">ResourceSlotEcsAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const;</span> <span class="pre">errors:</span> <span class="pre">das_string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ResourceSlotEcsAnnotation.parseArgs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><code class="docutils literal notranslate"><span class="pre">parseArgs</span></code> returns <code class="docutils literal notranslate"><span class="pre">resource_slot_ecs::ResSlotEcsAnnotationArgs</span></code>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>Argument</p></th>
+<th class="head" rowspan="2"><p>Argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-resource-slot-ecs-resourceslotecsannotation"><span class="std std-ref">resource_slot_ecs::ResourceSlotEcsAnnotation</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p>FunctionPtr</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p>rtti::AnnotationArgumentList  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>errors</p></td>
+<td rowspan="2"><p>builtin::das_string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<dl class="das function">
+<dt class="sig sig-object das" id="ResourceSlotEcsAnnotation.declareReloadCallback">
+<span class="sig-prename descclassname"><span class="pre">ResourceSlotEcsAnnotation.</span></span><span class="sig-name descname"><span class="pre">declareReloadCallback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">ResourceSlotEcsAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">parsed:</span> <span class="pre">ResSlotEcsAnnotationArgs</span> <span class="pre">const;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ResourceSlotEcsAnnotation.declareReloadCallback" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>Argument</p></th>
+<th class="head" rowspan="2"><p>Argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-resource-slot-ecs-resourceslotecsannotation"><span class="std std-ref">resource_slot_ecs::ResourceSlotEcsAnnotation</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p>FunctionPtr</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>parsed</p></td>
+<td rowspan="2"><p>resource_slot_ecs::ResSlotEcsAnnotationArgs  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p>rtti::AnnotationArgumentList  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<dl class="das function">
+<dt class="sig sig-object das" id="ResourceSlotEcsAnnotation.declareES">
+<span class="sig-prename descclassname"><span class="pre">ResourceSlotEcsAnnotation.</span></span><span class="sig-name descname"><span class="pre">declareES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">ResourceSlotEcsAnnotation;</span> <span class="pre">func:</span> <span class="pre">FunctionPtr;</span> <span class="pre">parsed:</span> <span class="pre">ResSlotEcsAnnotationArgs</span> <span class="pre">const;</span> <span class="pre">args:</span> <span class="pre">AnnotationArgumentList</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ResourceSlotEcsAnnotation.declareES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>Argument</p></th>
+<th class="head" rowspan="2"><p>Argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-resource-slot-ecs-resourceslotecsannotation"><span class="std std-ref">resource_slot_ecs::ResourceSlotEcsAnnotation</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>func</p></td>
+<td rowspan="2"><p>FunctionPtr</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>parsed</p></td>
+<td rowspan="2"><p>resource_slot_ecs::ResSlotEcsAnnotationArgs  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>args</p></td>
+<td rowspan="2"><p>rtti::AnnotationArgumentList  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="resolveAccess.html" class="btn btn-neutral float-left" title="Perform Access Requests" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="resource_slot_das.html" class="btn btn-neutral float-right" title="Resource Slot in Daslang" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

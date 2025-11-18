@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structLODBiasRule" kind="struct" language="C++" prot="public">
+    <compoundname>LODBiasRule</compoundname>
+    <includes refid="dag__texMgr_8h" local="no">dag_texMgr.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structLODBiasRule_1a6fd433a89871a617c3c863acbdc81e50" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* LODBiasRule::substring</definition>
+        <argsstring></argsstring>
+        <name>substring</name>
+        <qualifiedname>LODBiasRule::substring</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="322" column="14" bodyfile="dag_texMgr.h" bodystart="322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLODBiasRule_1ad4afcb8e93933e46901d539fd945f988" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float LODBiasRule::bias</definition>
+        <argsstring></argsstring>
+        <name>bias</name>
+        <qualifiedname>LODBiasRule::bias</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgr.h" line="323" column="9" bodyfile="dag_texMgr.h" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_texMgr.h" line="320" column="1" bodyfile="dag_texMgr.h" bodystart="321" bodyend="324"/>
+    <listofallmembers>
+      <member refid="structLODBiasRule_1ad4afcb8e93933e46901d539fd945f988" prot="public" virt="non-virtual"><scope>LODBiasRule</scope><name>bias</name></member>
+      <member refid="structLODBiasRule_1a6fd433a89871a617c3c863acbdc81e50" prot="public" virt="non-virtual"><scope>LODBiasRule</scope><name>substring</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

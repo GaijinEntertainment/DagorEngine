@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshader__assert" kind="namespace" language="C++">
+    <compoundname>shader_assert</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shAssert_8h_1a9d10613b9612e499e8969bdae9efc254" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::init</definition>
+        <argsstring>()</argsstring>
+        <name>init</name>
+        <qualifiedname>shader_assert::init</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="9" column="6" declfile="dag_shAssert.h" declline="9" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shAssert_8h_1a4043c0fab839a5c926d03ef8a096abd6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>shader_assert::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="10" column="6" declfile="dag_shAssert.h" declline="10" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shAssert_8h_1ae747348148d27b90d53d029b0dae7a64" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::readback</definition>
+        <argsstring>()</argsstring>
+        <name>readback</name>
+        <qualifiedname>shader_assert::readback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="11" column="6" declfile="dag_shAssert.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shAssert.h" line="7" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,673 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D3D API</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Barriers" href="d3dAPI/Barrier.html" />
+    <link rel="prev" title="Dagor Engine Render" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">D3D API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="d3dAPI/textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Engine Render</a></li>
+      <li class="breadcrumb-item active">D3D API</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-render/index/d3dAPI.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="d3d-api">
+<h1>D3D API<a class="headerlink" href="#d3d-api" title="Link to this heading"></a></h1>
+<p>D3D API is our unified API which hides GAPI calls for different platforms.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Barrier.html">Barriers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Barrier.html#_CPPv419ResourceBarrierDesc"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Bindless.html">Bindless Resources API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Bindless.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Buffers.html">Buffers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Buffers.html#_CPPv47Sbuffer"><code class="docutils literal notranslate"><span class="pre">Sbuffer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Buffers.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Dispatch.html">Compute Shader Dispatch API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Dispatch.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/DispatchMesh.html">Mesh Shader Dispatch API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DispatchMesh.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Draw.html">Draw Calls API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Draw.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCodeMatcherTemplates.html#_CPPv410DriverCode"><code class="docutils literal notranslate"><span class="pre">DriverCode</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCodeMatcherTemplates.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/DriverCommands.html">Driver Commands</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv412Drv3dCommand"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_QPCE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_QPC</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_REFE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_REF</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv4N19PhonyNameDueToError19DRV3D_CPU_FREQ_NSECE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_NSEC</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_PROFILEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_PROFILE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_UNKNOWNE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_UNKNOWN</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv411FrameEvents"><code class="docutils literal notranslate"><span class="pre">FrameEvents</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv423DeviceResetEventHandler"><code class="docutils literal notranslate"><span class="pre">DeviceResetEventHandler</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv412Drv3dTimings"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv418CompilePipelineSet"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv422Drv3dMakeTextureParams"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverCommands.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/DriverInfoAPI.html">Driver Info API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverInfoAPI.html#_CPPv4eqRK16DeviceAttributesRK7GpuDesc"><code class="docutils literal notranslate"><span class="pre">operator==()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverInfoAPI.html#_CPPv4neRK16DeviceAttributesRK7GpuDesc"><code class="docutils literal notranslate"><span class="pre">operator!=()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverInfoAPI.html#_CPPv4geRK16DeviceAttributesRK7GpuDesc"><code class="docutils literal notranslate"><span class="pre">operator&gt;=()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/DriverInfoAPI.html#_CPPv47GpuDesc"><code class="docutils literal notranslate"><span class="pre">GpuDesc</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/GPUCaptureAndDebugTools.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Heap.html">Heaps</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Heap.html#callable-d3d-methods">Callable D3D:: Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Info.html">Driver Info API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Info.html#_CPPv410APISupport"><code class="docutils literal notranslate"><span class="pre">APISupport</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Info.html#_CPPv420Driver3dInitCallback"><code class="docutils literal notranslate"><span class="pre">Driver3dInitCallback</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Info.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Lock.html">GPU Related Locks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Lock.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/MatricesAndPerspective.html#_CPPv48Matrix44"><code class="docutils literal notranslate"><span class="pre">Matrix44</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/MatricesAndPerspective.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/PipelineCompilationHelpers.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Query.html">Queries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Query.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/RayTracing.html">Ray Tracing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv418RaytraceBuildFlags"><code class="docutils literal notranslate"><span class="pre">RaytraceBuildFlags</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv418RaytraceShaderType"><code class="docutils literal notranslate"><span class="pre">RaytraceShaderType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv423RaytraceShaderGroupType"><code class="docutils literal notranslate"><span class="pre">RaytraceShaderGroupType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv425DAGOR_ENABLE_ENUM_BITMASKN27RaytraceGeometryDescription5FlagsE"><code class="docutils literal notranslate"><span class="pre">DAGOR_ENABLE_ENUM_BITMASK()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv425DAGOR_ENABLE_ENUM_BITMASK18RaytraceBuildFlags"><code class="docutils literal notranslate"><span class="pre">DAGOR_ENABLE_ENUM_BITMASK()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv432RaytraceAnyAccelerationStructure"><code class="docutils literal notranslate"><span class="pre">RaytraceAnyAccelerationStructure</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv438RaytraceAccelerationStructureGpuHandle"><code class="docutils literal notranslate"><span class="pre">RaytraceAccelerationStructureGpuHandle</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv427RaytraceGeometryDescription"><code class="docutils literal notranslate"><span class="pre">RaytraceGeometryDescription</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv435RaytraceGeometryInstanceDescription"><code class="docutils literal notranslate"><span class="pre">RaytraceGeometryInstanceDescription</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv419RaytraceShaderGroup"><code class="docutils literal notranslate"><span class="pre">RaytraceShaderGroup</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RayTracing.html#_CPPv48raytrace"><code class="docutils literal notranslate"><span class="pre">raytrace</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/RenderPass.html">Render Pass</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderPass.html#callable-d3d-methods">Callable D3D:: methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderPass.html#related-structures">Related Structures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderPass.html#related-constants">Related Constants</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/RenderState.html">Render State</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderState.html#_CPPv47shaders"><code class="docutils literal notranslate"><span class="pre">shaders</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderState.html#_CPPv4N7shaders11RenderStateE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderState</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderState.html#_CPPv4N7shaders15RenderStateBitsE"><code class="docutils literal notranslate"><span class="pre">shaders::RenderStateBits</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderState.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/RenderTarget.html">Render Targets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderTarget.html#_CPPv47Texture"><code class="docutils literal notranslate"><span class="pre">Texture</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderTarget.html#_CPPv411DepthAccess"><code class="docutils literal notranslate"><span class="pre">DepthAccess</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderTarget.html#_CPPv412RenderTarget"><code class="docutils literal notranslate"><span class="pre">RenderTarget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RenderTarget.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/ResUpdateBuffer.html">Resource Update Buffers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ResUpdateBuffer.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Resource.html">Resources</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Resource.html#_CPPv416make_clear_value8uint32_t8uint32_t8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">make_clear_value()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Resource.html#_CPPv416make_clear_value7int32_t7int32_t7int32_t7int32_t"><code class="docutils literal notranslate"><span class="pre">make_clear_value()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Resource.html#_CPPv416make_clear_valueffff"><code class="docutils literal notranslate"><span class="pre">make_clear_value()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Resource.html#_CPPv416make_clear_valuef7uint8_t"><code class="docutils literal notranslate"><span class="pre">make_clear_value()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Resource.html#_CPPv418ResourceClearValue"><code class="docutils literal notranslate"><span class="pre">ResourceClearValue</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/RwResource.html">Read/Write (UAV) Resources</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/RwResource.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Sampler.html">Sampler</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Sampler.html#_CPPv4N19PhonyNameDueToError14TEXMIPMAP_NONEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXMIPMAP_NONE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Sampler.html#_CPPv4N19PhonyNameDueToError15TEXMIPMAP_POINTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXMIPMAP_POINT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Sampler.html#_CPPv4N19PhonyNameDueToError16TEXMIPMAP_LINEARE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXMIPMAP_LINEAR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Sampler.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Shader.html">Shader Programs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Shader.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/ShaderConstants.html">Shader Constants and Const Buffers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ShaderConstants.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/ShaderModelVersions.html">Shader Model Versions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ShaderModelVersions.html#_CPPv4li3_smPKc"><code class="docutils literal notranslate"><span class="pre">operator&quot;&quot;_sm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ShaderModelVersions.html#_CPPv4IE14DebugConverterIN3d3d11shadermodel15VersionWithNameEE"><code class="docutils literal notranslate"><span class="pre">DebugConverter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ShaderModelVersions.html#_CPPv4IE14DebugConverterIN3d3d11shadermodel7VersionEE"><code class="docutils literal notranslate"><span class="pre">DebugConverter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ShaderModelVersions.html#_CPPv4I_j_jE14DebugConverterIN3d3d11shadermodel15VersionConstantI5Major5MinorEEE"><code class="docutils literal notranslate"><span class="pre">DebugConverter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ShaderModelVersions.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/Streamout.html">Stream Output API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/Streamout.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/TiledResource.html">Tiled Resource</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/TiledResource.html#_CPPv411TileMapping"><code class="docutils literal notranslate"><span class="pre">TileMapping</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/TiledResource.html#_CPPv417TextureTilingInfo"><code class="docutils literal notranslate"><span class="pre">TextureTilingInfo</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/TiledResource.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/VariableRateShading.html">Variable Rate Shading API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/VariableRateShading.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/VertexIndexBuffer.html">Vertex and Index Buffer API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/VertexIndexBuffer.html#_CPPv47Ibuffer"><code class="docutils literal notranslate"><span class="pre">Ibuffer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/VertexIndexBuffer.html#_CPPv47Vbuffer"><code class="docutils literal notranslate"><span class="pre">Vbuffer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/VertexIndexBuffer.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/ViewScissor.html">View and Scissor D3D API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/ViewScissor.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/constants.html">Constants, Structures and Enumerations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv45VPROG"><code class="docutils literal notranslate"><span class="pre">VPROG</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv47FSHADER"><code class="docutils literal notranslate"><span class="pre">FSHADER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv45VDECL"><code class="docutils literal notranslate"><span class="pre">VDECL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv47PROGRAM"><code class="docutils literal notranslate"><span class="pre">PROGRAM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv45PALID"><code class="docutils literal notranslate"><span class="pre">PALID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv47VPRTYPE"><code class="docutils literal notranslate"><span class="pre">VPRTYPE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv47FSHTYPE"><code class="docutils literal notranslate"><span class="pre">FSHTYPE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv47VSDTYPE"><code class="docutils literal notranslate"><span class="pre">VSDTYPE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv414GPUFENCEHANDLE"><code class="docutils literal notranslate"><span class="pre">GPUFENCEHANDLE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv416DeviceAttributes"><code class="docutils literal notranslate"><span class="pre">DeviceAttributes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv424DeviceDriverCapabilities"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilities</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv418DeviceDriverIssues"><code class="docutils literal notranslate"><span class="pre">DeviceDriverIssues</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv430DeviceDriverShaderModelVersion"><code class="docutils literal notranslate"><span class="pre">DeviceDriverShaderModelVersion</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv411ShaderStage"><code class="docutils literal notranslate"><span class="pre">ShaderStage</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv411GpuPipeline"><code class="docutils literal notranslate"><span class="pre">GpuPipeline</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11MAXSAMPLERSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::MAXSAMPLERS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError10MAXSTREAMSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::MAXSTREAMS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14MAXSAMPLERS_VSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::MAXSAMPLERS_VS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12MAX_SLI_AFRSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::MAX_SLI_AFRS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14VDECLUSAGE_POSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_POS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError17VDECLUSAGE_BLENDWE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_BLENDW</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError19VDECLUSAGE_BLENDINDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_BLENDIND</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15VDECLUSAGE_NORME"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_NORM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16VDECLUSAGE_PSIZEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_PSIZE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13VDECLUSAGE_TCE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_TC</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15VDECLUSAGE_TANGE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_TANG</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError17VDECLUSAGE_BINORME"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_BINORM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError21VDECLUSAGE_TESSFACTORE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_TESSFACTOR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15VDECLUSAGE_TPOSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_TPOS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16VDECLUSAGE_COLORE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_COLOR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14VDECLUSAGE_FOGE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_FOG</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16VDECLUSAGE_DEPTHE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_DEPTH</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError17VDECLUSAGE_SAMPLEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VDECLUSAGE_SAMPLE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError31SBCF_USAGE_SHADER_BINDING_TABLEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_USAGE_SHADER_BINDING_TABLE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError54SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12SBCF_DYNAMICE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_DYNAMIC</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12SBCF_ZEROMEME"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_ZEROMEM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12SBCF_INDEX32E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_INDEX32</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13SBCF_FRAMEMEME"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_FRAMEMEM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20SBCF_USAGE_READ_BACKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_USAGE_READ_BACK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12SBCF_ALIGN16E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_ALIGN16</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20SBCF_CPU_ACCESS_MASKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_CPU_ACCESS_MASK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError21SBCF_CPU_ACCESS_WRITEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_CPU_ACCESS_WRITE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20SBCF_CPU_ACCESS_READE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_CPU_ACCESS_READ</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14SBCF_BIND_MASKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_BIND_MASK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16SBCF_BIND_VERTEXE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_BIND_VERTEX</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15SBCF_BIND_INDEXE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_BIND_INDEX</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError18SBCF_BIND_CONSTANTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_BIND_CONSTANT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20SBCF_BIND_SHADER_RESE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_BIND_SHADER_RES</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError19SBCF_BIND_UNORDEREDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_BIND_UNORDERED</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14SBCF_MISC_MASKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_MISC_MASK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError22SBCF_MISC_DRAWINDIRECTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_MISC_DRAWINDIRECT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError19SBCF_MISC_ALLOW_RAWE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_MISC_ALLOW_RAW</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20SBCF_MISC_STRUCTUREDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_MISC_STRUCTURED</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20SBCF_MISC_ESRAM_ONLYE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_MISC_ESRAM_ONLY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError32SBCF_USAGE_STREAM_OUTPUT_COUNTERE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_USAGE_STREAM_OUTPUT_COUNTER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError24SBCF_USAGE_STREAM_OUTPUTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_USAGE_STREAM_OUTPUT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError18SBCF_CB_PERSISTENTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_CB_PERSISTENT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError17SBCF_CB_ONE_FRAMEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_CB_ONE_FRAME</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError23SBCF_UA_SR_BYTE_ADDRESSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_UA_SR_BYTE_ADDRESS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError21SBCF_UA_SR_STRUCTUREDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_UA_SR_STRUCTURED</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20SBCF_UA_BYTE_ADDRESSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_UA_BYTE_ADDRESS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError18SBCF_UA_STRUCTUREDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_UA_STRUCTURED</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError29SBCF_UA_BYTE_ADDRESS_READBACKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_UA_BYTE_ADDRESS_READBACK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError27SBCF_UA_STRUCTURED_READBACKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_UA_STRUCTURED_READBACK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16SBCF_UA_INDIRECTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_UA_INDIRECT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13SBCF_INDIRECTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_INDIRECT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError19SBCF_STAGING_BUFFERE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::SBCF_STAGING_BUFFER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11WRAP_COORD0E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRAP_COORD0</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11WRAP_COORD1E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRAP_COORD1</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11WRAP_COORD2E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRAP_COORD2</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11WRAP_COORD3E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRAP_COORD3</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11VCDEST_NONEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VCDEST_NONE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError10VCDEST_AMBE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VCDEST_AMB</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11VCDEST_DIFFE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VCDEST_DIFF</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15VCDEST_AMB_DIFFE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VCDEST_AMB_DIFF</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11VCDEST_EMISE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VCDEST_EMIS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11VCDEST_SPECE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VCDEST_SPEC</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED0E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED0</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN0E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN0</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE0E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE0</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA0E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA0</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED1E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED1</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED2E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED2</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED3E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED3</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED4E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED4</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED5E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED5</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED6E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED6</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_RED7E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED7</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN1E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN1</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN2E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN2</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN3E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN3</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN4E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN4</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN5E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN5</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN6E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN6</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_GREEN7E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN7</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE1E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE1</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE2E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE2</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE3E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE3</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE4E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE4</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE5E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE5</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE6E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE6</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_BLUE7E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE7</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA1E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA1</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA2E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA2</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA3E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA3</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA4E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA4</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA5E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA5</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA6E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA6</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16WRITEMASK_ALPHA7E"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA7</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13WRITEMASK_REDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RED</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_GREENE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_GREEN</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14WRITEMASK_BLUEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_BLUE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15WRITEMASK_ALPHAE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALPHA</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13WRITEMASK_RGBE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_RGB</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13WRITEMASK_ALLE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_ALL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError17WRITEMASK_DEFAULTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::WRITEMASK_DEFAULT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv49XessState"><code class="docutils literal notranslate"><span class="pre">XessState</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv49Fsr2State"><code class="docutils literal notranslate"><span class="pre">Fsr2State</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv417MtlfxUpscaleState"><code class="docutils literal notranslate"><span class="pre">MtlfxUpscaleState</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv413HdrOutputMode"><code class="docutils literal notranslate"><span class="pre">HdrOutputMode</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv411CSPreloaded"><code class="docutils literal notranslate"><span class="pre">CSPreloaded</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv416DepthResolveMode"><code class="docutils literal notranslate"><span class="pre">DepthResolveMode</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv49GpuVendor"><code class="docutils literal notranslate"><span class="pre">GpuVendor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError34DRV3D_FRAMERATE_LIMITED_BY_NOTHINGE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_FRAMERATE_LIMITED_BY_NOTHING</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError38DRV3D_FRAMERATE_LIMITED_BY_REPLAY_WAITE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_FRAMERATE_LIMITED_BY_REPLAY_WAIT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError43DRV3D_FRAMERATE_LIMITED_BY_REPLAY_UNDERFEEDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_FRAMERATE_LIMITED_BY_REPLAY_UNDERFEED</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError42DRV3D_FRAMERATE_LIMITED_BY_GPU_UTILIZATIONE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_FRAMERATE_LIMITED_BY_GPU_UTILIZATION</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv427VariableRateShadingCombiner"><code class="docutils literal notranslate"><span class="pre">VariableRateShadingCombiner</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv415ResourceBarrier"><code class="docutils literal notranslate"><span class="pre">ResourceBarrier</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4or15ResourceBarrier15ResourceBarrier"><code class="docutils literal notranslate"><span class="pre">operator|()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4an15ResourceBarrier15ResourceBarrier"><code class="docutils literal notranslate"><span class="pre">operator&amp;()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4eo15ResourceBarrier15ResourceBarrier"><code class="docutils literal notranslate"><span class="pre">operator^()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv49BAD_VPROG"><code class="docutils literal notranslate"><span class="pre">BAD_VPROG</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv411BAD_FSHADER"><code class="docutils literal notranslate"><span class="pre">BAD_FSHADER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv49BAD_VDECL"><code class="docutils literal notranslate"><span class="pre">BAD_VDECL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv411BAD_PROGRAM"><code class="docutils literal notranslate"><span class="pre">BAD_PROGRAM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv49BAD_PALID"><code class="docutils literal notranslate"><span class="pre">BAD_PALID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv418BAD_GPUFENCEHANDLE"><code class="docutils literal notranslate"><span class="pre">BAD_GPUFENCEHANDLE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv417RT_TRANSFORM_SIZE"><code class="docutils literal notranslate"><span class="pre">RT_TRANSFORM_SIZE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv423MAX_STREAM_OUTPUT_SLOTS"><code class="docutils literal notranslate"><span class="pre">MAX_STREAM_OUTPUT_SLOTS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv416GPU_VENDOR_COUNT"><code class="docutils literal notranslate"><span class="pre">GPU_VENDOR_COUNT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv420DeviceAttributesBase"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv423DeviceAttributesXboxOne"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesXboxOne</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv424DeviceAttributesScarlett"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesScarlett</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv419DeviceAttributesPS4"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesPS4</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv419DeviceAttributesPS5"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesPS5</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv419DeviceAttributesIOS"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesIOS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv420DeviceAttributesTVOS"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesTVOS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv430DeviceAttributesNintendoSwitch"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesNintendoSwitch</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv423DeviceAttributesAndroid"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesAndroid</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv422DeviceAttributesMacOSX"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesMacOSX</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv421DeviceAttributesLinux"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesLinux</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv423DeviceAttributesWindows"><code class="docutils literal notranslate"><span class="pre">DeviceAttributesWindows</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv428DeviceDriverCapabilitiesBase"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv431DeviceDriverCapabilitiesXboxOne"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesXboxOne</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv432DeviceDriverCapabilitiesScarlett"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesScarlett</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv427DeviceDriverCapabilitiesPS4"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesPS4</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv427DeviceDriverCapabilitiesPS5"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesPS5</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv427DeviceDriverCapabilitiesIOS"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesIOS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv428DeviceDriverCapabilitiesTVOS"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesTVOS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv438DeviceDriverCapabilitiesNintendoSwitch"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesNintendoSwitch</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv431DeviceDriverCapabilitiesAndroid"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesAndroid</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv430DeviceDriverCapabilitiesMacOSX"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesMacOSX</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv429DeviceDriverCapabilitiesLinux"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesLinux</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv431DeviceDriverCapabilitiesWindows"><code class="docutils literal notranslate"><span class="pre">DeviceDriverCapabilitiesWindows</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv422DeviceDriverIssuesBase"><code class="docutils literal notranslate"><span class="pre">DeviceDriverIssuesBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv425DeviceDriverIssuesAndroid"><code class="docutils literal notranslate"><span class="pre">DeviceDriverIssuesAndroid</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv425DeviceDriverIssuesWindows"><code class="docutils literal notranslate"><span class="pre">DeviceDriverIssuesWindows</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv426DeviceDriverIssuesNoIssues"><code class="docutils literal notranslate"><span class="pre">DeviceDriverIssuesNoIssues</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv430DeviceDriverRaytraceProperties"><code class="docutils literal notranslate"><span class="pre">DeviceDriverRaytraceProperties</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv412Driver3dDesc"><code class="docutils literal notranslate"><span class="pre">Driver3dDesc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv48raytrace"><code class="docutils literal notranslate"><span class="pre">raytrace</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15VBLOCK_READONLYE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VBLOCK_READONLY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16VBLOCK_WRITEONLYE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VBLOCK_WRITEONLY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16VBLOCK_NOSYSLOCKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VBLOCK_NOSYSLOCK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14VBLOCK_DISCARDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VBLOCK_DISCARD</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError18VBLOCK_NOOVERWRITEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::VBLOCK_NOOVERWRITE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14PRIM_POINTLISTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_POINTLIST</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13PRIM_LINELISTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_LINELIST</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14PRIM_LINESTRIPE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_LINESTRIP</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12PRIM_TRILISTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_TRILIST</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13PRIM_TRISTRIPE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_TRISTRIP</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError11PRIM_TRIFANE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_TRIFAN</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError21PRIM_4_CONTROL_POINTSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_4_CONTROL_POINTS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError10PRIM_COUNTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::PRIM_COUNT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError8TM_WORLDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TM_WORLD</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError7TM_VIEWE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TM_VIEW</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError7TM_PROJE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TM_PROJ</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13TM_LOCAL2VIEWE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TM_LOCAL2VIEW</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13TM_VIEW2LOCALE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TM_VIEW2LOCAL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError9TM_GLOBALE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TM_GLOBAL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError7TM__NUME"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TM__NUM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12CLEAR_TARGETE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CLEAR_TARGET</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13CLEAR_ZBUFFERE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CLEAR_ZBUFFER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13CLEAR_STENCILE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CLEAR_STENCIL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError20CLEAR_DISCARD_TARGETE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CLEAR_DISCARD_TARGET</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError21CLEAR_DISCARD_ZBUFFERE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CLEAR_DISCARD_ZBUFFER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError21CLEAR_DISCARD_STENCILE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CLEAR_DISCARD_STENCIL</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13CLEAR_DISCARDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CLEAR_DISCARD</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv412BLEND_FACTOR"><code class="docutils literal notranslate"><span class="pre">BLEND_FACTOR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv416EXT_BLEND_FACTOR"><code class="docutils literal notranslate"><span class="pre">EXT_BLEND_FACTOR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv47BLENDOP"><code class="docutils literal notranslate"><span class="pre">BLENDOP</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv44CMPF"><code class="docutils literal notranslate"><span class="pre">CMPF</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv49CULL_TYPE"><code class="docutils literal notranslate"><span class="pre">CULL_TYPE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12STNCLOP_KEEPE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_KEEP</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12STNCLOP_ZEROE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_ZERO</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15STNCLOP_REPLACEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_REPLACE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15STNCLOP_INCRSATE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_INCRSAT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15STNCLOP_DECRSATE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_DECRSAT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14STNCLOP_INVERTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_INVERT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12STNCLOP_INCRE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_INCR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12STNCLOP_DECRE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::STNCLOP_DECR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError12TEXADDR_WRAPE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXADDR_WRAP</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14TEXADDR_MIRRORE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXADDR_MIRROR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError13TEXADDR_CLAMPE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXADDR_CLAMP</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14TEXADDR_BORDERE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXADDR_BORDER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError18TEXADDR_MIRRORONCEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXADDR_MIRRORONCE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError15TEXFILTER_POINTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXFILTER_POINT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError16TEXFILTER_LINEARE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXFILTER_LINEAR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14TEXFILTER_BESTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXFILTER_BEST</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError17TEXFILTER_COMPAREE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXFILTER_COMPARE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv4N19PhonyNameDueToError14TEXFILTER_NONEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXFILTER_NONE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/constants.html#_CPPv416MAX_SURVEY_INDEX"><code class="docutils literal notranslate"><span class="pre">MAX_SURVEY_INDEX</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/other.html">All Other Methods</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/other.html#_CPPv410main_wnd_f"><code class="docutils literal notranslate"><span class="pre">main_wnd_f</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/other.html#_CPPv422d3derr_in_device_resetPKc"><code class="docutils literal notranslate"><span class="pre">d3derr_in_device_reset()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/other.html#_CPPv428dagor_d3d_force_driver_reset"><code class="docutils literal notranslate"><span class="pre">dagor_d3d_force_driver_reset</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/other.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="d3dAPI/textures.html">Textures</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv47Texture"><code class="docutils literal notranslate"><span class="pre">Texture</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv411CubeTexture"><code class="docutils literal notranslate"><span class="pre">CubeTexture</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv410VolTexture"><code class="docutils literal notranslate"><span class="pre">VolTexture</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv412ArrayTexture"><code class="docutils literal notranslate"><span class="pre">ArrayTexture</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv424on_tex_slice_loaded_cb_t"><code class="docutils literal notranslate"><span class="pre">on_tex_slice_loaded_cb_t</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv412ChannelDType"><code class="docutils literal notranslate"><span class="pre">ChannelDType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError15TEXLOCK_DISCARDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_DISCARD</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError15TEXLOCK_RAWDATAE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_RAWDATA</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError17TEXLOCK_NOSYSLOCKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_NOSYSLOCK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError12TEXLOCK_READE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_READ</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError13TEXLOCK_WRITEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_WRITE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError17TEXLOCK_READWRITEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_READWRITE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError14TEXLOCK_RWMASKE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_RWMASK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError21TEXLOCK_DELSYSMEMCOPYE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_DELSYSMEMCOPY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError19TEXLOCK_DONOTUPDATEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_DONOTUPDATE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError15TEXLOCK_DEFAULTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLOCK_DEFAULT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError17TEXLF_CALCMIPMAPSE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXLF_CALCMIPMAPS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError13CUBEFACE_POSXE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CUBEFACE_POSX</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError13CUBEFACE_NEGXE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CUBEFACE_NEGX</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError13CUBEFACE_POSYE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CUBEFACE_POSY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError13CUBEFACE_NEGYE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CUBEFACE_NEGY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError13CUBEFACE_POSZE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CUBEFACE_POSZ</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv4N19PhonyNameDueToError13CUBEFACE_NEGZE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::CUBEFACE_NEGZ</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv410TexLoadRes"><code class="docutils literal notranslate"><span class="pre">TexLoadRes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv418is_alpha_texformatj"><code class="docutils literal notranslate"><span class="pre">is_alpha_texformat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv415is_bc_texformatj"><code class="docutils literal notranslate"><span class="pre">is_bc_texformat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv421auto_mip_levels_count8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">auto_mip_levels_count()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv421auto_mip_levels_count8uint32_t8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">auto_mip_levels_count()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv421auto_mip_levels_count8uint32_t8uint32_t8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">auto_mip_levels_count()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv416parse_tex_formatPKc8uint32_t"><code class="docutils literal notranslate"><span class="pre">parse_tex_format()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv419get_tex_format_desc8uint32_t"><code class="docutils literal notranslate"><span class="pre">get_tex_format_desc()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv419get_tex_format_name8uint32_t"><code class="docutils literal notranslate"><span class="pre">get_tex_format_name()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv421get_tex_channel_valuePKvRK24TextureChannelFormatDesc"><code class="docutils literal notranslate"><span class="pre">get_tex_channel_value()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv421set_tex_channel_valuePvRK24TextureChannelFormatDesc8uint32_t"><code class="docutils literal notranslate"><span class="pre">set_tex_channel_value()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv421channel_bits_to_float8uint32_t12ChannelDTypeRK24TextureChannelFormatDesc"><code class="docutils literal notranslate"><span class="pre">channel_bits_to_float()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv421float_to_channel_bitsf12ChannelDTypeRK24TextureChannelFormatDesc"><code class="docutils literal notranslate"><span class="pre">float_to_channel_bits()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv426d3d_load_ddsx_tex_contentsP11BaseTexture9TEXTUREID9TEXTUREIDRKN4ddsx6HeaderER8IGenLoadiij24on_tex_slice_loaded_cb_tb"><code class="docutils literal notranslate"><span class="pre">d3d_load_ddsx_tex_contents()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv418convert_image_linePKviiibPviibbb"><code class="docutils literal notranslate"><span class="pre">convert_image_line()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv431d3d_load_ddsx_tex_contents_impl"><code class="docutils literal notranslate"><span class="pre">d3d_load_ddsx_tex_contents_impl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv422d3d_load_ddsx_to_slice"><code class="docutils literal notranslate"><span class="pre">d3d_load_ddsx_to_slice</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv424TextureChannelFormatDesc"><code class="docutils literal notranslate"><span class="pre">TextureChannelFormatDesc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv417TextureFormatDesc"><code class="docutils literal notranslate"><span class="pre">TextureFormatDesc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv411TextureInfo"><code class="docutils literal notranslate"><span class="pre">TextureInfo</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv411BaseTexture"><code class="docutils literal notranslate"><span class="pre">BaseTexture</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv44ddsx"><code class="docutils literal notranslate"><span class="pre">ddsx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="d3dAPI/textures.html#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Dagor Engine Render" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="d3dAPI/Barrier.html" class="btn btn-neutral float-right" title="Barriers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

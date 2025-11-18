@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structEditorWorkspace_1_1Workspaces" kind="struct" language="C++" prot="protected">
+    <compoundname>EditorWorkspace::Workspaces</compoundname>
+    <includes refid="ec__workspace_8h" local="no">ec_workspace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structEditorWorkspace_1_1Workspaces_1a0814a524f569123510962a53b129d35a" prot="public" static="no" mutable="no">
+        <type>DataBlock</type>
+        <definition>DataBlock EditorWorkspace::Workspaces::blk</definition>
+        <argsstring></argsstring>
+        <name>blk</name>
+        <qualifiedname>EditorWorkspace::Workspaces::blk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="76" column="15" bodyfile="ec_workspace.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structEditorWorkspace_1_1Workspaces_1a52859bed52bb7a6a0522c9436573cfed" prot="public" static="no" mutable="no">
+        <type>StriMap&lt; DataBlock * &gt;</type>
+        <definition>StriMap&lt;DataBlock *&gt; EditorWorkspace::Workspaces::names</definition>
+        <argsstring></argsstring>
+        <name>names</name>
+        <qualifiedname>EditorWorkspace::Workspaces::names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="77" column="13" bodyfile="ec_workspace.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structEditorWorkspace_1_1Workspaces_1a8a8e469c3661c03d305b6f4dfc863e6e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>EditorWorkspace::Workspaces::Workspaces</definition>
+        <argsstring>()</argsstring>
+        <name>Workspaces</name>
+        <qualifiedname>EditorWorkspace::Workspaces::Workspaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="79" column="5" bodyfile="ec_workspace.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_workspace.h" line="74" column="3" bodyfile="ec_workspace.h" bodystart="75" bodyend="80"/>
+    <listofallmembers>
+      <member refid="structEditorWorkspace_1_1Workspaces_1a0814a524f569123510962a53b129d35a" prot="public" virt="non-virtual"><scope>EditorWorkspace::Workspaces</scope><name>blk</name></member>
+      <member refid="structEditorWorkspace_1_1Workspaces_1a52859bed52bb7a6a0522c9436573cfed" prot="public" virt="non-virtual"><scope>EditorWorkspace::Workspaces</scope><name>names</name></member>
+      <member refid="structEditorWorkspace_1_1Workspaces_1a8a8e469c3661c03d305b6f4dfc863e6e" prot="public" virt="non-virtual"><scope>EditorWorkspace::Workspaces</scope><name>Workspaces</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

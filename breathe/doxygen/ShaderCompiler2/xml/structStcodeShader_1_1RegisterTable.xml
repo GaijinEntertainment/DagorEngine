@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeShader_1_1RegisterTable" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeShader::RegisterTable</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeShader_1_1RegisterTable_1ac76a82a19c0444083bab58903faf2d92" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Tab&lt; int &gt; &gt;</type>
+        <definition>Tab&lt;Tab&lt;int&gt; &gt; StcodeShader::RegisterTable::combinedTable</definition>
+        <argsstring></argsstring>
+        <name>combinedTable</name>
+        <qualifiedname>StcodeShader::RegisterTable::combinedTable</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="384" column="9" bodyfile="cppStcodeAssembly.h" bodystart="384" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1_1RegisterTable_1a5e9b663761faab1a927d1c2d80e077db" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; StcodeShader::RegisterTable::offsets</definition>
+        <argsstring></argsstring>
+        <name>offsets</name>
+        <qualifiedname>StcodeShader::RegisterTable::offsets</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="385" column="9" bodyfile="cppStcodeAssembly.h" bodystart="385" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="382" column="3" bodyfile="cppStcodeAssembly.h" bodystart="383" bodyend="386"/>
+    <listofallmembers>
+      <member refid="structStcodeShader_1_1RegisterTable_1ac76a82a19c0444083bab58903faf2d92" prot="public" virt="non-virtual"><scope>StcodeShader::RegisterTable</scope><name>combinedTable</name></member>
+      <member refid="structStcodeShader_1_1RegisterTable_1a5e9b663761faab1a927d1c2d80e077db" prot="public" virt="non-virtual"><scope>StcodeShader::RegisterTable</scope><name>offsets</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

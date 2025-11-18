@@ -1,0 +1,1533 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1Registry" kind="class" language="C++" prot="public" final="yes">
+    <compoundname>dafg::Registry</compoundname>
+    <basecompoundref refid="classdafg_1_1NameSpaceRequest" prot="private" virt="non-virtual">dafg::NameSpaceRequest</basecompoundref>
+    <includes refid="registry_8h" local="no">registry.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Resource requesting methods</header>
+      <description><para>Every one of these returns a request object that must be used to specify further options for the request. See docs for the relevant request objects for details. <simplesect kind="note"><para>All methods present here look up the resource in the current node&apos;s namespace, i.e. registry.currNameSpace(). </para>
+</simplesect>
+<simplesect kind="note"><para>We explicitly prohibit creating resources in any namespace but the current node&apos;s one. </para>
+</simplesect>
+</para>
+</description>
+      <memberdef kind="function" id="classdafg_1_1Registry_1afe8090984324364b6ca9a09fecf49de4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest" kindref="compound">VirtualResourceCreationSemiRequest</ref></type>
+        <definition>VirtualResourceCreationSemiRequest dafg::Registry::create</definition>
+        <argsstring>(const char *name, History history)</argsstring>
+        <name>create</name>
+        <qualifiedname>dafg::Registry::create</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">History</ref></type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Creates a new resource at node execution time. The resource will be provided by FG before the node starts executing.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A unique name identifying this resource within the current node&apos;s namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>history</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Specifies the way in which history should be handled for this texture. A history for a virtual resource is a physical resource that contains the data this virtual resource had at the end of the previous frame. See <ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">dafg::History</ref> for details. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="226" column="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1ab41daa404aaa9614f240448c1ba16485" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewRwRequestPolicy &gt; dafg::Registry::registerTexture</definition>
+        <argsstring>(const char *name, F &amp;&amp;texture_provider_callback)</argsstring>
+        <name>registerTexture</name>
+        <qualifiedname>dafg::Registry::registerTexture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>texture_provider_callback</declname>
+        </param>
+        <briefdescription>
+<para>Creates a new texture at node execution time, which will not be FG-provided, but acquired from the callback before the node starts executing and stored somewhere outside. Note that history is not supported for external resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A unique name identifying this resource within the current node&apos;s namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>texture_provider_callback</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A callback that maps a multiplexing index to a ManagedTexView. It might be called an arbitrary number of times, but only while the current node is registered. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="240" column="25" bodyfile="registry.h" bodystart="240" bodyend="245"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a1384f372274e62de5dd0598767d7cada" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewRwRequestPolicy &gt; dafg::Registry::registerBackBuffer</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>registerBackBuffer</name>
+        <qualifiedname>dafg::Registry::registerBackBuffer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Marks this node as the back buffer provider and creates a virtual dafg resource that corresponds to it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The back buffer is not a real resource in dagor, but rather a special value that will be replaced with the actual swapchain image when it&apos;s acquired on the driver thread. This makes the back buffer a special case everywhere, it is not possible to read from it, nor is it possible to UAV-write to it. In daFG, we only to render to it, and only with a single attachment at that, so no MRT and no depth-stencil even. <simplesect kind="note"><para>This is a hot discussion topic and might change in the future.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>a unique name identifying the back buffer as a resource within the current node&apos;s namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="261" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a51dd8643819f8e7ca2d24dd63c5f41cb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualBufferRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualBufferRequest&lt; NewRwRequestPolicy &gt; dafg::Registry::registerBuffer</definition>
+        <argsstring>(const char *name, F &amp;&amp;buffer_provider_callback)</argsstring>
+        <name>registerBuffer</name>
+        <qualifiedname>dafg::Registry::registerBuffer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>buffer_provider_callback</declname>
+        </param>
+        <briefdescription>
+<para>Creates a new buffer at node execution time, which will not be FG-provided, but acquired from the callback before the node starts executing and stored somewhere outside. Note that history is not supported for external resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A unique name identifying this resource within the current node&apos;s namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_provider_callback</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A callback that maps a multiplexing index to a ManagedBufferView. It might be called an arbitrary number of times, but only while the current node is registered. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="275" column="24" bodyfile="registry.h" bodystart="275" bodyend="280"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a7d3941992f30a118ecb4b513137ce2db" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewHistRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt; NewHistRequestPolicy &gt; dafg::NameSpaceRequest::historyFor</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>historyFor</name>
+        <qualifiedname>dafg::Registry::historyFor</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Reads the history of an existing resource at node execution time. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource the history of which to read. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="282" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a271b4785944d9d913eed07e73a2540f7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt; NewRwRequestPolicy &gt; dafg::NameSpaceRequest::modify</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>modify</name>
+        <qualifiedname>dafg::Registry::modify</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Modifies an existing resource at node execution time. Modifications always happen after creation and before all reads. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource to modify. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="283" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a163bc5e04be88bae2334e95a7ad90d49" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt; NewRwRequestPolicy &gt; dafg::NameSpaceRequest::modify</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>modify</name>
+        <qualifiedname>dafg::Registry::modify</qualifiedname>
+        <param>
+          <type><ref refid="structdafg_1_1NamedSlot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Modifies an existing resource at node execution time, but indirectly, through a &quot;slot&quot;, which must be specified with <ref refid="group__DaFgCoreAliases_1ga62307e106e4ac06241f33b24995c651f" kindref="member">dafg::fill_slot</ref>. Modifications always happen after creation and before all reads. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the slot to be used for this modification. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="283" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1acf826146860eba9582985d46735d5f71" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt; NewRoRequestPolicy &gt; dafg::NameSpaceRequest::read</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>read</name>
+        <qualifiedname>dafg::Registry::read</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Reads an existing resource at node execution time. Reads always happen after all modifications and before the renaming. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource to read. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="284" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a0098b6fe70c609042550b403a41f4cc7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt; NewRoRequestPolicy &gt; dafg::NameSpaceRequest::read</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>read</name>
+        <qualifiedname>dafg::Registry::read</qualifiedname>
+        <param>
+          <type><ref refid="structdafg_1_1NamedSlot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Reads an existing resource at node execution time, but indirectly, through a &quot;slot&quot;, which must be specified with <ref refid="group__DaFgCoreAliases_1ga62307e106e4ac06241f33b24995c651f" kindref="member">dafg::fill_slot</ref>. Reads always happen after all modifications and before the renaming. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the slot to be used for this read. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="284" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1ad78263009503117d45ac4e50de744d67" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt; NewRwRequestPolicy &gt; dafg::NameSpaceRequest::rename</definition>
+        <argsstring>(const char *from, const char *to, History history) const</argsstring>
+        <name>rename</name>
+        <qualifiedname>dafg::Registry::rename</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">History</ref></type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+<para>Modifies and renames an existing resource at node execution time. Renaming always happens last among all operations on a resource. The renamed version is considered to be a new virtual resource. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Parameters <computeroutput>from</computeroutput> and <computeroutput>to</computeroutput> are looked up in different namespaces when calling this function on an arbitrary <ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref> object! Current node&apos;s namespace is used for creating <computeroutput>to</computeroutput>, while <computeroutput>from</computeroutput> is looked up in the current request object&apos;s namespace!</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>from</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Old resource name. Note that this resource may not have history enabled, as renaming it &quot;consumes&quot; it on the current frame, so it is not possible to read it on the next one. It will be looked up relative to this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>to</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>New resource name, created inside the current node&apos;s namespace! </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>history</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Whether the new resource needs history enabled, see <ref refid="classdafg_1_1Registry_1afe8090984324364b6ca9a09fecf49de4" kindref="member">create</ref> for details about history. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="285" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Convenience aliases</header>
+      <memberdef kind="function" id="classdafg_1_1Registry_1aa79125dd6e50ef6eae0e83614eaa72c0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; TexCreateRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; TexCreateRequestPolicy &gt; dafg::Registry::createTexture2d</definition>
+        <argsstring>(const char *name, History history, Texture2dCreateInfo info)</argsstring>
+        <name>createTexture2d</name>
+        <qualifiedname>dafg::Registry::createTexture2d</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">History</ref></type>
+          <declname>history</declname>
+        </param>
+        <param>
+          <type><ref refid="structdafg_1_1Texture2dCreateInfo" kindref="compound">Texture2dCreateInfo</ref></type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1afe8090984324364b6ca9a09fecf49de4" kindref="member">create</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="294" column="25" bodyfile="registry.h" bodystart="294" bodyend="297"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a987db9b03211e5ed24ff596f50bbb106" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualBlobRequest</ref>&lt; T, NonTexCreateRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt; T, NonTexCreateRequestPolicy &gt; dafg::Registry::createBlob</definition>
+        <argsstring>(const char *name, History history)</argsstring>
+        <name>createBlob</name>
+        <qualifiedname>dafg::Registry::createBlob</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">History</ref></type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1afe8090984324364b6ca9a09fecf49de4" kindref="member">create</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="301" column="22" bodyfile="registry.h" bodystart="301" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a459ee396921264d41aab24ae7a7f5906" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewRwRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt; T, NewRwRequestPolicy &gt; dafg::NameSpaceRequest::modifyBlob</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>modifyBlob</name>
+        <qualifiedname>dafg::Registry::modifyBlob</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1a271b4785944d9d913eed07e73a2540f7" kindref="member">modify</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="306" column="3" bodyfile="nameSpaceRequest.h" bodystart="180" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a5d3712018c4e8ad56177dd8a39e2bbf2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewRwRequestPolicy &gt; dafg::NameSpaceRequest::modifyTexture</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>modifyTexture</name>
+        <qualifiedname>dafg::Registry::modifyTexture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1a271b4785944d9d913eed07e73a2540f7" kindref="member">modify</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="307" column="3" bodyfile="nameSpaceRequest.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a01cd279634b59a8c4fb9ee68b73c009d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewRwRequestPolicy &gt; dafg::NameSpaceRequest::modifyTexture</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>modifyTexture</name>
+        <qualifiedname>dafg::Registry::modifyTexture</qualifiedname>
+        <param>
+          <type><ref refid="structdafg_1_1NamedSlot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1a271b4785944d9d913eed07e73a2540f7" kindref="member">modify</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="307" column="3" bodyfile="nameSpaceRequest.h" bodystart="156" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1aa41fb46bcb791bf48ea13f6c2ad749b2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewRoRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt; T, NewRoRequestPolicy &gt; dafg::NameSpaceRequest::readBlob</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readBlob</name>
+        <qualifiedname>dafg::Registry::readBlob</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1acf826146860eba9582985d46735d5f71" kindref="member">read</ref> functions for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="308" column="3" bodyfile="nameSpaceRequest.h" bodystart="166" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1afda530aa1cb20cbf8b93bb3e41397133" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewHistRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt; T, NewHistRequestPolicy &gt; dafg::NameSpaceRequest::readBlobHistory</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readBlobHistory</name>
+        <qualifiedname>dafg::Registry::readBlobHistory</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1a7d3941992f30a118ecb4b513137ce2db" kindref="member">historyFor</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="309" column="3" bodyfile="nameSpaceRequest.h" bodystart="173" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1afdc0e1987d6f4ea410e9437c27b47883" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewRoRequestPolicy &gt; dafg::NameSpaceRequest::readTexture</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readTexture</name>
+        <qualifiedname>dafg::Registry::readTexture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1acf826146860eba9582985d46735d5f71" kindref="member">read</ref> functions for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="310" column="3" bodyfile="nameSpaceRequest.h" bodystart="144" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1aacd440f04993b5a30f76a26bedd71a46" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewRoRequestPolicy &gt; dafg::NameSpaceRequest::readTexture</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>readTexture</name>
+        <qualifiedname>dafg::Registry::readTexture</qualifiedname>
+        <param>
+          <type><ref refid="structdafg_1_1NamedSlot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1acf826146860eba9582985d46735d5f71" kindref="member">read</ref> functions for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="310" column="3" bodyfile="nameSpaceRequest.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a64808d7d43cef0f6bd50d1ddbf7b9723" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewHistRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewHistRequestPolicy &gt; dafg::NameSpaceRequest::readTextureHistory</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readTextureHistory</name>
+        <qualifiedname>dafg::Registry::readTextureHistory</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1a7d3941992f30a118ecb4b513137ce2db" kindref="member">historyFor</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="311" column="3" bodyfile="nameSpaceRequest.h" bodystart="150" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1af6f518fb92009bb57f4a6526c604fccb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewRwRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt; T, NewRwRequestPolicy &gt; dafg::NameSpaceRequest::renameBlob</definition>
+        <argsstring>(const char *from, const char *to, History history) const</argsstring>
+        <name>renameBlob</name>
+        <qualifiedname>dafg::Registry::renameBlob</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">History</ref></type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1ad78263009503117d45ac4e50de744d67" kindref="member">rename</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="312" column="3" bodyfile="nameSpaceRequest.h" bodystart="187" bodyend="190"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a8a7283ecf2a1a1fae485e56dc783f668" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt; NewRwRequestPolicy &gt; dafg::NameSpaceRequest::renameTexture</definition>
+        <argsstring>(const char *from, const char *to, History history) const</argsstring>
+        <name>renameTexture</name>
+        <qualifiedname>dafg::Registry::renameTexture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kindref="member">History</ref></type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdafg_1_1Registry_1ad78263009503117d45ac4e50de744d67" kindref="member">rename</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="313" column="3" bodyfile="nameSpaceRequest.h" bodystart="159" bodyend="162"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1Registry_1a7934cf821b23d924a511e1b8b8ead041" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class NameSpace</definition>
+        <argsstring></argsstring>
+        <name>NameSpace</name>
+        <qualifiedname>dafg::Registry::NameSpace</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="36" column="16" bodyfile="registry.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classdafg_1_1Registry_1af3e546017676b48718f983257a24e9df" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr RRP</type>
+        <definition>constexpr RRP dafg::Registry::NewCreateRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>NewCreateRequestPolicy</name>
+        <qualifiedname>dafg::Registry::NewCreateRequestPolicy</qualifiedname>
+        <initializer>= RRP::None</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="38" column="24" bodyfile="registry.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1Registry_1a6ad4692931bd0cfcdf17d9fe4967ce98" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr RRP</type>
+        <definition>constexpr RRP dafg::Registry::TexCreateRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>TexCreateRequestPolicy</name>
+        <qualifiedname>dafg::Registry::TexCreateRequestPolicy</qualifiedname>
+        <initializer>= NewCreateRequestPolicy</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="39" column="24" bodyfile="registry.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1Registry_1a934191244e2bfa6813cbaa6a33561d5a" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr RRP</type>
+        <definition>constexpr RRP dafg::Registry::NonTexCreateRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>NonTexCreateRequestPolicy</name>
+        <qualifiedname>dafg::Registry::NonTexCreateRequestPolicy</qualifiedname>
+        <initializer>= NewRwRequestPolicy</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="40" column="24" bodyfile="registry.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1Registry_1acc6d29f3e9714c05fc16725919a403c2" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dafg::Registry::Registry</definition>
+        <argsstring>(NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>Registry</name>
+        <qualifiedname>dafg::Registry::Registry</qualifiedname>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a1b1dc4aa74d9868b11d45c2898bcd59f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>detail::ResUid</type>
+        <definition>detail::ResUid dafg::Registry::registerTextureImpl</definition>
+        <argsstring>(const char *name, dafg::ExternalResourceProvider &amp;&amp;p)</argsstring>
+        <name>registerTextureImpl</name>
+        <qualifiedname>dafg::Registry::registerTextureImpl</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1a66da18b5e569598f333d9181e77eba36" kindref="member">dafg::ExternalResourceProvider</ref> &amp;&amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="318" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a515732293ffc5d61f5dd58fe747fa6a5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>detail::ResUid</type>
+        <definition>detail::ResUid dafg::Registry::registerBufferImpl</definition>
+        <argsstring>(const char *name, dafg::ExternalResourceProvider &amp;&amp;p)</argsstring>
+        <name>registerBufferImpl</name>
+        <qualifiedname>dafg::Registry::registerBufferImpl</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1a66da18b5e569598f333d9181e77eba36" kindref="member">dafg::ExternalResourceProvider</ref> &amp;&amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="319" column="18"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1Registry_1abf3c59cf6e27a9f8e162f91f11ff5150" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::allowAsyncPipelines</definition>
+        <argsstring>()</argsstring>
+        <name>allowAsyncPipelines</name>
+        <qualifiedname>dafg::Registry::allowAsyncPipelines</qualifiedname>
+        <briefdescription>
+<para>Allows async pipeline compilation Graphics pipelines will be async compiled with draw call skip when pipeline is not yet ready. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="49" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a8bb9c91a26a5da60be6bd777c5c585bb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::orderMeBefore</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>orderMeBefore</name>
+        <qualifiedname>dafg::Registry::orderMeBefore</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Orders the current node before a certain node. This means that the node <computeroutput>name</computeroutput> will only start executing after the current node has finished. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Ordering with nodes from different name spaces is not supported.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the node to order before, looked up in the current namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="59" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1aaaa8b9fabd926209891e8ff62a0bb771" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::orderMeBefore</definition>
+        <argsstring>(std::initializer_list&lt; const char * &gt; names)</argsstring>
+        <name>orderMeBefore</name>
+        <qualifiedname>dafg::Registry::orderMeBefore</qualifiedname>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>names</declname>
+        </param>
+        <briefdescription>
+<para>Alias for calling <ref refid="classdafg_1_1Registry_1a8bb9c91a26a5da60be6bd777c5c585bb" kindref="member">orderMeBefore(const char *name)</ref> several times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of names of the nodes to order before. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="67" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a6730fab27ba920a5026ee43345bd9800" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::orderMeAfter</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>orderMeAfter</name>
+        <qualifiedname>dafg::Registry::orderMeAfter</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Orders the current node after a certain node. This means that the current node will only start executing after node <computeroutput>name</computeroutput> has finished. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Ordering with nodes from different name spaces is not supported.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the node to order after, looked up in the current namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="77" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a3d6d0ea5977d31a92e81c9f5dc57cada" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::orderMeAfter</definition>
+        <argsstring>(std::initializer_list&lt; const char * &gt; names)</argsstring>
+        <name>orderMeAfter</name>
+        <qualifiedname>dafg::Registry::orderMeAfter</qualifiedname>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>names</declname>
+        </param>
+        <briefdescription>
+<para>Alias for calling <ref refid="classdafg_1_1Registry_1a6730fab27ba920a5026ee43345bd9800" kindref="member">orderMeAfter(const char *name)</ref> several times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of names of the nodes to order after. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="85" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a5576ec245c8ba3e1a24f6d19bf544365" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::setPriority</definition>
+        <argsstring>(priority_t prio)</argsstring>
+        <name>setPriority</name>
+        <qualifiedname>dafg::Registry::setPriority</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kindref="member">priority_t</ref></type>
+          <declname>prio</declname>
+        </param>
+        <briefdescription>
+<para>Sets a priority for this node that will be used to order parallel nodes. Should only be used for optimizations. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>prio</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The priority to set. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="93" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a63976a191b711620318174fe4dcd665f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::multiplex</definition>
+        <argsstring>(multiplexing::Mode mode)</argsstring>
+        <name>multiplex</name>
+        <qualifiedname>dafg::Registry::multiplex</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">multiplexing::Mode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+<para>Choses multiplexing mode for this node. Default is multiplexing over all axes (i.e. normal world rendering). </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The multiplexing mode to set. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="100" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a9c78fd326d5ef77ac57df15b8f6c20ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        <definition>Registry dafg::Registry::executionHas</definition>
+        <argsstring>(SideEffects side_effect)</argsstring>
+        <name>executionHas</name>
+        <qualifiedname>dafg::Registry::executionHas</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90" kindref="member">SideEffects</ref></type>
+          <declname>side_effect</declname>
+        </param>
+        <briefdescription>
+<para>Sets the side effect of the node that will control how the framegraph handles execution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>side_effect</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The side effect type to set. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="108" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1af0f6a8a1786c7ac5be1b87a78224dd92" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dafg::Registry::requestState</definition>
+        <argsstring>()</argsstring>
+        <name>requestState</name>
+        <qualifiedname>dafg::Registry::requestState</qualifiedname>
+        <briefdescription>
+<para>Requests a certain global state for the execution time of this node. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>A builder object for specifying concrete states. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="115" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a5e3b92afbc2f80ab2949fe497a4726c3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualPassRequest" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dafg::Registry::requestRenderPass</definition>
+        <argsstring>()</argsstring>
+        <name>requestRenderPass</name>
+        <qualifiedname>dafg::Registry::requestRenderPass</qualifiedname>
+        <briefdescription>
+<para>Requests that this node is going to be drawing stuff, which is always done inside a (possibly implicit) render pass. The returned object allows fine-tuning the render pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>A builder object for specifying attachments and other details of the render pass. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="124" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a08653687e7173c578266de9698b4ddce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; detail::DrawRequestPolicy::Default, false &gt;</type>
+        <definition>DrawRequest&lt; detail::DrawRequestPolicy::Default, false &gt; dafg::Registry::draw</definition>
+        <argsstring>(const char *shader_name, dafg::DrawPrimitive primitive)</argsstring>
+        <name>draw</name>
+        <qualifiedname>dafg::Registry::draw</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19" kindref="member">dafg::DrawPrimitive</ref></type>
+          <declname>primitive</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to execute draw with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for drawing. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>primitive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The primitive type to be drawn. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the draw parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="132" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a38b1de85dc150485a81b12a6ad812cb9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref>&lt; detail::DrawRequestPolicy::Default, true &gt;</type>
+        <definition>DrawRequest&lt; detail::DrawRequestPolicy::Default, true &gt; dafg::Registry::drawIndexed</definition>
+        <argsstring>(const char *shader_name, dafg::DrawPrimitive primitive)</argsstring>
+        <name>drawIndexed</name>
+        <qualifiedname>dafg::Registry::drawIndexed</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19" kindref="member">dafg::DrawPrimitive</ref></type>
+          <declname>primitive</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to execute indexed draw with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for drawing. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>primitive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The primitive type to be drawn. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the indexed draw parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="140" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1abfd92727b64b9129814f790dd6eeefd1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacedafg_1a586af6f25a430f249f6a8daeceb81200" kindref="member">DispatchComputeThreadsRequest</ref></type>
+        <definition>DispatchComputeThreadsRequest dafg::Registry::dispatchThreads</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>dispatchThreads</name>
+        <qualifiedname>dafg::Registry::dispatchThreads</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to execute dispatch compute threads with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the dispatch parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="147" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1ab7b31ce3268efd9215b57fc4df509674" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacedafg_1a36320871f9856273e0268b58b9540736" kindref="member">DispatchComputeGroupsRequest</ref></type>
+        <definition>DispatchComputeGroupsRequest dafg::Registry::dispatchGroups</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>dispatchGroups</name>
+        <qualifiedname>dafg::Registry::dispatchGroups</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to dispatch compute thread groups with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the dispatch parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="154" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a9aab611d9e41f310f3eb031f9196b105" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacedafg_1a4839019b7a27899ebf3882262ed4a4bc" kindref="member">DispatchComputeIndirectRequest</ref></type>
+        <definition>DispatchComputeIndirectRequest dafg::Registry::dispatchIndirect</definition>
+        <argsstring>(const char *shader_name, const char *buffer)</argsstring>
+        <name>dispatchIndirect</name>
+        <qualifiedname>dafg::Registry::dispatchIndirect</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>buffer</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to dispatch compute indirect with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for dispatch. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the dispatch parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="162" column="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a5cf8c87e8ba14f0c9b9911cbeb363845" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacedafg_1a505faaf224aa5a9e42d8b3180f4f71da" kindref="member">DispatchMeshThreadsRequest</ref></type>
+        <definition>DispatchMeshThreadsRequest dafg::Registry::dispatchMeshThreads</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>dispatchMeshThreads</name>
+        <qualifiedname>dafg::Registry::dispatchMeshThreads</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to dispatch mesh threads with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the dispatch parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="169" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1af20241874ba5186cfe090853be8e2259" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacedafg_1aad3d2469d471fc0af0e30fe90e872770" kindref="member">DispatchMeshGroupsRequest</ref></type>
+        <definition>DispatchMeshGroupsRequest dafg::Registry::dispatchMeshGroups</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>dispatchMeshGroups</name>
+        <qualifiedname>dafg::Registry::dispatchMeshGroups</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to dispatch mesh thread groups with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the dispatch parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="176" column="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1af01ec21e4c5b853a798869efa1ea9861" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacedafg_1aa3874f309a6b25a641dd83486eb2f256" kindref="member">DispatchMeshIndirectRequest</ref></type>
+        <definition>DispatchMeshIndirectRequest dafg::Registry::dispatchMeshIndirect</definition>
+        <argsstring>(const char *shader_name, const char *buffer)</argsstring>
+        <name>dispatchMeshIndirect</name>
+        <qualifiedname>dafg::Registry::dispatchMeshIndirect</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>buffer</declname>
+        </param>
+        <briefdescription>
+<para>Requests a node to dispatch mesh indirect with shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader to be used for dispatch. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer to be used for indirect dispatch. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A builder object for specifying the dispatch parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="184" column="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a2e26ce49879407adb5078744f2e33d46" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref></type>
+        <definition>NameSpaceRequest dafg::Registry::currNameSpace</definition>
+        <argsstring>()</argsstring>
+        <name>currNameSpace</name>
+        <qualifiedname>dafg::Registry::currNameSpace</qualifiedname>
+        <briefdescription>
+<para>Returns a request object for this node&apos;s name space that can be used to get sub-namespace request objects or request resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref> object representing the current name space. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="192" column="20" bodyfile="registry.h" bodystart="192" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1acef88cd701159efe6af2a482ea4e3857" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref></type>
+        <definition>NameSpaceRequest dafg::Registry::root</definition>
+        <argsstring>() const</argsstring>
+        <name>root</name>
+        <qualifiedname>dafg::Registry::root</qualifiedname>
+        <briefdescription>
+<para>Returns a request object for the root name space which can be used to access global resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref> object representing the root name space. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="200" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1aef4c90cceb2b9b02580e5ff937de1adf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>D</declname>
+            <defname>D</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref>&lt; D &gt;</type>
+        <definition>AutoResolutionRequest&lt; D &gt; dafg::NameSpaceRequest::getResolution</definition>
+        <argsstring>(const char *type_name, float multiplier=1.f) const</argsstring>
+        <name>getResolution</name>
+        <qualifiedname>dafg::Registry::getResolution</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>type_name</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>multiplier</declname>
+          <defval>1.f</defval>
+        </param>
+        <briefdescription>
+<para>Get a request object for the 2D resolution of a particular type inside of this namespace, which can then be used to create textures or be resolved into an actual number at execution time. The resulting resolution will be the product of what was set with <ref refid="classdafg_1_1NameSpace_1a1fbc5594fd28c7facc6d0d16fcb14b8b" kindref="member">NameSpace::setResolution</ref> with the <computeroutput>multiplier</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>D</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dimensionality of the resolution. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>type_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Auto resolution type name. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>multiplier</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A multiplier for the resolution type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref> Object representing the auto resolution type. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="202" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The main builder object for describing at declaration time what your node intends to do at runtime. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>dafg::NameSpaceRequest</label>
+        <link refid="classdafg_1_1NameSpaceRequest"/>
+      </node>
+      <node id="1">
+        <label>dafg::Registry</label>
+        <link refid="classdafg_1_1Registry"/>
+        <childnode refid="2" relation="private-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>dafg::NameSpaceRequest</label>
+        <link refid="classdafg_1_1NameSpaceRequest"/>
+      </node>
+      <node id="1">
+        <label>dafg::Registry</label>
+        <link refid="classdafg_1_1Registry"/>
+        <childnode refid="2" relation="private-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="registry.h" line="34" column="1" bodyfile="registry.h" bodystart="35" bodyend="320"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1Registry_1abf3c59cf6e27a9f8e162f91f11ff5150" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>allowAsyncPipelines</name></member>
+      <member refid="classdafg_1_1Registry_1afe8090984324364b6ca9a09fecf49de4" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>create</name></member>
+      <member refid="classdafg_1_1Registry_1a987db9b03211e5ed24ff596f50bbb106" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>createBlob</name></member>
+      <member refid="classdafg_1_1Registry_1aa79125dd6e50ef6eae0e83614eaa72c0" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>createTexture2d</name></member>
+      <member refid="classdafg_1_1Registry_1a2e26ce49879407adb5078744f2e33d46" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>currNameSpace</name></member>
+      <member refid="classdafg_1_1Registry_1ab7b31ce3268efd9215b57fc4df509674" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>dispatchGroups</name></member>
+      <member refid="classdafg_1_1Registry_1a9aab611d9e41f310f3eb031f9196b105" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>dispatchIndirect</name></member>
+      <member refid="classdafg_1_1Registry_1af20241874ba5186cfe090853be8e2259" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>dispatchMeshGroups</name></member>
+      <member refid="classdafg_1_1Registry_1af01ec21e4c5b853a798869efa1ea9861" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>dispatchMeshIndirect</name></member>
+      <member refid="classdafg_1_1Registry_1a5cf8c87e8ba14f0c9b9911cbeb363845" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>dispatchMeshThreads</name></member>
+      <member refid="classdafg_1_1Registry_1abfd92727b64b9129814f790dd6eeefd1" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>dispatchThreads</name></member>
+      <member refid="classdafg_1_1Registry_1a08653687e7173c578266de9698b4ddce" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>draw</name></member>
+      <member refid="classdafg_1_1Registry_1a38b1de85dc150485a81b12a6ad812cb9" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>drawIndexed</name></member>
+      <member refid="classdafg_1_1Registry_1a9c78fd326d5ef77ac57df15b8f6c20ad" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>executionHas</name></member>
+      <member refid="classdafg_1_1Registry_1aef4c90cceb2b9b02580e5ff937de1adf" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>getResolution</name></member>
+      <member refid="classdafg_1_1Registry_1a7d3941992f30a118ecb4b513137ce2db" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>historyFor</name></member>
+      <member refid="classdafg_1_1Registry_1a271b4785944d9d913eed07e73a2540f7" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>modify</name></member>
+      <member refid="classdafg_1_1Registry_1a163bc5e04be88bae2334e95a7ad90d49" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>modify</name></member>
+      <member refid="classdafg_1_1Registry_1a459ee396921264d41aab24ae7a7f5906" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>modifyBlob</name></member>
+      <member refid="classdafg_1_1Registry_1a5d3712018c4e8ad56177dd8a39e2bbf2" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>modifyTexture</name></member>
+      <member refid="classdafg_1_1Registry_1a01cd279634b59a8c4fb9ee68b73c009d" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>modifyTexture</name></member>
+      <member refid="classdafg_1_1Registry_1a63976a191b711620318174fe4dcd665f" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>multiplex</name></member>
+      <member refid="classdafg_1_1Registry_1a7934cf821b23d924a511e1b8b8ead041" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>NameSpace</name></member>
+      <member refid="classdafg_1_1Registry_1af3e546017676b48718f983257a24e9df" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>NewCreateRequestPolicy</name></member>
+      <member refid="classdafg_1_1Registry_1a934191244e2bfa6813cbaa6a33561d5a" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>NonTexCreateRequestPolicy</name></member>
+      <member refid="classdafg_1_1Registry_1a6730fab27ba920a5026ee43345bd9800" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>orderMeAfter</name></member>
+      <member refid="classdafg_1_1Registry_1a3d6d0ea5977d31a92e81c9f5dc57cada" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>orderMeAfter</name></member>
+      <member refid="classdafg_1_1Registry_1a8bb9c91a26a5da60be6bd777c5c585bb" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>orderMeBefore</name></member>
+      <member refid="classdafg_1_1Registry_1aaaa8b9fabd926209891e8ff62a0bb771" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>orderMeBefore</name></member>
+      <member refid="classdafg_1_1Registry_1acf826146860eba9582985d46735d5f71" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>read</name></member>
+      <member refid="classdafg_1_1Registry_1a0098b6fe70c609042550b403a41f4cc7" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>read</name></member>
+      <member refid="classdafg_1_1Registry_1aa41fb46bcb791bf48ea13f6c2ad749b2" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readBlob</name></member>
+      <member refid="classdafg_1_1Registry_1afda530aa1cb20cbf8b93bb3e41397133" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readBlobHistory</name></member>
+      <member refid="classdafg_1_1Registry_1afdc0e1987d6f4ea410e9437c27b47883" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readTexture</name></member>
+      <member refid="classdafg_1_1Registry_1aacd440f04993b5a30f76a26bedd71a46" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readTexture</name></member>
+      <member refid="classdafg_1_1Registry_1a64808d7d43cef0f6bd50d1ddbf7b9723" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readTextureHistory</name></member>
+      <member refid="classdafg_1_1Registry_1a1384f372274e62de5dd0598767d7cada" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>registerBackBuffer</name></member>
+      <member refid="classdafg_1_1Registry_1a51dd8643819f8e7ca2d24dd63c5f41cb" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>registerBuffer</name></member>
+      <member refid="classdafg_1_1Registry_1a515732293ffc5d61f5dd58fe747fa6a5" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>registerBufferImpl</name></member>
+      <member refid="classdafg_1_1Registry_1ab41daa404aaa9614f240448c1ba16485" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>registerTexture</name></member>
+      <member refid="classdafg_1_1Registry_1a1b1dc4aa74d9868b11d45c2898bcd59f" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>registerTextureImpl</name></member>
+      <member refid="classdafg_1_1Registry_1acc6d29f3e9714c05fc16725919a403c2" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>Registry</name></member>
+      <member refid="classdafg_1_1Registry_1ad78263009503117d45ac4e50de744d67" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>rename</name></member>
+      <member refid="classdafg_1_1Registry_1af6f518fb92009bb57f4a6526c604fccb" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>renameBlob</name></member>
+      <member refid="classdafg_1_1Registry_1a8a7283ecf2a1a1fae485e56dc783f668" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>renameTexture</name></member>
+      <member refid="classdafg_1_1Registry_1a5e3b92afbc2f80ab2949fe497a4726c3" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>requestRenderPass</name></member>
+      <member refid="classdafg_1_1Registry_1af0f6a8a1786c7ac5be1b87a78224dd92" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>requestState</name></member>
+      <member refid="classdafg_1_1Registry_1acef88cd701159efe6af2a482ea4e3857" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>root</name></member>
+      <member refid="classdafg_1_1Registry_1a5576ec245c8ba3e1a24f6d19bf544365" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>setPriority</name></member>
+      <member refid="classdafg_1_1Registry_1a6ad4692931bd0cfcdf17d9fe4967ce98" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>TexCreateRequestPolicy</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

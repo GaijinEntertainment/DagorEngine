@@ -1,0 +1,259 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intervals</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Macros" href="macros.html" />
+    <link rel="prev" title="Includes" href="includes.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Shading Language (DSHL) docs</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../basic-concepts.html">Basic Concepts</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="conditionals.html">Conditionals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data-types.html">Data types and variables</a></li>
+<li class="toctree-l4"><a class="reference internal" href="error.html">Throwing compilation errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html">Hardware defines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="includes.html">Includes</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Intervals</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#assumes">Assumes</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="macros.html">Macros</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../channels.html">Channels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../materials.html">Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../directives.html">Common directives</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../intrinsics.html">Intrinsics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../global-constants.html">Global constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pipeline-states.html">Pipeline state configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../keywords.html">Keywords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stream_output.html">Stream output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Shading Language (DSHL) docs</a></li>
+          <li class="breadcrumb-item"><a href="../basic-concepts.html">Basic Concepts</a></li>
+      <li class="breadcrumb-item active">Intervals</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-dshl/index/basic-concepts/intervals.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="intervals">
+<span id="id1"></span><h1>Intervals<a class="headerlink" href="#intervals" title="Link to this heading"></a></h1>
+<p>Intervals are a way to generate multiple variants of a single <code class="docutils literal notranslate"><span class="pre">shader</span></code>, based on whether the value of a special variable falls into specific range.
+They can be created from an <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">float</span></code> shader variable using the <code class="docutils literal notranslate"><span class="pre">interval</span></code> keyword.
+Consider this example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">var</span><span class="p">;</span>
+<span class="n">interval</span><span class="w"> </span><span class="n">var</span><span class="o">:</span><span class="n">below_zero</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">zero</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">positive_less_than_four</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">four</span><span class="o">&lt;</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">five_or_higher</span><span class="p">;</span>
+<span class="c1">// same goes for floats</span>
+</pre></div>
+</div>
+<p>This declaration will create 5 permutations of the shader (<code class="docutils literal notranslate"><span class="pre">below_zero</span></code>, <code class="docutils literal notranslate"><span class="pre">zero</span></code>, <code class="docutils literal notranslate"><span class="pre">positive_less_than_four</span></code>, <code class="docutils literal notranslate"><span class="pre">four</span></code> and <code class="docutils literal notranslate"><span class="pre">five_or_higher</span></code>),
+and the <code class="docutils literal notranslate"><span class="pre">var</span></code> interval itself can be accessed in hlsl blocks with special preprocessor tag <code class="docutils literal notranslate"><span class="pre">##</span></code>.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">var</span><span class="p">;</span>
+<span class="n">interval</span><span class="w"> </span><span class="n">var</span><span class="o">:</span><span class="n">below_zero</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">zero</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">positive_less_than_four</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">four</span><span class="o">&lt;</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">five_or_higher</span><span class="p">;</span>
+
+<span class="n">shader</span><span class="w"> </span><span class="n">example_shader</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">hlsl</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="cp">##if var == five_or_higher</span>
+<span class="w">      </span><span class="p">...</span>
+<span class="w">    </span><span class="cp">##endif</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>It is essential to understand that this construction doesn’t mean that <code class="docutils literal notranslate"><span class="pre">var</span></code> equals to <code class="docutils literal notranslate"><span class="pre">5</span></code>, but
+it means <code class="docutils literal notranslate"><span class="pre">var</span></code> is within the declared interval <code class="docutils literal notranslate"><span class="pre">five_or_higher</span></code>, so this syntax applies to <code class="docutils literal notranslate"><span class="pre">float</span></code> numbers as well.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Notice that intervals can be created not only from global variables (as in example above), but also from <code class="docutils literal notranslate"><span class="pre">static</span></code> and <code class="docutils literal notranslate"><span class="pre">dynamic</span></code> variables (described in <a class="reference internal" href="data-types.html#local-variables"><span class="std std-ref">Local variables</span></a>).</p>
+<p>Intervals on <code class="docutils literal notranslate"><span class="pre">static</span></code> variables are resolved (appropriate shader variant is selected) only once during material instantiation, so
+shader variants dependant on <code class="docutils literal notranslate"><span class="pre">static</span></code> variables are not switched during runtime.</p>
+<p>Intervals on <code class="docutils literal notranslate"><span class="pre">dynamic</span></code> and global variables, however, are resolved each time the shader is used for rendering (on <code class="docutils literal notranslate"><span class="pre">setStates()</span></code> call), because such variables can change during runtime.
+This has worse CPU performance impact, compared to <code class="docutils literal notranslate"><span class="pre">static</span></code> intervals.</p>
+</div>
+<section id="assumes">
+<h2>Assumes<a class="headerlink" href="#assumes" title="Link to this heading"></a></h2>
+<p>Shader variables can be assigned a fixed value when the shader is compiled by <em>assuming</em>. Such shader vars may not be changed at runtime, their values will be constant in the binary.
+This allows to reduce number of shader variants or disable specific features for specific platforms.</p>
+<p>You can <em>assume</em> intervals inside a config .blk file for the shader compiler.
+To do this, create an <code class="docutils literal notranslate"><span class="pre">assume_vars</span></code> block inside a <code class="docutils literal notranslate"><span class="pre">Compile</span></code> block and then specify the assumes you want, following regular .blk syntax:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">Compile</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">assume_vars</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">include</span><span class="w"> </span><span class="n">common_assumes</span><span class="p">.</span><span class="n">blk</span>
+<span class="w">    </span><span class="nl">supports_sh_6_1</span><span class="p">:</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="nl">static_shadows_custom_fxaa</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">    </span><span class="nl">grass_use_quads</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">    </span><span class="nl">bloom_tex</span><span class="p">:</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By assuming a texture, e.g. <code class="docutils literal notranslate"><span class="pre">bloom_tex:i</span> <span class="pre">=</span> <span class="pre">1</span></code>, you declare that this texture is never <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.</p>
+</div>
+<p><strong>Assume statement</strong></p>
+<p>You can use <code class="docutils literal notranslate"><span class="pre">assume</span> <span class="pre">interval_name</span> <span class="pre">=</span> <span class="pre">interval_value;</span></code> statement in DSHL shaders to force an interval to be fixed.
+This can be useful to disable unnecessary shader variants when the same interval is shared among different shaders.</p>
+<p>Assumes are evaluated irrespective of static and dynamic intervals: if you put an assume statement inside a
+static or dynamic condition, it will be applied, and it will only be ignored if the condition is constant
+irrespective of variants.</p>
+<p>Assumes to the same interval override each other in program order, and assumes in code override assumes from the blk.
+If you need an assume that doesn’t override ones from blk or ones declared before as a default fallback, use
+<code class="docutils literal notranslate"><span class="pre">assume_if_not_assumed</span> <span class="pre">interval_name</span> <span class="pre">=</span> <span class="pre">interval_value;</span></code></p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">include</span><span class="w"> </span><span class="s">&quot;deferred_shadow_common.dshl&quot;</span>
+
+<span class="n">assume</span><span class="w"> </span><span class="n">use_ssss</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">off</span><span class="p">;</span>
+
+<span class="n">shader</span><span class="w"> </span><span class="n">deferred_shadow_classify_tiles</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="n">assume_if_not_assumed</span><span class="w"> </span><span class="n">use_ssss</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">on</span><span class="p">;</span><span class="w"> </span><span class="c1">// use_ssss is still assumed to be off</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="includes.html" class="btn btn-neutral float-left" title="Includes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="macros.html" class="btn btn-neutral float-right" title="Macros" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,483 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__genappwnd_8h" kind="file" language="C++">
+    <compoundname>ec_genappwnd.h</compoundname>
+    <includes refid="ec__decl_8h" local="no">EditorCore/ec_decl.h</includes>
+    <includes refid="ec__geneditordata_8h" local="no">EditorCore/ec_geneditordata.h</includes>
+    <includes refid="ec__gridobject_8h" local="no">EditorCore/ec_gridobject.h</includes>
+    <includes refid="ec__workspace_8h" local="no">EditorCore/ec_workspace.h</includes>
+    <includes refid="ec__wndPublic_8h" local="no">EditorCore/ec_wndPublic.h</includes>
+    <includes refid="ec__gizmoSettings_8h" local="no">EditorCore/ec_gizmoSettings.h</includes>
+    <includes refid="ec__screenshot_8h" local="no">EditorCore/ec_screenshot.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">ioSys/dag_dataBlock.h</includes>
+    <includes local="no">libTools/util/undo.h</includes>
+    <includes local="no">math/dag_TMatrix.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includes local="no">drv/3d/dag_resId.h</includes>
+    <includes local="no">coolConsole/coolConsole.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <includedby refid="ec__genapp__ehfilter_8h" local="no">ec_genapp_ehfilter.h</includedby>
+    <incdepgraph>
+      <node id="4">
+        <label>EditorCore/ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>EditorCore/ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EditorCore/ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>EditorCore/ec_gizmoSettings.h</label>
+        <link refid="ec__gizmoSettings_8h"/>
+      </node>
+      <node id="26">
+        <label>EditorCore/ec_gridobject.h</label>
+        <link refid="ec__gridobject_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>EditorCore/ec_rect.h</label>
+        <link refid="ec__rect_8h"/>
+      </node>
+      <node id="36">
+        <label>EditorCore/ec_screenshot.h</label>
+        <link refid="ec__screenshot_8h"/>
+      </node>
+      <node id="24">
+        <label>EditorCore/ec_status_bar.h</label>
+        <link refid="ec__status__bar_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EditorCore/ec_viewportAxisId.h</label>
+        <link refid="ec__viewportAxisId_8h"/>
+      </node>
+      <node id="34">
+        <label>EditorCore/ec_wndPublic.h</label>
+        <link refid="ec__wndPublic_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>EditorCore/ec_workspace.h</label>
+        <link refid="ec__workspace_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>3d/dag_textureIDHolder.h</label>
+      </node>
+      <node id="17">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="41">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="40">
+        <label>coolConsole/coolConsole.h</label>
+      </node>
+      <node id="21">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="27">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="15">
+        <label>generic/dag_initOnDemand.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="23">
+        <label>gui/dag_stdGuiRenderEx.h</label>
+      </node>
+      <node id="33">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="32">
+        <label>libTools/containers/dag_StrMap.h</label>
+      </node>
+      <node id="11">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="37">
+        <label>libTools/util/undo.h</label>
+      </node>
+      <node id="22">
+        <label>math/dag_Quat.h</label>
+      </node>
+      <node id="38">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="28">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="9">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="39">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="16">
+        <label>propPanel/c_common.h</label>
+      </node>
+      <node id="30">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="5">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="6">
+        <label>propPanel/messageQueue.h</label>
+      </node>
+      <node id="29">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="20">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="25">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classGenericEditorAppWindow" prot="public">GenericEditorAppWindow</innerclass>
+    <innerclass refid="structGenericEditorAppWindow_1_1OrtMultiScrData" prot="public">GenericEditorAppWindow::OrtMultiScrData</innerclass>
+    <innerclass refid="structGenericEditorAppWindow_1_1OrtScrCells" prot="public">GenericEditorAppWindow::OrtScrCells</innerclass>
+    <innerclass refid="structGenericEditorAppWindow_1_1WorldCursorParams" prot="protected">GenericEditorAppWindow::WorldCursorParams</innerclass>
+    <innernamespace refid="namespacePropPanel">PropPanel</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__decl_8h" kindref="compound">EditorCore/ec_decl.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__geneditordata_8h" kindref="compound">EditorCore/ec_geneditordata.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__gridobject_8h" kindref="compound">EditorCore/ec_gridobject.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__workspace_8h" kindref="compound">EditorCore/ec_workspace.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__wndPublic_8h" kindref="compound">EditorCore/ec_wndPublic.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__gizmoSettings_8h" kindref="compound">EditorCore/ec_gizmoSettings.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__screenshot_8h" kindref="compound">EditorCore/ec_screenshot.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_dataBlock.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;libTools/util/undo.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_TMatrix.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;coolConsole/coolConsole.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacePropPanel" kindref="compound">PropPanel</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IMenu;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classGenericEditorAppWindow" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGenericEditorAppWindow" kindref="compound">GenericEditorAppWindow</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::IMenuEventHandler,<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>IUndoRedoWndClient</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="42" refid="classGenericEditorAppWindow_1a92711446a1be65eeaa374b223e7bf56b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGenericEditorAppWindow_1a92711446a1be65eeaa374b223e7bf56b" kindref="member">GenericEditorAppWindow</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*open_fname,<sp/><ref refid="classIWndManager" kindref="compound">IWndManager</ref><sp/>*manager);</highlight></codeline>
+<codeline lineno="44" refid="classGenericEditorAppWindow_1a1ab117d5cd92e26cc3a05e1561dc66cd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a1ab117d5cd92e26cc3a05e1561dc66cd" kindref="member">~GenericEditorAppWindow</ref>();</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classGenericEditorAppWindow_1abfab14b0b5958856fde4cf20308a6e27" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1abfab14b0b5958856fde4cf20308a6e27" kindref="member">canClose</ref>();</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classGenericEditorAppWindow_1a0e19a8333220fa263987db12169bdc69" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a0e19a8333220fa263987db12169bdc69" kindref="member">startWith</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*select_workspace<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="classGenericEditorAppWindow_1a900c291337072cbfcf9504cb0c941a05" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a900c291337072cbfcf9504cb0c941a05" kindref="member">updateUndoRedoMenu</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="classGenericEditorAppWindow_1abb9838e90a9c58a764d02e536356deed" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1abb9838e90a9c58a764d02e536356deed" kindref="member">saveViewportsParams</ref>(DataBlock<sp/>&amp;blk)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="classGenericEditorAppWindow_1ada620ddec015ae39e8efc0a49390af35" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ada620ddec015ae39e8efc0a49390af35" kindref="member">loadViewportsParams</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classGenericEditorAppWindow_1a1437b6e34922cf098f05e6b998aa51c0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a1437b6e34922cf098f05e6b998aa51c0" kindref="member">setQuietMode</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mode)<sp/>{<sp/><ref refid="classGenericEditorAppWindow_1a51bf07aee3b79e4510b3a6f5088aa3e6" kindref="member">quietMode</ref><sp/>=<sp/>mode;<sp/>};</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>theme<sp/>settings</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="classGenericEditorAppWindow_1a6cd29fbebb31832994ae019fa15be10f" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="classGenericEditorAppWindow_1a6cd29fbebb31832994ae019fa15be10f" kindref="member">getThemeFileName</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74" refid="classGenericEditorAppWindow_1abd5bf99dbfbbad41e3c19b23f68fa61b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1abd5bf99dbfbbad41e3c19b23f68fa61b" kindref="member">saveThemeSettings</ref>(DataBlock<sp/>&amp;blk)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="75" refid="classGenericEditorAppWindow_1ac4b85fceba620b107dd30a830f40342d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ac4b85fceba620b107dd30a830f40342d" kindref="member">loadThemeSettings</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="classGenericEditorAppWindow_1a0a1c542dc2d3e23ef695f0c41c96df6c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classGenericEditorAppWindow_1a0a1c542dc2d3e23ef695f0c41c96df6c" kindref="member">defaultThemeName</ref><sp/>=<sp/></highlight><highlight class="stringliteral">&quot;light&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>save/load<sp/>screenshot<sp/>options</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="classGenericEditorAppWindow_1ab83fe16ee4b983143e14a403447632da" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ab83fe16ee4b983143e14a403447632da" kindref="member">saveScreenshotSettings</ref>(DataBlock<sp/>&amp;blk)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="81" refid="classGenericEditorAppWindow_1a098822830293b9efefbf87f96613202f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a098822830293b9efefbf87f96613202f" kindref="member">loadScreenshotSettings</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="classGenericEditorAppWindow_1aceb5e19ec47a679053b070655bafff5b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1aceb5e19ec47a679053b070655bafff5b" kindref="member">isRenderingOrtScreenshot</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a2d63f83875291a90fde7401c02cea08e" kindref="member">isRenderingOrtScreenshot_</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="84" refid="classGenericEditorAppWindow_1a0804579f14ee0b41eea6068f430d91e4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a0804579f14ee0b41eea6068f430d91e4" kindref="member">isOrthogonalPreview</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a55b48c88d8bf54f71e31a9969d0cac92" kindref="member">mScrCells</ref>.<ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1a3d750f0f9b874081b668c56b0f0ec54f" kindref="member">sizeInTiles</ref><sp/>!=<sp/>IPoint2(0,<sp/>0);<sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="classGenericEditorAppWindow_1ad8141654ef753d7dbd69c057a43dc949" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>&amp;<ref refid="classGenericEditorAppWindow_1ad8141654ef753d7dbd69c057a43dc949" kindref="member">getWorkspace</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mWSpace;<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">AppEventHandler;</highlight></codeline>
+<codeline lineno="89" refid="structGenericEditorAppWindow_1_1OrtMultiScrData" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData" kindref="compound">OrtMultiScrData</ref></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="91" refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1af15f3d076e9525250bb760aef3abe013" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1af15f3d076e9525250bb760aef3abe013" kindref="member">OrtMultiScrData</ref>()<sp/>:</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1afe8cd5a212c8b578e61d6d6ccef44934" kindref="member">useIt</ref>(false),<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a9316c64ddf2e7fc61fa0fe83825491e5" kindref="member">renderObjects</ref>(false),<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a88efd75aae8a396d1ea491e96b1f5e71" kindref="member">res</ref>(1.0),<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1aae69aef90c30bf1c692ad45997cf8014" kindref="member">mapPos</ref>(-1000,<sp/>-1000),<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1ae3db2e5bf4a617720ff83f6163870722" kindref="member">mapSize</ref>(2000,<sp/>2000),<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2ecaaaf57f17e0ee27c3dd27792c8887" kindref="member">tileSize</ref>(1024),<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2523e4cc7332be63b3827e8e071f860f" kindref="member">q_type</ref>(0),<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1add6e215f914f7a04640d5be1adabce56" kindref="member">mipLevels</ref>(0)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a9316c64ddf2e7fc61fa0fe83825491e5" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1afe8cd5a212c8b578e61d6d6ccef44934" kindref="member">useIt</ref>,<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a9316c64ddf2e7fc61fa0fe83825491e5" kindref="member">renderObjects</ref>;</highlight></codeline>
+<codeline lineno="96" refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1aae69aef90c30bf1c692ad45997cf8014" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point2<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1aae69aef90c30bf1c692ad45997cf8014" kindref="member">mapPos</ref>,<sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1ae3db2e5bf4a617720ff83f6163870722" kindref="member">mapSize</ref>;</highlight></codeline>
+<codeline lineno="97" refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2ecaaaf57f17e0ee27c3dd27792c8887" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2ecaaaf57f17e0ee27c3dd27792c8887" kindref="member">tileSize</ref>;</highlight></codeline>
+<codeline lineno="98" refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a88efd75aae8a396d1ea491e96b1f5e71" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a88efd75aae8a396d1ea491e96b1f5e71" kindref="member">res</ref>;</highlight></codeline>
+<codeline lineno="99" refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2523e4cc7332be63b3827e8e071f860f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2523e4cc7332be63b3827e8e071f860f" kindref="member">q_type</ref>;</highlight></codeline>
+<codeline lineno="100" refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1add6e215f914f7a04640d5be1adabce56" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1add6e215f914f7a04640d5be1adabce56" kindref="member">mipLevels</ref>;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103" refid="structGenericEditorAppWindow_1_1OrtScrCells" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGenericEditorAppWindow_1_1OrtScrCells" kindref="compound">OrtScrCells</ref></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="105" refid="structGenericEditorAppWindow_1_1OrtScrCells_1aa8d87e32d03cecc7c12fc6d51bef0be4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1aa8d87e32d03cecc7c12fc6d51bef0be4" kindref="member">OrtScrCells</ref>()<sp/>{<sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1ab801fc738203da25d68f7fe51284d064" kindref="member">reset</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="106" refid="structGenericEditorAppWindow_1_1OrtScrCells_1ab801fc738203da25d68f7fe51284d064" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1ab801fc738203da25d68f7fe51284d064" kindref="member">reset</ref>()</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1ad969e1f553c91537c586bcc9cc0d8129" kindref="member">mapPos</ref><sp/>=<sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1a36f163c867d1827a8b79aa6915adf985" kindref="member">mapSize</ref><sp/>=<sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1a1bbade0835b3deacbe9ba29a474c3cd1" kindref="member">tileInMeters</ref><sp/>=<sp/>Point2(0,<sp/>0);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1a3d750f0f9b874081b668c56b0f0ec54f" kindref="member">sizeInTiles</ref><sp/>=<sp/>IPoint2(0,<sp/>0);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112" refid="structGenericEditorAppWindow_1_1OrtScrCells_1ad969e1f553c91537c586bcc9cc0d8129" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point2<sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1ad969e1f553c91537c586bcc9cc0d8129" kindref="member">mapPos</ref>,<sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1a36f163c867d1827a8b79aa6915adf985" kindref="member">mapSize</ref>;</highlight></codeline>
+<codeline lineno="113" refid="structGenericEditorAppWindow_1_1OrtScrCells_1a1bbade0835b3deacbe9ba29a474c3cd1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point2<sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1a1bbade0835b3deacbe9ba29a474c3cd1" kindref="member">tileInMeters</ref>;</highlight></codeline>
+<codeline lineno="114" refid="structGenericEditorAppWindow_1_1OrtScrCells_1a3d750f0f9b874081b668c56b0f0ec54f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>IPoint2<sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells_1a3d750f0f9b874081b668c56b0f0ec54f" kindref="member">sizeInTiles</ref>;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="118" refid="classGenericEditorAppWindow_1ac9620f24e1f833fa402e12e39bcef9af" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIWndManager" kindref="compound">IWndManager</ref><sp/>*<ref refid="classGenericEditorAppWindow_1ac9620f24e1f833fa402e12e39bcef9af" kindref="member">mManager</ref>;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120" refid="classGenericEditorAppWindow_1a36c5a81c9d4d615aa1757a861d59cc8d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGizmoEventFilter" kindref="compound">GizmoEventFilter</ref><sp/>*<ref refid="classGenericEditorAppWindow_1a36c5a81c9d4d615aa1757a861d59cc8d" kindref="member">gizmoEH</ref>;</highlight></codeline>
+<codeline lineno="121" refid="classGenericEditorAppWindow_1a344b20544182c69125c3d10f480346c3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref><sp/>*<ref refid="classGenericEditorAppWindow_1a344b20544182c69125c3d10f480346c3" kindref="member">brushEH</ref>;</highlight></codeline>
+<codeline lineno="122" refid="classGenericEditorAppWindow_1a32377bfdb3c7f79be67bdd5b49aa9893" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref><sp/>*<ref refid="classGenericEditorAppWindow_1a32377bfdb3c7f79be67bdd5b49aa9893" kindref="member">appEH</ref>;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="classGenericEditorAppWindow_1ad29231f72421437d40be066acf0fc4ff" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ad29231f72421437d40be066acf0fc4ff" kindref="member">sceneFname</ref>[260];</highlight></codeline>
+<codeline lineno="125" refid="classGenericEditorAppWindow_1a4fa76a442cf61a0aebd1edcbe4de19ed" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a4fa76a442cf61a0aebd1edcbe4de19ed" kindref="member">shouldLoadFile</ref>;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="classGenericEditorAppWindow_1a06286b771cb6f914804976435a4c186f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a06286b771cb6f914804976435a4c186f" kindref="member">shouldUpdateViewports</ref>;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129" refid="classGenericEditorAppWindow_1a01f2d9fd814a9d28d10b74ca141b85ec" refkind="member"><highlight class="normal"><sp/><sp/>UndoSystem<sp/>*<ref refid="classGenericEditorAppWindow_1a01f2d9fd814a9d28d10b74ca141b85ec" kindref="member">undoSystem</ref>;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131" refid="structGenericEditorAppWindow_1_1WorldCursorParams" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGenericEditorAppWindow_1_1WorldCursorParams" kindref="compound">WorldCursorParams</ref></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="133" refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a64ebd8f8be2c1b302f2b5da32b90cc39" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a84546e70dc707ebe36622e061848cbdf" kindref="member">pt</ref>,<sp/><ref refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a64ebd8f8be2c1b302f2b5da32b90cc39" kindref="member">norm</ref>;</highlight></codeline>
+<codeline lineno="134" refid="structGenericEditorAppWindow_1_1WorldCursorParams_1abf7ff8d74858ea62ce18c680962c4e06" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structGenericEditorAppWindow_1_1WorldCursorParams_1abf7ff8d74858ea62ce18c680962c4e06" kindref="member">visible</ref>,<sp/><ref refid="structGenericEditorAppWindow_1_1WorldCursorParams_1ab50643f03f3ecc45953a4af00385255c" kindref="member">xz_based</ref>;</highlight></codeline>
+<codeline lineno="135" refid="structGenericEditorAppWindow_1_1WorldCursorParams_1aee94cc68efde251038f7917ff6941fb4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>TEXTUREID<sp/><ref refid="structGenericEditorAppWindow_1_1WorldCursorParams_1aee94cc68efde251038f7917ff6941fb4" kindref="member">texId</ref>;</highlight></codeline>
+<codeline lineno="136" refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a49c853d41f1a35affd47ef34978b2fa0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>real<sp/><ref refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a49c853d41f1a35affd47ef34978b2fa0" kindref="member">size</ref>;</highlight></codeline>
+<codeline lineno="137" refid="classGenericEditorAppWindow_1ab37c9cde44e7119a46fafcab01b1392c" refkind="member"><highlight class="normal"><sp/><sp/>}<sp/><ref refid="classGenericEditorAppWindow_1ab37c9cde44e7119a46fafcab01b1392c" kindref="member">cursor</ref>,<sp/><ref refid="classGenericEditorAppWindow_1a102842c408a5fd15914119374f203ede" kindref="member">cursorLast</ref>;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139" refid="classGenericEditorAppWindow_1a46b43dfd321a61e78719dfd104b85310" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref><sp/><ref refid="classGenericEditorAppWindow_1a46b43dfd321a61e78719dfd104b85310" kindref="member">ged</ref>;</highlight></codeline>
+<codeline lineno="140" refid="classGenericEditorAppWindow_1a699845f962a3b58120d3af19f274896c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGridObject" kindref="compound">GridObject</ref><sp/><ref refid="classGenericEditorAppWindow_1a699845f962a3b58120d3af19f274896c" kindref="member">grid</ref>;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142" refid="classGenericEditorAppWindow_1a2dec13849028fc0e59049b3f72c7153d" refkind="member"><highlight class="normal"><sp/><sp/>CoolConsole<sp/>*<ref refid="classGenericEditorAppWindow_1a2dec13849028fc0e59049b3f72c7153d" kindref="member">console</ref>;</highlight></codeline>
+<codeline lineno="143" refid="classGenericEditorAppWindow_1a51bf07aee3b79e4510b3a6f5088aa3e6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a51bf07aee3b79e4510b3a6f5088aa3e6" kindref="member">quietMode</ref>;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>theme<sp/>settings</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="classGenericEditorAppWindow_1a91183b4e805edc90e33339017f8c7f3c" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="classGenericEditorAppWindow_1a91183b4e805edc90e33339017f8c7f3c" kindref="member">themeName</ref>;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>screenshot<sp/>settings</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149" refid="classGenericEditorAppWindow_1a5cf79c6c0088df89711c56ef2169a691" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/><ref refid="classGenericEditorAppWindow_1a5cf79c6c0088df89711c56ef2169a691" kindref="member">screenshotCfg</ref>;</highlight></codeline>
+<codeline lineno="150" refid="classGenericEditorAppWindow_1a4bdd8e9e617f3f86c0504d4795038ea7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/><ref refid="classGenericEditorAppWindow_1a4bdd8e9e617f3f86c0504d4795038ea7" kindref="member">cubeScreenshotCfg</ref>;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="classGenericEditorAppWindow_1a7d96afc5eadd1363a16b9a57e39215ea" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData" kindref="compound">OrtMultiScrData</ref><sp/><ref refid="classGenericEditorAppWindow_1a7d96afc5eadd1363a16b9a57e39215ea" kindref="member">mScrData</ref>;</highlight></codeline>
+<codeline lineno="153" refid="classGenericEditorAppWindow_1a55b48c88d8bf54f71e31a9969d0cac92" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structGenericEditorAppWindow_1_1OrtScrCells" kindref="compound">OrtScrCells</ref><sp/><ref refid="classGenericEditorAppWindow_1a55b48c88d8bf54f71e31a9969d0cac92" kindref="member">mScrCells</ref>;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155" refid="classGenericEditorAppWindow_1a2d63f83875291a90fde7401c02cea08e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a2d63f83875291a90fde7401c02cea08e" kindref="member">isRenderingOrtScreenshot_</ref>;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>user-overridable<sp/>routines</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="158" refid="classGenericEditorAppWindow_1ae943950daa6421c529c536b45ba1a78b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ae943950daa6421c529c536b45ba1a78b" kindref="member">handleNewProject</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>edit<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="159" refid="classGenericEditorAppWindow_1ac1d52213899b36eb7c7abd19792b2766" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ac1d52213899b36eb7c7abd19792b2766" kindref="member">handleOpenProject</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>edit<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161" refid="classGenericEditorAppWindow_1a6611222e501ed9cf38513e3f0a6dc0b7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a6611222e501ed9cf38513e3f0a6dc0b7" kindref="member">getDocTitleText</ref>(String<sp/>&amp;text);</highlight></codeline>
+<codeline lineno="162" refid="classGenericEditorAppWindow_1a9e14923cc50728676bca31863d048018" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a9e14923cc50728676bca31863d048018" kindref="member">setDocTitle</ref>();</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164" refid="classGenericEditorAppWindow_1af9c07507ad6cade190a00fe98eec7ac2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1af9c07507ad6cade190a00fe98eec7ac2" kindref="member">createNewProject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="165" refid="classGenericEditorAppWindow_1a9606a8429088848785de92ff8be1452a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a9606a8429088848785de92ff8be1452a" kindref="member">loadProject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="166" refid="classGenericEditorAppWindow_1a30c6ccd753e8a6ed4a702bd0a3ec635d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a30c6ccd753e8a6ed4a702bd0a3ec635d" kindref="member">saveProject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168" refid="classGenericEditorAppWindow_1a82535fdc0a61c6deb90e43217a668e1b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a82535fdc0a61c6deb90e43217a668e1b" kindref="member">canCloseScene</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*title);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>helper<sp/>routines</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171" refid="classGenericEditorAppWindow_1a66a359b64f4334baf6c5010ec4e40ca8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a66a359b64f4334baf6c5010ec4e40ca8" kindref="member">init</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*select_workspace<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="classGenericEditorAppWindow_1a9ca733b8e7f7cb6297a0b8824543f8bb" refkind="member"><highlight class="normal"><sp/><sp/>PropPanel::IMenu<sp/>*<ref refid="classGenericEditorAppWindow_1a9ca733b8e7f7cb6297a0b8824543f8bb" kindref="member">getMainMenu</ref>();</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175" refid="classGenericEditorAppWindow_1a7634fe4505a78eec0471c80a31bc1848" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a7634fe4505a78eec0471c80a31bc1848" kindref="member">fillMenu</ref>(PropPanel::IMenu<sp/>*menu);</highlight></codeline>
+<codeline lineno="176" refid="classGenericEditorAppWindow_1a6c618145000e5cc52e1a32ab60e59b62" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a6c618145000e5cc52e1a32ab60e59b62" kindref="member">updateMenu</ref>([[maybe_unused]]<sp/>PropPanel::IMenu<sp/>*menu)<sp/>{}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="classGenericEditorAppWindow_1a5cc36fa87697c6802f446809efc405ea" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a5cc36fa87697c6802f446809efc405ea" kindref="member">addExitCommand</ref>(PropPanel::IMenu<sp/>*menu);</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180" refid="classGenericEditorAppWindow_1a9df04b4d70bb8ae9f8af09aceaf24ba4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a9df04b4d70bb8ae9f8af09aceaf24ba4" kindref="member">onChangeFov</ref>();</highlight></codeline>
+<codeline lineno="181" refid="classGenericEditorAppWindow_1ac6255e1857420439250b584d60d3d2b5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ac6255e1857420439250b584d60d3d2b5" kindref="member">onShowConsole</ref>();</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183" refid="classGenericEditorAppWindow_1a0014a607e0a7c3ebd12a64fe7403ac21" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a0014a607e0a7c3ebd12a64fe7403ac21" kindref="member">fillCommonToolbar</ref>(PropPanel::ContainerPropertyControl<sp/>&amp;tb);</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>screenshot<sp/>routine</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="classGenericEditorAppWindow_1ad3eb05a7e7aebb2b4da009673301a456" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>String<sp/><ref refid="classGenericEditorAppWindow_1ad3eb05a7e7aebb2b4da009673301a456" kindref="member">getScreenshotNameMask</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>cube)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="187" refid="classGenericEditorAppWindow_1a35349cb9a421931e07708388a420ef99" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a35349cb9a421931e07708388a420ef99" kindref="member">screenshotRender</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>skip_debug_objects)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189" refid="classGenericEditorAppWindow_1ad965053e07324da4026f04d14182fd72" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="classGenericEditorAppWindow_1ad965053e07324da4026f04d14182fd72" kindref="member">getScreenshotName</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>cube)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="190" refid="classGenericEditorAppWindow_1a6ecc336bc22b9d7f26d6c4c4b50113cd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a6ecc336bc22b9d7f26d6c4c4b50113cd" kindref="member">setScreenshotOptions</ref>(<ref refid="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2e" kindref="member">ScreenshotDlgMode</ref><sp/>mode);</highlight></codeline>
+<codeline lineno="191" refid="classGenericEditorAppWindow_1ab81049b1882c112ba1db30e16535a54e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1ab81049b1882c112ba1db30e16535a54e" kindref="member">closeScreenshotSettingsDialog</ref>();</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight></codeline>
+<codeline lineno="193" refid="classGenericEditorAppWindow_1adb55fd276993ec466e1ef9140ca1e0aa" refkind="member"><highlight class="normal"><sp/><sp/>Texture<sp/>*<ref refid="classGenericEditorAppWindow_1adb55fd276993ec466e1ef9140ca1e0aa" kindref="member">renderInTex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>h,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>*tm,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>skip_debug_objects<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>should_make_orthogonal_screenshot<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>should_use_z_buffer<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>world_x0<sp/>=<sp/>0.f,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>world_x1<sp/>=<sp/>0.f,</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>world_z0<sp/>=<sp/>0.f,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>world_z1<sp/>=<sp/>0.f);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197" refid="classGenericEditorAppWindow_1a0e927cef6deed4bcfd09fa635901c392" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a0e927cef6deed4bcfd09fa635901c392" kindref="member">createScreenshot</ref>();</highlight></codeline>
+<codeline lineno="198" refid="classGenericEditorAppWindow_1aed7e8d9f462237464647f4cb4e3a5cc5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1aed7e8d9f462237464647f4cb4e3a5cc5" kindref="member">createCubeScreenshot</ref>();</highlight></codeline>
+<codeline lineno="199" refid="classGenericEditorAppWindow_1a4c47af15931690f2afe56a14e44862ab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a4c47af15931690f2afe56a14e44862ab" kindref="member">createOrthogonalScreenshot</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*dest_folder<sp/>=<sp/>NULL,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*x0z0x1z1<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="200" refid="classGenericEditorAppWindow_1a0d3abfc125e55b84acc3ab15b3477f19" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a0d3abfc125e55b84acc3ab15b3477f19" kindref="member">saveOrthogonalScreenshot</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mip_level,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_x,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_z,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>tile_in_meters);</highlight></codeline>
+<codeline lineno="201" refid="classGenericEditorAppWindow_1a02b9d6d0c87cb6aded6c75ec6238db1b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a02b9d6d0c87cb6aded6c75ec6238db1b" kindref="member">renderOrtogonalCells</ref>();</highlight></codeline>
+<codeline lineno="202" refid="classGenericEditorAppWindow_1a1cb085d15baf4b3e038cdeac15df3ae8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a1cb085d15baf4b3e038cdeac15df3ae8" kindref="member">getMaxRTSize</ref>();</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>IMenuEventHandler</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="205" refid="classGenericEditorAppWindow_1a72a4c486d62e44173d9c2ae2f4501d6d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1a72a4c486d62e44173d9c2ae2f4501d6d" kindref="member">onMenuItemClick</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">FovDlg;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>mWSpace;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;PropPanel::IMenu&gt;<sp/>mainMenu;</highlight></codeline>
+<codeline lineno="212"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_genappwnd.h"/>
+  </compounddef>
+</doxygen>

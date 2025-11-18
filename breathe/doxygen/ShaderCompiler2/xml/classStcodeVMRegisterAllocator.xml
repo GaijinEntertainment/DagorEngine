@@ -1,0 +1,288 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classStcodeVMRegisterAllocator" kind="class" language="C++" prot="public">
+    <compoundname>StcodeVMRegisterAllocator</compoundname>
+    <includes refid="stcodeBytecode_8h" local="no">stcodeBytecode.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classStcodeVMRegisterAllocator_1a48c0a48c110444d2b06fe781d1f3fe01" prot="private" static="no" mutable="no">
+        <type>eastl::vector_map&lt; eastl::pair&lt; int, int &gt;, <ref refid="classRegister" kindref="compound">Register</ref> &gt;</type>
+        <definition>eastl::vector_map&lt;eastl::pair&lt;int, int&gt;, Register&gt; StcodeVMRegisterAllocator::stVarToReg</definition>
+        <argsstring></argsstring>
+        <name>stVarToReg</name>
+        <qualifiedname>StcodeVMRegisterAllocator::stVarToReg</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="18" column="21" bodyfile="stcodeBytecode.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStcodeVMRegisterAllocator_1aa9d94b2da2ba6de38bf2312da04904dd" prot="private" static="no" mutable="no">
+        <type>eastl::array&lt; int, 256 &gt;</type>
+        <definition>eastl::array&lt;int, 256&gt; StcodeVMRegisterAllocator::usedRegs</definition>
+        <argsstring></argsstring>
+        <name>usedRegs</name>
+        <qualifiedname>StcodeVMRegisterAllocator::usedRegs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="19" column="16" bodyfile="stcodeBytecode.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStcodeVMRegisterAllocator_1a2ab499b33ebb35982b3e7db4b102189b" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeVMRegisterAllocator::maxregsize</definition>
+        <argsstring></argsstring>
+        <name>maxregsize</name>
+        <qualifiedname>StcodeVMRegisterAllocator::maxregsize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="20" column="7" bodyfile="stcodeBytecode.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStcodeVMRegisterAllocator_1a99a124e21e4dcff593b79590f4a72fe2" prot="private" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+        <definition>Parser&amp; StcodeVMRegisterAllocator::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>StcodeVMRegisterAllocator::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="22" column="10" bodyfile="stcodeBytecode.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classStcodeVMRegisterAllocator_1af96be54aeb4f60afab7c31e75e891990" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Register</definition>
+        <argsstring></argsstring>
+        <name>Register</name>
+        <qualifiedname>StcodeVMRegisterAllocator::Register</qualifiedname>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="24" column="16" bodyfile="stcodeBytecode.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a2cadcb8a5f97e9f040669939adeb488d" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StcodeVMRegisterAllocator::StcodeVMRegisterAllocator</definition>
+        <argsstring>(Parser &amp;parser)</argsstring>
+        <name>StcodeVMRegisterAllocator</name>
+        <qualifiedname>StcodeVMRegisterAllocator::StcodeVMRegisterAllocator</qualifiedname>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="27" column="12" bodyfile="stcodeBytecode.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a15564a174e675d346238bd9573794444" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int StcodeVMRegisterAllocator::requiredRegCount</definition>
+        <argsstring>() const</argsstring>
+        <name>requiredRegCount</name>
+        <qualifiedname>StcodeVMRegisterAllocator::requiredRegCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="29" column="7" bodyfile="stcodeBytecode.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classRegister" kindref="compound">Register</ref></type>
+        <definition>Register StcodeVMRegisterAllocator::_add_reg_word32</definition>
+        <argsstring>(int num, bool aligned)</argsstring>
+        <name>_add_reg_word32</name>
+        <qualifiedname>StcodeVMRegisterAllocator::_add_reg_word32</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>aligned</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="31" column="12" bodyfile="stcodeBytecode.h" bodystart="137" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a7104d5ae287c87b1e7379dfa58b513a4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classRegister" kindref="compound">Register</ref></type>
+        <definition>Register StcodeVMRegisterAllocator::add_vec_reg</definition>
+        <argsstring>(int num=1)</argsstring>
+        <name>add_vec_reg</name>
+        <qualifiedname>StcodeVMRegisterAllocator::add_vec_reg</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="32" column="12" bodyfile="stcodeBytecode.h" bodystart="145" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classRegister" kindref="compound">Register</ref></type>
+        <definition>Register StcodeVMRegisterAllocator::add_reg</definition>
+        <argsstring>()</argsstring>
+        <name>add_reg</name>
+        <qualifiedname>StcodeVMRegisterAllocator::add_reg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="33" column="12" bodyfile="stcodeBytecode.h" bodystart="146" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a2de8a57495fa5b20de8bc89d2fffb1e5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classRegister" kindref="compound">Register</ref></type>
+        <definition>Register StcodeVMRegisterAllocator::add_reg</definition>
+        <argsstring>(int type)</argsstring>
+        <name>add_reg</name>
+        <qualifiedname>StcodeVMRegisterAllocator::add_reg</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="34" column="12" bodyfile="stcodeBytecode.h" bodystart="149" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a76833e198272bccb67af0102962cffc2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classRegister" kindref="compound">Register</ref></type>
+        <definition>Register StcodeVMRegisterAllocator::add_resource_reg</definition>
+        <argsstring>()</argsstring>
+        <name>add_resource_reg</name>
+        <qualifiedname>StcodeVMRegisterAllocator::add_resource_reg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="35" column="12" bodyfile="stcodeBytecode.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1a7fc0a41ce5982f0fe92084e607f05ae3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="classRegister" kindref="compound">Register</ref> &gt;</type>
+        <definition>eastl::optional&lt; Register &gt; StcodeVMRegisterAllocator::registerStvarGetter</definition>
+        <argsstring>(int var_id, int getter_opcode, Register new_reg)</argsstring>
+        <name>registerStvarGetter</name>
+        <qualifiedname>StcodeVMRegisterAllocator::registerStvarGetter</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>getter_opcode</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref></type>
+          <declname>new_reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="36" column="19" bodyfile="stcodeBytecode.h" bodystart="165" bodyend="172"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1af91d9b65ccacd87d3e0c9d8551f4ff1e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeVMRegisterAllocator::manuallyReleaseRegister</definition>
+        <argsstring>(int reg)</argsstring>
+        <name>manuallyReleaseRegister</name>
+        <qualifiedname>StcodeVMRegisterAllocator::manuallyReleaseRegister</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="38" column="8" bodyfile="stcodeBytecode.h" bodystart="174" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="classStcodeVMRegisterAllocator_1abdf175550e6402292695ee7921149664" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeVMRegisterAllocator::dropCachedStvars</definition>
+        <argsstring>()</argsstring>
+        <name>dropCachedStvars</name>
+        <qualifiedname>StcodeVMRegisterAllocator::dropCachedStvars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="39" column="8" bodyfile="stcodeBytecode.h" bodystart="176" bodyend="176"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="stcodeBytecode.h" line="15" column="1" bodyfile="stcodeBytecode.h" bodystart="16" bodyend="40"/>
+    <listofallmembers>
+      <member refid="classStcodeVMRegisterAllocator_1a0f95bd6287bfc39570eeda53876fd270" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>_add_reg_word32</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a55a7368910369fb2ef50ba11675650be" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>add_reg</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a2de8a57495fa5b20de8bc89d2fffb1e5" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>add_reg</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a76833e198272bccb67af0102962cffc2" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>add_resource_reg</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a7104d5ae287c87b1e7379dfa58b513a4" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>add_vec_reg</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1abdf175550e6402292695ee7921149664" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>dropCachedStvars</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1af91d9b65ccacd87d3e0c9d8551f4ff1e" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>manuallyReleaseRegister</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a2ab499b33ebb35982b3e7db4b102189b" prot="private" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>maxregsize</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a99a124e21e4dcff593b79590f4a72fe2" prot="private" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>parser</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1af96be54aeb4f60afab7c31e75e891990" prot="private" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>Register</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a7fc0a41ce5982f0fe92084e607f05ae3" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>registerStvarGetter</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a15564a174e675d346238bd9573794444" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>requiredRegCount</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a2cadcb8a5f97e9f040669939adeb488d" prot="public" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>StcodeVMRegisterAllocator</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1a48c0a48c110444d2b06fe781d1f3fe01" prot="private" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>stVarToReg</name></member>
+      <member refid="classStcodeVMRegisterAllocator_1aa9d94b2da2ba6de38bf2312da04904dd" prot="private" virt="non-virtual"><scope>StcodeVMRegisterAllocator</scope><name>usedRegs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

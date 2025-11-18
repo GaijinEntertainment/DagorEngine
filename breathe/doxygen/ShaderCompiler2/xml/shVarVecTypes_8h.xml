@@ -1,0 +1,429 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shVarVecTypes_8h" kind="file" language="C++">
+    <compoundname>shVarVecTypes.h</compoundname>
+    <includedby refid="globVar_8h" local="yes">globVar.h</includedby>
+    <includedby refid="shcode_8h" local="yes">shcode.h</includedby>
+    <invincdepgraph>
+      <node id="18">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="17">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="19">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="37">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="32">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="26">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>globvar.cpp</label>
+        <link refid="globvar_8cpp"/>
+      </node>
+      <node id="28">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="5">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="4">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="14">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="7">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="12">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="13">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="30">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="29">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="23">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="21">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="45">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="25">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="34">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="36">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structshc_1_1Col4" prot="public">shc::Col4</innerclass>
+    <innerclass refid="structshc_1_1Int4" prot="public">shc::Int4</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6" refid="structshc_1_1Col4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshc_1_1Col4" kindref="compound">Col4</ref></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8" refid="structshc_1_1Col4_1ad45d77d3ac5390ff1b74fc5dfaaa0956" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Col4_1a290edbfa06a9174c59bfd0133eb0ea24" kindref="member">r</ref>,<sp/><ref refid="structshc_1_1Col4_1aad51e0eb4ed172bb465f0f37413c73b9" kindref="member">g</ref>,<sp/><ref refid="structshc_1_1Col4_1a25ec82fbbc73cc41795fc7102e547a37" kindref="member">b</ref>,<sp/><ref refid="structshc_1_1Col4_1ad45d77d3ac5390ff1b74fc5dfaaa0956" kindref="member">a</ref>;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="11" refid="structshc_1_1Col4_1a4a8974b196ba794b2986bd94cc8acf7d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Col4_1a4a8974b196ba794b2986bd94cc8acf7d" kindref="member">set</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>T<sp/>&amp;c)</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshc_1_1Col4_1a290edbfa06a9174c59bfd0133eb0ea24" kindref="member">r</ref><sp/>=<sp/>c.r,<sp/><ref refid="structshc_1_1Col4_1aad51e0eb4ed172bb465f0f37413c73b9" kindref="member">g</ref><sp/>=<sp/>c.g,<sp/><ref refid="structshc_1_1Col4_1a25ec82fbbc73cc41795fc7102e547a37" kindref="member">b</ref><sp/>=<sp/>c.b,<sp/><ref refid="structshc_1_1Col4_1ad45d77d3ac5390ff1b74fc5dfaaa0956" kindref="member">a</ref><sp/>=<sp/>c.a;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="15" refid="structshc_1_1Col4_1af84457fbf68f10d53886d0fbed2f5f10" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Col4_1af84457fbf68f10d53886d0fbed2f5f10" kindref="member">set</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_r,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_g,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_b,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_a)<sp/>{<sp/><ref refid="structshc_1_1Col4_1a290edbfa06a9174c59bfd0133eb0ea24" kindref="member">r</ref><sp/>=<sp/>_r,<sp/><ref refid="structshc_1_1Col4_1aad51e0eb4ed172bb465f0f37413c73b9" kindref="member">g</ref><sp/>=<sp/>_g,<sp/><ref refid="structshc_1_1Col4_1a25ec82fbbc73cc41795fc7102e547a37" kindref="member">b</ref><sp/>=<sp/>_b,<sp/><ref refid="structshc_1_1Col4_1ad45d77d3ac5390ff1b74fc5dfaaa0956" kindref="member">a</ref><sp/>=<sp/>_a;<sp/>}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="structshc_1_1Int4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshc_1_1Int4" kindref="compound">Int4</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20" refid="structshc_1_1Int4_1a7781f08581090b0ff4efc2799f0beaaa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Int4_1a939a03678af61ffa3df60dda8bd641c2" kindref="member">x</ref>,<sp/><ref refid="structshc_1_1Int4_1ab6e12d7b1b4ab46f7893732af1360a72" kindref="member">y</ref>,<sp/><ref refid="structshc_1_1Int4_1a5c73214356dacfc24ccab48e2976b781" kindref="member">z</ref>,<sp/><ref refid="structshc_1_1Int4_1a7781f08581090b0ff4efc2799f0beaaa" kindref="member">w</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="23" refid="structshc_1_1Int4_1a78f800b2861fff2fe06354e711660537" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Int4_1a78f800b2861fff2fe06354e711660537" kindref="member">set</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>T<sp/>&amp;p)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshc_1_1Int4_1a939a03678af61ffa3df60dda8bd641c2" kindref="member">x</ref><sp/>=<sp/>p.x,<sp/><ref refid="structshc_1_1Int4_1ab6e12d7b1b4ab46f7893732af1360a72" kindref="member">y</ref><sp/>=<sp/>p.y,<sp/><ref refid="structshc_1_1Int4_1a5c73214356dacfc24ccab48e2976b781" kindref="member">z</ref><sp/>=<sp/>p.z,<sp/><ref refid="structshc_1_1Int4_1a7781f08581090b0ff4efc2799f0beaaa" kindref="member">w</ref><sp/>=<sp/>p.w;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="27" refid="structshc_1_1Int4_1a2d0ddf06714699cc360b45a285bd1eeb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Int4_1a2d0ddf06714699cc360b45a285bd1eeb" kindref="member">set</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_x,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_y,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_z,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_w)<sp/>{<sp/><ref refid="structshc_1_1Int4_1a939a03678af61ffa3df60dda8bd641c2" kindref="member">x</ref><sp/>=<sp/>_x,<sp/><ref refid="structshc_1_1Int4_1ab6e12d7b1b4ab46f7893732af1360a72" kindref="member">y</ref><sp/>=<sp/>_y,<sp/><ref refid="structshc_1_1Int4_1a5c73214356dacfc24ccab48e2976b781" kindref="member">z</ref><sp/>=<sp/>_z,<sp/><ref refid="structshc_1_1Int4_1a7781f08581090b0ff4efc2799f0beaaa" kindref="member">w</ref><sp/>=<sp/>_w;<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shc</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="shVarVecTypes.h"/>
+  </compounddef>
+</doxygen>

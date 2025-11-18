@@ -1,0 +1,283 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="debug_8cpp" kind="file" language="C++">
+    <compoundname>debug.cpp</compoundname>
+    <includes local="no">stdio.h</includes>
+    <includes local="no">stdarg.h</includes>
+    <includes local="no">windows.h</includes>
+    <includes local="no">shlobj.h</includes>
+    <includes local="no">maxversion.h</includes>
+    <includes local="no">string</includes>
+    <includes refid="debug_8h" local="yes">debug.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>debug.cpp</label>
+        <link refid="debug_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>debug.h</label>
+        <link refid="debug_8h"/>
+      </node>
+      <node id="6">
+        <label>maxversion.h</label>
+      </node>
+      <node id="5">
+        <label>shlobj.h</label>
+      </node>
+      <node id="3">
+        <label>stdarg.h</label>
+      </node>
+      <node id="2">
+        <label>stdio.h</label>
+      </node>
+      <node id="7">
+        <label>string</label>
+      </node>
+      <node id="4">
+        <label>windows.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="debug_8cpp_1aae80f3876f4ffa4378cf3f1a46b299b8" prot="public" static="no">
+        <name>MAX_STR_DEBUG</name>
+        <initializer>8192</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="26" column="9" bodyfile="debug.cpp" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="debug_8cpp_1ae728b88f4032a02ee46e75ab479b927d" prot="public" static="yes" mutable="no">
+        <type>FILE *</type>
+        <definition>FILE* debugfile</definition>
+        <argsstring></argsstring>
+        <name>debugfile</name>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="15" column="13" bodyfile="debug.cpp" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="debug_8cpp_1a8bc98d8e841fa67ec1e510fa7d8f6ff3" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool debug_not_possible</definition>
+        <argsstring></argsstring>
+        <name>debug_not_possible</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="16" column="13" bodyfile="debug.cpp" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="debug_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="11" column="14" bodyfile="common.cpp" bodystart="99" bodyend="112" declfile="debug.cpp" declline="11" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8cpp_1a9247db5a252f97c6442d08793a38a1d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const TCHAR *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="12" column="13" bodyfile="common.cpp" bodystart="115" bodyend="129" declfile="debug.cpp" declline="12" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8cpp_1a4a054a8768d50108dce0c8b7206f2508" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void close_debug</definition>
+        <argsstring>()</argsstring>
+        <name>close_debug</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="18" column="6" bodyfile="debug.cpp" bodystart="18" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8cpp_1ad66a73f3673f2879326899cf57fd8d2e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug</definition>
+        <argsstring>(const char *s,...)</argsstring>
+        <name>debug</name>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="28" column="6" bodyfile="debug.cpp" bodystart="28" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8cpp_1a6e5dbfbf3d51cd1c916d042d76ab54c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug</definition>
+        <argsstring>(const wchar_t *s,...)</argsstring>
+        <name>debug</name>
+        <param>
+          <type>const wchar_t *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.cpp" line="40" column="6" bodyfile="debug.cpp" bodystart="40" bodyend="89"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdio.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdarg.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;windows.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shlobj.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;maxversion.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="debug_8h" kindref="compound">debug.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="debug_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">std::string<sp/><ref refid="debug_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*sw);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>FILE<sp/>*debugfile<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>debug_not_possible<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8cpp_1a4a054a8768d50108dce0c8b7206f2508" kindref="member">close_debug</ref>()</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!debugfile)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aed5a458133572985ccc7fc10a3159f6b" kindref="member">fclose</ref>(debugfile);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>debugfile<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAX_STR_DEBUG<sp/>8192</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8cpp_1ad66a73f3673f2879326899cf57fd8d2e" kindref="member">debug</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s,<sp/>...)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>va_list<sp/>ap;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>va_start(ap,<sp/>s);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>tmp[<ref refid="debug_8cpp_1aae80f3876f4ffa4378cf3f1a46b299b8" kindref="member">MAX_STR_DEBUG</ref>];</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>_vsnprintf(tmp,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(tmp)<sp/>-<sp/>1,<sp/>s,<sp/>ap);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>tmp[</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(tmp)<sp/>-<sp/>1]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>va_end(ap);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><ref refid="debug_8cpp_1ad66a73f3673f2879326899cf57fd8d2e" kindref="member">debug</ref>(L</highlight><highlight class="stringliteral">&quot;%hs&quot;</highlight><highlight class="normal">,<sp/>tmp);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8cpp_1ad66a73f3673f2879326899cf57fd8d2e" kindref="member">debug</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*s,<sp/>...)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>va_list<sp/>ap;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>va_start(ap,<sp/>s);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>tmp[<ref refid="debug_8cpp_1aae80f3876f4ffa4378cf3f1a46b299b8" kindref="member">MAX_STR_DEBUG</ref>];</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>vswprintf(tmp,<sp/><ref refid="debug_8cpp_1aae80f3876f4ffa4378cf3f1a46b299b8" kindref="member">MAX_STR_DEBUG</ref><sp/>-<sp/>1,<sp/>s,<sp/>ap);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>tmp[<ref refid="debug_8cpp_1aae80f3876f4ffa4378cf3f1a46b299b8" kindref="member">MAX_STR_DEBUG</ref><sp/>-<sp/>2]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>wcscat(tmp,<sp/>L</highlight><highlight class="stringliteral">&quot;\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>va_end(ap);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>OutputDebugStringW(tmp);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(debug_not_possible)</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!debugfile)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>TCHAR<sp/>temp_path[MAX_PATH];</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>TCHAR<sp/>temp_path2[MAX_PATH];</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>_stprintf(temp_path2,<sp/>_T(</highlight><highlight class="stringliteral">&quot;d:\\dagor2_plugin_max%d.%d.%d&quot;</highlight><highlight class="normal">),<sp/>MAX_PRODUCT_VERSION_MAJOR,<sp/>MAX_PRODUCT_VERSION_MINOR,</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>MAX_PRODUCT_VERSION_POINT);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>DAG_3DSMAX_IMPORTER</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>_tcscat(temp_path2,<sp/>_T(</highlight><highlight class="stringliteral">&quot;-imp.log&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>_tcscat(temp_path2,<sp/>_T(</highlight><highlight class="stringliteral">&quot;.log&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(SUCCEEDED(SHGetFolderPath(NULL,<sp/>(CSIDL_LOCAL_APPDATA<sp/>|<sp/>CSIDL_FLAG_CREATE),<sp/>NULL,<sp/>0,<sp/>temp_path)))</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_tcscat(temp_path,<sp/>temp_path2<sp/>+<sp/>2);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_tcscpy(temp_path,<sp/>temp_path2);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>debugfile<sp/>=<sp/>_tfopen(temp_path,<sp/>_T(</highlight><highlight class="stringliteral">&quot;wt&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!debugfile)</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>TCHAR<sp/>tmpw[<ref refid="debug_8cpp_1aae80f3876f4ffa4378cf3f1a46b299b8" kindref="member">MAX_STR_DEBUG</ref>];</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>debug_not_possible<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>_stprintf(tmpw,<sp/>_T(</highlight><highlight class="stringliteral">&quot;failed<sp/>to<sp/>create<sp/>debug<sp/>file:<sp/>%s\n&quot;</highlight><highlight class="normal">),<sp/>temp_path);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>OutputDebugString(tmpw);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>n<sp/>=<sp/>wcslen(tmp)<sp/>*<sp/>3<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*stmp<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal">[n];</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>wcstombs(stmp,<sp/>tmp,<sp/>n);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>fputs(stmp,<sp/>debugfile);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">[]<sp/>stmp;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>fflush(debugfile);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="debug.cpp"/>
+  </compounddef>
+</doxygen>

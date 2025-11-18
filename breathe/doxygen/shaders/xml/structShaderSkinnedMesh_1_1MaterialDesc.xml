@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSkinnedMesh_1_1MaterialDesc" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderSkinnedMesh::MaterialDesc</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSkinnedMesh_1_1MaterialDesc_1a88e0c845221f224c0eec6aa335540a63" prot="public" static="no" mutable="no">
+        <type>PatchableTab&lt; uint8_t &gt;</type>
+        <definition>PatchableTab&lt;uint8_t&gt; ShaderSkinnedMesh::MaterialDesc::boneIndices</definition>
+        <argsstring></argsstring>
+        <name>boneIndices</name>
+        <qualifiedname>ShaderSkinnedMesh::MaterialDesc::boneIndices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="95" column="18" bodyfile="dag_shSkinMesh.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shSkinMesh.h" line="93" column="3" bodyfile="dag_shSkinMesh.h" bodystart="94" bodyend="96"/>
+    <listofallmembers>
+      <member refid="structShaderSkinnedMesh_1_1MaterialDesc_1a88e0c845221f224c0eec6aa335540a63" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh::MaterialDesc</scope><name>boneIndices</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

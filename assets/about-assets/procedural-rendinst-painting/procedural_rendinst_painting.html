@@ -1,0 +1,725 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procedural Rendinst Painting</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="All About .blk Files" href="../../all-about-blk/index.html" />
+    <link rel="prev" title="Procedural Rendinst Painting" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Assets</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../about_assets.html">Introduction to Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../how-to-test-assets-on-maps/index.html">How to Test Assets on Maps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ladders/index.html">Ladders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../microdetails/index.html">Microdetails</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../occluder/index.html">Occluder Box</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Procedural Rendinst Painting</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Procedural Rendinst Painting</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#procedural-texture-painting-all-projects">Procedural Texture Painting: All Projects</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#workflow">Workflow</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#technical-details">Technical Details</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#war-thunder-specifics">War Thunder Specifics</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#painting-behavior">Painting Behavior</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#paint-textures">Paint Textures</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#adding-local-paint-textures-to-maps">Adding Local Paint Textures to Maps</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#painting-assets-in-composites">Painting Assets in Composites</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#danetgame-based-projects-specifics">daNetGame-Based Projects Specifics</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#id1">Painting Behavior</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#id2">Paint Textures</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#connecting-local-paint-textures-to-maps">Connecting Local Paint Textures to Maps</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#painting-assets-in-composite-objects">Painting Assets in Composite Objects</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#painting-assets-on-water-or-floating-on-waves">Painting Assets on Water or Floating on Waves</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#procedural-painting-of-second-detail-in-daeditor-war-thunder">Procedural Painting of Second Detail in daEditor: War Thunder</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#procedural-painting-with-parameter-danetgame-based-projects">Procedural Painting with Parameter: daNetGame-based Projects</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#shader-parameter-list">Shader Parameter List</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#war-thunder">War Thunder</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#danetgame-based-projects">daNetGame-based Projects</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Procedural Rendinst Painting</a></li>
+      <li class="breadcrumb-item active">Procedural Rendinst Painting</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/about-assets/procedural-rendinst-painting/procedural_rendinst_painting.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="procedural-rendinst-painting">
+<h1>Procedural Rendinst Painting<a class="headerlink" href="#procedural-rendinst-painting" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This article provides a general overview of procedural painting, its principles,
+and various types. Detailed shader configuration is covered individually <a class="reference internal" href="#shader-parameter-list">for
+each shader</a>.</p>
+<p>We use different types of procedural painting across various projects, mainly
+due to the migration of technologies between projects and the development of new
+methods.</p>
+<p>In War Thunder-based projects, we have:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#procedural-texture-painting-all-projects">Procedural texture painting</a>.</p></li>
+<li><p><a class="reference internal" href="#procedural-painting-of-second-detail-in-daeditor-war-thunder">Painting the second
+detail</a> of the
+<a class="reference internal" href="../../shaders/rendinst_layered.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></span></a> shader via the editor
+(now deprecated).</p></li>
+</ol>
+<p>In daNetGame-based projects, we have:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#procedural-texture-painting-all-projects">Procedural texture painting</a>.</p></li>
+<li><p><a class="reference internal" href="#procedural-painting-with-parameter-danetgame-based-projects">Procedural parameter-based
+painting</a>.</p></li>
+</ol>
+</section>
+<section id="procedural-texture-painting-all-projects">
+<h2>Procedural Texture Painting: All Projects<a class="headerlink" href="#procedural-texture-painting-all-projects" title="Link to this heading"></a></h2>
+<section id="workflow">
+<h3>Workflow<a class="headerlink" href="#workflow" title="Link to this heading"></a></h3>
+<p>This is the most common painting method. We use a special texture (or multiple
+textures), where each pixel row vertically corresponds to a paint line that will
+color an object. You can fill an entire row with a single color (for uniformly
+painting an object) or use multiple colors, which will change the object’s color
+based on its position on the map.</p>
+<p>General steps for using a paint map:</p>
+<ol class="arabic">
+<li><p>Obtain a paint texture, for example, an image.</p>
+<a class="reference internal image-reference" href="../../../_images/procedural_rendinst_painting_01.jpg"><img alt="Paint texture" class="align-center" src="../../../_images/procedural_rendinst_painting_01.jpg" style="width: 55em;" />
+</a>
+</li>
+<li><p>Select an existing row with appropriate colors or create a new row with the
+required colors. Rows are indexed from <strong>zero</strong>, meaning the first row is
+<code class="docutils literal notranslate"><span class="pre">0</span></code>, not <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p>Specify the selected row number in the shader.</p></li>
+<li><p>Optionally, define the painting strength (if the shader supports it).</p></li>
+</ol>
+<p>The result is an asset painted in the desired color. If the row contains
+multiple colors, the object will display different colors depending on its
+position on the map.</p>
+<a class="reference internal image-reference" href="../../../_images/procedural_rendinst_painting_02.jpg"><img alt="Asset in the desired color" class="align-center" src="../../../_images/procedural_rendinst_painting_02.jpg" style="width: 55em;" />
+</a>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>When creating a new paint line, ensure it is not already in use! Update the
+texture and use the nearest available row, or if possible, reserve unused rows
+by filling them with a noticeable bright color and labeling the asset for which
+they are reserved.</p>
+<p>Failure to do so may result in a paint conflict (someone else might use your row
+before you do, leading to your assets appearing in unwanted colors, forcing you
+to reconfigure multiple shaders), along with other complications.</p>
+</div>
+</section>
+<section id="technical-details">
+<h3>Technical Details<a class="headerlink" href="#technical-details" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p>The global paint palette across all projects is uniformly named
+<code class="docutils literal notranslate"><span class="pre">assets_color_global_tex_palette.tif</span></code>. Naming conventions for other palettes
+follow the pattern: <code class="docutils literal notranslate"><span class="pre">map_name_color_tex_palette.tif</span></code>. For example: for the
+War Thunder map <code class="docutils literal notranslate"><span class="pre">air_stalingrad</span></code>, the texture would be named
+<code class="docutils literal notranslate"><span class="pre">air_stalingrad_color_tex_palette.tif</span></code>.</p>
+<p>Unfortunately, the current naming of painting textures does not fully comply
+with this convention, and they are named inconsistently. Please adhere to
+these naming rules when creating new paint textures.</p>
+</li>
+<li><p>The paint line is selected in the shader by specifying the row. The column
+within that row is determined by the object’s position on the map.
+Essentially, a random pixel in the row is chosen as the object moves across
+the landscape.</p>
+<a class="reference internal image-reference" href="../../../_images/procedural_rendinst_painting_03.jpg"><img alt="Selected paint line" class="align-center" src="../../../_images/procedural_rendinst_painting_03.jpg" style="width: 55em;" />
+</a>
+<p>Consequently, the more frequently the colors change within the row, the more
+frequently the object’s color will change as it moves on the map.</p>
+</li>
+<li><p>There may be instances where you need to define a strict combination of
+procedural colors on an asset. For example, construction cranes might require
+different parts to be painted in specific color combinations, or vehicles
+might need predetermined color schemes for the roof and body.</p>
+<p>This is achieved by following the same logic as in point 1: the colors across
+all paint lines are selected from a single column of pixels, based on the
+object’s position on the map.</p>
+<a class="reference internal image-reference" href="../../../_images/procedural_rendinst_painting_04.jpg"><img alt="Different color combinations" class="align-center" src="../../../_images/procedural_rendinst_painting_04.jpg" style="width: 55em;" />
+</a>
+<p>Therefore, you should define multiple rows for the asset, one for each part
+that will be painted separately. Group the color combinations as needed. As a
+result, you’ll always get the correct color combinations on the selected
+asset.</p>
+<a class="reference internal image-reference" href="../../../_images/procedural_rendinst_painting_05.jpg"><img alt="Construction cranes in different color combinations" class="align-center" src="../../../_images/procedural_rendinst_painting_05.jpg" style="width: 55em;" />
+</a>
+</li>
+</ol>
+</section>
+<section id="war-thunder-specifics">
+<h3>War Thunder Specifics<a class="headerlink" href="#war-thunder-specifics" title="Link to this heading"></a></h3>
+<section id="painting-behavior">
+<h4>Painting Behavior<a class="headerlink" href="#painting-behavior" title="Link to this heading"></a></h4>
+<ol class="arabic simple">
+<li><p>Painting is applied based on a paint mask, which is the alpha channel of the
+diffuse map. White areas will be painted, while black areas will not.</p></li>
+<li><p>The color is applied as a modulation (a multiply operation, doubled).</p></li>
+</ol>
+</section>
+<section id="paint-textures">
+<h4>Paint Textures<a class="headerlink" href="#paint-textures" title="Link to this heading"></a></h4>
+<ol class="arabic">
+<li><p>There are several paint textures in use:</p>
+<ul class="simple">
+<li><p>The global paint texture, <code class="docutils literal notranslate"><span class="pre">assets_color_global_tex_palette.tif</span></code>, is used to
+paint anything that can be reused across multiple maps. Typically, this
+includes everything except buildings, which may need to be repainted
+differently for each map.</p></li>
+<li><p>Local paint textures are created for specific maps as needed. For example,
+a test texture was created for the <code class="docutils literal notranslate"><span class="pre">air_stalingrad</span></code> map, named
+<code class="docutils literal notranslate"><span class="pre">air_stalingrad_color_tex_palette.tif</span></code>. These are used to repaint specific
+objects on specific maps.</p></li>
+</ul>
+<p>All textures are stored in this location:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/assets/textures/colorize_textures/</span></code>, in 24-bit TIF
+format (without alpha).</p>
+</li>
+<li><p>You can assign a specific texture to an asset for painting by using the
+parameter <code class="docutils literal notranslate"><span class="pre">script:t=&quot;palette_index=&quot;</span></code>.</p>
+<ul class="simple">
+<li><p>Value <code class="docutils literal notranslate"><span class="pre">0</span></code> means the asset will always be painted using the global palette.</p></li>
+<li><p>Value <code class="docutils literal notranslate"><span class="pre">1</span></code> (default) means the asset will be painted using the local
+palette.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>In War Thunder, local palettes (map-specific) are optional and may not be
+specified. If an asset does not have a specified palette index, it will be
+painted using the palette for the map it is located on. If no specific
+palette is assigned to the map, all assets will be painted using the global
+palette.</p>
+<p>In contrast, in daNetGame-based projects, if no palette is specified for an
+asset, it will not be painted at all, and a palette must always be explicitly
+assigned.</p>
+</div>
+</li>
+<li><p>Since this technology was introduced to War Thunder relatively late,
+thousands of objects were left without a defined paint palette (i.e., they
+lack the <code class="docutils literal notranslate"><span class="pre">script:t=&quot;palette_index=&quot;</span></code> parameter). As a result, when we want to
+repaint a specific asset on a specific map, we duplicate the global palette
+and modify (or add) paint lines for the specific asset, leaving everything
+else unchanged.</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">assets_color_global_tex_palette.tif</span></code> and
+<code class="docutils literal notranslate"><span class="pre">avg_iberian_castle_color_tex_palette.tif</span></code> differ only in row 168
+(disregarding new rows added to the global palette after the fact).</p>
+</li>
+<li><p>The width of the paint texture is 64 pixels. The height is a power of two,
+such as 2, 4, 8, 16, 32, 64, and so on. Only the RGB channels are used.</p></li>
+</ol>
+</section>
+<section id="adding-local-paint-textures-to-maps">
+<h4>Adding Local Paint Textures to Maps<a class="headerlink" href="#adding-local-paint-textures-to-maps" title="Link to this heading"></a></h4>
+<p>Local paint textures are assigned to levels via the <code class="docutils literal notranslate"><span class="pre">level.blk</span></code> file, for
+example: <code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/gameBase/levels/stalingrad.blk</span></code>. The syntax is
+as follows:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">shader_vars</span><span class="ni">{</span>
+  <span class="no">paint_details_tex</span><span class="nt">:t=</span><span class="nf">&quot;air_stalingrad_color_tex_palette&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="painting-assets-in-composites">
+<h4>Painting Assets in Composites<a class="headerlink" href="#painting-assets-in-composites" title="Link to this heading"></a></h4>
+<p>It is not possible to apply uniform painting to identical objects within a
+composite (e.g., windows in a building). If multiple colors are present in a
+paint row, they will be applied randomly.</p>
+<p>This makes it challenging to paint large composite objects (such as skyscrapers
+composed of multiple vertical segments), especially if the segments are shifted
+in the composite to create buildings of varying heights. Each segment may end up
+with inconsistent colors.</p>
+</section>
+</section>
+<section id="danetgame-based-projects-specifics">
+<h3>daNetGame-Based Projects Specifics<a class="headerlink" href="#danetgame-based-projects-specifics" title="Link to this heading"></a></h3>
+<section id="id1">
+<h4>Painting Behavior<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<ol class="arabic">
+<li><p>In daNetGame-based projects, painting is applied directly to the diffuse
+texture without using any masks. Instead, daNetGame-based project’s shaders
+use black and white paint point parameters. This approach avoids overloading
+the shaders with mask-based painting, as is done in War Thunder.</p>
+<ul class="simple">
+<li><p>The black point defines the brightness of the albedo texture at which no
+painting will be applied.</p></li>
+<li><p>The white point defines the brightness at which the albedo texture will be
+fully painted.</p></li>
+</ul>
+<p>This allows you to specify a brightness range that will be painted, while
+excluding other areas (such as dark streaks in wood). If you need to exclude
+brighter areas from being painted, you can invert the paint point values
+(i.e., set the black point higher than the white point).</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-3 sd-row-cols-xs-3 sd-row-cols-sm-3 sd-row-cols-md-3 sd-row-cols-lg-3 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../../_images/procedural_rendinst_painting_06.jpg"><img alt="Gray cube example" class="image-gap align-center" src="../../../_images/procedural_rendinst_painting_06.jpg" style="height: 20em;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../../_images/procedural_rendinst_painting_07.jpg"><img alt="Green cube example" class="image-gap align-center" src="../../../_images/procedural_rendinst_painting_07.jpg" style="height: 20em;" />
+</a>
+</div>
+<div class="sd-col sd-d-flex-column center-cell docutils">
+<a class="reference internal image-reference" href="../../../_images/procedural_rendinst_painting_08.jpg"><img alt="Red cube example" class="align-center" src="../../../_images/procedural_rendinst_painting_08.jpg" style="height: 20em;" />
+</a>
+</div>
+</div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>A common mistake when using paint points is setting the same values for both
+the black and white points.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;paint_points_black=1,0.75,0.2,0&quot;</span>
+<span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;paint_points_white=1,0.75,0.2,0&quot;</span>
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>paint_white_point=0.2
+paint_black_point=0.2
+</pre></div>
+</div>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;paint_points=0.5,0.5,1,1&quot;</span>
+</pre></div>
+</div>
+<p>These configurations will result in a division by zero error, which
+generates the following message:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>rendinst_perlin_layered: divide by zero[real] while exec shader code. stopped at operand #45
+</pre></div>
+</div>
+<p>Therefore, <strong>never set the same values for both paint points</strong>.</p>
+<p>From this, two potentially error-prone situations arise:</p>
+<ol class="arabic">
+<li><p><strong>Only one detail is being painted, and it requires paint points</strong>.
+What about the other details and points?</p>
+<p><strong>Solution</strong>: For the second (or third) detail, set any range of paint
+points. You can use the default <cite>0,1</cite>, as this detail is not being
+painted. The key is to avoid using identical values for the points.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;paint_details=0,1,0,0&quot;</span>
+<span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;paint_points=0,1,0.12,0.23&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Two or three details are being painted, but only one or two need
+paint points</strong> (i.e., more details are being painted than require paint
+points).</p>
+<p><strong>Solution</strong>: For the painted details that do not need paint points,
+assign the maximum range: <cite>0,0.00001</cite>.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;paint_details=1,1,0,0&quot;</span>
+<span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;paint_points=0,0.00001,0.12,0.23&quot;</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li><p>In most cases, the color is applied using a simple multiplication.</p>
+<p>An exception is
+<a class="reference internal" href="../../shaders/dng-shaders/rendinst_simple_painted.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></span></a>,
+which has a parameter <code class="docutils literal notranslate"><span class="pre">paint_mult=1</span></code>, where <code class="docutils literal notranslate"><span class="pre">1</span></code> is a regular multiplier, and
+<code class="docutils literal notranslate"><span class="pre">2</span></code> is a 2x multiplier.</p>
+</li>
+</ol>
+</section>
+<section id="id2">
+<h4>Paint Textures<a class="headerlink" href="#id2" title="Link to this heading"></a></h4>
+<ol class="arabic">
+<li><p>There are several paint textures:</p>
+<ul>
+<li><p>The global paint texture, <code class="docutils literal notranslate"><span class="pre">assets_color_global_tex_palette.tif</span></code>, is used to
+paint anything that can be reused across multiple maps. It is located at:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/assets/manmade_common/textures/palettes/assets_color_global_tex_palette.tif</span></code>.</p></li>
+<li><p>Local paint textures are created for specific maps to repaint particular
+objects (most commonly, building parts). The following rules were
+established:</p>
+<ul class="simple">
+<li><p>Row 0 is reserved for painting building walls.</p></li>
+<li><p>Row 1 is for doors and windows.</p></li>
+<li><p>Beyond that, you can assign colors freely.</p></li>
+</ul>
+<p>Local paint textures should be placed in the appropriate map directories.
+For example:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/assets/battle_of_moscow/textures/palettes/volokolamsk_building_colors_tex_palette.tif</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unfortunately, not all textures are currently stored in these paths, and
+some are located in other directories, which is somewhat illogical.</p>
+<p>Please ensure that textures are placed in the correct locations when
+creating new ones.</p>
+</div>
+</li>
+</ul>
+</li>
+<li><p>You can assign a paint texture to an asset using the parameter
+<code class="docutils literal notranslate"><span class="pre">script:t=&quot;palette_index=&quot;</span></code>.</p>
+<ul class="simple">
+<li><p>Value <code class="docutils literal notranslate"><span class="pre">0</span></code> means the asset will always be painted using the global palette.</p></li>
+<li><p>Value <code class="docutils literal notranslate"><span class="pre">1</span></code> (default) means the asset will be painted using the local
+palette.</p></li>
+</ul>
+<p>In most cases, the value should be set to <code class="docutils literal notranslate"><span class="pre">0</span></code>. Only building walls and their
+windows and doors typically remain set to <code class="docutils literal notranslate"><span class="pre">1</span></code> (or have no value specified).</p>
+</li>
+<li><p>The width of the paint texture is 256 pixels. The height is a power of two,
+such as 2, 4, 8, 16, 32, 64, etc. Only the RGB channels are used.</p></li>
+</ol>
+</section>
+<section id="connecting-local-paint-textures-to-maps">
+<h4>Connecting Local Paint Textures to Maps<a class="headerlink" href="#connecting-local-paint-textures-to-maps" title="Link to this heading"></a></h4>
+<ol class="arabic">
+<li><p>Local paint textures are integrated into scene <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files. For example, for
+daNetGame-based projects, the scene files are located in:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog/gameBase/content/&lt;project_name&gt;/gamedata/scenes/</span></code></p>
+<p>The syntax is as follows (the <code class="docutils literal notranslate"><span class="pre">*</span></code> after the texture name is mandatory):</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">entity</span><span class="ni">{</span>
+  <span class="no">_template</span><span class="nt">:t=</span><span class="nf">&quot;shaderVars&quot;</span>
+
+  <span class="nf">&quot;shader_vars__vars:object&quot;</span><span class="ni">{</span>
+    <span class="no">paint_details_tex</span><span class="nt">:t=</span><span class="nf">&quot;sovmod_building_colors_tex_palette*&quot;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="painting-assets-in-composite-objects">
+<h4>Painting Assets in Composite Objects<a class="headerlink" href="#painting-assets-in-composite-objects" title="Link to this heading"></a></h4>
+<p>Unlike in War Thunder, in daNetGame-based, all identical objects within
+composite objects are automatically painted with the same color, even if
+multiple colors are available in the paint row. For example, the windows and
+doors of a building won’t be randomly colored red, blue, or green. They will all
+be painted the same color throughout the building.</p>
+<p>However, this can sometimes be inconvenient, such as in shops, where all
+identical assets like books, toys, or buckets would have the same color. To
+introduce more variety, you can use the parameter <code class="docutils literal notranslate"><span class="pre">ignoreParentInstSeed:b=yes</span></code>.
+This is applied to the final node of the composite object, allowing that
+particular node to be painted with a unique color.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="no">type</span><span class="nt">:t=</span><span class="nf">&quot;rendInst&quot;</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;tunis_city_house_window_1200x1900_a_cmp&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">-1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">-1.50996</span><span class="no">e</span><span class="m">-07</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">1.50996</span><span class="no">e</span><span class="m">-07</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">-1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">-1.07798</span><span class="gp">,</span> <span class="m">7.54841</span><span class="gp">,</span> <span class="m">4.72492</span><span class="ni">]]</span>
+  <span class="no">ignoreParentInstSeed</span><span class="nt">:b=</span><span class="si">yes</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The parameter must be applied to the final node: the specific object that you
+want to paint separately from other objects in the composite. For instance, if
+you apply this to the composite object <code class="docutils literal notranslate"><span class="pre">house_a_plates</span></code>, the entire composite
+will be painted separately from other composite objects of <strong>House A</strong>, but the
+plates will all still have the same color.</p>
+<p>Therefore, if you need the individual plates themselves to be painted different
+colors, you must set the parameter on each individual plate within the composite
+<code class="docutils literal notranslate"><span class="pre">house_a_plates</span></code>.</p>
+</div>
+</section>
+<section id="painting-assets-on-water-or-floating-on-waves">
+<h4>Painting Assets on Water or Floating on Waves<a class="headerlink" href="#painting-assets-on-water-or-floating-on-waves" title="Link to this heading"></a></h4>
+<p>For assets that are located on water, such as the <code class="docutils literal notranslate"><span class="pre">yacht_azimut62E</span></code> on
+<code class="docutils literal notranslate"><span class="pre">avn_san_francisco</span></code>, you must specify the parameter <code class="docutils literal notranslate"><span class="pre">script:t=&quot;use_painting=2&quot;</span></code>,
+or you will encounter issues as shown in this video:</p>
+<video controls="True" preload="auto" width="60%"><source src="../../../_images/procedural_rendinst_painting_09.webm" type="video/webm"></video></section>
+</section>
+</section>
+<section id="procedural-painting-of-second-detail-in-daeditor-war-thunder">
+<h2>Procedural Painting of Second Detail in daEditor: War Thunder<a class="headerlink" href="#procedural-painting-of-second-detail-in-daeditor-war-thunder" title="Link to this heading"></a></h2>
+<p>This is an outdated War Thunder technology, but it still exists. It is only used
+on <a class="reference internal" href="../../shaders/rendinst_layered.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></span></a>, and is described in
+this article.</p>
+</section>
+<section id="procedural-painting-with-parameter-danetgame-based-projects">
+<h2>Procedural Painting with Parameter: daNetGame-based Projects<a class="headerlink" href="#procedural-painting-with-parameter-danetgame-based-projects" title="Link to this heading"></a></h2>
+<p>In some shaders (e.g.,
+<a class="reference internal" href="../../shaders/dng-shaders/rendinst_simple_painted.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></span></a>,
+<a class="reference internal" href="../../shaders/rendinst_perlin_layered.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></span></a>), there is
+a parameter <code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_const_color=0,0,0,0&quot;</span></code> (or <code class="docutils literal notranslate"><span class="pre">detail_const_color</span></code>, if
+multiple details are involved in blending).</p>
+<ul>
+<li><p>The first three components represent the RGB color (convert values from</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>-<code class="docutils literal notranslate"><span class="pre">255</span></code> to <code class="docutils literal notranslate"><span class="pre">0</span></code>-<code class="docutils literal notranslate"><span class="pre">1</span></code>).</p></li>
+<li><p>The fourth component controls the intensity of the color’s effect on the
+model’s albedo. A value of <code class="docutils literal notranslate"><span class="pre">0</span></code> means no effect, and <code class="docutils literal notranslate"><span class="pre">1</span></code> means full influence,
+with a gradient in between.</p>
+<p>However, this does not work perfectly; a value of <code class="docutils literal notranslate"><span class="pre">0</span></code> still leaves some
+influence from the paint, albeit faintly. There is little point in leaving
+this parameter unused.</p>
+</li>
+</ul>
+<p>The parameter works both on its own and in combination with texture painting
+(the fourth component will define the strength of the texture painting
+influence).</p>
+<section id="shader-parameter-list">
+<h3>Shader Parameter List<a class="headerlink" href="#shader-parameter-list" title="Link to this heading"></a></h3>
+<section id="war-thunder">
+<h4>War Thunder<a class="headerlink" href="#war-thunder" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;palette_index=0&quot;</span></code>: global parameter that defines the global
+painting texture.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: global texture;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: (default), local texture of the specific map.</p></li>
+</ul>
+</li>
+</ul>
+<p>For shaders with diffuse/normal maps:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;use_painting=1&quot;</span></code>: controls painting from the palette specified in
+the scene shader variables.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: enables painting, <code class="docutils literal notranslate"><span class="pre">0</span></code>: disables it.</p></li>
+<li><p>Values between <code class="docutils literal notranslate"><span class="pre">0.01</span></code> and <code class="docutils literal notranslate"><span class="pre">0.9</span></code> control the painting strength (as a
+multiplier). Painting is applied according to the alpha of the diffuse map,
+multiplied by the <code class="docutils literal notranslate"><span class="pre">use_painting</span></code> value.</p></li>
+<li><p>Values between <code class="docutils literal notranslate"><span class="pre">1.01</span></code> and <code class="docutils literal notranslate"><span class="pre">1.9</span></code> also influence the painting strength,
+ranging from <code class="docutils literal notranslate"><span class="pre">0.0</span></code> to <code class="docutils literal notranslate"><span class="pre">1.0</span></code>, but they disable the random pixel selection
+from the paint line based on object height shifts (useful for painting modular
+skyscrapers in a consistent color).</p>
+<p>The palette itself is named <code class="docutils literal notranslate"><span class="pre">paint_colors.dds</span></code> and is located here:
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/assets/textures/colorize_textures</span></code>.</p>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;painting_line=43&quot;</span></code>: specifies the paint line number (indexing
+starts at <code class="docutils literal notranslate"><span class="pre">0</span></code>).</p></li>
+</ul>
+<p>For <a class="reference internal" href="../../shaders/rendinst_layered.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></span></a>/<code class="docutils literal notranslate"><span class="pre">dynamic_layered</span></code>
+and their derivatives:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;use_painting=1&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;painting_line=43&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint1stdetail=1&quot;</span></code>: an additional parameter indicating which detail
+to paint.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: for the first detail,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> (or <code class="docutils literal notranslate"><span class="pre">-1</span></code>): for the second.</p></li>
+</ul>
+</li>
+</ul>
+<p>For
+<a class="reference internal" href="../../shaders/rendinst_perlin_layered.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></span></a>/<code class="docutils literal notranslate"><span class="pre">dynamic_perlin_layered</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=0,1,0,0&quot;</span></code>:</p>
+<ul>
+<li><p>The first 2-3 components (depending on the number of details) select which
+details are painted. Values range from <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">1</span></code>. Experimenting with
+negative or values above <code class="docutils literal notranslate"><span class="pre">1</span></code> is possible, but requires caution.</p></li>
+<li><p>The 4th component specifies the paint line (index starts at <code class="docutils literal notranslate"><span class="pre">0</span></code>).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="danetgame-based-projects">
+<h4>daNetGame-based Projects<a class="headerlink" href="#danetgame-based-projects" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;palette_index=0&quot;</span></code>: a global parameter that defines the global
+painting texture.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: global texture;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: default, local texture of the specific map.</p></li>
+</ul>
+</li>
+</ul>
+<p>For
+<a class="reference internal" href="../../shaders/dng-shaders/rendinst_simple_painted.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></span></a>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paint_palette_row=1</span></code>: where <code class="docutils literal notranslate"><span class="pre">1</span></code> is the paint line number from the texture.
+By default, the shader uses line 1 (in this case, the parameter can be
+omitted).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paint_white_point=0.2</span></code>: the diffuse brightness at which the albedo will be
+fully painted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paint_black_point=0.05</span></code>: the diffuse brightness at which the albedo will not
+be painted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paint_mult=1</span></code> (or <code class="docutils literal notranslate"><span class="pre">2</span></code>): where <code class="docutils literal notranslate"><span class="pre">1</span></code> applies no multiplier, and <code class="docutils literal notranslate"><span class="pre">2</span></code> applies a 2x
+multiplier.</p></li>
+</ul>
+<p>For <a class="reference internal" href="../../shaders/rendinst_layered.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></span></a>/<code class="docutils literal notranslate"><span class="pre">dynamic_layered</span></code>
+and their derivatives:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;use_painting=1&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;painting_line=43&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint1stdetail=1&quot;</span></code></p></li>
+</ul>
+<p>For shaders with detail mixing, excluding
+<a class="reference internal" href="../../shaders/rendinst_layered.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></span></a>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=0,1,0,0&quot;</span></code>:</p>
+<ul>
+<li><p>The first 2-3 components (depending on the number of details) select which
+details are painted. Values range from <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">1</span></code>. Experimenting with
+negative or values above <code class="docutils literal notranslate"><span class="pre">1</span></code> is possible, but should be done carefully.</p></li>
+<li><p>The 4th component specifies the paint line (index starts at <code class="docutils literal notranslate"><span class="pre">0</span></code>).</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points=0,0,0,0&quot;</span></code>: parameter for setting paint points for two
+details, analogous to the black/white point behavior in
+<a class="reference internal" href="../../shaders/dng-shaders/rendinst_simple_painted.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></span></a>.
+The first two components define the paint points for the first detail, and the
+last two components for the second.</p></li>
+</ul>
+<p>Alternatively:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_black=0,0,0,0&quot;</span></code>: sets the black point for three
+details. The first three components set the black point for each detail, and
+the 4th component must be present but is unused.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_white=1,1,1,0&quot;</span></code>” –” sets the white point for three
+details. The first three components set the white point for each detail, and
+the 4th component must be present but is unused.</p></li>
+</ul>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Procedural Rendinst Painting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../all-about-blk/index.html" class="btn btn-neutral float-right" title="All About .blk Files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

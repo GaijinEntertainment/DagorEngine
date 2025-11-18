@@ -1,0 +1,208 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDag2DagnewCB" kind="class" language="C++" prot="public">
+    <compoundname>Dag2DagnewCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDag2DagnewCB_1a6003836b7fe5897abc2b7a8a55952ab9" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* Dag2DagnewCB::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>Dag2DagnewCB::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="47" column="13" bodyfile="util.cpp" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagnewCB_1abb2ceeb912a1f74268455c71544fd63e" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue Dag2DagnewCB::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>Dag2DagnewCB::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="48" column="13" bodyfile="util.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagnewCB_1a6159b1d94831871e414fac088a607b81" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Dag2DagnewCB::onImport</definition>
+        <argsstring></argsstring>
+        <name>onImport</name>
+        <qualifiedname>Dag2DagnewCB::onImport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="49" column="8" bodyfile="util.cpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagnewCB_1a33c27ba8c35f15dda7172cdfd3cdd8ef" prot="public" static="no" mutable="no">
+        <type><ref refid="classCfgShader" kindref="compound">CfgShader</ref> *</type>
+        <definition>CfgShader* Dag2DagnewCB::cfg</definition>
+        <argsstring></argsstring>
+        <name>cfg</name>
+        <qualifiedname>Dag2DagnewCB::cfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="50" column="13" bodyfile="util.cpp" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2DagnewCB_1aa3a293d5b5bd610f40fd3242a419f463" prot="public" static="no" mutable="no">
+        <type>std::map&lt; Mtl *, Mtl * &gt;</type>
+        <definition>std::map&lt;Mtl *, Mtl *&gt; Dag2DagnewCB::convertedMat</definition>
+        <argsstring></argsstring>
+        <name>convertedMat</name>
+        <qualifiedname>Dag2DagnewCB::convertedMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="52" column="12" bodyfile="util.cpp" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDag2DagnewCB_1a394389d95d8b017734983b0fb7f78975" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2DagnewCB::Dag2DagnewCB</definition>
+        <argsstring>(Interface *iptr, bool on_import)</argsstring>
+        <name>Dag2DagnewCB</name>
+        <qualifiedname>Dag2DagnewCB::Dag2DagnewCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>iptr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>on_import</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="54" column="3" bodyfile="util.cpp" bodystart="54" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2DagnewCB_1a353890e5f234cbd6d18058365c8b9c65" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2DagnewCB::~Dag2DagnewCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~Dag2DagnewCB</name>
+        <qualifiedname>Dag2DagnewCB::~Dag2DagnewCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="73" column="3" bodyfile="util.cpp" bodystart="73" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2DagnewCB_1a110a7393447836cc6dc2fb2553d9b716" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Mtl *</type>
+        <definition>Mtl * Dag2DagnewCB::conv_mat</definition>
+        <argsstring>(Mtl *&amp;m)</argsstring>
+        <name>conv_mat</name>
+        <qualifiedname>Dag2DagnewCB::conv_mat</qualifiedname>
+        <param>
+          <type>Mtl *&amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="75" column="7" bodyfile="util.cpp" bodystart="75" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2DagnewCB_1afa8454887a6669ccd470f94ee6f909f5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Dag2DagnewCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>Dag2DagnewCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="136" column="7" bodyfile="util.cpp" bodystart="136" bodyend="188"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dag2DagnewCB</label>
+        <link refid="classDag2DagnewCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="3">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>Dag2DagnewCB</label>
+        <link refid="classDag2DagnewCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cfg</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="44" column="1" bodyfile="util.cpp" bodystart="45" bodyend="189"/>
+    <listofallmembers>
+      <member refid="classDag2DagnewCB_1a33c27ba8c35f15dda7172cdfd3cdd8ef" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>cfg</name></member>
+      <member refid="classDag2DagnewCB_1a110a7393447836cc6dc2fb2553d9b716" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>conv_mat</name></member>
+      <member refid="classDag2DagnewCB_1aa3a293d5b5bd610f40fd3242a419f463" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>convertedMat</name></member>
+      <member refid="classDag2DagnewCB_1a394389d95d8b017734983b0fb7f78975" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>Dag2DagnewCB</name></member>
+      <member refid="classDag2DagnewCB_1a6003836b7fe5897abc2b7a8a55952ab9" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>ip</name></member>
+      <member refid="classDag2DagnewCB_1a6159b1d94831871e414fac088a607b81" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>onImport</name></member>
+      <member refid="classDag2DagnewCB_1afa8454887a6669ccd470f94ee6f909f5" prot="public" virt="virtual"><scope>Dag2DagnewCB</scope><name>proc</name></member>
+      <member refid="classDag2DagnewCB_1abb2ceeb912a1f74268455c71544fd63e" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>time</name></member>
+      <member refid="classDag2DagnewCB_1a353890e5f234cbd6d18058365c8b9c65" prot="public" virt="non-virtual"><scope>Dag2DagnewCB</scope><name>~Dag2DagnewCB</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>Dag2DagnewCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

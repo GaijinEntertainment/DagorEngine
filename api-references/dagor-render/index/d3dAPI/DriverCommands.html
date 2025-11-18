@@ -1,0 +1,1352 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Commands</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Driver Info API" href="DriverInfoAPI.html" />
+    <link rel="prev" title="Driver Code Matcher Templates" href="DriverCodeMatcherTemplates.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Driver Commands</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv412Drv3dCommand"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand18GETVISIBILITYBEGINE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GETVISIBILITYBEGIN</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16GETVISIBILITYENDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GETVISIBILITYEND</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand18GETVISIBILITYCOUNTE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GETVISIBILITYCOUNT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand13RELEASE_QUERYE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::RELEASE_QUERY</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand17ACQUIRE_OWNERSHIPE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ACQUIRE_OWNERSHIP</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand17RELEASE_OWNERSHIPE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::RELEASE_OWNERSHIP</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand15ACQUIRE_LOADINGE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ACQUIRE_LOADING</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand15RELEASE_LOADINGE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::RELEASE_LOADING</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand18GET_GPU_FRAME_TIMEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_GPU_FRAME_TIME</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand22GET_VSYNC_REFRESH_RATEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_VSYNC_REFRESH_RATE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand34ASYNC_PIPELINE_COMPILE_RANGE_BEGINE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_BEGIN</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand32ASYNC_PIPELINE_COMPILE_RANGE_ENDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_END</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand37GET_PIPELINE_COMPILATION_QUEUE_LENGTHE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand41ASYNC_PIPELINE_COMPILATION_FEEDBACK_BEGINE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ASYNC_PIPELINE_COMPILATION_FEEDBACK_BEGIN</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand39ASYNC_PIPELINE_COMPILATION_FEEDBACK_ENDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ASYNC_PIPELINE_COMPILATION_FEEDBACK_END</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand13TIMESTAMPFREQE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::TIMESTAMPFREQ</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14TIMESTAMPISSUEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::TIMESTAMPISSUE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12TIMESTAMPGETE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::TIMESTAMPGET</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand20TIMECLOCKCALIBRATIONE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::TIMECLOCKCALIBRATION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12FLUSH_STATESE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::FLUSH_STATES</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand9D3D_FLUSHE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::D3D_FLUSH</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand29GPU_BARRIER_WAIT_ALL_COMMANDSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GPU_BARRIER_WAIT_ALL_COMMANDS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16COMPILE_PIPELINEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::COMPILE_PIPELINE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand24GET_SECONDARY_BACKBUFFERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_SECONDARY_BACKBUFFER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand10GET_VENDORE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_VENDOR</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand29OVERRIDE_MAX_ANISOTROPY_LEVELE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12MAKE_TEXTUREE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::MAKE_TEXTURE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand18GET_TEXTURE_HANDLEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_TEXTURE_HANDLE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand21BEGIN_EXTERNAL_ACCESSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::BEGIN_EXTERNAL_ACCESS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19END_EXTERNAL_ACCESSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::END_EXTERNAL_ACCESS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand17SET_VS_DEBUG_INFOE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_VS_DEBUG_INFO</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand17SET_PS_DEBUG_INFOE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_PS_DEBUG_INFO</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand24BEGIN_MRT_CLEAR_SEQUENCEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::BEGIN_MRT_CLEAR_SEQUENCE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand22END_MRT_CLEAR_SEQUENCEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::END_MRT_CLEAR_SEQUENCE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand21GET_SHADER_CACHE_UUIDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_SHADER_CACHE_UUID</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16AFTERMATH_MARKERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::AFTERMATH_MARKER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19START_CAPTURE_FRAMEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::START_CAPTURE_FRAME</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16IS_HDR_AVAILABLEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::IS_HDR_AVAILABLE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14IS_HDR_ENABLEDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::IS_HDR_ENABLED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16INT10_HDR_BUFFERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::INT10_HDR_BUFFER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand15HDR_OUTPUT_MODEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::HDR_OUTPUT_MODE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand13GET_LUMINANCEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_LUMINANCE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand8MEM_STATE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::MEM_STAT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand20REGISTER_SHADER_DUMPE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::REGISTER_SHADER_DUMP</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand10GET_SHADERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_SHADER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand21PIX_GPU_BEGIN_CAPTUREE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PIX_GPU_BEGIN_CAPTURE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19PIX_GPU_END_CAPTUREE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PIX_GPU_END_CAPTURE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand27PIX_GPU_CAPTURE_NEXT_FRAMESE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand33PIX_GPU_CAPTURE_AFTER_LONG_FRAMESE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PIX_GPU_CAPTURE_AFTER_LONG_FRAMES</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand29GET_FRAMERATE_LIMITING_FACTORE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_FRAMERATE_LIMITING_FACTOR</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19LOAD_PIPELINE_CACHEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::LOAD_PIPELINE_CACHE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19SAVE_PIPELINE_CACHEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SAVE_PIPELINE_CACHE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14GET_STREAMLINEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_STREAMLINE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand8GET_DLSSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_DLSS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14GET_XESS_STATEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_XESS_STATE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand39IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTIONE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19GET_XESS_RESOLUTIONE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_XESS_RESOLUTION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16GET_XESS_VERSIONE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_XESS_VERSION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand26EXECUTE_DLSS_NO_STREAMLINEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_DLSS_NO_STREAMLINE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12EXECUTE_DLSSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_DLSS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14EXECUTE_DLSS_GE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_DLSS_G</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12EXECUTE_XESSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_XESS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand23SET_XESS_VELOCITY_SCALEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_XESS_VELOCITY_SCALE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand29GET_XESS_SUPPORTED_GEN_FRAMESE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_XESS_SUPPORTED_GEN_FRAMES</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand30GET_XESS_PRESENTED_FRAME_COUNTE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_XESS_PRESENTED_FRAME_COUNT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19GET_XESS_FG_ENABLEDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_XESS_FG_ENABLED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14XESS_ENABLE_FGE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::XESS_ENABLE_FG</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16XESS_SUPPRESS_FGE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::XESS_SUPPRESS_FG</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand23XESS_SCHEDULE_GEN_FRAMEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::XESS_SCHEDULE_GEN_FRAME</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand11EXECUTE_FSRE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_FSR</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14EXECUTE_FSR_FGE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_FSR_FG</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12EXECUTE_FSR2E"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_FSR2</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14GET_FSR2_STATEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_FSR2_STATE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19GET_FSR2_RESOLUTIONE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_FSR2_RESOLUTION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12EXECUTE_PSSRE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_PSSR</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand25GET_METALFX_UPSCALE_STATEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_METALFX_UPSCALE_STATE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand23EXECUTE_METALFX_UPSCALEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::EXECUTE_METALFX_UPSCALE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand11GET_TIMINGSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_TIMINGS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand49GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand13DEBUG_MESSAGEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::DEBUG_MESSAGE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12GET_MONITORSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_MONITORS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16GET_MONITOR_INFOE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_MONITOR_INFO</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand28GET_RESOLUTIONS_FROM_MONITORE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_RESOLUTIONS_FROM_MONITOR</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand23GET_VIDEO_MEMORY_BUDGETE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_VIDEO_MEMORY_BUDGET</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand27GET_RENDERING_COMMAND_QUEUEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_RENDERING_COMMAND_QUEUE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12GET_INSTANCEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_INSTANCE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19GET_PHYSICAL_DEVICEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_PHYSICAL_DEVICE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand22GET_QUEUE_FAMILY_INDEXE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_QUEUE_FAMILY_INDEX</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand15GET_QUEUE_INDEXE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_QUEUE_INDEX</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand27PROCESS_APP_INACTIVE_UPDATEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PROCESS_APP_INACTIVE_UPDATE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand32BEGIN_GENERIC_RENDER_PASS_CHECKSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::BEGIN_GENERIC_RENDER_PASS_CHECKS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand30END_GENERIC_RENDER_PASS_CHECKSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::END_GENERIC_RENDER_PASS_CHECKS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand31REGISTER_FRAME_COMPLETION_EVENTE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::REGISTER_FRAME_COMPLETION_EVENT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand49REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand33REPORT_RESOURCE_STATE_TRANSITIONSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::REPORT_RESOURCE_STATE_TRANSITIONS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand35REGISTER_DEVICE_RESET_EVENT_HANDLERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::REGISTER_DEVICE_RESET_EVENT_HANDLER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand37UNREGISTER_DEVICE_RESET_EVENT_HANDLERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::UNREGISTER_DEVICE_RESET_EVENT_HANDLER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand35PREPARE_TEXTURES_FOR_VR_CONSUMPTIONE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PREPARE_TEXTURES_FOR_VR_CONSUMPTION</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12SET_APP_INFOE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_APP_INFO</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19SEND_GPU_CRASH_DUMPE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SEND_GPU_CRASH_DUMP</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand32PROCESS_PENDING_RESOURCE_UPDATEDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19GET_PS5_PSSR_STATUSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_PS5_PSSR_STATUS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14SET_FREQ_LEVELE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_FREQ_LEVEL</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand22ENABLE_IMMEDIATE_FLUSHE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ENABLE_IMMEDIATE_FLUSH</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand23DISABLE_IMMEDIATE_FLUSHE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::DISABLE_IMMEDIATE_FLUSH</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19GET_WORKER_CPU_COREE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_WORKER_CPU_CORE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand16SET_PS5_FSR_VIEWE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_PS5_FSR_VIEW</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand7SET_HDRE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_HDR</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand11DEBUG_BREAKE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::DEBUG_BREAK</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand29ADD_DEBUG_BREAK_STRING_SEARCHE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ADD_DEBUG_BREAK_STRING_SEARCH</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand32REMOVE_DEBUG_BREAK_STRING_SEARCHE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::REMOVE_DEBUG_BREAK_STRING_SEARCH</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand19IS_DEFRAG_REQUESTEDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::IS_DEFRAG_REQUESTED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand31PROCESS_PENDING_DEFRAG_REQUESTSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::PROCESS_PENDING_DEFRAG_REQUESTS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand22CONVERT_TLAS_INSTANCESE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::CONVERT_TLAS_INSTANCES</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand20COMPILE_PIPELINE_SETE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::COMPILE_PIPELINE_SET</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand22GET_BUFFER_GPU_ADDRESSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_BUFFER_GPU_ADDRESS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand30ENABLE_WORKER_LOW_LATENCY_MODEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::ENABLE_WORKER_LOW_LATENCY_MODE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand14LOGERR_ON_SYNCE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::LOGERR_ON_SYNC</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand26SET_DRIVER_NETWORD_MANAGERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_DRIVER_NETWORD_MANAGER</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand22GET_CONSOLE_HFR_STATUSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_CONSOLE_HFR_STATUS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand25GET_CONSOLE_HFR_SUPPORTEDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_CONSOLE_HFR_SUPPORTED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand23GET_RESOURCE_STATISTICSE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_RESOURCE_STATISTICS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand27GET_PS5_COMPACTED_BLAS_SIZEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::GET_PS5_COMPACTED_BLAS_SIZE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand18CREATE_GPU_LATENCYE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::CREATE_GPU_LATENCY</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand10DELAY_SYNCE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::DELAY_SYNC</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand13CONTINUE_SYNCE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::CONTINUE_SYNC</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand12CHANGE_QUEUEE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::CHANGE_QUEUE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand21IS_PIX_CAPTURE_LOADEDE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::IS_PIX_CAPTURE_LOADED</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand26SET_RT_VALIDATION_CALLBACKE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::SET_RT_VALIDATION_CALLBACK</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand20CAUSE_GPU_PAGE_FAULTE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::CAUSE_GPU_PAGE_FAULT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dCommand4USERE"><code class="docutils literal notranslate"><span class="pre">Drv3dCommand::USER</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_QPCE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_QPC</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_REFE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_REF</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError19DRV3D_CPU_FREQ_NSECE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_NSEC</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_PROFILEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_PROFILE</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_UNKNOWNE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::DRV3D_CPU_FREQ_TYPE_UNKNOWN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv411FrameEvents"><code class="docutils literal notranslate"><span class="pre">FrameEvents</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11FrameEventsD0Ev"><code class="docutils literal notranslate"><span class="pre">FrameEvents::~FrameEvents()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11FrameEvents15beginFrameEventEv"><code class="docutils literal notranslate"><span class="pre">FrameEvents::beginFrameEvent()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11FrameEvents13endFrameEventEv"><code class="docutils literal notranslate"><span class="pre">FrameEvents::endFrameEvent()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv423DeviceResetEventHandler"><code class="docutils literal notranslate"><span class="pre">DeviceResetEventHandler</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N23DeviceResetEventHandlerD0Ev"><code class="docutils literal notranslate"><span class="pre">DeviceResetEventHandler::~DeviceResetEventHandler()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N23DeviceResetEventHandler11preRecoveryEv"><code class="docutils literal notranslate"><span class="pre">DeviceResetEventHandler::preRecovery()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N23DeviceResetEventHandler8recoveryEv"><code class="docutils literal notranslate"><span class="pre">DeviceResetEventHandler::recovery()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv412Drv3dTimings"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings28frontendUpdateScreenIntervalE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::frontendUpdateScreenInterval</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings36frontendToBackendUpdateScreenLatencyE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::frontendToBackendUpdateScreenLatency</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings27frontendBackendWaitDurationE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::frontendBackendWaitDuration</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings27backendFrontendWaitDurationE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::backendFrontendWaitDuration</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings15gpuWaitDurationE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::gpuWaitDuration</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings15presentDurationE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::presentDuration</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings25backbufferAcquireDurationE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::backbufferAcquireDuration</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12Drv3dTimings32frontendWaitForSwapchainDurationE"><code class="docutils literal notranslate"><span class="pre">Drv3dTimings::frontendWaitForSwapchainDuration</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv418CompilePipelineSet"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet13defaultFormatE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::defaultFormat</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet10featureSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::featureSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet14inputLayoutSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::inputLayoutSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet14renderStateSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::renderStateSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet15outputFormatSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::outputFormatSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet19graphicsPipelineSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::graphicsPipelineSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet15meshPipelineSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::meshPipelineSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet18computePipelineSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::computePipelineSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet9signatureE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::signature</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet10computeSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::computeSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet11graphicsSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::graphicsSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet28graphicsNullPixelOverrideSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::graphicsNullPixelOverrideSet</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CompilePipelineSet24graphicsPixelOverrideSetE"><code class="docutils literal notranslate"><span class="pre">CompilePipelineSet::graphicsPixelOverrideSet</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv422Drv3dMakeTextureParams"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams3texE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::tex</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams4nameE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::name</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams3flgE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::flg</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams1wE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::w</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams1hE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::h</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams6layersE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::layers</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams4mipsE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::mips</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22Drv3dMakeTextureParams12currentStateE"><code class="docutils literal notranslate"><span class="pre">Drv3dMakeTextureParams::currentState</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d14driver_commandE12Drv3dCommandPvPvPv"><code class="docutils literal notranslate"><span class="pre">d3d::driver_command()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Driver Commands</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/DriverCommands.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="driver-commands">
+<h1>Driver Commands<a class="headerlink" href="#driver-commands" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv412Drv3dCommand">
+<span id="_CPPv312Drv3dCommand"></span><span id="_CPPv212Drv3dCommand"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Drv3dCommand</span></span></span><a class="headerlink" href="#_CPPv412Drv3dCommand" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand18GETVISIBILITYBEGINE">
+<span id="_CPPv3N12Drv3dCommand18GETVISIBILITYBEGINE"></span><span id="_CPPv2N12Drv3dCommand18GETVISIBILITYBEGINE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cadf19f91e8d02077d271c7302d062e4ab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GETVISIBILITYBEGIN</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand18GETVISIBILITYBEGINE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16GETVISIBILITYENDE">
+<span id="_CPPv3N12Drv3dCommand16GETVISIBILITYENDE"></span><span id="_CPPv2N12Drv3dCommand16GETVISIBILITYENDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca6f01c27e119351307ca143e0d980bde6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GETVISIBILITYEND</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16GETVISIBILITYENDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand18GETVISIBILITYCOUNTE">
+<span id="_CPPv3N12Drv3dCommand18GETVISIBILITYCOUNTE"></span><span id="_CPPv2N12Drv3dCommand18GETVISIBILITYCOUNTE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca3ad4379b58ed6834a0c4ac4729f6abb8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GETVISIBILITYCOUNT</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand18GETVISIBILITYCOUNTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand13RELEASE_QUERYE">
+<span id="_CPPv3N12Drv3dCommand13RELEASE_QUERYE"></span><span id="_CPPv2N12Drv3dCommand13RELEASE_QUERYE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca155a96f7f35ba68d3342ba580cc7fe63"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RELEASE_QUERY</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand13RELEASE_QUERYE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand17ACQUIRE_OWNERSHIPE">
+<span id="_CPPv3N12Drv3dCommand17ACQUIRE_OWNERSHIPE"></span><span id="_CPPv2N12Drv3dCommand17ACQUIRE_OWNERSHIPE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca4a9017feeeaee223169ce2c218e466b1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACQUIRE_OWNERSHIP</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand17ACQUIRE_OWNERSHIPE" title="Link to this definition"></a><br /></dt>
+<dd><p>acquire/release D3D lock (to perform rendering in non-primary thread) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand17RELEASE_OWNERSHIPE">
+<span id="_CPPv3N12Drv3dCommand17RELEASE_OWNERSHIPE"></span><span id="_CPPv2N12Drv3dCommand17RELEASE_OWNERSHIPE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caa5b81940115707e2dc2b9762be6a3a4e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RELEASE_OWNERSHIP</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand17RELEASE_OWNERSHIPE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand15ACQUIRE_LOADINGE">
+<span id="_CPPv3N12Drv3dCommand15ACQUIRE_LOADINGE"></span><span id="_CPPv2N12Drv3dCommand15ACQUIRE_LOADINGE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca566a3aac09f8441718e44065a29051a5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACQUIRE_LOADING</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand15ACQUIRE_LOADINGE" title="Link to this definition"></a><br /></dt>
+<dd><p>acquire/release a mutex to perform resource loading in non-primary thread and postpone GPU resets, the lock is nonexclusive. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand15RELEASE_LOADINGE">
+<span id="_CPPv3N12Drv3dCommand15RELEASE_LOADINGE"></span><span id="_CPPv2N12Drv3dCommand15RELEASE_LOADINGE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf0dbf8473f18187d33db08355eaaae6d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RELEASE_LOADING</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand15RELEASE_LOADINGE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand18GET_GPU_FRAME_TIMEE">
+<span id="_CPPv3N12Drv3dCommand18GET_GPU_FRAME_TIMEE"></span><span id="_CPPv2N12Drv3dCommand18GET_GPU_FRAME_TIMEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca48d7115c6d8d8681c116295492eea863"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_GPU_FRAME_TIME</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand18GET_GPU_FRAME_TIMEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand22GET_VSYNC_REFRESH_RATEE">
+<span id="_CPPv3N12Drv3dCommand22GET_VSYNC_REFRESH_RATEE"></span><span id="_CPPv2N12Drv3dCommand22GET_VSYNC_REFRESH_RATEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca05f84709a2dc5024b838ae25aa4aed7c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_VSYNC_REFRESH_RATE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand22GET_VSYNC_REFRESH_RATEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand34ASYNC_PIPELINE_COMPILE_RANGE_BEGINE">
+<span id="_CPPv3N12Drv3dCommand34ASYNC_PIPELINE_COMPILE_RANGE_BEGINE"></span><span id="_CPPv2N12Drv3dCommand34ASYNC_PIPELINE_COMPILE_RANGE_BEGINE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cae1a7be3fccaf97757db492cce4dcde68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ASYNC_PIPELINE_COMPILE_RANGE_BEGIN</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand34ASYNC_PIPELINE_COMPILE_RANGE_BEGINE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand32ASYNC_PIPELINE_COMPILE_RANGE_ENDE">
+<span id="_CPPv3N12Drv3dCommand32ASYNC_PIPELINE_COMPILE_RANGE_ENDE"></span><span id="_CPPv2N12Drv3dCommand32ASYNC_PIPELINE_COMPILE_RANGE_ENDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca08799d581c5b7a03727f7381c2d0d3d8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ASYNC_PIPELINE_COMPILE_RANGE_END</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand32ASYNC_PIPELINE_COMPILE_RANGE_ENDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand37GET_PIPELINE_COMPILATION_QUEUE_LENGTHE">
+<span id="_CPPv3N12Drv3dCommand37GET_PIPELINE_COMPILATION_QUEUE_LENGTHE"></span><span id="_CPPv2N12Drv3dCommand37GET_PIPELINE_COMPILATION_QUEUE_LENGTHE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cae7b7bf6d972b2589afc52d0a7bdd9346"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_PIPELINE_COMPILATION_QUEUE_LENGTH</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand37GET_PIPELINE_COMPILATION_QUEUE_LENGTHE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand41ASYNC_PIPELINE_COMPILATION_FEEDBACK_BEGINE">
+<span id="_CPPv3N12Drv3dCommand41ASYNC_PIPELINE_COMPILATION_FEEDBACK_BEGINE"></span><span id="_CPPv2N12Drv3dCommand41ASYNC_PIPELINE_COMPILATION_FEEDBACK_BEGINE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca3f9ab1bf9626e5382b49e6d85fdc1d8e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ASYNC_PIPELINE_COMPILATION_FEEDBACK_BEGIN</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand41ASYNC_PIPELINE_COMPILATION_FEEDBACK_BEGINE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand39ASYNC_PIPELINE_COMPILATION_FEEDBACK_ENDE">
+<span id="_CPPv3N12Drv3dCommand39ASYNC_PIPELINE_COMPILATION_FEEDBACK_ENDE"></span><span id="_CPPv2N12Drv3dCommand39ASYNC_PIPELINE_COMPILATION_FEEDBACK_ENDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca378bcb4f37e19150d32ba9d4b99218ae"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ASYNC_PIPELINE_COMPILATION_FEEDBACK_END</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand39ASYNC_PIPELINE_COMPILATION_FEEDBACK_ENDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand13TIMESTAMPFREQE">
+<span id="_CPPv3N12Drv3dCommand13TIMESTAMPFREQE"></span><span id="_CPPv2N12Drv3dCommand13TIMESTAMPFREQE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca309dc93dc5e3889ec65bb29c166006c9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIMESTAMPFREQ</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand13TIMESTAMPFREQE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14TIMESTAMPISSUEE">
+<span id="_CPPv3N12Drv3dCommand14TIMESTAMPISSUEE"></span><span id="_CPPv2N12Drv3dCommand14TIMESTAMPISSUEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca541f4abdb0f629636ee4443c809255d6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIMESTAMPISSUE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14TIMESTAMPISSUEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12TIMESTAMPGETE">
+<span id="_CPPv3N12Drv3dCommand12TIMESTAMPGETE"></span><span id="_CPPv2N12Drv3dCommand12TIMESTAMPGETE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca4cb30cddac4722f945c79e93ed8d1e69"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIMESTAMPGET</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12TIMESTAMPGETE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand20TIMECLOCKCALIBRATIONE">
+<span id="_CPPv3N12Drv3dCommand20TIMECLOCKCALIBRATIONE"></span><span id="_CPPv2N12Drv3dCommand20TIMECLOCKCALIBRATIONE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cae17b11f153ecbeb86bcf3d38dd05d48a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIMECLOCKCALIBRATION</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand20TIMECLOCKCALIBRATIONE" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets CPU and GPU time nearly at the same moment. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12FLUSH_STATESE">
+<span id="_CPPv3N12Drv3dCommand12FLUSH_STATESE"></span><span id="_CPPv2N12Drv3dCommand12FLUSH_STATESE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca42a4cb0b652c1ea661a56a542d7c42a2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FLUSH_STATES</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12FLUSH_STATESE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand9D3D_FLUSHE">
+<span id="_CPPv3N12Drv3dCommand9D3D_FLUSHE"></span><span id="_CPPv2N12Drv3dCommand9D3D_FLUSHE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2808c47e50ab3febebedf6b8de5ca5a4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">D3D_FLUSH</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand9D3D_FLUSHE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand29GPU_BARRIER_WAIT_ALL_COMMANDSE">
+<span id="_CPPv3N12Drv3dCommand29GPU_BARRIER_WAIT_ALL_COMMANDSE"></span><span id="_CPPv2N12Drv3dCommand29GPU_BARRIER_WAIT_ALL_COMMANDSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca6676055fe16e35ae2fec40400b7f513c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GPU_BARRIER_WAIT_ALL_COMMANDS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand29GPU_BARRIER_WAIT_ALL_COMMANDSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16COMPILE_PIPELINEE">
+<span id="_CPPv3N12Drv3dCommand16COMPILE_PIPELINEE"></span><span id="_CPPv2N12Drv3dCommand16COMPILE_PIPELINEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca4c1e12ada1206ee13df27bdec11c5763"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COMPILE_PIPELINE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16COMPILE_PIPELINEE" title="Link to this definition"></a><br /></dt>
+<dd><p>flush pipeline states to compile pipeline </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand24GET_SECONDARY_BACKBUFFERE">
+<span id="_CPPv3N12Drv3dCommand24GET_SECONDARY_BACKBUFFERE"></span><span id="_CPPv2N12Drv3dCommand24GET_SECONDARY_BACKBUFFERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca613267e2c77b4c53d8a7320cdfbc49a2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_SECONDARY_BACKBUFFER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand24GET_SECONDARY_BACKBUFFERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand10GET_VENDORE">
+<span id="_CPPv3N12Drv3dCommand10GET_VENDORE"></span><span id="_CPPv2N12Drv3dCommand10GET_VENDORE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca50413294ef807163d1f7f114f2167205"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_VENDOR</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand10GET_VENDORE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand29OVERRIDE_MAX_ANISOTROPY_LEVELE">
+<span id="_CPPv3N12Drv3dCommand29OVERRIDE_MAX_ANISOTROPY_LEVELE"></span><span id="_CPPv2N12Drv3dCommand29OVERRIDE_MAX_ANISOTROPY_LEVELE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca5dafe0dcbe02440fc52706eaae4d131e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OVERRIDE_MAX_ANISOTROPY_LEVEL</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand29OVERRIDE_MAX_ANISOTROPY_LEVELE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12MAKE_TEXTUREE">
+<span id="_CPPv3N12Drv3dCommand12MAKE_TEXTUREE"></span><span id="_CPPv2N12Drv3dCommand12MAKE_TEXTUREE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca3e073beb398073f0506cfcfce5a3d3cb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAKE_TEXTURE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12MAKE_TEXTUREE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand18GET_TEXTURE_HANDLEE">
+<span id="_CPPv3N12Drv3dCommand18GET_TEXTURE_HANDLEE"></span><span id="_CPPv2N12Drv3dCommand18GET_TEXTURE_HANDLEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cac3c8df65b078930feb0aa6a7517f549f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_TEXTURE_HANDLE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand18GET_TEXTURE_HANDLEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand21BEGIN_EXTERNAL_ACCESSE">
+<span id="_CPPv3N12Drv3dCommand21BEGIN_EXTERNAL_ACCESSE"></span><span id="_CPPv2N12Drv3dCommand21BEGIN_EXTERNAL_ACCESSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca4fb155f56b0e38be9f9acfe91d61b519"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BEGIN_EXTERNAL_ACCESS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand21BEGIN_EXTERNAL_ACCESSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19END_EXTERNAL_ACCESSE">
+<span id="_CPPv3N12Drv3dCommand19END_EXTERNAL_ACCESSE"></span><span id="_CPPv2N12Drv3dCommand19END_EXTERNAL_ACCESSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca55b7edab8658f3ebaad34f081278b0b2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">END_EXTERNAL_ACCESS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19END_EXTERNAL_ACCESSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand17SET_VS_DEBUG_INFOE">
+<span id="_CPPv3N12Drv3dCommand17SET_VS_DEBUG_INFOE"></span><span id="_CPPv2N12Drv3dCommand17SET_VS_DEBUG_INFOE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caa6fcb1f164dbe86194a26f025015d4b1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_VS_DEBUG_INFO</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand17SET_VS_DEBUG_INFOE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand17SET_PS_DEBUG_INFOE">
+<span id="_CPPv3N12Drv3dCommand17SET_PS_DEBUG_INFOE"></span><span id="_CPPv2N12Drv3dCommand17SET_PS_DEBUG_INFOE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caa9b4056e0d9ba75b0bc96c36d21cb091"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_PS_DEBUG_INFO</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand17SET_PS_DEBUG_INFOE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand24BEGIN_MRT_CLEAR_SEQUENCEE">
+<span id="_CPPv3N12Drv3dCommand24BEGIN_MRT_CLEAR_SEQUENCEE"></span><span id="_CPPv2N12Drv3dCommand24BEGIN_MRT_CLEAR_SEQUENCEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2193b21056419b2162845bd6f3d749a4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BEGIN_MRT_CLEAR_SEQUENCE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand24BEGIN_MRT_CLEAR_SEQUENCEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand22END_MRT_CLEAR_SEQUENCEE">
+<span id="_CPPv3N12Drv3dCommand22END_MRT_CLEAR_SEQUENCEE"></span><span id="_CPPv2N12Drv3dCommand22END_MRT_CLEAR_SEQUENCEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca669c283cbfb7fd2fc8945e6ee578f683"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">END_MRT_CLEAR_SEQUENCE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand22END_MRT_CLEAR_SEQUENCEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand21GET_SHADER_CACHE_UUIDE">
+<span id="_CPPv3N12Drv3dCommand21GET_SHADER_CACHE_UUIDE"></span><span id="_CPPv2N12Drv3dCommand21GET_SHADER_CACHE_UUIDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cab285c591382d90332636f56af3610c50"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_SHADER_CACHE_UUID</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand21GET_SHADER_CACHE_UUIDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16AFTERMATH_MARKERE">
+<span id="_CPPv3N12Drv3dCommand16AFTERMATH_MARKERE"></span><span id="_CPPv2N12Drv3dCommand16AFTERMATH_MARKERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca537bf1ec1ce1129a2b5f398cd52eb504"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AFTERMATH_MARKER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16AFTERMATH_MARKERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19START_CAPTURE_FRAMEE">
+<span id="_CPPv3N12Drv3dCommand19START_CAPTURE_FRAMEE"></span><span id="_CPPv2N12Drv3dCommand19START_CAPTURE_FRAMEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caa9317e7214cb39b893705fed44bae58b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">START_CAPTURE_FRAME</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19START_CAPTURE_FRAMEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16IS_HDR_AVAILABLEE">
+<span id="_CPPv3N12Drv3dCommand16IS_HDR_AVAILABLEE"></span><span id="_CPPv2N12Drv3dCommand16IS_HDR_AVAILABLEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca60679d57f134c2403bc5e98e2aa9c8c2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IS_HDR_AVAILABLE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16IS_HDR_AVAILABLEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14IS_HDR_ENABLEDE">
+<span id="_CPPv3N12Drv3dCommand14IS_HDR_ENABLEDE"></span><span id="_CPPv2N12Drv3dCommand14IS_HDR_ENABLEDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cad008344317d0edd2be72b279dbfca12d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IS_HDR_ENABLED</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14IS_HDR_ENABLEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16INT10_HDR_BUFFERE">
+<span id="_CPPv3N12Drv3dCommand16INT10_HDR_BUFFERE"></span><span id="_CPPv2N12Drv3dCommand16INT10_HDR_BUFFERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cac3e4217d181d117d8f1584aa767c2b00"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INT10_HDR_BUFFER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16INT10_HDR_BUFFERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand15HDR_OUTPUT_MODEE">
+<span id="_CPPv3N12Drv3dCommand15HDR_OUTPUT_MODEE"></span><span id="_CPPv2N12Drv3dCommand15HDR_OUTPUT_MODEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca37194c5fe7ca10a7a5d442c333925136"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HDR_OUTPUT_MODE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand15HDR_OUTPUT_MODEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand13GET_LUMINANCEE">
+<span id="_CPPv3N12Drv3dCommand13GET_LUMINANCEE"></span><span id="_CPPv2N12Drv3dCommand13GET_LUMINANCEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca0d9eda80eecb42991ff43552f5b62499"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_LUMINANCE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand13GET_LUMINANCEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand8MEM_STATE">
+<span id="_CPPv3N12Drv3dCommand8MEM_STATE"></span><span id="_CPPv2N12Drv3dCommand8MEM_STATE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf9b237fa5091a118407baf09ff5860a4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MEM_STAT</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand8MEM_STATE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand20REGISTER_SHADER_DUMPE">
+<span id="_CPPv3N12Drv3dCommand20REGISTER_SHADER_DUMPE"></span><span id="_CPPv2N12Drv3dCommand20REGISTER_SHADER_DUMPE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caa86b9938e1b5dc6631fc4a6b1612e113"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REGISTER_SHADER_DUMP</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand20REGISTER_SHADER_DUMPE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand10GET_SHADERE">
+<span id="_CPPv3N12Drv3dCommand10GET_SHADERE"></span><span id="_CPPv2N12Drv3dCommand10GET_SHADERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca5b0ce044442abab359ee75a517fa2ea9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_SHADER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand10GET_SHADERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand21PIX_GPU_BEGIN_CAPTUREE">
+<span id="_CPPv3N12Drv3dCommand21PIX_GPU_BEGIN_CAPTUREE"></span><span id="_CPPv2N12Drv3dCommand21PIX_GPU_BEGIN_CAPTUREE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca571962f0a8fc909e1d5ac2f8942414da"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PIX_GPU_BEGIN_CAPTURE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand21PIX_GPU_BEGIN_CAPTUREE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19PIX_GPU_END_CAPTUREE">
+<span id="_CPPv3N12Drv3dCommand19PIX_GPU_END_CAPTUREE"></span><span id="_CPPv2N12Drv3dCommand19PIX_GPU_END_CAPTUREE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca72d8ddf3c2a85981684dd436b70257d9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PIX_GPU_END_CAPTURE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19PIX_GPU_END_CAPTUREE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand27PIX_GPU_CAPTURE_NEXT_FRAMESE">
+<span id="_CPPv3N12Drv3dCommand27PIX_GPU_CAPTURE_NEXT_FRAMESE"></span><span id="_CPPv2N12Drv3dCommand27PIX_GPU_CAPTURE_NEXT_FRAMESE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca9a9f3188a4a8d2f61044bf1ff395e8da"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PIX_GPU_CAPTURE_NEXT_FRAMES</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand27PIX_GPU_CAPTURE_NEXT_FRAMESE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand33PIX_GPU_CAPTURE_AFTER_LONG_FRAMESE">
+<span id="_CPPv3N12Drv3dCommand33PIX_GPU_CAPTURE_AFTER_LONG_FRAMESE"></span><span id="_CPPv2N12Drv3dCommand33PIX_GPU_CAPTURE_AFTER_LONG_FRAMESE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caed117f1f705eedb9ad1fc94ef8508565"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PIX_GPU_CAPTURE_AFTER_LONG_FRAMES</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand33PIX_GPU_CAPTURE_AFTER_LONG_FRAMESE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand29GET_FRAMERATE_LIMITING_FACTORE">
+<span id="_CPPv3N12Drv3dCommand29GET_FRAMERATE_LIMITING_FACTORE"></span><span id="_CPPv2N12Drv3dCommand29GET_FRAMERATE_LIMITING_FACTORE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca3307ee3093b1754bfdddeeffea0a25ca"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_FRAMERATE_LIMITING_FACTOR</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand29GET_FRAMERATE_LIMITING_FACTORE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19LOAD_PIPELINE_CACHEE">
+<span id="_CPPv3N12Drv3dCommand19LOAD_PIPELINE_CACHEE"></span><span id="_CPPv2N12Drv3dCommand19LOAD_PIPELINE_CACHEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf53ea3cd9d86d1c974d651c90069d9de"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOAD_PIPELINE_CACHE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19LOAD_PIPELINE_CACHEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19SAVE_PIPELINE_CACHEE">
+<span id="_CPPv3N12Drv3dCommand19SAVE_PIPELINE_CACHEE"></span><span id="_CPPv2N12Drv3dCommand19SAVE_PIPELINE_CACHEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cabd15d82521cf107a525873b69976f9b9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SAVE_PIPELINE_CACHE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19SAVE_PIPELINE_CACHEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14GET_STREAMLINEE">
+<span id="_CPPv3N12Drv3dCommand14GET_STREAMLINEE"></span><span id="_CPPv2N12Drv3dCommand14GET_STREAMLINEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cafe3bd5e7b0812e5107a91fad4f716736"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_STREAMLINE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14GET_STREAMLINEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand8GET_DLSSE">
+<span id="_CPPv3N12Drv3dCommand8GET_DLSSE"></span><span id="_CPPv2N12Drv3dCommand8GET_DLSSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca23ec13e43eacb8c0bbf284f5c4ef0f76"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_DLSS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand8GET_DLSSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14GET_XESS_STATEE">
+<span id="_CPPv3N12Drv3dCommand14GET_XESS_STATEE"></span><span id="_CPPv2N12Drv3dCommand14GET_XESS_STATEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca73655178e181827fc3bcccb0a8224647"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_XESS_STATE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14GET_XESS_STATEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand39IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTIONE">
+<span id="_CPPv3N12Drv3dCommand39IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTIONE"></span><span id="_CPPv2N12Drv3dCommand39IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTIONE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cafe9816e97ca2f1348107d3ac90d4c0a6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTION</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand39IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTIONE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19GET_XESS_RESOLUTIONE">
+<span id="_CPPv3N12Drv3dCommand19GET_XESS_RESOLUTIONE"></span><span id="_CPPv2N12Drv3dCommand19GET_XESS_RESOLUTIONE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cab226b4f2045642e284c1a848ff5eff15"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_XESS_RESOLUTION</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19GET_XESS_RESOLUTIONE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16GET_XESS_VERSIONE">
+<span id="_CPPv3N12Drv3dCommand16GET_XESS_VERSIONE"></span><span id="_CPPv2N12Drv3dCommand16GET_XESS_VERSIONE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2ea0756c034947e5d3fda08bd1ac6ea4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_XESS_VERSION</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16GET_XESS_VERSIONE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand26EXECUTE_DLSS_NO_STREAMLINEE">
+<span id="_CPPv3N12Drv3dCommand26EXECUTE_DLSS_NO_STREAMLINEE"></span><span id="_CPPv2N12Drv3dCommand26EXECUTE_DLSS_NO_STREAMLINEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caac143e6c507dc93af8fc799205943405"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_DLSS_NO_STREAMLINE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand26EXECUTE_DLSS_NO_STREAMLINEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12EXECUTE_DLSSE">
+<span id="_CPPv3N12Drv3dCommand12EXECUTE_DLSSE"></span><span id="_CPPv2N12Drv3dCommand12EXECUTE_DLSSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2d4f8bcb9db7ce96e30dd2d17de1a259"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_DLSS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12EXECUTE_DLSSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14EXECUTE_DLSS_GE">
+<span id="_CPPv3N12Drv3dCommand14EXECUTE_DLSS_GE"></span><span id="_CPPv2N12Drv3dCommand14EXECUTE_DLSS_GE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca36b2578ec97639592e5c26f19cc52e2b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_DLSS_G</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14EXECUTE_DLSS_GE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12EXECUTE_XESSE">
+<span id="_CPPv3N12Drv3dCommand12EXECUTE_XESSE"></span><span id="_CPPv2N12Drv3dCommand12EXECUTE_XESSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf97c70b7fa1ce6cd2c8d1936dadfce64"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_XESS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12EXECUTE_XESSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand23SET_XESS_VELOCITY_SCALEE">
+<span id="_CPPv3N12Drv3dCommand23SET_XESS_VELOCITY_SCALEE"></span><span id="_CPPv2N12Drv3dCommand23SET_XESS_VELOCITY_SCALEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cacb617a4f55a9489d7685a9f85efbc0d0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_XESS_VELOCITY_SCALE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand23SET_XESS_VELOCITY_SCALEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand29GET_XESS_SUPPORTED_GEN_FRAMESE">
+<span id="_CPPv3N12Drv3dCommand29GET_XESS_SUPPORTED_GEN_FRAMESE"></span><span id="_CPPv2N12Drv3dCommand29GET_XESS_SUPPORTED_GEN_FRAMESE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caadca658a8ba193648c32003ca9cf1b26"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_XESS_SUPPORTED_GEN_FRAMES</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand29GET_XESS_SUPPORTED_GEN_FRAMESE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand30GET_XESS_PRESENTED_FRAME_COUNTE">
+<span id="_CPPv3N12Drv3dCommand30GET_XESS_PRESENTED_FRAME_COUNTE"></span><span id="_CPPv2N12Drv3dCommand30GET_XESS_PRESENTED_FRAME_COUNTE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cae1e2aa097b9b4fa73e63c97fb9fada27"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_XESS_PRESENTED_FRAME_COUNT</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand30GET_XESS_PRESENTED_FRAME_COUNTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19GET_XESS_FG_ENABLEDE">
+<span id="_CPPv3N12Drv3dCommand19GET_XESS_FG_ENABLEDE"></span><span id="_CPPv2N12Drv3dCommand19GET_XESS_FG_ENABLEDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cab1ab5d25e545a6f6dcacd2ac7da11387"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_XESS_FG_ENABLED</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19GET_XESS_FG_ENABLEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14XESS_ENABLE_FGE">
+<span id="_CPPv3N12Drv3dCommand14XESS_ENABLE_FGE"></span><span id="_CPPv2N12Drv3dCommand14XESS_ENABLE_FGE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cacd5d3d6b5a34abacd622ea1f842bb19f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">XESS_ENABLE_FG</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14XESS_ENABLE_FGE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16XESS_SUPPRESS_FGE">
+<span id="_CPPv3N12Drv3dCommand16XESS_SUPPRESS_FGE"></span><span id="_CPPv2N12Drv3dCommand16XESS_SUPPRESS_FGE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf0e5ed7566ffba13bb65d31a25d1ea2b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">XESS_SUPPRESS_FG</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16XESS_SUPPRESS_FGE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand23XESS_SCHEDULE_GEN_FRAMEE">
+<span id="_CPPv3N12Drv3dCommand23XESS_SCHEDULE_GEN_FRAMEE"></span><span id="_CPPv2N12Drv3dCommand23XESS_SCHEDULE_GEN_FRAMEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2ceadd06eab065d020f01017b6bf208b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">XESS_SCHEDULE_GEN_FRAME</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand23XESS_SCHEDULE_GEN_FRAMEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand11EXECUTE_FSRE">
+<span id="_CPPv3N12Drv3dCommand11EXECUTE_FSRE"></span><span id="_CPPv2N12Drv3dCommand11EXECUTE_FSRE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf141dbde36b88073a1225ba5407562e8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_FSR</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand11EXECUTE_FSRE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14EXECUTE_FSR_FGE">
+<span id="_CPPv3N12Drv3dCommand14EXECUTE_FSR_FGE"></span><span id="_CPPv2N12Drv3dCommand14EXECUTE_FSR_FGE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf26b7b862a50516412e29c7dc6cb42c0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_FSR_FG</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14EXECUTE_FSR_FGE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12EXECUTE_FSR2E">
+<span id="_CPPv3N12Drv3dCommand12EXECUTE_FSR2E"></span><span id="_CPPv2N12Drv3dCommand12EXECUTE_FSR2E"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca9c93e9798b874bc760fa6a8ec8bdb14d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_FSR2</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12EXECUTE_FSR2E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14GET_FSR2_STATEE">
+<span id="_CPPv3N12Drv3dCommand14GET_FSR2_STATEE"></span><span id="_CPPv2N12Drv3dCommand14GET_FSR2_STATEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca7581007a6f879a5df04c33444dabba94"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_FSR2_STATE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14GET_FSR2_STATEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19GET_FSR2_RESOLUTIONE">
+<span id="_CPPv3N12Drv3dCommand19GET_FSR2_RESOLUTIONE"></span><span id="_CPPv2N12Drv3dCommand19GET_FSR2_RESOLUTIONE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2f19382374b5337cbf4804b0aae8aa67"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_FSR2_RESOLUTION</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19GET_FSR2_RESOLUTIONE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12EXECUTE_PSSRE">
+<span id="_CPPv3N12Drv3dCommand12EXECUTE_PSSRE"></span><span id="_CPPv2N12Drv3dCommand12EXECUTE_PSSRE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca45d2447dceb04bbf4ae2f2bb9796ad07"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_PSSR</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12EXECUTE_PSSRE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand25GET_METALFX_UPSCALE_STATEE">
+<span id="_CPPv3N12Drv3dCommand25GET_METALFX_UPSCALE_STATEE"></span><span id="_CPPv2N12Drv3dCommand25GET_METALFX_UPSCALE_STATEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cae4ba3ee137ab7e18d3d99ad50b83302c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_METALFX_UPSCALE_STATE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand25GET_METALFX_UPSCALE_STATEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand23EXECUTE_METALFX_UPSCALEE">
+<span id="_CPPv3N12Drv3dCommand23EXECUTE_METALFX_UPSCALEE"></span><span id="_CPPv2N12Drv3dCommand23EXECUTE_METALFX_UPSCALEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cae95f44baa5afd39da15e389cf6e11305"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXECUTE_METALFX_UPSCALE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand23EXECUTE_METALFX_UPSCALEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand11GET_TIMINGSE">
+<span id="_CPPv3N12Drv3dCommand11GET_TIMINGSE"></span><span id="_CPPv2N12Drv3dCommand11GET_TIMINGSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca7b1107fdc3f1ef33c9d68c4b674a5e45"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_TIMINGS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand11GET_TIMINGSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand49GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGEE">
+<span id="_CPPv3N12Drv3dCommand49GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGEE"></span><span id="_CPPv2N12Drv3dCommand49GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca43cdf9de3a8f955ef1618b6a4c13220b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand49GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand13DEBUG_MESSAGEE">
+<span id="_CPPv3N12Drv3dCommand13DEBUG_MESSAGEE"></span><span id="_CPPv2N12Drv3dCommand13DEBUG_MESSAGEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cab7c4a505547d86ea2e653a1152e96b81"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEBUG_MESSAGE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand13DEBUG_MESSAGEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12GET_MONITORSE">
+<span id="_CPPv3N12Drv3dCommand12GET_MONITORSE"></span><span id="_CPPv2N12Drv3dCommand12GET_MONITORSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca6d794837fc9c4575671fadbf4f55eefb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_MONITORS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12GET_MONITORSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16GET_MONITOR_INFOE">
+<span id="_CPPv3N12Drv3dCommand16GET_MONITOR_INFOE"></span><span id="_CPPv2N12Drv3dCommand16GET_MONITOR_INFOE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca88343844efb06da37d74ea2d99cd85e7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_MONITOR_INFO</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16GET_MONITOR_INFOE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand28GET_RESOLUTIONS_FROM_MONITORE">
+<span id="_CPPv3N12Drv3dCommand28GET_RESOLUTIONS_FROM_MONITORE"></span><span id="_CPPv2N12Drv3dCommand28GET_RESOLUTIONS_FROM_MONITORE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2d0b3ab2b715e4d60ef233508a6b22ae"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_RESOLUTIONS_FROM_MONITOR</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand28GET_RESOLUTIONS_FROM_MONITORE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand23GET_VIDEO_MEMORY_BUDGETE">
+<span id="_CPPv3N12Drv3dCommand23GET_VIDEO_MEMORY_BUDGETE"></span><span id="_CPPv2N12Drv3dCommand23GET_VIDEO_MEMORY_BUDGETE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cad4145474408780969b0c586edc471175"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_VIDEO_MEMORY_BUDGET</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand23GET_VIDEO_MEMORY_BUDGETE" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns video memory budget in KiByte values par1: pointer to uint32_t: Total memory budget on the device, possibly less than physical memory of the device par2: pointer to uint32_t: Free memory budget on the device, this is *par1 minus used memory par3: pointer to uint32_t: Used memory, this is *par1 minus *par2 Return: uint32_t: Physical memory of the device </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand27GET_RENDERING_COMMAND_QUEUEE">
+<span id="_CPPv3N12Drv3dCommand27GET_RENDERING_COMMAND_QUEUEE"></span><span id="_CPPv2N12Drv3dCommand27GET_RENDERING_COMMAND_QUEUEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca76aaea668e49f36a0d97db696a305ce5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_RENDERING_COMMAND_QUEUE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand27GET_RENDERING_COMMAND_QUEUEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12GET_INSTANCEE">
+<span id="_CPPv3N12Drv3dCommand12GET_INSTANCEE"></span><span id="_CPPv2N12Drv3dCommand12GET_INSTANCEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cafe38e9974c50c54e96b9648ac6a256c6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_INSTANCE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12GET_INSTANCEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19GET_PHYSICAL_DEVICEE">
+<span id="_CPPv3N12Drv3dCommand19GET_PHYSICAL_DEVICEE"></span><span id="_CPPv2N12Drv3dCommand19GET_PHYSICAL_DEVICEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca85364d681f861d06197da3be201985a0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_PHYSICAL_DEVICE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19GET_PHYSICAL_DEVICEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand22GET_QUEUE_FAMILY_INDEXE">
+<span id="_CPPv3N12Drv3dCommand22GET_QUEUE_FAMILY_INDEXE"></span><span id="_CPPv2N12Drv3dCommand22GET_QUEUE_FAMILY_INDEXE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca45a00d2d8e7dac2d1d58f851519c4baa"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_QUEUE_FAMILY_INDEX</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand22GET_QUEUE_FAMILY_INDEXE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand15GET_QUEUE_INDEXE">
+<span id="_CPPv3N12Drv3dCommand15GET_QUEUE_INDEXE"></span><span id="_CPPv2N12Drv3dCommand15GET_QUEUE_INDEXE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca719c3399a970b45945f62b008c52ff66"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_QUEUE_INDEX</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand15GET_QUEUE_INDEXE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand27PROCESS_APP_INACTIVE_UPDATEE">
+<span id="_CPPv3N12Drv3dCommand27PROCESS_APP_INACTIVE_UPDATEE"></span><span id="_CPPv2N12Drv3dCommand27PROCESS_APP_INACTIVE_UPDATEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca24b33c8e10a3849d1018a5e669e75e75"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PROCESS_APP_INACTIVE_UPDATE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand27PROCESS_APP_INACTIVE_UPDATEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand32BEGIN_GENERIC_RENDER_PASS_CHECKSE">
+<span id="_CPPv3N12Drv3dCommand32BEGIN_GENERIC_RENDER_PASS_CHECKSE"></span><span id="_CPPv2N12Drv3dCommand32BEGIN_GENERIC_RENDER_PASS_CHECKSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca046c43bf180612f4c0c044151d944a86"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BEGIN_GENERIC_RENDER_PASS_CHECKS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand32BEGIN_GENERIC_RENDER_PASS_CHECKSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand30END_GENERIC_RENDER_PASS_CHECKSE">
+<span id="_CPPv3N12Drv3dCommand30END_GENERIC_RENDER_PASS_CHECKSE"></span><span id="_CPPv2N12Drv3dCommand30END_GENERIC_RENDER_PASS_CHECKSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca3302cfc1cab291f1aa0306fe681f8faa"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">END_GENERIC_RENDER_PASS_CHECKS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand30END_GENERIC_RENDER_PASS_CHECKSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand31REGISTER_FRAME_COMPLETION_EVENTE">
+<span id="_CPPv3N12Drv3dCommand31REGISTER_FRAME_COMPLETION_EVENTE"></span><span id="_CPPv2N12Drv3dCommand31REGISTER_FRAME_COMPLETION_EVENTE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca6c7c7ac8ad9cfa8201ad7621534b2ae6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REGISTER_FRAME_COMPLETION_EVENT</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand31REGISTER_FRAME_COMPLETION_EVENTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand49REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKSE">
+<span id="_CPPv3N12Drv3dCommand49REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKSE"></span><span id="_CPPv2N12Drv3dCommand49REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cad4e7af4a8ec60b98e40179ce98b1a0c0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand49REGISTER_ONE_TIME_FRAME_EXECUTION_EVENT_CALLBACKSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand33REPORT_RESOURCE_STATE_TRANSITIONSE">
+<span id="_CPPv3N12Drv3dCommand33REPORT_RESOURCE_STATE_TRANSITIONSE"></span><span id="_CPPv2N12Drv3dCommand33REPORT_RESOURCE_STATE_TRANSITIONSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cadef6bbdeee46f7fccb4bfcaf075fb8aa"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REPORT_RESOURCE_STATE_TRANSITIONS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand33REPORT_RESOURCE_STATE_TRANSITIONSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand35REGISTER_DEVICE_RESET_EVENT_HANDLERE">
+<span id="_CPPv3N12Drv3dCommand35REGISTER_DEVICE_RESET_EVENT_HANDLERE"></span><span id="_CPPv2N12Drv3dCommand35REGISTER_DEVICE_RESET_EVENT_HANDLERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca9169d2c89aa56ff210b3b60ae737ee40"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REGISTER_DEVICE_RESET_EVENT_HANDLER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand35REGISTER_DEVICE_RESET_EVENT_HANDLERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand37UNREGISTER_DEVICE_RESET_EVENT_HANDLERE">
+<span id="_CPPv3N12Drv3dCommand37UNREGISTER_DEVICE_RESET_EVENT_HANDLERE"></span><span id="_CPPv2N12Drv3dCommand37UNREGISTER_DEVICE_RESET_EVENT_HANDLERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2474dfb0d524c7a7d1408a5fc4812e61"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNREGISTER_DEVICE_RESET_EVENT_HANDLER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand37UNREGISTER_DEVICE_RESET_EVENT_HANDLERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand35PREPARE_TEXTURES_FOR_VR_CONSUMPTIONE">
+<span id="_CPPv3N12Drv3dCommand35PREPARE_TEXTURES_FOR_VR_CONSUMPTIONE"></span><span id="_CPPv2N12Drv3dCommand35PREPARE_TEXTURES_FOR_VR_CONSUMPTIONE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca9e94692f432be3a5fce5c637ebb19207"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PREPARE_TEXTURES_FOR_VR_CONSUMPTION</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand35PREPARE_TEXTURES_FOR_VR_CONSUMPTIONE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12SET_APP_INFOE">
+<span id="_CPPv3N12Drv3dCommand12SET_APP_INFOE"></span><span id="_CPPv2N12Drv3dCommand12SET_APP_INFOE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca8e7c0b5ce7bda1296d9d286e6686e4bc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_APP_INFO</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12SET_APP_INFOE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19SEND_GPU_CRASH_DUMPE">
+<span id="_CPPv3N12Drv3dCommand19SEND_GPU_CRASH_DUMPE"></span><span id="_CPPv2N12Drv3dCommand19SEND_GPU_CRASH_DUMPE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caeca9505920cdd4c29d9ad7956ace0965"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SEND_GPU_CRASH_DUMP</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19SEND_GPU_CRASH_DUMPE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand32PROCESS_PENDING_RESOURCE_UPDATEDE">
+<span id="_CPPv3N12Drv3dCommand32PROCESS_PENDING_RESOURCE_UPDATEDE"></span><span id="_CPPv2N12Drv3dCommand32PROCESS_PENDING_RESOURCE_UPDATEDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cad404de922f108e148a2974a6fb208b98"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PROCESS_PENDING_RESOURCE_UPDATED</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand32PROCESS_PENDING_RESOURCE_UPDATEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19GET_PS5_PSSR_STATUSE">
+<span id="_CPPv3N12Drv3dCommand19GET_PS5_PSSR_STATUSE"></span><span id="_CPPv2N12Drv3dCommand19GET_PS5_PSSR_STATUSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca720e7bb0c38546b9980ffaa223cc65d1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_PS5_PSSR_STATUS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19GET_PS5_PSSR_STATUSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14SET_FREQ_LEVELE">
+<span id="_CPPv3N12Drv3dCommand14SET_FREQ_LEVELE"></span><span id="_CPPv2N12Drv3dCommand14SET_FREQ_LEVELE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caaecbcd7f83ed78b5a3647fc9c7be3ed2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_FREQ_LEVEL</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14SET_FREQ_LEVELE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand22ENABLE_IMMEDIATE_FLUSHE">
+<span id="_CPPv3N12Drv3dCommand22ENABLE_IMMEDIATE_FLUSHE"></span><span id="_CPPv2N12Drv3dCommand22ENABLE_IMMEDIATE_FLUSHE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca3351af3a827a731f92d296c5a73c2a77"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ENABLE_IMMEDIATE_FLUSH</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand22ENABLE_IMMEDIATE_FLUSHE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand23DISABLE_IMMEDIATE_FLUSHE">
+<span id="_CPPv3N12Drv3dCommand23DISABLE_IMMEDIATE_FLUSHE"></span><span id="_CPPv2N12Drv3dCommand23DISABLE_IMMEDIATE_FLUSHE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cab18cbca85bbe62248f90db96d9c022d0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DISABLE_IMMEDIATE_FLUSH</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand23DISABLE_IMMEDIATE_FLUSHE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19GET_WORKER_CPU_COREE">
+<span id="_CPPv3N12Drv3dCommand19GET_WORKER_CPU_COREE"></span><span id="_CPPv2N12Drv3dCommand19GET_WORKER_CPU_COREE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca14561cbeec7e12feb7ea9b499de0b16b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_WORKER_CPU_CORE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19GET_WORKER_CPU_COREE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand16SET_PS5_FSR_VIEWE">
+<span id="_CPPv3N12Drv3dCommand16SET_PS5_FSR_VIEWE"></span><span id="_CPPv2N12Drv3dCommand16SET_PS5_FSR_VIEWE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca29488b26c5de913b090dec17976daae9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_PS5_FSR_VIEW</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand16SET_PS5_FSR_VIEWE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand7SET_HDRE">
+<span id="_CPPv3N12Drv3dCommand7SET_HDRE"></span><span id="_CPPv2N12Drv3dCommand7SET_HDRE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca85a425340da09a458d3f5d6ada1b96fe"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_HDR</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand7SET_HDRE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand11DEBUG_BREAKE">
+<span id="_CPPv3N12Drv3dCommand11DEBUG_BREAKE"></span><span id="_CPPv2N12Drv3dCommand11DEBUG_BREAKE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca547bb93653ed3239708392228e5632c9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEBUG_BREAK</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand11DEBUG_BREAKE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand29ADD_DEBUG_BREAK_STRING_SEARCHE">
+<span id="_CPPv3N12Drv3dCommand29ADD_DEBUG_BREAK_STRING_SEARCHE"></span><span id="_CPPv2N12Drv3dCommand29ADD_DEBUG_BREAK_STRING_SEARCHE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caf789637e3a10558ad058d40a244d5592"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ADD_DEBUG_BREAK_STRING_SEARCH</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand29ADD_DEBUG_BREAK_STRING_SEARCHE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand32REMOVE_DEBUG_BREAK_STRING_SEARCHE">
+<span id="_CPPv3N12Drv3dCommand32REMOVE_DEBUG_BREAK_STRING_SEARCHE"></span><span id="_CPPv2N12Drv3dCommand32REMOVE_DEBUG_BREAK_STRING_SEARCHE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca13b4e3f4b56f1b55fef6773ce3ffa1fa"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REMOVE_DEBUG_BREAK_STRING_SEARCH</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand32REMOVE_DEBUG_BREAK_STRING_SEARCHE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand19IS_DEFRAG_REQUESTEDE">
+<span id="_CPPv3N12Drv3dCommand19IS_DEFRAG_REQUESTEDE"></span><span id="_CPPv2N12Drv3dCommand19IS_DEFRAG_REQUESTEDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca67dd510f08e14995424c735931017966"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IS_DEFRAG_REQUESTED</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand19IS_DEFRAG_REQUESTEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand31PROCESS_PENDING_DEFRAG_REQUESTSE">
+<span id="_CPPv3N12Drv3dCommand31PROCESS_PENDING_DEFRAG_REQUESTSE"></span><span id="_CPPv2N12Drv3dCommand31PROCESS_PENDING_DEFRAG_REQUESTSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cac8ae7cce417625889ec01213e34f330e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PROCESS_PENDING_DEFRAG_REQUESTS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand31PROCESS_PENDING_DEFRAG_REQUESTSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand22CONVERT_TLAS_INSTANCESE">
+<span id="_CPPv3N12Drv3dCommand22CONVERT_TLAS_INSTANCESE"></span><span id="_CPPv2N12Drv3dCommand22CONVERT_TLAS_INSTANCESE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356caa1bbbaef9c32c01656929c974bf8a2c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CONVERT_TLAS_INSTANCES</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand22CONVERT_TLAS_INSTANCESE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand20COMPILE_PIPELINE_SETE">
+<span id="_CPPv3N12Drv3dCommand20COMPILE_PIPELINE_SETE"></span><span id="_CPPv2N12Drv3dCommand20COMPILE_PIPELINE_SETE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cad4f60fe5fb78e6c34adecf1d60abe262"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COMPILE_PIPELINE_SET</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand20COMPILE_PIPELINE_SETE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand22GET_BUFFER_GPU_ADDRESSE">
+<span id="_CPPv3N12Drv3dCommand22GET_BUFFER_GPU_ADDRESSE"></span><span id="_CPPv2N12Drv3dCommand22GET_BUFFER_GPU_ADDRESSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca80dd771393eb483145628da8f31f6c19"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_BUFFER_GPU_ADDRESS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand22GET_BUFFER_GPU_ADDRESSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand30ENABLE_WORKER_LOW_LATENCY_MODEE">
+<span id="_CPPv3N12Drv3dCommand30ENABLE_WORKER_LOW_LATENCY_MODEE"></span><span id="_CPPv2N12Drv3dCommand30ENABLE_WORKER_LOW_LATENCY_MODEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca787bd7ffb577cd1a1df6580b3d96b4b5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ENABLE_WORKER_LOW_LATENCY_MODE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand30ENABLE_WORKER_LOW_LATENCY_MODEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand14LOGERR_ON_SYNCE">
+<span id="_CPPv3N12Drv3dCommand14LOGERR_ON_SYNCE"></span><span id="_CPPv2N12Drv3dCommand14LOGERR_ON_SYNCE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca7e6e6348ae72ad0785dd6f613ee0013e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOGERR_ON_SYNC</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand14LOGERR_ON_SYNCE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand26SET_DRIVER_NETWORD_MANAGERE">
+<span id="_CPPv3N12Drv3dCommand26SET_DRIVER_NETWORD_MANAGERE"></span><span id="_CPPv2N12Drv3dCommand26SET_DRIVER_NETWORD_MANAGERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cab5b8c4b10582824323be5f4733ca6139"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_DRIVER_NETWORD_MANAGER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand26SET_DRIVER_NETWORD_MANAGERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand22GET_CONSOLE_HFR_STATUSE">
+<span id="_CPPv3N12Drv3dCommand22GET_CONSOLE_HFR_STATUSE"></span><span id="_CPPv2N12Drv3dCommand22GET_CONSOLE_HFR_STATUSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca8406e1584cc13ebf88061362debe3d0f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_CONSOLE_HFR_STATUS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand22GET_CONSOLE_HFR_STATUSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand25GET_CONSOLE_HFR_SUPPORTEDE">
+<span id="_CPPv3N12Drv3dCommand25GET_CONSOLE_HFR_SUPPORTEDE"></span><span id="_CPPv2N12Drv3dCommand25GET_CONSOLE_HFR_SUPPORTEDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cafe727bd7bf8de97a7458887cae29f354"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_CONSOLE_HFR_SUPPORTED</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand25GET_CONSOLE_HFR_SUPPORTEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand23GET_RESOURCE_STATISTICSE">
+<span id="_CPPv3N12Drv3dCommand23GET_RESOURCE_STATISTICSE"></span><span id="_CPPv2N12Drv3dCommand23GET_RESOURCE_STATISTICSE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca43f373e4a34b87b3aa656ffa13360dc8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_RESOURCE_STATISTICS</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand23GET_RESOURCE_STATISTICSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand27GET_PS5_COMPACTED_BLAS_SIZEE">
+<span id="_CPPv3N12Drv3dCommand27GET_PS5_COMPACTED_BLAS_SIZEE"></span><span id="_CPPv2N12Drv3dCommand27GET_PS5_COMPACTED_BLAS_SIZEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca3a508a7be4e467b32a726640929e198e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GET_PS5_COMPACTED_BLAS_SIZE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand27GET_PS5_COMPACTED_BLAS_SIZEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand18CREATE_GPU_LATENCYE">
+<span id="_CPPv3N12Drv3dCommand18CREATE_GPU_LATENCYE"></span><span id="_CPPv2N12Drv3dCommand18CREATE_GPU_LATENCYE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca1eaaf5ccc9e9ae03765f2de98dc7b329"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CREATE_GPU_LATENCY</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand18CREATE_GPU_LATENCYE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand10DELAY_SYNCE">
+<span id="_CPPv3N12Drv3dCommand10DELAY_SYNCE"></span><span id="_CPPv2N12Drv3dCommand10DELAY_SYNCE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cac5e86eb6fc012e546e18b88c0d877690"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DELAY_SYNC</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand10DELAY_SYNCE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand13CONTINUE_SYNCE">
+<span id="_CPPv3N12Drv3dCommand13CONTINUE_SYNCE"></span><span id="_CPPv2N12Drv3dCommand13CONTINUE_SYNCE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca24e7950c067b0ed1b323c53c33dd5f3b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CONTINUE_SYNC</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand13CONTINUE_SYNCE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand12CHANGE_QUEUEE">
+<span id="_CPPv3N12Drv3dCommand12CHANGE_QUEUEE"></span><span id="_CPPv2N12Drv3dCommand12CHANGE_QUEUEE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356cafd43ade5a2a54cb905bb665d9bdf2eb7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CHANGE_QUEUE</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand12CHANGE_QUEUEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand21IS_PIX_CAPTURE_LOADEDE">
+<span id="_CPPv3N12Drv3dCommand21IS_PIX_CAPTURE_LOADEDE"></span><span id="_CPPv2N12Drv3dCommand21IS_PIX_CAPTURE_LOADEDE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca5000b12e0c7f62a06a0a6d6a4c1d3678"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IS_PIX_CAPTURE_LOADED</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand21IS_PIX_CAPTURE_LOADEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand26SET_RT_VALIDATION_CALLBACKE">
+<span id="_CPPv3N12Drv3dCommand26SET_RT_VALIDATION_CALLBACKE"></span><span id="_CPPv2N12Drv3dCommand26SET_RT_VALIDATION_CALLBACKE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca5ffc25f54530886004d7eec7f630e724"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SET_RT_VALIDATION_CALLBACK</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand26SET_RT_VALIDATION_CALLBACKE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand20CAUSE_GPU_PAGE_FAULTE">
+<span id="_CPPv3N12Drv3dCommand20CAUSE_GPU_PAGE_FAULTE"></span><span id="_CPPv2N12Drv3dCommand20CAUSE_GPU_PAGE_FAULTE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca38ffc1351b067e3f802aef1fbb7b5f5d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CAUSE_GPU_PAGE_FAULT</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand20CAUSE_GPU_PAGE_FAULTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dCommand4USERE">
+<span id="_CPPv3N12Drv3dCommand4USERE"></span><span id="_CPPv2N12Drv3dCommand4USERE"></span><span class="target" id="dag__commands_8h_1a0b1d73ff15a1c2be809e473e107b356ca2e40ad879e955201df4dedbf8d479a12"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">USER</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dCommand4USERE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp">
+<span class="target" id="dag__commands_8h_1aaf105ae5beaca1dee30ae54530691fce"></span><span class="sig-name descname"></span></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_QPCE">
+<span id="_CPPv3N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_QPCE"></span><span id="_CPPv2N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_QPCE"></span><span class="target" id="dag__commands_8h_1aaf105ae5beaca1dee30ae54530691fcead71109fe996d0dae6e46d2fef650ff0e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DRV3D_CPU_FREQ_TYPE_QPC</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_QPCE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_REFE">
+<span id="_CPPv3N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_REFE"></span><span id="_CPPv2N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_REFE"></span><span class="target" id="dag__commands_8h_1aaf105ae5beaca1dee30ae54530691fceaea9ca52f1d04ca3227f21b1de264fd8d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DRV3D_CPU_FREQ_TYPE_REF</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError23DRV3D_CPU_FREQ_TYPE_REFE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError19DRV3D_CPU_FREQ_NSECE">
+<span id="_CPPv3N19PhonyNameDueToError19DRV3D_CPU_FREQ_NSECE"></span><span id="_CPPv2N19PhonyNameDueToError19DRV3D_CPU_FREQ_NSECE"></span><span class="target" id="dag__commands_8h_1aaf105ae5beaca1dee30ae54530691fceaf13dd6591ea0fad0869eb40f372adf27"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DRV3D_CPU_FREQ_NSEC</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError19DRV3D_CPU_FREQ_NSECE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_PROFILEE">
+<span id="_CPPv3N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_PROFILEE"></span><span id="_CPPv2N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_PROFILEE"></span><span class="target" id="dag__commands_8h_1aaf105ae5beaca1dee30ae54530691fcea02bafdca20700eb161e9add2dcc0dd4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DRV3D_CPU_FREQ_TYPE_PROFILE</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_PROFILEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_UNKNOWNE">
+<span id="_CPPv3N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_UNKNOWNE"></span><span id="_CPPv2N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_UNKNOWNE"></span><span class="target" id="dag__commands_8h_1aaf105ae5beaca1dee30ae54530691fcea0cf5469d1f9ddef2b7f2d10910556107"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DRV3D_CPU_FREQ_TYPE_UNKNOWN</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError27DRV3D_CPU_FREQ_TYPE_UNKNOWNE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv411FrameEvents">
+<span id="_CPPv311FrameEvents"></span><span id="_CPPv211FrameEvents"></span><span id="FrameEvents"></span><span class="target" id="structFrameEvents"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FrameEvents</span></span></span><a class="headerlink" href="#_CPPv411FrameEvents" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_commands.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11FrameEventsD0Ev">
+<span id="_CPPv3N11FrameEventsD0Ev"></span><span id="_CPPv2N11FrameEventsD0Ev"></span><span id="FrameEvents::~FrameEvents"></span><span class="target" id="structFrameEvents_1ac6f10abc84bee3679bb4601a9f8bec03"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~FrameEvents</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N11FrameEventsD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11FrameEvents15beginFrameEventEv">
+<span id="_CPPv3N11FrameEvents15beginFrameEventEv"></span><span id="_CPPv2N11FrameEvents15beginFrameEventEv"></span><span id="FrameEvents::beginFrameEvent"></span><span class="target" id="structFrameEvents_1a6dd845e4632067c2646dd265143bb612"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">beginFrameEvent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11FrameEvents15beginFrameEventEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N11FrameEvents13endFrameEventEv">
+<span id="_CPPv3N11FrameEvents13endFrameEventEv"></span><span id="_CPPv2N11FrameEvents13endFrameEventEv"></span><span id="FrameEvents::endFrameEvent"></span><span class="target" id="structFrameEvents_1ae8dab585659d9fbbb33efcf14742375b"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endFrameEvent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N11FrameEvents13endFrameEventEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv423DeviceResetEventHandler">
+<span id="_CPPv323DeviceResetEventHandler"></span><span id="_CPPv223DeviceResetEventHandler"></span><span id="DeviceResetEventHandler"></span><span class="target" id="structDeviceResetEventHandler"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DeviceResetEventHandler</span></span></span><a class="headerlink" href="#_CPPv423DeviceResetEventHandler" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_commands.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N23DeviceResetEventHandlerD0Ev">
+<span id="_CPPv3N23DeviceResetEventHandlerD0Ev"></span><span id="_CPPv2N23DeviceResetEventHandlerD0Ev"></span><span id="DeviceResetEventHandler::~DeviceResetEventHandler"></span><span class="target" id="structDeviceResetEventHandler_1add0140ff1dff04abd095e903a2579a2f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~DeviceResetEventHandler</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N23DeviceResetEventHandlerD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N23DeviceResetEventHandler11preRecoveryEv">
+<span id="_CPPv3N23DeviceResetEventHandler11preRecoveryEv"></span><span id="_CPPv2N23DeviceResetEventHandler11preRecoveryEv"></span><span id="DeviceResetEventHandler::preRecovery"></span><span class="target" id="structDeviceResetEventHandler_1af116368cd7c062fa6174f1cf93be7a21"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">preRecovery</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N23DeviceResetEventHandler11preRecoveryEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N23DeviceResetEventHandler8recoveryEv">
+<span id="_CPPv3N23DeviceResetEventHandler8recoveryEv"></span><span id="_CPPv2N23DeviceResetEventHandler8recoveryEv"></span><span id="DeviceResetEventHandler::recovery"></span><span class="target" id="structDeviceResetEventHandler_1af4924f33375774e2e0d9cc68add1c684"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">recovery</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N23DeviceResetEventHandler8recoveryEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv412Drv3dTimings">
+<span id="_CPPv312Drv3dTimings"></span><span id="_CPPv212Drv3dTimings"></span><span id="Drv3dTimings"></span><span class="target" id="structDrv3dTimings"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Drv3dTimings</span></span></span><a class="headerlink" href="#_CPPv412Drv3dTimings" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_commands.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings28frontendUpdateScreenIntervalE">
+<span id="_CPPv3N12Drv3dTimings28frontendUpdateScreenIntervalE"></span><span id="_CPPv2N12Drv3dTimings28frontendUpdateScreenIntervalE"></span><span id="Drv3dTimings::frontendUpdateScreenInterval__l-l"></span><span class="target" id="structDrv3dTimings_1af3dc8d70ff2355f277b50644b944a311"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">frontendUpdateScreenInterval</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings28frontendUpdateScreenIntervalE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings36frontendToBackendUpdateScreenLatencyE">
+<span id="_CPPv3N12Drv3dTimings36frontendToBackendUpdateScreenLatencyE"></span><span id="_CPPv2N12Drv3dTimings36frontendToBackendUpdateScreenLatencyE"></span><span id="Drv3dTimings::frontendToBackendUpdateScreenLatency__l-l"></span><span class="target" id="structDrv3dTimings_1abb9620a65c07c8bf0417e7c7b1916bb6"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">frontendToBackendUpdateScreenLatency</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings36frontendToBackendUpdateScreenLatencyE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings27frontendBackendWaitDurationE">
+<span id="_CPPv3N12Drv3dTimings27frontendBackendWaitDurationE"></span><span id="_CPPv2N12Drv3dTimings27frontendBackendWaitDurationE"></span><span id="Drv3dTimings::frontendBackendWaitDuration__l-l"></span><span class="target" id="structDrv3dTimings_1a1f8956e05fea579fc057b536afe45c67"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">frontendBackendWaitDuration</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings27frontendBackendWaitDurationE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings27backendFrontendWaitDurationE">
+<span id="_CPPv3N12Drv3dTimings27backendFrontendWaitDurationE"></span><span id="_CPPv2N12Drv3dTimings27backendFrontendWaitDurationE"></span><span id="Drv3dTimings::backendFrontendWaitDuration__l-l"></span><span class="target" id="structDrv3dTimings_1a1049f6e9ff6aaf0a2a085d543b828282"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backendFrontendWaitDuration</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings27backendFrontendWaitDurationE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings15gpuWaitDurationE">
+<span id="_CPPv3N12Drv3dTimings15gpuWaitDurationE"></span><span id="_CPPv2N12Drv3dTimings15gpuWaitDurationE"></span><span id="Drv3dTimings::gpuWaitDuration__l-l"></span><span class="target" id="structDrv3dTimings_1a15e571952da761b3ff31e092af49e8f0"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpuWaitDuration</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings15gpuWaitDurationE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings15presentDurationE">
+<span id="_CPPv3N12Drv3dTimings15presentDurationE"></span><span id="_CPPv2N12Drv3dTimings15presentDurationE"></span><span id="Drv3dTimings::presentDuration__l-l"></span><span class="target" id="structDrv3dTimings_1a80d0864e07fa74106d10b88c383b7e7c"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">presentDuration</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings15presentDurationE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings25backbufferAcquireDurationE">
+<span id="_CPPv3N12Drv3dTimings25backbufferAcquireDurationE"></span><span id="_CPPv2N12Drv3dTimings25backbufferAcquireDurationE"></span><span id="Drv3dTimings::backbufferAcquireDuration__l-l"></span><span class="target" id="structDrv3dTimings_1aec82e13237a7437fe4fabf66f8ee07bf"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backbufferAcquireDuration</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings25backbufferAcquireDurationE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12Drv3dTimings32frontendWaitForSwapchainDurationE">
+<span id="_CPPv3N12Drv3dTimings32frontendWaitForSwapchainDurationE"></span><span id="_CPPv2N12Drv3dTimings32frontendWaitForSwapchainDurationE"></span><span id="Drv3dTimings::frontendWaitForSwapchainDuration__l-l"></span><span class="target" id="structDrv3dTimings_1a73405348704bef09af6dcf2b6cc656ad"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">frontendWaitForSwapchainDuration</span></span></span><a class="headerlink" href="#_CPPv4N12Drv3dTimings32frontendWaitForSwapchainDurationE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv418CompilePipelineSet">
+<span id="_CPPv318CompilePipelineSet"></span><span id="_CPPv218CompilePipelineSet"></span><span id="CompilePipelineSet"></span><span class="target" id="structCompilePipelineSet"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CompilePipelineSet</span></span></span><a class="headerlink" href="#_CPPv418CompilePipelineSet" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_commands.h&gt;</em></div>
+<p>All values are optional, but graphics and mesh pipelines can not be created without output and render state sets. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet13defaultFormatE">
+<span id="_CPPv3N18CompilePipelineSet13defaultFormatE"></span><span id="_CPPv2N18CompilePipelineSet13defaultFormatE"></span><span id="CompilePipelineSet::defaultFormat__cCP"></span><span class="target" id="structCompilePipelineSet_1a138b146df3b7dc68dec186fb3a5fcfb3"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">defaultFormat</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet13defaultFormatE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 and V2 value. When not specified, the driver assumes its driver specific format (if supported) and otherwise engine. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet10featureSetE">
+<span id="_CPPv3N18CompilePipelineSet10featureSetE"></span><span id="_CPPv2N18CompilePipelineSet10featureSetE"></span><span id="CompilePipelineSet::featureSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1ae2f3592ce9ffac9ed36af64bac5f2779"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">featureSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet10featureSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 and V2 block. A block with a set of feature sets referenced by pipelines in the pipeline sets to indicate required features. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet14inputLayoutSetE">
+<span id="_CPPv3N18CompilePipelineSet14inputLayoutSetE"></span><span id="_CPPv2N18CompilePipelineSet14inputLayoutSetE"></span><span id="CompilePipelineSet::inputLayoutSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1a6268f16795380926d5f71dc99e6deab9"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">inputLayoutSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet14inputLayoutSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 and V2 block. A block with a set of blocks describing input layouts. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet14renderStateSetE">
+<span id="_CPPv3N18CompilePipelineSet14renderStateSetE"></span><span id="_CPPv2N18CompilePipelineSet14renderStateSetE"></span><span id="CompilePipelineSet::renderStateSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1a3b779ff7d839bcbe442f762697ef3a74"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">renderStateSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet14renderStateSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 and V2 block. A block with a set of blocks describing render states. The driver will ignore render states that are incompatible with the system. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet15outputFormatSetE">
+<span id="_CPPv3N18CompilePipelineSet15outputFormatSetE"></span><span id="_CPPv2N18CompilePipelineSet15outputFormatSetE"></span><span id="CompilePipelineSet::outputFormatSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1a3db5f29bf38520f35445b27c165c861e"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">outputFormatSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet15outputFormatSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 and V2 block. A block with a set of blocks describing output format states. The driver will ignore output format states that are incompatible wit the system. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet19graphicsPipelineSetE">
+<span id="_CPPv3N18CompilePipelineSet19graphicsPipelineSetE"></span><span id="_CPPv2N18CompilePipelineSet19graphicsPipelineSetE"></span><span id="CompilePipelineSet::graphicsPipelineSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1a7a05fd61c46997a9212bff92ee8fc37e"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">graphicsPipelineSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet19graphicsPipelineSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 block. A block with a set of blocks describing graphics pipelines. The driver will ignore pipelines using unsupported input layouts, render states or output formats. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet15meshPipelineSetE">
+<span id="_CPPv3N18CompilePipelineSet15meshPipelineSetE"></span><span id="_CPPv2N18CompilePipelineSet15meshPipelineSetE"></span><span id="CompilePipelineSet::meshPipelineSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1ae7ef38d4e772b6b7139df0304fa5e982"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">meshPipelineSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet15meshPipelineSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 block. A block with a set of blocks describing mesh pipelines. The driver will ignore pipelines using unsupported render states or output formats. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet18computePipelineSetE">
+<span id="_CPPv3N18CompilePipelineSet18computePipelineSetE"></span><span id="_CPPv2N18CompilePipelineSet18computePipelineSetE"></span><span id="CompilePipelineSet::computePipelineSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1a8570c5937f2f5fe605f987fcba1db7cf"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">computePipelineSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet18computePipelineSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V1 block. A block with a set of blocks describing compute pipelines. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet9signatureE">
+<span id="_CPPv3N18CompilePipelineSet9signatureE"></span><span id="_CPPv2N18CompilePipelineSet9signatureE"></span><span id="CompilePipelineSet::signature__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1aa838a4c49c42d0709bead9506eecc2a6"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">signature</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet9signatureE" title="Link to this definition"></a><br /></dt>
+<dd><p>V2 block, this block stores shader class signatures, this ensures we try not to load incompatible shader class uses. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet10computeSetE">
+<span id="_CPPv3N18CompilePipelineSet10computeSetE"></span><span id="_CPPv2N18CompilePipelineSet10computeSetE"></span><span id="CompilePipelineSet::computeSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1a789caa81ad84dd7a372d85e2d15c6883"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">computeSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet10computeSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V2 block, new compute use set, uses shader class names and codes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet11graphicsSetE">
+<span id="_CPPv3N18CompilePipelineSet11graphicsSetE"></span><span id="_CPPv2N18CompilePipelineSet11graphicsSetE"></span><span id="CompilePipelineSet::graphicsSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1ac96d748b13688d100054a2bb4a902878"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">graphicsSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet11graphicsSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V2 block, new graphics use set, uses shader class names and codes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet28graphicsNullPixelOverrideSetE">
+<span id="_CPPv3N18CompilePipelineSet28graphicsNullPixelOverrideSetE"></span><span id="_CPPv2N18CompilePipelineSet28graphicsNullPixelOverrideSetE"></span><span id="CompilePipelineSet::graphicsNullPixelOverrideSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1acada38ffc277563c94105b8c5b3f8da5"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">graphicsNullPixelOverrideSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet28graphicsNullPixelOverrideSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader is replaced by the null pixel shader. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CompilePipelineSet24graphicsPixelOverrideSetE">
+<span id="_CPPv3N18CompilePipelineSet24graphicsPixelOverrideSetE"></span><span id="_CPPv2N18CompilePipelineSet24graphicsPixelOverrideSetE"></span><span id="CompilePipelineSet::graphicsPixelOverrideSet__DataBlockCP"></span><span class="target" id="structCompilePipelineSet_1a75beef7bd11a818cc4781bb4e5cfd217"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">graphicsPixelOverrideSet</span></span></span><a class="headerlink" href="#_CPPv4N18CompilePipelineSet24graphicsPixelOverrideSetE" title="Link to this definition"></a><br /></dt>
+<dd><p>V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader uses a differen shader class name and codes than the vertex shader. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv422Drv3dMakeTextureParams">
+<span id="_CPPv322Drv3dMakeTextureParams"></span><span id="_CPPv222Drv3dMakeTextureParams"></span><span id="Drv3dMakeTextureParams"></span><span class="target" id="structDrv3dMakeTextureParams"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Drv3dMakeTextureParams</span></span></span><a class="headerlink" href="#_CPPv422Drv3dMakeTextureParams" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_commands.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams3texE">
+<span id="_CPPv3N22Drv3dMakeTextureParams3texE"></span><span id="_CPPv2N22Drv3dMakeTextureParams3texE"></span><span id="Drv3dMakeTextureParams::tex__voidP"></span><span class="target" id="structDrv3dMakeTextureParams_1ae050d234eea067a4bf029ac4b065e8e8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">tex</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams3texE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams4nameE">
+<span id="_CPPv3N22Drv3dMakeTextureParams4nameE"></span><span id="_CPPv2N22Drv3dMakeTextureParams4nameE"></span><span id="Drv3dMakeTextureParams::name__cCP"></span><span class="target" id="structDrv3dMakeTextureParams_1a1587e865625f4a6a1202c7989b835975"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams4nameE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams3flgE">
+<span id="_CPPv3N22Drv3dMakeTextureParams3flgE"></span><span id="_CPPv2N22Drv3dMakeTextureParams3flgE"></span><span id="Drv3dMakeTextureParams::flg__i"></span><span class="target" id="structDrv3dMakeTextureParams_1a5a3ed1fbb5905d71e088d1a8b486fbec"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flg</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams3flgE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams1wE">
+<span id="_CPPv3N22Drv3dMakeTextureParams1wE"></span><span id="_CPPv2N22Drv3dMakeTextureParams1wE"></span><span id="Drv3dMakeTextureParams::w__i"></span><span class="target" id="structDrv3dMakeTextureParams_1a64f18861fdef92368e94e2a5acf4f4be"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">w</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams1wE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams1hE">
+<span id="_CPPv3N22Drv3dMakeTextureParams1hE"></span><span id="_CPPv2N22Drv3dMakeTextureParams1hE"></span><span id="Drv3dMakeTextureParams::h__i"></span><span class="target" id="structDrv3dMakeTextureParams_1ad60a40de68f0a3a9146dc7bf89da4c83"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">h</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams1hE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams6layersE">
+<span id="_CPPv3N22Drv3dMakeTextureParams6layersE"></span><span id="_CPPv2N22Drv3dMakeTextureParams6layersE"></span><span id="Drv3dMakeTextureParams::layers__i"></span><span class="target" id="structDrv3dMakeTextureParams_1afd8eb6c2bf50741d4684da291f6f99c6"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">layers</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams6layersE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams4mipsE">
+<span id="_CPPv3N22Drv3dMakeTextureParams4mipsE"></span><span id="_CPPv2N22Drv3dMakeTextureParams4mipsE"></span><span id="Drv3dMakeTextureParams::mips__i"></span><span class="target" id="structDrv3dMakeTextureParams_1a21567e4c58edc9b60a8576c9d37b02eb"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mips</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams4mipsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22Drv3dMakeTextureParams12currentStateE">
+<span id="_CPPv3N22Drv3dMakeTextureParams12currentStateE"></span><span id="_CPPv2N22Drv3dMakeTextureParams12currentStateE"></span><span id="Drv3dMakeTextureParams::currentState__ResourceBarrier"></span><span class="target" id="structDrv3dMakeTextureParams_1ac5f145c5b311236ec4dba95bdae73593"></span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">currentState</span></span></span><a class="headerlink" href="#_CPPv4N22Drv3dMakeTextureParams12currentStateE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d14driver_commandE12Drv3dCommandPvPvPv">
+<span id="_CPPv3N3d3d14driver_commandE12Drv3dCommandPvPvPv"></span><span id="_CPPv2N3d3d14driver_commandE12Drv3dCommandPvPvPv"></span><span id="d3d::driver_command__Drv3dCommand.voidP.voidP.voidP"></span><span class="target" id="namespaced3d_1ab2751f13a6ac7fc35f59a545e8ab81d2"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">driver_command</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv412Drv3dCommand" title="Drv3dCommand"><span class="n"><span class="pre">Drv3dCommand</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">command</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">par1</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">par2</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">par3</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d14driver_commandE12Drv3dCommandPvPvPv" title="Link to this definition"></a><br /></dt>
+<dd><p>send specific command to driver </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="DriverCodeMatcherTemplates.html" class="btn btn-neutral float-left" title="Driver Code Matcher Templates" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="DriverInfoAPI.html" class="btn btn-neutral float-right" title="Driver Info API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,619 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rendinst_vcolor_layered</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Dagor Tools" href="../../../dagor-tools/index.html" />
+    <link rel="prev" title="rendinst_tree_perlin_layered" href="rendinst_tree_perlin_layered.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">daNetGame-based Shaders</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="dynamic_painted_by_mask.html"><code class="docutils literal notranslate"><span class="pre">dynamic_painted_by_mask</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="land_mesh_height_decal.html"><code class="docutils literal notranslate"><span class="pre">land_mesh_height_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_blend_normal_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_blend_normal_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_deferred_modulate2x_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_deferred_modulate2x_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_emissive</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_colored.html"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_colored</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_flag_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_flag_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_mask_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_mask_layered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_modulate2x_diffuse_decal.html"><code class="docutils literal notranslate"><span class="pre">rendinst_modulate2x_diffuse_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_refraction.html"><code class="docutils literal notranslate"><span class="pre">rendinst_refraction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code>/<code class="docutils literal notranslate"><span class="pre">simple_aces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_emissive_anim.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive_anim</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_illum_anim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_glass.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_glass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_simple_painted.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_painted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_colored.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_colored</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="rendinst_tree_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_tree_perlin_layered</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">rendinst_vcolor_layered</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#textures">Textures</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters">Parameters</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#alpha-test">Alpha Test</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#detail-tiling">Detail Tiling</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#procedural-painting">Procedural Painting</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#vertex-color-overlay">Vertex Color Overlay</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#functionality">Functionality</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#vertexpaint-modifier">VertexPaint Modifier</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#blending-details">Blending Details</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#vertex-color-blending">Vertex Color Blending</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#heightmap-blending">Heightmap Blending</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#visual-examples">Visual Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#usage">Usage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Shaders</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daNetGame-based Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">rendinst_vcolor_layered</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/shaders/dng-shaders/rendinst_vcolor_layered.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="rendinst-vcolor-layered">
+<h1><code class="docutils literal notranslate"><span class="pre">rendinst_vcolor_layered</span></code><a class="headerlink" href="#rendinst-vcolor-layered" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">rendinst_vcolor_layered</span></code> shader is designed for rendering instances with
+three detail layers, which blend based on:</p>
+<ol class="arabic simple">
+<li><p>The vertex color channels of the object’s geometry.</p></li>
+<li><p>Corresponding heightmaps for each layer.</p></li>
+</ol>
+<p><strong>Parameter List</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;atest=1&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_alphatest=0,0,0,0&quot;</span></code> – These
+parameters work together to enable alpha test. The first parameter (<code class="docutils literal notranslate"><span class="pre">atest</span></code>)
+activates alpha test, while the second (<code class="docutils literal notranslate"><span class="pre">details_alphatest</span></code>) sets the alpha
+test strength for each detail layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_tile=1,1,1,0&quot;</span></code> – Controls the tiling of the detail
+textures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;invert_heights=0,0,1,0&quot;</span></code> – Inverts the heightmaps for each detail
+layer. Fractional values can be used. The value of <code class="docutils literal notranslate"><span class="pre">0.5</span></code> turns heightmap into
+neutral gray fill.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=0,0,0,0&quot;</span></code> – Allows painting over the three detail
+layers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;overlay_color_from=0,0,0,0&quot;</span></code> – Defines the starting color for
+overlay blending using linear interpolation (LERP), with masking defined by
+the blue vertex color channel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;overlay_color_to=0,0,0,0&quot;</span></code> – Defines the target color range for
+overlay blending, from <code class="docutils literal notranslate"><span class="pre">0</span></code> (black, RGB: <code class="docutils literal notranslate"><span class="pre">0,0,0</span></code>) to <code class="docutils literal notranslate"><span class="pre">1</span></code> (white, RGB:
+<code class="docutils literal notranslate"><span class="pre">255,255,255</span></code>).</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If vertex color is not painted after applying this shader, the <em>Asset Viewer</em>
+will produce an error when selecting the model (related to the 5th mapping
+channel). Ensure vertex colors are used with this shader, as it will not
+function correctly without them.</p>
+</div>
+</section>
+<section id="textures">
+<h2>Textures<a class="headerlink" href="#textures" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>tex0</strong>: Detail1 Diffuse (Albedo)</p></li>
+<li><p><strong>tex2</strong>: Detail1 Normals + Metalness + Smoothness</p></li>
+<li><p><strong>tex3</strong>: Detail2 Diffuse (Albedo)</p></li>
+<li><p><strong>tex4</strong>: Detail2 Normals + Metalness + Smoothness</p></li>
+<li><p><strong>tex5</strong>: Detail3 Diffuse (Albedo)</p></li>
+<li><p><strong>tex6</strong>: Detail3 Normals + Metalness + Smoothness</p></li>
+</ul>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<section id="alpha-test">
+<h3>Alpha Test<a class="headerlink" href="#alpha-test" title="Link to this heading"></a></h3>
+<p>This shader is suitable for materials that require transparency, such as
+tattered cloth or paper. Alpha test is controlled by two parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;atest=1&quot;</span></code> – Activates alpha test for the material. This parameter
+alone does not alter the appearance until <code class="docutils literal notranslate"><span class="pre">details_alphatest</span></code> is specified.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_alphatest=0,0,0,0&quot;</span></code> – Specifies the alpha test strength
+for each detail layer, with values ranging from <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">1</span></code>”:”</p>
+<ul>
+<li><p>1st component: Detail1</p></li>
+<li><p>2nd component: Detail2</p></li>
+<li><p>3rd component: Detail3</p></li>
+<li><p>4th component: Unused, but required.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="detail-tiling">
+<h3>Detail Tiling<a class="headerlink" href="#detail-tiling" title="Link to this heading"></a></h3>
+<p>The detail tiling parameter behaves similarly to the
+<a class="reference internal" href="../rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a> shader.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_tile=1,1,1,0&quot;</span></code>:</p>
+<ul>
+<li><p>1st component: Tiling for Detail1.</p></li>
+<li><p>2nd component: Tiling for Detail2.</p></li>
+<li><p>3rd component: Tiling for Detail3.</p></li>
+<li><p>4th component: Unused, but required.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="procedural-painting">
+<h3>Procedural Painting<a class="headerlink" href="#procedural-painting" title="Link to this heading"></a></h3>
+<p>This feature allows procedural painting over the detail layers (similar to
+<a class="reference internal" href="../rendinst_perlin_layered.html"><span class="std std-doc">rendinst_perlin_layered</span></a> shader).</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=0,0,0,0&quot;</span></code> – Allows painting over the three detail
+layers.</p>
+<ul>
+<li><p>1st component: Paint strength for Detail 1 (fractional values allowed).</p></li>
+<li><p>2nd component: Paint strength for Detail 2.</p></li>
+<li><p>3rd component: Paint strength for Detail 3.</p></li>
+<li><p>4th component: Selects line of painting palette.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="vertex-color-overlay">
+<h3>Vertex Color Overlay<a class="headerlink" href="#vertex-color-overlay" title="Link to this heading"></a></h3>
+<p>The shader uses the blue channel of the vertex color to create a global color
+overlay map. Two colors are blended using linear interpolation (LERP), with the
+map defined by the blue vertex color channel.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;overlay_color_from=0,0,0,0&quot;</span></code> – Defines the starting color for the
+blend.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;overlay_color_to=0,0,0,0&quot;</span></code> – Defines the target color for the
+blend.</p>
+<ul>
+<li><p>The first three components represent the RGB values, ranging from <code class="docutils literal notranslate"><span class="pre">0</span></code>
+(black) to <code class="docutils literal notranslate"><span class="pre">1</span></code> (white).</p></li>
+<li><p>The 4th component is currently unused.</p></li>
+</ul>
+</li>
+</ul>
+<p>This overlay modulates the blending of the detail layers. For example, storing
+curvature data in the blue vertex color channel can create an effect where
+cracks in stone appear black, while raised areas appear red. By default, both
+colors are set to mid-gray, so no additional color effect is applied.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The “from” color is applied globally by default. To prevent the entire model
+from being painted, set the “from” color to a neutral gray (<code class="docutils literal notranslate"><span class="pre">0.5,</span> <span class="pre">0.5,</span> <span class="pre">0.5,</span> <span class="pre">0</span></code>)
+and configure the “to” color to highlight specific details.</p>
+</div>
+</section>
+</section>
+<section id="functionality">
+<h2>Functionality<a class="headerlink" href="#functionality" title="Link to this heading"></a></h2>
+<section id="vertexpaint-modifier">
+<h3>VertexPaint Modifier<a class="headerlink" href="#vertexpaint-modifier" title="Link to this heading"></a></h3>
+<p>Here are key settings you’ll need when using the <em>VertexPaint</em> modifier with
+this shader:</p>
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_01.jpg"><img alt="../../../_images/rendinst_vcolor_layered_01.jpg" class="align-left" src="../../../_images/rendinst_vcolor_layered_01.jpg" style="width: 20%;" />
+</a>
+<ul class="simple">
+<li><p>This button toggles the display of vertex colors on the model.</p></li>
+</ul>
+<br clear="left">
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_02.jpg"><img alt="../../../_images/rendinst_vcolor_layered_02.jpg" class="align-left" src="../../../_images/rendinst_vcolor_layered_02.jpg" style="width: 20%;" />
+</a>
+<ul class="simple">
+<li><p>Tools for painting or filling the vertex color.</p></li>
+</ul>
+<br clear="left">
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_03.jpg"><img alt="../../../_images/rendinst_vcolor_layered_03.jpg" class="align-left" src="../../../_images/rendinst_vcolor_layered_03.jpg" style="width: 20%;" />
+</a>
+<ul class="simple">
+<li><p>Brush opacity and size settings (default size is 20 meters).</p></li>
+</ul>
+<br clear="left">
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_04.jpg"><img alt="../../../_images/rendinst_vcolor_layered_04.jpg" class="align-left" src="../../../_images/rendinst_vcolor_layered_04.jpg" style="width: 20%;" />
+</a>
+<ul class="simple">
+<li><p>Options for geometry selection while painting.</p></li>
+</ul>
+<br clear="left">
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_05.jpg"><img alt="../../../_images/rendinst_vcolor_layered_05.jpg" class="align-left" src="../../../_images/rendinst_vcolor_layered_05.jpg" style="width: 20%;" />
+</a>
+<ul class="simple">
+<li><p>Smooth brush tool for blending painted colors.</p></li>
+</ul>
+<br clear="left">
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_06.jpg"><img alt="../../../_images/rendinst_vcolor_layered_06.jpg" class="align-left" src="../../../_images/rendinst_vcolor_layered_06.jpg" style="width: 20%;" />
+</a>
+<ul class="simple">
+<li><p>Vertex color blending modes (similar to Photoshop layers). When using multiple
+modifiers, it’s recommended to paint each color channel (R, G, and B)
+separately. The red channel typically uses the “normal” blend mode, while
+green and blue use <strong>Add</strong> mode.</p></li>
+</ul>
+<br clear="left">
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>By default, vertex colors on the model are set to white (maximum values for all
+channels). To begin painting, fill the entire model with black.</p>
+</div>
+</section>
+<section id="blending-details">
+<h3>Blending Details<a class="headerlink" href="#blending-details" title="Link to this heading"></a></h3>
+<p>The shader blends three detail layers using both vertex colors and heightmaps.</p>
+<section id="vertex-color-blending">
+<h4>Vertex Color Blending<a class="headerlink" href="#vertex-color-blending" title="Link to this heading"></a></h4>
+<p>Initially, Detail1 is applied across the model. Detail2 and Detail3 are blended
+into it based on the red and green vertex color channels.</p>
+<p>For example, painting an area with 100% red will apply Detail2 there, while 100%
+green will apply Detail3. Smooth gradients in the vertex colors create more
+natural transitions between the detail layers.</p>
+</section>
+<section id="heightmap-blending">
+<h4>Heightmap Blending<a class="headerlink" href="#heightmap-blending" title="Link to this heading"></a></h4>
+<p>The brightness of the heightmaps influences how strongly each detail layer
+blends. The intensity of the vertex colors is multiplied by the corresponding
+heightmap brightness.</p>
+<p>For example:</p>
+<ul class="simple">
+<li><p>If two detail layers have identical heightmaps and vertex color weights, they
+will blend evenly.</p></li>
+<li><p>A detail with a black heightmap and another with a mid-gray heightmap will
+blend differently, as the mid-gray heightmap will have a higher visual impact.</p></li>
+</ul>
+</section>
+</section>
+<section id="visual-examples">
+<h3>Visual Examples<a class="headerlink" href="#visual-examples" title="Link to this heading"></a></h3>
+<p>Let’s consider an example of a car tarp using multiple detail textures and their
+corresponding heightmaps.</p>
+<table style="text-align:center; width:98%"><thead><tr>
+  <th style="text-align:center; width:49%"><p>fabric_tarpaulin_a_tex_d – Detail1 and Detail2</p></th>
+  <th style="text-align:center; width:49%"><p>fabric_shabby_a_tex_d – Detail3</p></th></tr></thead>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_07.jpg"><img alt="../../../_images/rendinst_vcolor_layered_07.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_07.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_08.jpg"><img alt="../../../_images/rendinst_vcolor_layered_08.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_08.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_09.jpg"><img alt="../../../_images/rendinst_vcolor_layered_09.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_09.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_10.jpg"><img alt="../../../_images/rendinst_vcolor_layered_10.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_10.jpg" style="width: 49%;" />
+</a>
+<ul class="simple">
+<li><p><strong>Shader Parameters:</strong></p></li>
+</ul>
+<table><tr><td style="text-align:left; width:49%"><p>
+  <ul>
+    <li>script:t="paint_details=1,0,0,1"</li>
+    <li>script:t="details_tile=12,16,20,0"</li>
+    <li>script:t="invert_heights=0,0,0,0"</li>
+    <li>script:t="details_alphatest=0,0,0,0"</li></ul></p></td><td style="text-align:left; width:49%"><p>
+  <ul>
+    <li>tex0:t="fabric_tarpaulin_a_tex_d.tif"</li>
+    <li>tex2:t="fabric_tarpaulin_a_tex_n.tif"</li>
+    <li>tex3:t="fabric_tarpaulin_a_tex_d.tif"</li>
+    <li>tex4:t="fabric_tarpaulin_a_tex_n.tif"</li>
+    <li>tex5:t="fabric_shabby_a_tex_d.tif"</li>
+    <li>tex6:t="fabric_shabby_a_tex_n.tif"</li>
+  </ul></p></td></tr>
+</table>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>3ds Max</p></th>
+  <th style="text-align:center; width:49%"><p>Asset Viewer</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_11.jpg"><img alt="../../../_images/rendinst_vcolor_layered_11.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_11.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_12.jpg"><img alt="../../../_images/rendinst_vcolor_layered_12.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_12.jpg" style="width: 49%;" />
+</a>
+<p>By default, the entire model is covered by Detail1 (as we cannot leave the model
+without any detail). For clarity, it tinted a yellowish color (see shader
+parameters).</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_13.jpg"><img alt="../../../_images/rendinst_vcolor_layered_13.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_13.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_14.jpg"><img alt="../../../_images/rendinst_vcolor_layered_14.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_14.jpg" style="width: 49%;" />
+</a>
+<ul class="simple">
+<li><p>X-axis (100% Red): Subtracts Detail2 from Detail1.</p></li>
+<li><p>Y-axis (100% Green): Subtracts Detail3 from Detail1.</p></li>
+<li><p>Z-axis (100% Green and Red): Subtracts both Detail2 and Detail3 from Detail1.</p></li>
+</ul>
+<p>These details blend based on their heightmaps (you may notice an uneven
+transition from Detail2 to Detail3), but the blend is not perfect – Detail2’s
+heightmap is stronger than Detail3’s.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_15.jpg"><img alt="../../../_images/rendinst_vcolor_layered_15.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_15.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_16.jpg"><img alt="../../../_images/rendinst_vcolor_layered_16.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_16.jpg" style="width: 49%;" />
+</a>
+<p>We introduced some subtle variation by applying a 45% fill of Detail2 across the
+fabric. This allows Detail2 to appear in scattered areas, blending based on the
+heightmaps, which adds visual variety.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_17.jpg"><img alt="../../../_images/rendinst_vcolor_layered_17.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_17.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_18.jpg"><img alt="../../../_images/rendinst_vcolor_layered_18.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_18.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_19.jpg"><img alt="../../../_images/rendinst_vcolor_layered_19.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_19.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_20.jpg"><img alt="../../../_images/rendinst_vcolor_layered_20.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_20.jpg" style="width: 49%;" />
+</a>
+<p>Next, we enhanced the raised parts of the tarp with a 55% application of
+Detail2, simulating faded areas on protruding fabric sections. We used 55%
+because 45% of the tarp was already covered with red (Detail2).</p>
+<p>If we applied 100%, the result would have been 145%, creating an overly
+saturated color and causing the wear effect to spread too much across the
+fabric. There are two sets of screenshots – before and after blurring the
+painted areas.</p>
+<ul class="simple">
+<li><p><strong>Shader Parameters:</strong></p></li>
+</ul>
+<table><tr><td style="text-align:left; width:49%"><p>
+  <ul>
+    <li>script:t="atest=1"</li>
+    <li>script:t="paint_details=1,0.4,-4,1"</li>
+    <li>script:t="details_tile=12,16,20,0"</li>
+    <li>script:t="invert_heights=0,0,0,0"</li>
+    <li>script:t="details_alphatest=0,0,0.33,0"</li></ul></p></td><td style="text-align:left; width:49%"><p>
+  <ul>
+    <li>tex0:t="fabric_tarpaulin_a_tex_d.tif"</li>
+    <li>tex2:t="fabric_tarpaulin_a_tex_n.tif"</li>
+    <li>tex3:t="fabric_tarpaulin_a_tex_d.tif"</li>
+    <li>tex4:t="fabric_tarpaulin_a_tex_n.tif"</li>
+    <li>tex5:t="fabric_shabby_a_tex_d.tif"</li>
+    <li>tex6:t="fabric_shabby_a_tex_n.tif"</li>
+  </ul></p></td></tr>
+</table>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>3ds Max</p></th>
+  <th style="text-align:center; width:49%"><p>Asset Viewer</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_21.jpg"><img alt="../../../_images/rendinst_vcolor_layered_21.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_21.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_22.jpg"><img alt="../../../_images/rendinst_vcolor_layered_22.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_22.jpg" style="width: 49%;" />
+</a>
+<p>We added 100% spots of Detail3, then applied a 30% smoothing to blend them. At
+100%, Detail3 would appear too weak due to its less pronounced heightmap
+compared to Detail1 and Detail2.</p>
+<p>Notice the spots around Detail3, which are actually from Detail2, even though we
+didn’t directly paint them. This occurs because the entire tarp was filled with
+45% of Detail2, and wherever Detail3 partially subtracts from Detail1, Detail2
+also starts to blend in.</p>
+<p>We configured the colors for Detail2 and Detail3 to reduce the color contrast.
+Additionally, we applied an alpha test to Detail3 (although it’s not very
+visible in the screenshot).</p>
+<ul class="simple">
+<li><p><strong>Shader Parameters:</strong></p></li>
+</ul>
+<table><tr><td style="text-align:left; width:49%"><p>
+  <ul>
+    <li>script:t="atest=1"</li>
+    <li>script:t="paint_details=1,0.4,-4,1"</li>
+    <li>script:t="details_tile=12,16,20,0"</li>
+    <li>script:t="invert_heights=0,0,0,0"</li>
+    <li>script:t="details_alphatest=0,0,0.33,0"</li>
+    <li>script:t="overlay_color_from=0.5,0.5,0.5,0"</li>
+    <li>script:t="overlay_color_to=0,0,0,0"</li></ul></p></td><td style="text-align:left; width:49%"><p>
+  <ul>
+    <li>tex0:t="fabric_tarpaulin_a_tex_d.tif"</li>
+    <li>tex2:t="fabric_tarpaulin_a_tex_n.tif"</li>
+    <li>tex3:t="fabric_tarpaulin_a_tex_d.tif"</li>
+    <li>tex4:t="fabric_tarpaulin_a_tex_n.tif"</li>
+    <li>tex5:t="fabric_shabby_a_tex_d.tif"</li>
+    <li>tex6:t="fabric_shabby_a_tex_n.tif"</li>
+  </ul></p></td></tr>
+</table>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>3ds Max</p></th>
+  <th style="text-align:center; width:49%"><p>Asset Viewer</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_23.jpg"><img alt="../../../_images/rendinst_vcolor_layered_23.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_23.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_24.jpg"><img alt="../../../_images/rendinst_vcolor_layered_24.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_24.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_25.jpg"><img alt="../../../_images/rendinst_vcolor_layered_25.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_25.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_26.jpg"><img alt="../../../_images/rendinst_vcolor_layered_26.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_26.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_27.jpg"><img alt="../../../_images/rendinst_vcolor_layered_27.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_27.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_28.jpg"><img alt="../../../_images/rendinst_vcolor_layered_28.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_28.jpg" style="width: 49%;" />
+</a>
+<p>We added a layered overlay in the blue channel. The color gradient ranges from
+50% gray (which doesn’t affect the texture) <code class="docutils literal notranslate"><span class="pre">0.5,0.5,0.5,0</span></code> to 0% black
+<code class="docutils literal notranslate"><span class="pre">0,0,0,0</span></code>.</p>
+<p>To illustrate the “from-to” color concept, consider the following example:
+<code class="docutils literal notranslate"><span class="pre">script:t=&quot;overlay_color_from=0.549,0.239,0.239,0&quot;</span></code> (~RGB <code class="docutils literal notranslate"><span class="pre">140,61,61</span></code>).</p>
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_29.jpg"><img alt="../../../_images/rendinst_vcolor_layered_29.jpg" class="align-center" src="../../../_images/rendinst_vcolor_layered_29.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Any area not painted with blue will be colored using the “from” value. This
+approach can be useful in some cases, but not always necessary.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_30.jpg"><img alt="../../../_images/rendinst_vcolor_layered_30.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_30.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_31.jpg"><img alt="../../../_images/rendinst_vcolor_layered_31.jpg" class="bg-primary" src="../../../_images/rendinst_vcolor_layered_31.jpg" style="width: 49%;" />
+</a>
+<p>As a final touch, let’s create a burnt corner on the fabric. While this effect
+may not look perfect without further geometry adjustments, the intention should
+be clear. Note that we had to erase the initial 45% red fill in that area to
+make Detail3 stand out properly.</p>
+<p>Here’s an example of appropriate geometry with the shader applied correctly
+(only one detail layer is used across the model), showcasing burnt edges:</p>
+<a class="reference internal image-reference" href="../../../_images/rendinst_vcolor_layered_32.jpg"><img alt="../../../_images/rendinst_vcolor_layered_32.jpg" class="align-center" src="../../../_images/rendinst_vcolor_layered_32.jpg" style="width: 50%;" />
+</a>
+<br>
+<p>Most of the stages were painted in separate layers:</p>
+<ul class="simple">
+<li><p>Global application of Detail2.</p></li>
+<li><p>Global application of Detail3.</p></li>
+<li><p>Detail3 applied to the burnt corner.</p></li>
+<li><p>Overlay for fabric folds.</p></li>
+<li><p>Overlay for a dirty tarp top.</p></li>
+<li><p>Overlay for individual spots.</p></li>
+<li><p>Overlay for the burnt corner.</p></li>
+</ul>
+</section>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p>This shader is well-suited for:</p>
+<ul class="simple">
+<li><p>Various types of fabric that don’t require fine details (not suitable for
+clothing).</p></li>
+<li><p>Stones, where you can highlight sharp edges (similar to a cavity effect) and
+darken the rest.</p></li>
+<li><p>Props without sharp details, like clay vases. However, it’s less applicable in
+such cases because this shader works best with a dense mesh. Otherwise, it
+will only affect large areas.</p></li>
+<li><p>For props, it’s usually cheaper to create a unique texture or use the
+<a class="reference internal" href="rendinst_mask_layered.html"><span class="std std-doc">rendinst_mask_layered</span></a> shader instead.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_tree_perlin_layered.html" class="btn btn-neutral float-left" title="rendinst_tree_perlin_layered" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../../dagor-tools/index.html" class="btn btn-neutral float-right" title="Dagor Tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

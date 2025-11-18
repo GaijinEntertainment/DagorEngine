@@ -1,0 +1,454 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorMat" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorMat</compoundname>
+    <derivedcompoundref refid="classDagorMat" prot="public" virt="non-virtual">DagorMat</derivedcompoundref>
+    <derivedcompoundref refid="classDagorMat2" prot="public" virt="non-virtual">DagorMat2</derivedcompoundref>
+    <includes refid="mater_8h" local="no">mater.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" prot="public" static="no" strong="yes">
+        <type>int</type>
+        <name>Sides</name>
+        <qualifiedname>IDagorMat::Sides</qualifiedname>
+        <enumvalue id="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aa81797e9c6fc44586202026bb6aaefe8c" prot="public">
+          <name>OneSided</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aa54c65daef485e12e23c450d276053134" prot="public">
+          <name>DoubleSided</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aadaa5aa0f34789eda3a5dff2920e7c8d0" prot="public">
+          <name>RealDoubleSided</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="9" column="3" bodyfile="mater.h" bodystart="10" bodyend="14"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorMat_1a87ba4f21930b96625725ef197be7f358" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>Color</type>
+        <definition>virtual Color IDagorMat::get_amb</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_amb</name>
+        <qualifiedname>IDagorMat::get_amb</qualifiedname>
+        <reimplementedby refid="classDagorMat_1afafa3e8427698a5863ef6fd060f31205">get_amb</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1ad6d9f06c69fa4c44bed5990e5fc6b387">get_amb</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="16" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a619315422c7471fc3865590e4f288d48" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>Color</type>
+        <definition>virtual Color IDagorMat::get_diff</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_diff</name>
+        <qualifiedname>IDagorMat::get_diff</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a497bc94efaf7eeb36266d3bfe30a7612">get_diff</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a7e3b03c3cd8af52727f7d723c4308c4a">get_diff</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="17" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a7bd1940bef3e2436cf26e447e1cbf693" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>Color</type>
+        <definition>virtual Color IDagorMat::get_spec</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_spec</name>
+        <qualifiedname>IDagorMat::get_spec</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a1cd31bb29fad1b9c1f662033077abb70">get_spec</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a518669749745530343e41b892722352c">get_spec</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="18" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a1b3ec43de86ca25d121b61b2ec38d7e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>Color</type>
+        <definition>virtual Color IDagorMat::get_emis</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_emis</name>
+        <qualifiedname>IDagorMat::get_emis</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a9886739820ce3dfaa4f5156a030ebc83">get_emis</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a2bb0ecdac9caddf514e11a037787d33f">get_emis</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="19" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a915c33b5c5b998e4cb05bebb3770543f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>float</type>
+        <definition>virtual float IDagorMat::get_power</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_power</name>
+        <qualifiedname>IDagorMat::get_power</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a506eb18e202c96dd694a15941f982de6">get_power</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1ae1b1c94cea547493eacafffc180be428">get_power</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="20" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a8d93be97a06dcd377a24e9fa47055d13" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">Sides</ref></type>
+        <definition>virtual Sides IDagorMat::get_2sided</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_2sided</name>
+        <qualifiedname>IDagorMat::get_2sided</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a346c257de2b7113669a09099cce0aeba">get_2sided</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a4cb3673dd89a538d9e3670fd83e7cdab">get_2sided</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="21" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a41d2a95db7399aa0a504416e5a300c65" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const TCHAR *</type>
+        <definition>virtual const TCHAR * IDagorMat::get_classname</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_classname</name>
+        <qualifiedname>IDagorMat::get_classname</qualifiedname>
+        <reimplementedby refid="classDagorMat_1af503d8876b8f77c68ea3f22749808152">get_classname</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1ab33906e7fe4adc8ab45a15522ce4e0df">get_classname</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="22" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1ac93f0f9f28724d6ab4ddc83319888a88" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const TCHAR *</type>
+        <definition>virtual const TCHAR * IDagorMat::get_script</definition>
+        <argsstring>()=0</argsstring>
+        <name>get_script</name>
+        <qualifiedname>IDagorMat::get_script</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a72c5b8edc734dc2e23efcacc0ace8c73">get_script</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a4b7d13dc60fc655f0290a510760b0865">get_script</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="23" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a26c96873fd833ac5cee96482b6f99383" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const TCHAR *</type>
+        <definition>virtual const TCHAR * IDagorMat::get_texname</definition>
+        <argsstring>(int)=0</argsstring>
+        <name>get_texname</name>
+        <qualifiedname>IDagorMat::get_texname</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a855f95e06a9a631571fe626da62432e6">get_texname</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a5b9aa523f4caa348c86767fe786ac2cd">get_texname</reimplementedby>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="24" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a527d73c3c814c58c7edb159889577f1d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>float</type>
+        <definition>virtual float IDagorMat::get_param</definition>
+        <argsstring>(int)=0</argsstring>
+        <name>get_param</name>
+        <qualifiedname>IDagorMat::get_param</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a93ea0471f0705589af18a6a4cf407727">get_param</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1ac6214fe55a9c772ef7c438507ddc7bcd">get_param</reimplementedby>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="25" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a3d3d99ddfd74b9097aee8182d703aab5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_amb</definition>
+        <argsstring>(Color)=0</argsstring>
+        <name>set_amb</name>
+        <qualifiedname>IDagorMat::set_amb</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a9a5416f6e0a1a0d3d317682d796faf9c">set_amb</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1aace4025d7627a7ae43714cfba7cafb80">set_amb</reimplementedby>
+        <param>
+          <type>Color</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="27" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1acd05e9a7c199e6ca8e12f8479ae733c4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_diff</definition>
+        <argsstring>(Color)=0</argsstring>
+        <name>set_diff</name>
+        <qualifiedname>IDagorMat::set_diff</qualifiedname>
+        <reimplementedby refid="classDagorMat_1ad243355376e35c60f65460d4a690e6a9">set_diff</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a980f7596d3feb481d5e26d01fc759b2b">set_diff</reimplementedby>
+        <param>
+          <type>Color</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="28" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a12f0adb00b6c0862ab4d004f196c54bd" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_spec</definition>
+        <argsstring>(Color)=0</argsstring>
+        <name>set_spec</name>
+        <qualifiedname>IDagorMat::set_spec</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a6237a49ee641c5857785fef0f23ac9dd">set_spec</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1aabc6a1cbf52709dcb15a31c635985dc8">set_spec</reimplementedby>
+        <param>
+          <type>Color</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="29" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1aa80fad171c33a42412edb879d64b5528" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_emis</definition>
+        <argsstring>(Color)=0</argsstring>
+        <name>set_emis</name>
+        <qualifiedname>IDagorMat::set_emis</qualifiedname>
+        <reimplementedby refid="classDagorMat_1ac7e3e13a7322864556646f3359faf1f5">set_emis</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1affbf7c043304f6b77624d033194c50ce">set_emis</reimplementedby>
+        <param>
+          <type>Color</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="30" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1ac2fc4570c8981f75760921925db1b6e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_power</definition>
+        <argsstring>(float)=0</argsstring>
+        <name>set_power</name>
+        <qualifiedname>IDagorMat::set_power</qualifiedname>
+        <reimplementedby refid="classDagorMat_1ad9877aa9a6b7dd77cc851c4477eca5f0">set_power</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1ababfcafbc94f3acc1aa5fdfae1e28948">set_power</reimplementedby>
+        <param>
+          <type>float</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="31" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1ab9a123a1bfa48a9c034865411fddf1e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_2sided</definition>
+        <argsstring>(Sides)=0</argsstring>
+        <name>set_2sided</name>
+        <qualifiedname>IDagorMat::set_2sided</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a232a5e93c184d6ec2942f0fe363f3c33">set_2sided</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1ae3d735a539de2b412406aa8eadb83a51">set_2sided</reimplementedby>
+        <param>
+          <type><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">Sides</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="32" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_classname</definition>
+        <argsstring>(const TCHAR *)=0</argsstring>
+        <name>set_classname</name>
+        <qualifiedname>IDagorMat::set_classname</qualifiedname>
+        <reimplementedby refid="classDagorMat_1ab91a17e1822bc6cdf0f1b979c22d4bd8">set_classname</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1acb78ed22fd158af9e903046c3138d771">set_classname</reimplementedby>
+        <param>
+          <type>const TCHAR *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="33" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1ab727afb93e454029978bcec8bbb6f893" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_script</definition>
+        <argsstring>(const TCHAR *)=0</argsstring>
+        <name>set_script</name>
+        <qualifiedname>IDagorMat::set_script</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a542673506f621ac4b91e8af39e6c7aa5">set_script</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a080256ad1c0a2a07927b432110618810">set_script</reimplementedby>
+        <param>
+          <type>const TCHAR *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="34" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a7295ecd78b9f54d0991dc3b689edb989" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_texname</definition>
+        <argsstring>(int, const TCHAR *)=0</argsstring>
+        <name>set_texname</name>
+        <qualifiedname>IDagorMat::set_texname</qualifiedname>
+        <reimplementedby refid="classDagorMat_1a016b7395c53e2d29ca06ba63104ebde2">set_texname</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1aa518f0cea4024a0c2559ef5d5d671c12">set_texname</reimplementedby>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="35" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat_1a4b4604f7c5f2687a2b949f205d221ef8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat::set_param</definition>
+        <argsstring>(int, float)=0</argsstring>
+        <name>set_param</name>
+        <qualifiedname>IDagorMat::set_param</qualifiedname>
+        <reimplementedby refid="classDagorMat_1aada0ee3846e50d9bec06fe447655bca7">set_param</reimplementedby>
+        <reimplementedby refid="classDagorMat2_1a64d536dd70add1b22cbf4a1d913da8f3">set_param</reimplementedby>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>float</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="36" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DagorMat</label>
+        <link refid="classDagorMat"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+    </inheritancegraph>
+    <location file="mater.h" line="6" column="1" bodyfile="mater.h" bodystart="7" bodyend="37"/>
+    <listofallmembers>
+      <member refid="classIDagorMat_1a8d93be97a06dcd377a24e9fa47055d13" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_2sided</name></member>
+      <member refid="classIDagorMat_1a87ba4f21930b96625725ef197be7f358" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_amb</name></member>
+      <member refid="classIDagorMat_1a41d2a95db7399aa0a504416e5a300c65" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_classname</name></member>
+      <member refid="classIDagorMat_1a619315422c7471fc3865590e4f288d48" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_diff</name></member>
+      <member refid="classIDagorMat_1a1b3ec43de86ca25d121b61b2ec38d7e4" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_emis</name></member>
+      <member refid="classIDagorMat_1a527d73c3c814c58c7edb159889577f1d" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_param</name></member>
+      <member refid="classIDagorMat_1a915c33b5c5b998e4cb05bebb3770543f" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_power</name></member>
+      <member refid="classIDagorMat_1ac93f0f9f28724d6ab4ddc83319888a88" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_script</name></member>
+      <member refid="classIDagorMat_1a7bd1940bef3e2436cf26e447e1cbf693" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_spec</name></member>
+      <member refid="classIDagorMat_1a26c96873fd833ac5cee96482b6f99383" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>get_texname</name></member>
+      <member refid="classIDagorMat_1ab9a123a1bfa48a9c034865411fddf1e2" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_2sided</name></member>
+      <member refid="classIDagorMat_1a3d3d99ddfd74b9097aee8182d703aab5" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_amb</name></member>
+      <member refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_classname</name></member>
+      <member refid="classIDagorMat_1acd05e9a7c199e6ca8e12f8479ae733c4" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_diff</name></member>
+      <member refid="classIDagorMat_1aa80fad171c33a42412edb879d64b5528" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_emis</name></member>
+      <member refid="classIDagorMat_1a4b4604f7c5f2687a2b949f205d221ef8" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_param</name></member>
+      <member refid="classIDagorMat_1ac2fc4570c8981f75760921925db1b6e1" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_power</name></member>
+      <member refid="classIDagorMat_1ab727afb93e454029978bcec8bbb6f893" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_script</name></member>
+      <member refid="classIDagorMat_1a12f0adb00b6c0862ab4d004f196c54bd" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_spec</name></member>
+      <member refid="classIDagorMat_1a7295ecd78b9f54d0991dc3b689edb989" prot="public" virt="pure-virtual"><scope>IDagorMat</scope><name>set_texname</name></member>
+      <member refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" prot="public" virt="non-virtual"><scope>IDagorMat</scope><name>Sides</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

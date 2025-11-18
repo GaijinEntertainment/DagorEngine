@@ -1,0 +1,1205 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverCapabilitiesXboxOne" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesXboxOne</compoundname>
+    <basecompoundref refid="structDeviceDriverCapabilitiesBase" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesScarlett" prot="public" virt="non-virtual">DeviceDriverCapabilitiesScarlett</derivedcompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a9ce3dc6b5c6f7843121793181dec8d97" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasAnisotropicFilter</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ae16465605571449cdaa401557c4730fc" kindref="member">DeviceDriverCapabilitiesBase::hasAnisotropicFilter</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1029" column="25" bodyfile="dag_consts.h" bodystart="1029" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1afcc1f61cc30550e509e1f1a4da5b3752" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasDepthReadOnly</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1aa0f3c5d16e0868323a12940250cd1a39" kindref="member">DeviceDriverCapabilitiesBase::hasDepthReadOnly</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1031" column="25" bodyfile="dag_consts.h" bodystart="1031" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a9a002b084d20df93b445df1b51b1ea13" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasStructuredBuffers</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a20407785ef1e8f4efde8f5f5ba093569" kindref="member">DeviceDriverCapabilitiesBase::hasStructuredBuffers</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1033" column="25" bodyfile="dag_consts.h" bodystart="1033" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1af19ef5e0b525cf53b29bae505eaa2961" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasNoOverwriteOnShaderResourceBuffers</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ac092d99b3a894db094a2c80af9e33ca8" kindref="member">DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1035" column="25" bodyfile="dag_consts.h" bodystart="1035" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a39c40ea7dd7027c5f0a61c96396e105b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasForcedSamplerCount</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abdaed640d68bcbc1b926f133d9d2465a" kindref="member">DeviceDriverCapabilitiesBase::hasForcedSamplerCount</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1037" column="25" bodyfile="dag_consts.h" bodystart="1037" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a6871773ade641bd56a2f49ed6888cc32" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasVolMipMap</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a97d97eed28fac297ea5042de79ea48a5" kindref="member">DeviceDriverCapabilitiesBase::hasVolMipMap</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1039" column="25" bodyfile="dag_consts.h" bodystart="1039" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a7e7fa9e8496bcba688ccaa658b3d0dbc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasAsyncCompute</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCompute</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasAsyncCompute</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae421f36c3e5e3382c12c9189b6ebc0b0" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCompute</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1042" column="25" bodyfile="dag_consts.h" bodystart="1042" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a9178ca3c562641ec23fd91953dfa45c8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasOcclusionQuery</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a7717801667587b0dc2e2744030722791" kindref="member">DeviceDriverCapabilitiesBase::hasOcclusionQuery</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1044" column="25" bodyfile="dag_consts.h" bodystart="1044" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a552899220b81d14b8b4f236152e1621b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasConstBufferOffset</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a5c94dd02ee82ff737873cdd9f9404be0" kindref="member">DeviceDriverCapabilitiesBase::hasConstBufferOffset</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1046" column="25" bodyfile="dag_consts.h" bodystart="1046" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ab1627e9e2fac0dc4441a77b1d904c4c1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasDepthBoundsTest</definition>
+        <argsstring></argsstring>
+        <name>hasDepthBoundsTest</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasDepthBoundsTest</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1abda4bbbdebdb5c18b289e9053895e193" kindref="member">DeviceDriverCapabilitiesBase::hasDepthBoundsTest</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1048" column="25" bodyfile="dag_consts.h" bodystart="1048" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1abcc1e7bd7b5281ad01216d5d89df2ecd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasConditionalRender</definition>
+        <argsstring></argsstring>
+        <name>hasConditionalRender</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasConditionalRender</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1afe2a9e7878afb130d24e36d28f7355d6" kindref="member">DeviceDriverCapabilitiesBase::hasConditionalRender</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1050" column="25" bodyfile="dag_consts.h" bodystart="1050" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a3b60caa529b25f0ff4ad867dc24a97a7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasResourceCopyConversion</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a45e3ac7640df3354d5baef8e7fa1c4c7" kindref="member">DeviceDriverCapabilitiesBase::hasResourceCopyConversion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1052" column="25" bodyfile="dag_consts.h" bodystart="1052" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a8d0ce92d424a7ffebf1961a594675da7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasAsyncCopy</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1054" column="25" bodyfile="dag_consts.h" bodystart="1054" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ab34a85f89354d18ad9352c0726c7ac9f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasReadMultisampledDepth</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1acf749555446d427feee38076de754d83" kindref="member">DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1056" column="25" bodyfile="dag_consts.h" bodystart="1056" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a48b7aaf419403d02e3e6b3b69dc3666b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasInstanceID</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasInstanceID</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a2ca9ae722f66c5f6f0c3b76cd0424c07" kindref="member">DeviceDriverCapabilitiesBase::hasInstanceID</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1058" column="25" bodyfile="dag_consts.h" bodystart="1058" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ae02333b6c1a3305a17821dece093e42a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasConservativeRassterization</definition>
+        <argsstring></argsstring>
+        <name>hasConservativeRassterization</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasConservativeRassterization</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a903377bb582a3da6b2b8c276d6cbc463" kindref="member">DeviceDriverCapabilitiesBase::hasConservativeRassterization</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1060" column="25" bodyfile="dag_consts.h" bodystart="1060" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a7115ba02564a80d4fc579624f43cc6f5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasQuadTessellation</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a3cdee766ed89fafff0f7804eaa4c2ab1" kindref="member">DeviceDriverCapabilitiesBase::hasQuadTessellation</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1062" column="25" bodyfile="dag_consts.h" bodystart="1062" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1af0030b226fd1c2e8e31d16bd554abb2d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasGather4</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a575b7ccfb7413bbb1246e526bc2608ab" kindref="member">DeviceDriverCapabilitiesBase::hasGather4</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1064" column="25" bodyfile="dag_consts.h" bodystart="1064" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a800ae5a85caa1b980b8432f73f88c41c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasAlphaCoverage</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1066" column="25" bodyfile="dag_consts.h" bodystart="1066" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a1dbe9faea3f23264539f54dd7a70afd1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasWellSupportedIndirect</definition>
+        <argsstring></argsstring>
+        <name>hasWellSupportedIndirect</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasWellSupportedIndirect</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ac087fa09d2db1f17bff24b8fa09ccb64" kindref="member">DeviceDriverCapabilitiesBase::hasWellSupportedIndirect</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1068" column="25" bodyfile="dag_consts.h" bodystart="1068" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ac5851a351917ea9f184f0076cb17b0e2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasBindless</definition>
+        <argsstring></argsstring>
+        <name>hasBindless</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasBindless</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ad952e7b7a5b7b522dceed7748323a9cf" kindref="member">DeviceDriverCapabilitiesBase::hasBindless</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1070" column="25" bodyfile="dag_consts.h" bodystart="1070" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a8bab442b4f8aa9dce130f1f4f0097488" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasNVApi</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a70f1d993da596178f563efe1b9d1a0d3" kindref="member">DeviceDriverCapabilitiesBase::hasNVApi</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1072" column="25" bodyfile="dag_consts.h" bodystart="1072" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1afae6fe55b9251c6d3dd48774586cfd6f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasATIApi</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a7ecec7232a1c179b81acf6a1837ca525" kindref="member">DeviceDriverCapabilitiesBase::hasATIApi</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1074" column="25" bodyfile="dag_consts.h" bodystart="1074" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a2e394de334621bbfe10e62a0f0287005" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasVariableRateShading</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1076" column="25" bodyfile="dag_consts.h" bodystart="1076" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1adb1a998dd30efe1d7b4240a4a3edfe39" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingTexture</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1078" column="25" bodyfile="dag_consts.h" bodystart="1078" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a9de9ea23e8503d6864cc8e25a2f2ece1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingShaderOutput</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1080" column="25" bodyfile="dag_consts.h" bodystart="1080" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a0240403a170b15b31bdbda9f047e46d3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingCombiners</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1082" column="25" bodyfile="dag_consts.h" bodystart="1082" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a6af3ec466d8af4fa958728584464776a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasVariableRateShadingBy4</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a435cca220d7b33031869f4bf83e3c212" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1084" column="25" bodyfile="dag_consts.h" bodystart="1084" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a3d6d2fc68790337e9b364a23a63fabb9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasStreamOutput</definition>
+        <argsstring></argsstring>
+        <name>hasStreamOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasStreamOutput</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a80623316c230f4bcd411685bfa56dacd" kindref="member">DeviceDriverCapabilitiesBase::hasStreamOutput</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1086" column="25" bodyfile="dag_consts.h" bodystart="1086" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a40f5edf5157e9f8e9ed4ca585b77d3c2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasAliasedTextures</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a047263b73dcac68b784f2640c9c6e6c8" kindref="member">DeviceDriverCapabilitiesBase::hasAliasedTextures</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1088" column="25" bodyfile="dag_consts.h" bodystart="1088" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a1dede033271d1fd7621bb2f7100961ae" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>hasResourceHeaps</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasResourceHeaps</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a43f7898db5a17c29a9acb8767d66353c" kindref="member">DeviceDriverCapabilitiesBase::hasResourceHeaps</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1090" column="25" bodyfile="dag_consts.h" bodystart="1090" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a3d5291006feb552b0617da270a295b7b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasBufferOverlapCopy</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ae5831194a86c0c053c638a41ae7e51c0" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1092" column="25" bodyfile="dag_consts.h" bodystart="1092" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ab7887ef093d6701ccc46f19717afff49" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasBufferOverlapRegionsCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a98747b0ded147a7dd1d42851c0e813bf" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1094" column="25" bodyfile="dag_consts.h" bodystart="1094" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1aa2ecee3c865ce60dc910f02d096f3d19" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasUAVOnlyForcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnlyForcedSampleCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasUAVOnlyForcedSampleCount</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5d1ae04840c96746888e1c476d4544e4" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1096" column="25" bodyfile="dag_consts.h" bodystart="1096" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a9ceb79c44fa580e19cf9bdd5b76d5f95" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasShader64BitIntegerResources</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1098" column="25" bodyfile="dag_consts.h" bodystart="1098" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a80f147ccf9f6cd1277e615585b1eeed0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasNativeRenderPassSubPasses</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a088d0cfbb513e08dd419ae745e40640b" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1100" column="25" bodyfile="dag_consts.h" bodystart="1100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a1713d7ef06c03285a2a0ed60bc6ae58f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasTiled2DResources</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a1256aefcb50fe90f33131b96e4ab8604" kindref="member">DeviceDriverCapabilitiesBase::hasTiled2DResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1102" column="25" bodyfile="dag_consts.h" bodystart="1102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a59b60b89df9e95a87c4dac5c97abd39f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasTiled3DResources</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ad941e8c9ddcc176912cdaf700baacedc" kindref="member">DeviceDriverCapabilitiesBase::hasTiled3DResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1104" column="25" bodyfile="dag_consts.h" bodystart="1104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a264d1ef090ee49d02c3cd1300759144b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasTiledSafeResourcesAccess</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a35c0a7730631d8d76e0a6c743c013687" kindref="member">DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1106" column="25" bodyfile="dag_consts.h" bodystart="1106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a082a59eca49d3d823883a0024d4e8cf6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasTiledMemoryAliasing</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1af2bdf1eeee49a8ce966d270d0cda8912" kindref="member">DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1108" column="25" bodyfile="dag_consts.h" bodystart="1108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1aafb6654db9496cf8b0a6f00c5a244182" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasDLSS</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5b72be5df4ac92123cb5fdadc8c5fd26" kindref="member">DeviceDriverCapabilitiesBase::hasDLSS</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1110" column="25" bodyfile="dag_consts.h" bodystart="1110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a90d935461bcc62ab1ec08548705d9213" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasXESS</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a85f03c7770a69873ee823471624e2eb0" kindref="member">DeviceDriverCapabilitiesBase::hasXESS</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1112" column="25" bodyfile="dag_consts.h" bodystart="1112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a099f2644eabfef183376c4ccce39683a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasDrawID</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ac55b9335193037fe5418fe78360b6007" kindref="member">DeviceDriverCapabilitiesBase::hasDrawID</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1114" column="25" bodyfile="dag_consts.h" bodystart="1114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a0a72eb1d6ad0becef9d8d602a3294562" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasMeshShader</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1116" column="25" bodyfile="dag_consts.h" bodystart="1116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ad45c7f0dd1a4260f2706107970f12380" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasBasicViewInstancing</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a502c6dc246d193bbc994f965b66557be" kindref="member">DeviceDriverCapabilitiesBase::hasBasicViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1118" column="25" bodyfile="dag_consts.h" bodystart="1118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a0fe109b3e9b52a769f1223c240b55167" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasOptimizedViewInstancing</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a823d60c14bb74e8026a6f1f6cc86add4" kindref="member">DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1120" column="25" bodyfile="dag_consts.h" bodystart="1120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1aa17d398209582c8d2dc5f00ecbe34406" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasAcceleratedViewInstancing</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a77ded90a2500a44d0a83d80ce2098067" kindref="member">DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1122" column="25" bodyfile="dag_consts.h" bodystart="1122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a83d7470e920036436c83b8a48fd816b5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasRenderPassDepthResolve</definition>
+        <argsstring></argsstring>
+        <name>hasRenderPassDepthResolve</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasRenderPassDepthResolve</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ab44fea56b8cf5eb698c3b63b3b5b25ab" kindref="member">DeviceDriverCapabilitiesBase::hasRenderPassDepthResolve</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1124" column="25" bodyfile="dag_consts.h" bodystart="1124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a315460480b54d78c3621c2703964b266" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasStereoExpansion</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1126" column="25" bodyfile="dag_consts.h" bodystart="1126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1afe4ec335dab22528a7de442f2185b8f7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasTileBasedArchitecture</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a77e1bec0aeab74ee052cd9e631c8a5eb" kindref="member">DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1128" column="25" bodyfile="dag_consts.h" bodystart="1128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a34dd6301b1c266eab1d77a1c4237280c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasLazyMemory</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a1714da16235832e261182e86645e3e33" kindref="member">DeviceDriverCapabilitiesBase::hasLazyMemory</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1130" column="25" bodyfile="dag_consts.h" bodystart="1130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1afb6caf5d0408dd04b5dc34be69f70060" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasIndirectSupport</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a337e032527346eef4e0b46025419c508" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectSupport</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1132" column="25" bodyfile="dag_consts.h" bodystart="1132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ab55d0fb7cdba1c0eb49a8962ae9844ae" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasCompareSampler</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a351b50cc43e2279a4a7ccde48e885d90" kindref="member">DeviceDriverCapabilitiesBase::hasCompareSampler</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1134" column="25" bodyfile="dag_consts.h" bodystart="1134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1aabcaa244eb911bd3e2ad0c0eb80dc2ef" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasShaderFloat16Support</definition>
+        <argsstring></argsstring>
+        <name>hasShaderFloat16Support</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasShaderFloat16Support</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a7588b357693368f73ca7b1c8c3a2fe2c" kindref="member">DeviceDriverCapabilitiesBase::hasShaderFloat16Support</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1136" column="25" bodyfile="dag_consts.h" bodystart="1136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a9d72228df1c5ce473478cacee97e4211" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasUAVOnEveryStage</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnEveryStage</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasUAVOnEveryStage</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1aa3d398f37cc15f74274507f0bf19e4a6" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnEveryStage</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1138" column="25" bodyfile="dag_consts.h" bodystart="1138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a7201071bdcd26949b0afa45a2b298368" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasRayAccelerationStructure</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" kindref="member">DeviceDriverCapabilitiesBase::hasRayAccelerationStructure</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1140" column="25" bodyfile="dag_consts.h" bodystart="1140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a2fa2334786660daa8541a1d11d94f758" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasRayQuery</definition>
+        <argsstring></argsstring>
+        <name>hasRayQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasRayQuery</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae925b799a026c8c5845bf5e5b10cc3c7" kindref="member">DeviceDriverCapabilitiesBase::hasRayQuery</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1142" column="25" bodyfile="dag_consts.h" bodystart="1142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a82fb8e9c54d51338f24169bcd23a01d7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a8897412ad54b5e792d30b5b13df45e48" kindref="member">DeviceDriverCapabilitiesBase::hasRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1144" column="25" bodyfile="dag_consts.h" bodystart="1144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1acb1be43fdd1f7f5d88eaf8c89152e634" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasIndirectRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasIndirectRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a63c165f96d513681e2fe122901b9b29c" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1146" column="25" bodyfile="dag_consts.h" bodystart="1146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a08c5baca1cc03c2b1cb0978848dfa418" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasEmulatedRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasEmulatedRaytracing</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasEmulatedRaytracing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a10ea248bb571bbd8677237f662877f79" kindref="member">DeviceDriverCapabilitiesBase::hasEmulatedRaytracing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1148" column="25" bodyfile="dag_consts.h" bodystart="1148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1ab00309fd06ad1d34a1f7324c29491a54" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasGeometryIndexInRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasGeometryIndexInRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasGeometryIndexInRayAccelerationStructure</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a466ed11695907ffdb48bbede3b80cc38" kindref="member">DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1150" column="25" bodyfile="dag_consts.h" bodystart="1150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a619a3c708b2eef492e9f1c2b9f35c9ed" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasSkipPrimitiveTypeInRayTracingShaders</definition>
+        <argsstring></argsstring>
+        <name>hasSkipPrimitiveTypeInRayTracingShaders</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasSkipPrimitiveTypeInRayTracingShaders</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a16cd5a96afd2c679e04d854619cdd189" kindref="member">DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1152" column="25" bodyfile="dag_consts.h" bodystart="1152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a33f283008113b63e45f9a8c5bb4fc92c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasBaseVertexSupport</definition>
+        <argsstring></argsstring>
+        <name>hasBaseVertexSupport</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasBaseVertexSupport</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a2ad251d9ab91c67940961cc658de268d" kindref="member">DeviceDriverCapabilitiesBase::hasBaseVertexSupport</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1154" column="25" bodyfile="dag_consts.h" bodystart="1154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a2145672453439f4b4c09627742526bec" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::castingFullyTypedFormatsSupported</definition>
+        <argsstring></argsstring>
+        <name>castingFullyTypedFormatsSupported</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::castingFullyTypedFormatsSupported</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abf96cd9a616dde8f7f438bebaa99e0dc" kindref="member">DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1156" column="25" bodyfile="dag_consts.h" bodystart="1156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a3f8da10d660245259408913da571e4ef" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasNativeRayTracePipelineExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRayTracePipelineExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasNativeRayTracePipelineExpansion</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ac174acf81286aa4aa23a94972a785c35" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1158" column="25" bodyfile="dag_consts.h" bodystart="1158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1a25db62dfcc111b47f3b9ad6cb641f804" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasWaveOps</definition>
+        <argsstring></argsstring>
+        <name>hasWaveOps</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasWaveOps</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a446ec37dfad1d989b6cc6e999fdac555" kindref="member">DeviceDriverCapabilitiesBase::hasWaveOps</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1160" column="25" bodyfile="dag_consts.h" bodystart="1160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1aeaafaa157c18fa9e20c5331c462b134b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasPersistentShaderHandles</definition>
+        <argsstring></argsstring>
+        <name>hasPersistentShaderHandles</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasPersistentShaderHandles</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a652988c1f8556fb13029d4e187c0bfb9" kindref="member">DeviceDriverCapabilitiesBase::hasPersistentShaderHandles</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1162" column="25" bodyfile="dag_consts.h" bodystart="1162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesXboxOne_1afc1b3e6602933a46423067d0b5ea831c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesXboxOne::hasDualSourceBlending</definition>
+        <argsstring></argsstring>
+        <name>hasDualSourceBlending</name>
+        <qualifiedname>DeviceDriverCapabilitiesXboxOne::hasDualSourceBlending</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a442fe87d834a1c836ba3ea5c4cc908fd" kindref="member">DeviceDriverCapabilitiesBase::hasDualSourceBlending</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1164" column="25" bodyfile="dag_consts.h" bodystart="1164" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \xbone. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesScarlett</label>
+        <link refid="structDeviceDriverCapabilitiesScarlett"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesXboxOne</label>
+        <link refid="structDeviceDriverCapabilitiesXboxOne"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesXboxOne</label>
+        <link refid="structDeviceDriverCapabilitiesXboxOne"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="1026" column="1" bodyfile="dag_consts.h" bodystart="1027" bodyend="1165"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a2145672453439f4b4c09627742526bec" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>castingFullyTypedFormatsSupported</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1aa17d398209582c8d2dc5f00ecbe34406" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a40f5edf5157e9f8e9ed4ca585b77d3c2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasAliasedTextures</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a800ae5a85caa1b980b8432f73f88c41c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasAlphaCoverage</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a9ce3dc6b5c6f7843121793181dec8d97" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a7e7fa9e8496bcba688ccaa658b3d0dbc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasAsyncCompute</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a8d0ce92d424a7ffebf1961a594675da7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasAsyncCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1afae6fe55b9251c6d3dd48774586cfd6f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasATIApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a33f283008113b63e45f9a8c5bb4fc92c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasBaseVertexSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ad45c7f0dd1a4260f2706107970f12380" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ac5851a351917ea9f184f0076cb17b0e2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasBindless</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a3d5291006feb552b0617da270a295b7b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ab7887ef093d6701ccc46f19717afff49" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ab55d0fb7cdba1c0eb49a8962ae9844ae" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasCompareSampler</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1abcc1e7bd7b5281ad01216d5d89df2ecd" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasConditionalRender</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ae02333b6c1a3305a17821dece093e42a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasConservativeRassterization</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a552899220b81d14b8b4f236152e1621b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasConstBufferOffset</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ab1627e9e2fac0dc4441a77b1d904c4c1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1afcc1f61cc30550e509e1f1a4da5b3752" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasDepthReadOnly</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1aafb6654db9496cf8b0a6f00c5a244182" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasDLSS</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a099f2644eabfef183376c4ccce39683a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasDrawID</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1afc1b3e6602933a46423067d0b5ea831c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasDualSourceBlending</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a08c5baca1cc03c2b1cb0978848dfa418" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasEmulatedRaytracing</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a39c40ea7dd7027c5f0a61c96396e105b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1af0030b226fd1c2e8e31d16bd554abb2d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasGather4</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ab00309fd06ad1d34a1f7324c29491a54" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasGeometryIndexInRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1acb1be43fdd1f7f5d88eaf8c89152e634" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasIndirectRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1afb6caf5d0408dd04b5dc34be69f70060" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasIndirectSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a48b7aaf419403d02e3e6b3b69dc3666b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasInstanceID</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a34dd6301b1c266eab1d77a1c4237280c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasLazyMemory</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a0a72eb1d6ad0becef9d8d602a3294562" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasMeshShader</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a3f8da10d660245259408913da571e4ef" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasNativeRayTracePipelineExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a80f147ccf9f6cd1277e615585b1eeed0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1af19ef5e0b525cf53b29bae505eaa2961" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a8bab442b4f8aa9dce130f1f4f0097488" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasNVApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a9178ca3c562641ec23fd91953dfa45c8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasOcclusionQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a0fe109b3e9b52a769f1223c240b55167" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1aeaafaa157c18fa9e20c5331c462b134b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasPersistentShaderHandles</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a7115ba02564a80d4fc579624f43cc6f5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasQuadTessellation</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a7201071bdcd26949b0afa45a2b298368" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a82fb8e9c54d51338f24169bcd23a01d7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a2fa2334786660daa8541a1d11d94f758" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasRayQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1ab34a85f89354d18ad9352c0726c7ac9f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a83d7470e920036436c83b8a48fd816b5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a3b60caa529b25f0ff4ad867dc24a97a7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a1dede033271d1fd7621bb2f7100961ae" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasResourceHeaps</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a9ceb79c44fa580e19cf9bdd5b76d5f95" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1aabcaa244eb911bd3e2ad0c0eb80dc2ef" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a619a3c708b2eef492e9f1c2b9f35c9ed" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasSkipPrimitiveTypeInRayTracingShaders</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a315460480b54d78c3621c2703964b266" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasStereoExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a3d6d2fc68790337e9b364a23a63fabb9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasStreamOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a9a002b084d20df93b445df1b51b1ea13" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasStructuredBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1afe4ec335dab22528a7de442f2185b8f7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a1713d7ef06c03285a2a0ed60bc6ae58f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasTiled2DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a59b60b89df9e95a87c4dac5c97abd39f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasTiled3DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a082a59eca49d3d823883a0024d4e8cf6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a264d1ef090ee49d02c3cd1300759144b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a9d72228df1c5ce473478cacee97e4211" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasUAVOnEveryStage</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1aa2ecee3c865ce60dc910f02d096f3d19" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a2e394de334621bbfe10e62a0f0287005" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasVariableRateShading</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a6af3ec466d8af4fa958728584464776a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a0240403a170b15b31bdbda9f047e46d3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a9de9ea23e8503d6864cc8e25a2f2ece1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1adb1a998dd30efe1d7b4240a4a3edfe39" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a6871773ade641bd56a2f49ed6888cc32" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasVolMipMap</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a25db62dfcc111b47f3b9ad6cb641f804" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasWaveOps</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a1dbe9faea3f23264539f54dd7a70afd1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="structDeviceDriverCapabilitiesXboxOne_1a90d935461bcc62ab1ec08548705d9213" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesXboxOne</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

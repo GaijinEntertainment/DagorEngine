@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdetail_1_1MdArrayIndex" kind="struct" language="C++" prot="public">
+    <compoundname>detail::MdArrayIndex</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">carray&lt; uint32_t, Rank &gt;</basecompoundref>
+    <includes refid="mdArray_8h" local="no">mdArray.h</includes>
+    <templateparamlist>
+      <param>
+        <type>uint32_t</type>
+        <declname>Rank</declname>
+        <defname>Rank</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structdetail_1_1MdArrayIndex_1ad4f1572fbb6762390cb3bf6dc0a7052b" prot="public" static="no">
+        <type>carray&lt; uint32_t, Rank &gt;</type>
+        <definition>using detail::MdArrayIndex&lt; Rank &gt;::BaseType =  carray&lt;uint32_t, Rank&gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>detail::MdArrayIndex::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="28" column="3" bodyfile="mdArray.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structdetail_1_1MdArrayIndex_1a582f02af49dad6fc83ed17dd4958e6e6" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t detail::MdArrayIndex&lt; Rank &gt;::rank</definition>
+        <argsstring>() const</argsstring>
+        <name>rank</name>
+        <qualifiedname>detail::MdArrayIndex::rank</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="30" column="22" bodyfile="mdArray.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+    <requiresclause>(Rank &gt;= 1)    </requiresclause>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>carray&lt; uint32_t, Rank &gt;</label>
+      </node>
+      <node id="1">
+        <label>detail::MdArrayIndex&lt; Rank &gt;</label>
+        <link refid="structdetail_1_1MdArrayIndex"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>carray&lt; uint32_t, Rank &gt;</label>
+      </node>
+      <node id="1">
+        <label>detail::MdArrayIndex&lt; Rank &gt;</label>
+        <link refid="structdetail_1_1MdArrayIndex"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mdArray.h" line="26" column="1" bodyfile="mdArray.h" bodystart="27" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structdetail_1_1MdArrayIndex_1ad4f1572fbb6762390cb3bf6dc0a7052b" prot="public" virt="non-virtual"><scope>detail::MdArrayIndex</scope><name>BaseType</name></member>
+      <member refid="structdetail_1_1MdArrayIndex_1a582f02af49dad6fc83ed17dd4958e6e6" prot="public" virt="non-virtual"><scope>detail::MdArrayIndex</scope><name>rank</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

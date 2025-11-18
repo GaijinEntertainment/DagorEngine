@@ -1,0 +1,606 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceddsx" kind="namespace" language="C++">
+    <compoundname>ddsx</compoundname>
+    <innerclass refid="structddsx_1_1DDSxDataPublicHdr" prot="public">ddsx::DDSxDataPublicHdr</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceddsx_1ac406ae908f31c34ee290b51a6212cdaa" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>ddsx</qualifiedname>
+        <enumvalue id="namespaceddsx_1ac406ae908f31c34ee290b51a6212cdaaab6502fee0d28cda9a769315fdfc85770" prot="public">
+          <name>TPRC_LOADED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceddsx_1ac406ae908f31c34ee290b51a6212cdaaab7b8bcf74430e011b837d761057c9d0e" prot="public">
+          <name>TPRC_UNLOADED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceddsx_1ac406ae908f31c34ee290b51a6212cdaaa474ba3726add33f2896350bdb57befca" prot="public">
+          <name>TPRC_ADDREF</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceddsx_1ac406ae908f31c34ee290b51a6212cdaaafc90fd7f95f93ac5169cffccb607e94c" prot="public">
+          <name>TPRC_DELREF</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceddsx_1ac406ae908f31c34ee290b51a6212cdaaa2160e7852bb9685e6d7e371bbdc63474" prot="public">
+          <name>TPRC_NOTFOUND</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="11" column="1" bodyfile="dag_texPackMgr2.h" bodystart="12" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceddsx_1a93026d7db2b63fc1fdcbeaf12b319c76" prot="public" static="no" strong="no">
+        <type>int</type>
+        <name>StreamingMode</name>
+        <qualifiedname>ddsx::StreamingMode</qualifiedname>
+        <enumvalue id="namespaceddsx_1a93026d7db2b63fc1fdcbeaf12b319c76aafb3c49f08347d5ff18f6de2b515a479" prot="public">
+          <name>MultiDecoders</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceddsx_1a93026d7db2b63fc1fdcbeaf12b319c76adb137f02aa86042c026ca920f8f007a9" prot="public">
+          <name>BackgroundSerial</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>streaming modes: boosted load with multi-threaded decoders, usual load with serial decoder </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="84" column="1" bodyfile="dag_texPackMgr2.h" bodystart="85" bodyend="88"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceddsx_1a270a14c2358704391e39aba54d660f14" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ddsx::hq_tex_priority</definition>
+        <argsstring></argsstring>
+        <name>hq_tex_priority</name>
+        <qualifiedname>ddsx::hq_tex_priority</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>default (quasi-constant) priority used for HQ-part loading; =0 by default (means not streaming) should be set at startup and remain constant for the rest of app life; requires corresponding ddsx::tex_pack2_perform_delayed_data_loading(ddsx::hq_tex_priority) call somewhere (for best results, call it from thread after main location load is complete) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="101" column="12" declfile="dag_texPackMgr2.h" declline="101" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceddsx_1adfe5104a13dd59f1b4de5e0bb6dee135" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ddsx::load_tex_pack2</definition>
+        <argsstring>(const char *pack_path, int *ret_code=NULL, bool can_override_tex=false)</argsstring>
+        <name>load_tex_pack2</name>
+        <qualifiedname>ddsx::load_tex_pack2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>pack_path</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>ret_code</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>can_override_tex</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>loads (or increments ref count if already loaded) DDSx-Pack2 by name </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="21" column="6" declfile="dag_texPackMgr2.h" declline="21" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a27f384fe230a69b1d99756ada1f8cded" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ddsx::release_tex_pack2</definition>
+        <argsstring>(const char *pack_path, int *ret_code=NULL)</argsstring>
+        <name>release_tex_pack2</name>
+        <qualifiedname>ddsx::release_tex_pack2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>pack_path</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>ret_code</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+<para>decrements ref count (and unloads when ref count reaches zero) DDSx-Pack2 by name </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="24" column="6" declfile="dag_texPackMgr2.h" declline="24" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1ae94b0a8d79ff7895a7effdadc8a5a738" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ddsx::tex_pack2_perform_delayed_data_loading</definition>
+        <argsstring>(int prio=0)</argsstring>
+        <name>tex_pack2_perform_delayed_data_loading</name>
+        <qualifiedname>ddsx::tex_pack2_perform_delayed_data_loading</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>prio</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+<para>performs delayed texture data loading for requested textures; return true when anything loaded </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="27" column="6" declfile="dag_texPackMgr2.h" declline="27" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1aa10ee3ce16c573243addaf5e5e920bcb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::tex_pack2_perform_delayed_data_loading_async</definition>
+        <argsstring>(int prio, int jobmgr_id, bool add_job_first, int max_job_in_flight=2)</argsstring>
+        <name>tex_pack2_perform_delayed_data_loading_async</name>
+        <qualifiedname>ddsx::tex_pack2_perform_delayed_data_loading_async</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>prio</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>jobmgr_id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>add_job_first</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_job_in_flight</declname>
+          <defval>2</defval>
+        </param>
+        <briefdescription>
+<para>adds job to perform delayed texture data loading for requested textures; </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="30" column="6" declfile="dag_texPackMgr2.h" declline="30" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a5d11c3e4e948ec1bd072075f321c64a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ddsx::cease_delayed_data_loading</definition>
+        <argsstring>(int prio=0)</argsstring>
+        <name>cease_delayed_data_loading</name>
+        <qualifiedname>ddsx::cease_delayed_data_loading</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>prio</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>remotely cease loading inside <ref refid="namespaceddsx_1ae94b0a8d79ff7895a7effdadc8a5a738" kindref="member">tex_pack2_perform_delayed_data_loading()</ref> (e.g., that was called in another thread) operation is rather safe since in restores rest of textures as pending and raises flag to load them later </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="34" column="6" declfile="dag_texPackMgr2.h" declline="34" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1ae3f3c269855b456cb5b4de131a027c04" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::set_tex_pack_async_loading_allowed</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>set_tex_pack_async_loading_allowed</name>
+        <qualifiedname>ddsx::set_tex_pack_async_loading_allowed</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+<para>intended for temporally stalling <computeroutput>reloadTex</computeroutput> thread within frame </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="37" column="6" declfile="dag_texPackMgr2.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1aec2acfb52f2efe9fcd9e00b81e30eaab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ddsx::interrupt_texq_loading</definition>
+        <argsstring>()</argsstring>
+        <name>interrupt_texq_loading</name>
+        <qualifiedname>ddsx::interrupt_texq_loading</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>ceases loading inside tex_pack2_perform_delayed_data_loading and ensures that no loading jobs are running or waiting (finishing active, cancelling queued) returns true on success, false - otherwise (e.g. timeout if called from the main thread) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="42" column="6" declfile="dag_texPackMgr2.h" declline="42" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1aad05b5227a7a280412ae0d776f07115c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::restore_texq_loading</definition>
+        <argsstring>(bool was_interrupted)</argsstring>
+        <name>restore_texq_loading</name>
+        <qualifiedname>ddsx::restore_texq_loading</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>was_interrupted</declname>
+        </param>
+        <briefdescription>
+<para>restores loading, should be called with the result of <ref refid="namespaceddsx_1aec2acfb52f2efe9fcd9e00b81e30eaab" kindref="member">interrupt_texq_loading()</ref> in the first argument </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="44" column="6" declfile="dag_texPackMgr2.h" declline="44" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1af2dfa28b956ef8dd9ec04c0f460cbfc6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ddsx::read_ddsx_contents</definition>
+        <argsstring>(const char *tex_name, Tab&lt; char &gt; &amp;out_data, DDSxDataPublicHdr &amp;out_desc)</argsstring>
+        <name>read_ddsx_contents</name>
+        <qualifiedname>ddsx::read_ddsx_contents</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <param>
+          <type>Tab&lt; char &gt; &amp;</type>
+          <declname>out_data</declname>
+        </param>
+        <param>
+          <type><ref refid="structddsx_1_1DDSxDataPublicHdr" kindref="compound">DDSxDataPublicHdr</ref> &amp;</type>
+          <declname>out_desc</declname>
+        </param>
+        <briefdescription>
+<para>reads and unpacks DDSx data into buffer </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="73" column="6" declfile="dag_texPackMgr2.h" declline="73" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a941467cd02589e1ccfde464c079bb809" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ddsx::read_ddsx_header</definition>
+        <argsstring>(const char *tex_name, DDSxDataPublicHdr &amp;out_desc, bool full_quality=true, int tex_q=0)</argsstring>
+        <name>read_ddsx_header</name>
+        <qualifiedname>ddsx::read_ddsx_header</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <param>
+          <type><ref refid="structddsx_1_1DDSxDataPublicHdr" kindref="compound">DDSxDataPublicHdr</ref> &amp;</type>
+          <declname>out_desc</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>full_quality</declname>
+          <defval>true</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tex_q</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+<para>fills DDSx header for texture and returns memory size for it (or -1 when tex_name is not registered </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="76" column="5" declfile="dag_texPackMgr2.h" declline="76" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a2f7549295c864566a9676f55aba6f02d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ddsx::set_decoder_workers_count</definition>
+        <argsstring>(int wcnt)</argsstring>
+        <name>set_decoder_workers_count</name>
+        <qualifiedname>ddsx::set_decoder_workers_count</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>wcnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>sets number of threads to be used to decode DDSx during load, def=0 wcnt &lt;=0 means disabled returns previous workers count </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="81" column="5" declfile="dag_texPackMgr2.h" declline="81" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a3df4d7f098a663a95777a402ab87477e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceddsx_1a93026d7db2b63fc1fdcbeaf12b319c76" kindref="member">StreamingMode</ref></type>
+        <definition>StreamingMode ddsx::set_streaming_mode</definition>
+        <argsstring>(StreamingMode m)</argsstring>
+        <name>set_streaming_mode</name>
+        <qualifiedname>ddsx::set_streaming_mode</qualifiedname>
+        <param>
+          <type><ref refid="namespaceddsx_1a93026d7db2b63fc1fdcbeaf12b319c76" kindref="member">StreamingMode</ref></type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+<para>setup streaming mode; returns previous state </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="90" column="15" declfile="dag_texPackMgr2.h" declline="90" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a14dfee8586d32251d992a118bf6f689f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceddsx_1a93026d7db2b63fc1fdcbeaf12b319c76" kindref="member">StreamingMode</ref></type>
+        <definition>StreamingMode ddsx::get_streaming_mode</definition>
+        <argsstring>()</argsstring>
+        <name>get_streaming_mode</name>
+        <qualifiedname>ddsx::get_streaming_mode</qualifiedname>
+        <briefdescription>
+<para>returns current streaming mode </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="92" column="15" declfile="dag_texPackMgr2.h" declline="92" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a0ea4882575a47e3e7f851a503bc80358" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::dump_registered_tex_distribution</definition>
+        <argsstring>()</argsstring>
+        <name>dump_registered_tex_distribution</name>
+        <qualifiedname>ddsx::dump_registered_tex_distribution</qualifiedname>
+        <briefdescription>
+<para>dumps textures distribution (genMip, diffTex, singleMip, splitTex, other) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="95" column="6" declfile="dag_texPackMgr2.h" declline="95" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1aabb85790ec59d4ceded7d0aa59273d8d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::reload_active_textures</definition>
+        <argsstring>(int prio=0, bool interrupt=true)</argsstring>
+        <name>reload_active_textures</name>
+        <qualifiedname>ddsx::reload_active_textures</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>prio</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>interrupt</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>queue reloading of all currently referenced textures </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="104" column="6" declfile="dag_texPackMgr2.h" declline="104" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a9416dad786a40685015c842e05f12024" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::reset_lq_tex_list</definition>
+        <argsstring>()</argsstring>
+        <name>reset_lq_tex_list</name>
+        <qualifiedname>ddsx::reset_lq_tex_list</qualifiedname>
+        <briefdescription>
+<para>reset explicit textures list that shall be loaded as low quality </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="107" column="6" declfile="dag_texPackMgr2.h" declline="107" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a6aed3a1084994bc125fc1dd907816f95" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::add_texname_to_lq_tex_list</definition>
+        <argsstring>(TEXTUREID texId)</argsstring>
+        <name>add_texname_to_lq_tex_list</name>
+        <qualifiedname>ddsx::add_texname_to_lq_tex_list</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texId</declname>
+        </param>
+        <briefdescription>
+<para>adds texture name to explicit list that shall be loaded as low quality </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="110" column="6" declfile="dag_texPackMgr2.h" declline="110" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a83a9334da2cdd861f2f2e28656636d23" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::reset_mq_tex_list</definition>
+        <argsstring>()</argsstring>
+        <name>reset_mq_tex_list</name>
+        <qualifiedname>ddsx::reset_mq_tex_list</qualifiedname>
+        <briefdescription>
+<para>reset explicit textures list that shall be loaded as medium quality (when global tex-quality &gt;= medium) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="113" column="6" declfile="dag_texPackMgr2.h" declline="113" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a73839aa3cf9024335bf9a2d4bfcfb798" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::add_texname_to_mq_tex_list</definition>
+        <argsstring>(TEXTUREID texId)</argsstring>
+        <name>add_texname_to_mq_tex_list</name>
+        <qualifiedname>ddsx::add_texname_to_mq_tex_list</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texId</declname>
+        </param>
+        <briefdescription>
+<para>adds texture name to explicit list that shall be loaded as medium quality (when global tex-quality &gt;= medium) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="116" column="6" declfile="dag_texPackMgr2.h" declline="116" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a87c129bbc691ef4d1a0d563775175a7e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::init_ddsx_load_queue</definition>
+        <argsstring>(int qsz)</argsstring>
+        <name>init_ddsx_load_queue</name>
+        <qualifiedname>ddsx::init_ddsx_load_queue</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>qsz</declname>
+        </param>
+        <briefdescription>
+<para>initializes queue for separate DDSx loading </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="119" column="6" declfile="dag_texPackMgr2.h" declline="119" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1af7c2b9ff33d3468c92664179964970b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::term_ddsx_load_queue</definition>
+        <argsstring>()</argsstring>
+        <name>term_ddsx_load_queue</name>
+        <qualifiedname>ddsx::term_ddsx_load_queue</qualifiedname>
+        <briefdescription>
+<para>releases queue for separate DDSx loading </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="121" column="6" declfile="dag_texPackMgr2.h" declline="121" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a3c45dcaaa5fe7e682d10e5252bbb3273" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::enqueue_ddsx_load</definition>
+        <argsstring>(BaseTexture *t, TEXTUREID tid, const char *fn, int quality_id, TEXTUREID bt_tid=BAD_TEXTUREID)</argsstring>
+        <name>enqueue_ddsx_load</name>
+        <qualifiedname>ddsx::enqueue_ddsx_load</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>quality_id</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>bt_tid</declname>
+          <defval>BAD_TEXTUREID</defval>
+        </param>
+        <briefdescription>
+<para>enqueues loading of separate DDSx texture </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="123" column="6" declfile="dag_texPackMgr2.h" declline="123" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1a0262b0dfd0eafa3e6f70041e82b3f61a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::process_ddsx_load_queue</definition>
+        <argsstring>()</argsstring>
+        <name>process_ddsx_load_queue</name>
+        <qualifiedname>ddsx::process_ddsx_load_queue</qualifiedname>
+        <briefdescription>
+<para>process DDSx loading queue (also is called from <ref refid="namespaceddsx_1ae94b0a8d79ff7895a7effdadc8a5a738" kindref="member">tex_pack2_perform_delayed_data_loading()</ref> ) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="126" column="6" declfile="dag_texPackMgr2.h" declline="126" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceddsx_1affc73dbefc8d210c8b3d2aebff7871ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ddsx::shutdown_tex_pack2_data</definition>
+        <argsstring>()</argsstring>
+        <name>shutdown_tex_pack2_data</name>
+        <qualifiedname>ddsx::shutdown_tex_pack2_data</qualifiedname>
+        <briefdescription>
+<para>releases all data allocated for texture packs </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="129" column="6" declfile="dag_texPackMgr2.h" declline="129" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_buildOnDemandTexFactory.h" line="16" column="1"/>
+  </compounddef>
+</doxygen>

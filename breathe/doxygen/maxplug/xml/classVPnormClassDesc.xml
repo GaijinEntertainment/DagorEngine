@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classVPnormClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>VPnormClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classVPnormClassDesc_1ae3b55f5439f186eea77f882c7f500d96" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int VPnormClassDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>VPnormClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="134" column="7" bodyfile="vpconv.cpp" bodystart="134" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnormClassDesc_1a447515f589bf4915509e2d5a09ac0bcd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * VPnormClassDesc::Create</definition>
+        <argsstring>(BOOL loading) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>VPnormClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="135" column="8" bodyfile="vpconv.cpp" bodystart="135" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnormClassDesc_1afcd5211cc339ca5ca5e6fb0e902cd20f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPnormClassDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>VPnormClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="136" column="15" bodyfile="vpconv.cpp" bodystart="136" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnormClassDesc_1a4893b8dce349cc73b0ac891912d672b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * VPnormClassDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>VPnormClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="140" column="15" bodyfile="vpconv.cpp" bodystart="140" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnormClassDesc_1a74a847c735e51740a818ed6ba47266fd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID VPnormClassDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>VPnormClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="142" column="13" bodyfile="vpconv.cpp" bodystart="142" bodyend="142"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnormClassDesc_1ab9d0032ce6148573c43d1b5b1ee5cc8b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID VPnormClassDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>VPnormClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="143" column="12" bodyfile="vpconv.cpp" bodystart="143" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnormClassDesc_1a561094d960c1fdbadeace0b8f5eb6541" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPnormClassDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>VPnormClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="144" column="15" bodyfile="vpconv.cpp" bodystart="144" bodyend="144"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>VPnormClassDesc</label>
+        <link refid="classVPnormClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>VPnormClassDesc</label>
+        <link refid="classVPnormClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="vpconv.cpp" line="131" column="1" bodyfile="vpconv.cpp" bodystart="132" bodyend="145"/>
+    <listofallmembers>
+      <member refid="classVPnormClassDesc_1a561094d960c1fdbadeace0b8f5eb6541" prot="public" virt="non-virtual"><scope>VPnormClassDesc</scope><name>Category</name></member>
+      <member refid="classVPnormClassDesc_1ab9d0032ce6148573c43d1b5b1ee5cc8b" prot="public" virt="non-virtual"><scope>VPnormClassDesc</scope><name>ClassID</name></member>
+      <member refid="classVPnormClassDesc_1afcd5211cc339ca5ca5e6fb0e902cd20f" prot="public" virt="non-virtual"><scope>VPnormClassDesc</scope><name>ClassName</name></member>
+      <member refid="classVPnormClassDesc_1a447515f589bf4915509e2d5a09ac0bcd" prot="public" virt="non-virtual"><scope>VPnormClassDesc</scope><name>Create</name></member>
+      <member refid="classVPnormClassDesc_1ae3b55f5439f186eea77f882c7f500d96" prot="public" virt="non-virtual"><scope>VPnormClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classVPnormClassDesc_1a4893b8dce349cc73b0ac891912d672b0" prot="public" virt="non-virtual"><scope>VPnormClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classVPnormClassDesc_1a74a847c735e51740a818ed6ba47266fd" prot="public" virt="non-virtual"><scope>VPnormClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemicooked_1_1ShaderClassRecEx" kind="struct" language="C++" prot="public">
+    <compoundname>semicooked::ShaderClassRecEx</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderClassRecEx_1a637e5f42cc5bb783ca59f23f3c8dacbc" prot="public" static="no" mutable="no">
+        <type>shader_layout::ShaderClass</type>
+        <definition>shader_layout::ShaderClass semicooked::ShaderClassRecEx::shClass</definition>
+        <argsstring></argsstring>
+        <name>shClass</name>
+        <qualifiedname>semicooked::ShaderClassRecEx::shClass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="881" column="4" bodyfile="makeShBinDump.cpp" bodystart="881" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderClassRecEx_1aa8b8fd7860dab7b61da6435752dacda0" prot="public" static="no" mutable="no">
+        <type><ref refid="structsemicooked_1_1ShaderCodes" kindref="compound">ShaderCodes</ref></type>
+        <definition>ShaderCodes semicooked::ShaderClassRecEx::codes</definition>
+        <argsstring></argsstring>
+        <name>codes</name>
+        <qualifiedname>semicooked::ShaderClassRecEx::codes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="882" column="15" bodyfile="makeShBinDump.cpp" bodystart="882" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structsemicooked_1_1ShaderClassRecEx_1a2ec31498817879a693c9718aa97a5884" prot="public" static="yes" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt; int &gt; semicooked::ShaderClassRecEx::tmpCodeRemap</definition>
+        <argsstring></argsstring>
+        <name>tmpCodeRemap</name>
+        <qualifiedname>semicooked::ShaderClassRecEx::tmpCodeRemap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="884" column="14" bodyfile="makeShBinDump.cpp" bodystart="884" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemicooked_1_1ShaderClassRecEx_1a5633d61098cb551c4e9acd73ce7d35c8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void semicooked::ShaderClassRecEx::initShaderClass</definition>
+        <argsstring>(::ShaderClass &amp;sc, GatherNameMap &amp;shNameMap, Variants &amp;vt, Variables &amp;vars)</argsstring>
+        <name>initShaderClass</name>
+        <qualifiedname>semicooked::ShaderClassRecEx::initShaderClass</qualifiedname>
+        <param>
+          <type><ref refid="classShaderClass" kindref="compound">::ShaderClass</ref> &amp;</type>
+          <declname>sc</declname>
+        </param>
+        <param>
+          <type>GatherNameMap &amp;</type>
+          <declname>shNameMap</declname>
+        </param>
+        <param>
+          <type><ref refid="structsemicooked_1_1Variants" kindref="compound">Variants</ref> &amp;</type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type><ref refid="structsemicooked_1_1Variables" kindref="compound">Variables</ref> &amp;</type>
+          <declname>vars</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="855" column="8" bodyfile="makeShBinDump.cpp" bodystart="855" bodyend="873"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structsemicooked_1_1ShaderClassRecEx_1a135f890458e8155a9952222f9eea9480" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void semicooked::ShaderClassRecEx::clearTemp</definition>
+        <argsstring>()</argsstring>
+        <name>clearTemp</name>
+        <qualifiedname>semicooked::ShaderClassRecEx::clearTemp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="875" column="15" bodyfile="makeShBinDump.cpp" bodystart="875" bodyend="879"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>semicooked::ShaderClassRecEx</label>
+        <link refid="structsemicooked_1_1ShaderClassRecEx"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>codes</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>semicooked::ShaderCodes</label>
+        <link refid="structsemicooked_1_1ShaderCodes"/>
+      </node>
+    </collaborationgraph>
+    <location file="makeShBinDump.cpp" line="853" column="1" bodyfile="makeShBinDump.cpp" bodystart="854" bodyend="885"/>
+    <listofallmembers>
+      <member refid="structsemicooked_1_1ShaderClassRecEx_1a135f890458e8155a9952222f9eea9480" prot="public" virt="non-virtual"><scope>semicooked::ShaderClassRecEx</scope><name>clearTemp</name></member>
+      <member refid="structsemicooked_1_1ShaderClassRecEx_1aa8b8fd7860dab7b61da6435752dacda0" prot="public" virt="non-virtual"><scope>semicooked::ShaderClassRecEx</scope><name>codes</name></member>
+      <member refid="structsemicooked_1_1ShaderClassRecEx_1a5633d61098cb551c4e9acd73ce7d35c8" prot="public" virt="non-virtual"><scope>semicooked::ShaderClassRecEx</scope><name>initShaderClass</name></member>
+      <member refid="structsemicooked_1_1ShaderClassRecEx_1a637e5f42cc5bb783ca59f23f3c8dacbc" prot="public" virt="non-virtual"><scope>semicooked::ShaderClassRecEx</scope><name>shClass</name></member>
+      <member refid="structsemicooked_1_1ShaderClassRecEx_1a2ec31498817879a693c9718aa97a5884" prot="public" virt="non-virtual"><scope>semicooked::ShaderClassRecEx</scope><name>tmpCodeRemap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

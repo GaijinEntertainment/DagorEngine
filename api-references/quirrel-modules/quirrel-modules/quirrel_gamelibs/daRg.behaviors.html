@@ -1,0 +1,501 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daRg.behaviors</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="daRg.debug" href="daRg.debug.html" />
+    <link rel="prev" title="daRg" href="daRg.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Quirrel Modules Docs</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Quirrel Gamelibs Native Modules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="DataBlock.html">DataBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="base64.html">base64</a></li>
+<li class="toctree-l4"><a class="reference internal" href="browser.html">browser</a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvasAPI.html">canvasAPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="console.html">console</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daEditorEmbedded.html">daEditorEmbedded</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.html">daRg</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">daRg.behaviors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dacoll.trace.html">dacoll.trace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.clipboard.html">dagor.clipboard</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.debug.html">dagor.debug</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.folders.html">dagor.folders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.fs.html">dagor.fs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.fs.vrom.html">dagor.fs.vrom</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.http.html">dagor.http</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.iso8601.html">dagor.iso8601</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.localize.html">dagor.localize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.math.html">dagor.math</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.memtrace.html">dagor.memtrace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.perf.html">dagor.perf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.profiler.html">dagor.profiler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.random.html">dagor.random</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.shell.html">dagor.shell</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.system.html">dagor.system</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.system.file_handlers.html">dagor.system.file_handlers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.time.html">dagor.time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dagor.workcycle.html">dagor.workcycle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dainput2.html">dainput2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dasevents.html">dasevents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="datacache.html">datacache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecs.html">ecs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecs.netevent.html">ecs.netevent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entity_editor.html">entity_editor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eventbus.html">eventbus</a></li>
+<li class="toctree-l4"><a class="reference internal" href="executable.html">executable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="frp.html">frp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hash.html">hash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="json.html">json</a></li>
+<li class="toctree-l4"><a class="reference internal" href="jwt.html">jwt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="lastInputMonitor.html">lastInputMonitor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nestdb.html">nestdb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="net.html">net</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pathfinder.html">pathfinder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="platform.html">platform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="regexp2.html">regexp2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sound.html">sound</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statsd.html">statsd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sysinfo.html">sysinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utf8.html">utf8</a></li>
+<li class="toctree-l4"><a class="reference internal" href="win.registry.html">win.registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="yupfile_parse.html">yupfile_parse</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../quirrel_daECS/index.html">Quirrel ECS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../darg_framework/index.html">daRG Framework</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../tools/dargbox/index.html">dargbox Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGameLibs/index.html">daNetGameLibs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGame/index.html">daNetGame</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../soundSystem/index.html">soundSystem</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Quirrel Modules Docs</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Quirrel Gamelibs Native Modules</a></li>
+      <li class="breadcrumb-item active">daRg.behaviors</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/quirrel-modules/quirrel-modules/quirrel_gamelibs/daRg.behaviors.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="darg-behaviors">
+<h1>daRg.behaviors<a class="headerlink" href="#darg-behaviors" title="Link to this heading"></a></h1>
+<p>module ‘daRg.behaviors’</p>
+<p><em>Source files:</em></p>
+<p><em>prog/gameLibs/daRg/scriptBinding.cpp</em></p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">let</span> <span class="p">{</span> <span class="n">Button</span><span class="p">,</span> <span class="n">TextArea</span><span class="p">,</span> <span class="n">TextInput</span><span class="p">,</span> <span class="n">Slider</span><span class="p">,</span> <span class="n">Pannable</span><span class="p">,</span> <span class="n">Pannable2touch</span><span class="p">,</span> <span class="n">SwipeScroll</span><span class="p">,</span> <span class="n">MoveResize</span><span class="p">,</span> <span class="n">ComboPopup</span><span class="p">,</span> <span class="n">SmoothScrollStack</span><span class="p">,</span> <span class="n">Marquee</span><span class="p">,</span> <span class="n">WheelScroll</span><span class="p">,</span> <span class="n">ScrollEvent</span><span class="p">,</span> <span class="n">InspectPicker</span><span class="p">,</span> <span class="n">RtPropUpdate</span><span class="p">,</span> <span class="n">RecalcHandler</span><span class="p">,</span> <span class="n">DragAndDrop</span><span class="p">,</span> <span class="n">FpsBar</span><span class="p">,</span> <span class="n">LatencyBar</span><span class="p">,</span> <span class="n">OverlayTransparency</span><span class="p">,</span> <span class="n">BoundToArea</span><span class="p">,</span> <span class="n">Movie</span><span class="p">,</span> <span class="n">Parallax</span><span class="p">,</span> <span class="n">PieMenu</span><span class="p">,</span> <span class="n">TransitionSize</span><span class="p">,</span> <span class="n">TrackMouse</span><span class="p">,</span> <span class="n">MoveToArea</span><span class="p">,</span> <span class="n">ProcessPointingInput</span><span class="p">,</span> <span class="n">ProcessGesture</span><span class="p">,</span> <span class="n">EatInput</span><span class="p">,</span> <span class="n">TextAreaEdit</span> <span class="p">}</span> <span class="o">=</span> <span class="n">require</span><span class="p">(</span><span class="s2">&quot;daRg.behaviors&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="s2">&quot;daRg.behaviors&quot;</span> <span class="kn">import</span><span class="w"> </span><span class="o">*</span>
+</pre></div>
+</div>
+<div class="highlight-sq notranslate"><div class="highlight"><pre><span></span><span class="c1">//&#39;daRg.behaviors&#39; exports:</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Button</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">TextArea</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">TextInput</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Slider</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Pannable</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Pannable2touch</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">SwipeScroll</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MoveResize</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ComboPopup</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">SmoothScrollStack</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Marquee</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">WheelScroll</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ScrollEvent</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">InspectPicker</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">RtPropUpdate</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">RecalcHandler</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">DragAndDrop</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">FpsBar</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">LatencyBar</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">OverlayTransparency</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">BoundToArea</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Movie</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">Parallax</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">PieMenu</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">TransitionSize</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">TrackMouse</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">MoveToArea</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ProcessPointingInput</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ProcessGesture</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">EatInput</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">TextAreaEdit</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Button">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Button</span></span><a class="headerlink" href="#const Button" title="Link to this definition"></a></dt>
+<dd><p>uses following Properties:</p>
+</dd></dl>
+
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">onClick</span><span class="p">:</span> <span class="n">function</span><span class="p">([</span><span class="n">elem</span><span class="p">])</span>
+<span class="n">onDoubleClick</span><span class="p">:</span> <span class="n">function</span><span class="p">([</span><span class="n">elem</span><span class="p">])</span>
+<span class="n">rumble</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">//</span><span class="n">do</span> <span class="n">rumble</span> <span class="n">on</span> <span class="n">gamepad</span>
+</pre></div>
+</div>
+<p>“onClick” and “onDoubleClick” callbacks for “Button” behavior is called with optional pseudotable ‘elem’</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">elem</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="n">button</span><span class="p">:</span> <span class="n">integer</span> <span class="o">//</span><span class="n">mouse</span> <span class="n">button</span>
+  <span class="n">screenX</span><span class="p">:</span> <span class="n">integer</span>
+  <span class="n">screenY</span><span class="p">:</span> <span class="n">integer</span>
+  <span class="n">target</span><span class="p">:</span> <span class="n">ElemRef</span>
+  <span class="n">devId</span><span class="p">:</span> <span class="n">integer</span>
+  <span class="n">shiftKey</span><span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">ctrlKey</span><span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">altKey</span><span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">targetRect</span><span class="p">:</span> <span class="p">{</span><span class="n">l</span><span class="p">:</span><span class="n">integer</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span><span class="n">integer</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span><span class="n">integer</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span><span class="n">integer</span><span class="p">}</span> <span class="o">//</span><span class="n">left</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">bottom</span> <span class="ow">in</span> <span class="n">pixels</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const TextArea">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">TextArea</span></span><a class="headerlink" href="#const TextArea" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>works only with <cite>rendObj = ROBJ_TEXTAREA</cite></p>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Properties</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-Properties notranslate"><div class="highlight"><pre><span></span><span class="na">text</span><span class="o">:</span><span class="w"> </span><span class="s">string</span>
+<span class="na">textOverflowY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">TOVERFLOW_LINE // TOVERFLOW_CLIP, TOVERFLOW_CHAR, TOVERFLOW_WORD</span>
+<span class="na">textOverflowX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">TOVERFLOW_CHAR // TOVERFLOW_CLIP, TOVERFLOW_CHAR, TOVERFLOW_WORD</span>
+<span class="na">ellipsis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<span class="na">ellipsisSepLine</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+</pre></div>
+</div>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const TextInput">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">TextInput</span></span><a class="headerlink" href="#const TextInput" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Slider">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Slider</span></span><a class="headerlink" href="#const Slider" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Pannable">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Pannable</span></span><a class="headerlink" href="#const Pannable" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Pannable2touch">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Pannable2touch</span></span><a class="headerlink" href="#const Pannable2touch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SwipeScroll">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">SwipeScroll</span></span><a class="headerlink" href="#const SwipeScroll" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MoveResize">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MoveResize</span></span><a class="headerlink" href="#const MoveResize" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ComboPopup">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ComboPopup</span></span><a class="headerlink" href="#const ComboPopup" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const SmoothScrollStack">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">SmoothScrollStack</span></span><a class="headerlink" href="#const SmoothScrollStack" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Marquee">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Marquee</span></span><a class="headerlink" href="#const Marquee" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Properties:</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">loop</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span>
+<span class="n">orientation</span><span class="p">:</span> <span class="n">O_HORIZONTAL</span> <span class="ow">or</span> <span class="n">O_VERTICAL</span>
+<span class="n">scrollOnHover</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="n">speed</span><span class="p">:</span> <span class="nb">float</span> <span class="ow">or</span> <span class="p">[</span><span class="n">speed</span> <span class="n">x</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">speed</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">],</span> <span class="n">should</span> <span class="n">be</span> <span class="o">&gt;</span> <span class="mi">0</span>
+<span class="n">delay</span> <span class="p">:</span> <span class="nb">float</span> <span class="ow">or</span> <span class="p">[</span><span class="n">initial</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fadeout</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const WheelScroll">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">WheelScroll</span></span><a class="headerlink" href="#const WheelScroll" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">Properties:</span><a class="headerlink" href="#id4" title="Link to this code"></a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wheelStep</span><span class="p">:</span><span class="n">integer</span> <span class="o">|</span> <span class="nb">float</span>
+<span class="n">onWheelScroll</span><span class="p">:</span> <span class="n">function</span><span class="p">(</span><span class="n">scrollAmount</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ScrollEvent">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ScrollEvent</span></span><a class="headerlink" href="#const ScrollEvent" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">Properties:</span><a class="headerlink" href="#id5" title="Link to this code"></a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">onScroll</span><span class="p">:</span> <span class="n">function</span><span class="p">(</span><span class="n">elementRef</span><span class="p">)</span> <span class="ow">or</span> <span class="n">function</span><span class="p">(</span><span class="n">scrollOffs</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">scrollOffs</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">contentSize</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">contentSize</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">size</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">size</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const InspectPicker">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">InspectPicker</span></span><a class="headerlink" href="#const InspectPicker" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const RtPropUpdate">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">RtPropUpdate</span></span><a class="headerlink" href="#const RtPropUpdate" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const RecalcHandler">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">RecalcHandler</span></span><a class="headerlink" href="#const RecalcHandler" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const DragAndDrop">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">DragAndDrop</span></span><a class="headerlink" href="#const DragAndDrop" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const FpsBar">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">FpsBar</span></span><a class="headerlink" href="#const FpsBar" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const LatencyBar">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">LatencyBar</span></span><a class="headerlink" href="#const LatencyBar" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const OverlayTransparency">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">OverlayTransparency</span></span><a class="headerlink" href="#const OverlayTransparency" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const BoundToArea">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">BoundToArea</span></span><a class="headerlink" href="#const BoundToArea" title="Link to this definition"></a></dt>
+<dd><p>Place object inside an area (like placing tooltip under cursor BUT inside screen)</p>
+</dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Movie">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Movie</span></span><a class="headerlink" href="#const Movie" title="Link to this definition"></a></dt>
+<dd><p>fields in component description:</p>
+</dd></dl>
+
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">fields</span><a class="headerlink" href="#id6" title="Link to this code"></a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">movie</span><span class="p">:</span><span class="n">string</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">path</span> <span class="n">to</span> <span class="n">movie</span> <span class="n">file</span> <span class="ow">in</span> <span class="o">.</span><span class="n">ivf</span> <span class="n">file</span> <span class="nb">format</span><span class="o">&gt;</span>
+<span class="n">loop</span><span class="p">:</span><span class="n">boolean</span> <span class="o">=</span> <span class="n">default</span> <span class="n">true</span><span class="o">.</span> <span class="n">Should</span> <span class="n">video</span> <span class="n">be</span> <span class="n">looped</span>
+<span class="n">sound</span><span class="p">:</span><span class="n">string</span> <span class="o">=</span> <span class="n">path</span> <span class="n">to</span> <span class="o">.</span><span class="n">mp3</span> <span class="n">sound</span> <span class="n">file</span><span class="o">.</span> <span class="n">By</span> <span class="n">default</span> <span class="n">movie</span> <span class="n">file</span> <span class="k">with</span> <span class="o">.</span><span class="n">mp3</span> <span class="n">added</span> <span class="p">(</span><span class="n">like</span> <span class="s2">&quot;&lt;video_file_name_with_ext&gt;.mp3&quot;</span><span class="o">.</span><span class="p">)</span><span class="o">.</span>
+<span class="n">enableSound</span><span class="p">:</span><span class="n">boolean</span> <span class="o">=</span> <span class="n">default</span> <span class="n">true</span><span class="o">.</span> <span class="n">Will</span> <span class="n">play</span> <span class="n">sound</span> <span class="k">if</span> <span class="n">sound</span> <span class="n">track</span> <span class="n">exists</span><span class="o">.</span> <span class="n">Note</span><span class="p">:</span> <span class="n">sound</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">synced</span> <span class="k">with</span> <span class="n">video</span><span class="o">.</span>
+<span class="n">onStart</span><span class="p">:</span> <span class="n">function</span>  <span class="o">=</span> <span class="n">optional</span> <span class="n">callback</span><span class="p">,</span> <span class="n">called</span> <span class="n">when</span> <span class="n">movie</span> <span class="n">started</span>
+<span class="n">onError</span><span class="p">:</span> <span class="n">function</span> <span class="o">=</span> <span class="n">optional</span> <span class="n">callback</span><span class="p">,</span> <span class="n">called</span> <span class="n">when</span> <span class="n">playback</span> <span class="n">failed</span> <span class="n">to</span> <span class="n">start</span>
+<span class="n">onFinish</span><span class="p">:</span> <span class="n">function</span> <span class="o">=</span> <span class="n">optional</span> <span class="n">callback</span><span class="p">,</span> <span class="n">called</span> <span class="n">when</span> <span class="n">movie</span> <span class="n">finished</span><span class="o">/</span><span class="n">terminated</span> <span class="p">(</span><span class="n">can</span> <span class="n">be</span> <span class="n">used</span> <span class="n">to</span> <span class="n">remove</span> <span class="n">it</span> <span class="kn">from</span><span class="w"> </span><span class="nn">layout</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note: sound is played only for one-shot video.</p>
+</div>
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const Parallax">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">Parallax</span></span><a class="headerlink" href="#const Parallax" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const PieMenu">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">PieMenu</span></span><a class="headerlink" href="#const PieMenu" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const TransitionSize">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">TransitionSize</span></span><a class="headerlink" href="#const TransitionSize" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const TrackMouse">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">TrackMouse</span></span><a class="headerlink" href="#const TrackMouse" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const MoveToArea">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">MoveToArea</span></span><a class="headerlink" href="#const MoveToArea" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ProcessPointingInput">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ProcessPointingInput</span></span><a class="headerlink" href="#const ProcessPointingInput" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const ProcessGesture">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">ProcessGesture</span></span><a class="headerlink" href="#const ProcessGesture" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const EatInput">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">EatInput</span></span><a class="headerlink" href="#const EatInput" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="sq attribute">
+<dt class="sig sig-object sq" id="const TextAreaEdit">
+<span class="sig-name descname"><span class="pre">const</span> <span class="pre">TextAreaEdit</span></span><a class="headerlink" href="#const TextAreaEdit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="daRg.html" class="btn btn-neutral float-left" title="daRg" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daRg.debug.html" class="btn btn-neutral float-right" title="daRg.debug" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

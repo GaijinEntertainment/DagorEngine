@@ -1,0 +1,326 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPostFxRenderer" kind="class" language="C++" prot="public">
+    <compoundname>PostFxRenderer</compoundname>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classPostFxRenderer_1ac027cd8c63322d4671e462002802d67d" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderMaterial&gt; PostFxRenderer::shmat</definition>
+        <argsstring></argsstring>
+        <name>shmat</name>
+        <qualifiedname>PostFxRenderer::shmat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="37" column="7" bodyfile="dag_postFxRenderer.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPostFxRenderer_1af9d6d21dd4fa7a4ddd339043ae1603d4" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; PostFxRenderer::shElem</definition>
+        <argsstring></argsstring>
+        <name>shElem</name>
+        <qualifiedname>PostFxRenderer::shElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="38" column="7" bodyfile="dag_postFxRenderer.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPostFxRenderer_1aeab84a7156a11669c9fe63b8b2104d87" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PostFxRenderer::PostFxRenderer</definition>
+        <argsstring>()</argsstring>
+        <name>PostFxRenderer</name>
+        <qualifiedname>PostFxRenderer::PostFxRenderer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="17" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1af642a66da3dd71930de0202a2b8c287f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PostFxRenderer::~PostFxRenderer</definition>
+        <argsstring>()</argsstring>
+        <name>~PostFxRenderer</name>
+        <qualifiedname>PostFxRenderer::~PostFxRenderer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="18" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1aa567db307d2e0d126c7dfa00bbd3dfdc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PostFxRenderer::PostFxRenderer</definition>
+        <argsstring>(PostFxRenderer &amp;&amp;other)</argsstring>
+        <name>PostFxRenderer</name>
+        <qualifiedname>PostFxRenderer::PostFxRenderer</qualifiedname>
+        <param>
+          <type><ref refid="classPostFxRenderer" kindref="compound">PostFxRenderer</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="19" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a2cd380302ebe20fb2547d263b9012ba7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PostFxRenderer::PostFxRenderer</definition>
+        <argsstring>(const PostFxRenderer &amp;other)</argsstring>
+        <name>PostFxRenderer</name>
+        <qualifiedname>PostFxRenderer::PostFxRenderer</qualifiedname>
+        <param>
+          <type>const <ref refid="classPostFxRenderer" kindref="compound">PostFxRenderer</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="20" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1ade5e9f0d96de58367c78fd903f3fa654" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classPostFxRenderer" kindref="compound">PostFxRenderer</ref> &amp;</type>
+        <definition>PostFxRenderer &amp; PostFxRenderer::operator=</definition>
+        <argsstring>(PostFxRenderer &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>PostFxRenderer::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classPostFxRenderer" kindref="compound">PostFxRenderer</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="21" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a41273f9c0ac327f1152aa4f3a4d3e341" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classPostFxRenderer" kindref="compound">PostFxRenderer</ref> &amp;</type>
+        <definition>PostFxRenderer &amp; PostFxRenderer::operator=</definition>
+        <argsstring>(const PostFxRenderer &amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>PostFxRenderer::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classPostFxRenderer" kindref="compound">PostFxRenderer</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="22" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a8c39ee70f634f6e6817012b09feb4fcc" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PostFxRenderer::PostFxRenderer</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>PostFxRenderer</name>
+        <qualifiedname>PostFxRenderer::PostFxRenderer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="23" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a1e99066e57196cac573be7cd4f3ac9cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PostFxRenderer::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>PostFxRenderer::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="25" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1aa54b670c44d320c53e70a1dcbba6b54e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PostFxRenderer::init</definition>
+        <argsstring>(const char *shader_name, bool is_optional=false)</argsstring>
+        <name>init</name>
+        <qualifiedname>PostFxRenderer::init</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_optional</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="26" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1ab107c8b8cb1b378f3bec004f6bbb0d50" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * PostFxRenderer::getMat</definition>
+        <argsstring>()</argsstring>
+        <name>getMat</name>
+        <qualifiedname>PostFxRenderer::getMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="29" column="18" bodyfile="dag_postFxRenderer.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a2dac0e93e6bd7c0f0fe7e6278f7c7988" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>ShaderElement * PostFxRenderer::getElem</definition>
+        <argsstring>()</argsstring>
+        <name>getElem</name>
+        <qualifiedname>PostFxRenderer::getElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="30" column="17" bodyfile="dag_postFxRenderer.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a3ddbca0ba5b3539e6d9c74332be083a9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>const ShaderMaterial * PostFxRenderer::getMat</definition>
+        <argsstring>() const</argsstring>
+        <name>getMat</name>
+        <qualifiedname>PostFxRenderer::getMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="31" column="24" bodyfile="dag_postFxRenderer.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1ae9ba49b1ca15b90610ab2c10913942d2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>const ShaderElement * PostFxRenderer::getElem</definition>
+        <argsstring>() const</argsstring>
+        <name>getElem</name>
+        <qualifiedname>PostFxRenderer::getElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="32" column="23" bodyfile="dag_postFxRenderer.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a961dcf3d13e041cca87275644f879a39" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PostFxRenderer::render</definition>
+        <argsstring>() const</argsstring>
+        <name>render</name>
+        <qualifiedname>PostFxRenderer::render</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="34" column="8" bodyfile="dag_postFxRenderer.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classPostFxRenderer_1a20f0379e6c2db9aa829cd214df03d904" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PostFxRenderer::renderTiled</definition>
+        <argsstring>(int num_tiles) const</argsstring>
+        <name>renderTiled</name>
+        <qualifiedname>PostFxRenderer::renderTiled</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>num_tiles</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="35" column="8" bodyfile="dag_postFxRenderer.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classPostFxRenderer_1a9950d7680872712a119cafd1f44202a1" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PostFxRenderer::drawInternal</definition>
+        <argsstring>(int num_tiles) const</argsstring>
+        <name>drawInternal</name>
+        <qualifiedname>PostFxRenderer::drawInternal</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>num_tiles</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_postFxRenderer.h" line="40" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_postFxRenderer.h" line="14" column="1" bodyfile="dag_postFxRenderer.h" bodystart="15" bodyend="41"/>
+    <listofallmembers>
+      <member refid="classPostFxRenderer_1a1e99066e57196cac573be7cd4f3ac9cf" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>clear</name></member>
+      <member refid="classPostFxRenderer_1a9950d7680872712a119cafd1f44202a1" prot="protected" virt="non-virtual"><scope>PostFxRenderer</scope><name>drawInternal</name></member>
+      <member refid="classPostFxRenderer_1a2dac0e93e6bd7c0f0fe7e6278f7c7988" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>getElem</name></member>
+      <member refid="classPostFxRenderer_1ae9ba49b1ca15b90610ab2c10913942d2" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>getElem</name></member>
+      <member refid="classPostFxRenderer_1ab107c8b8cb1b378f3bec004f6bbb0d50" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>getMat</name></member>
+      <member refid="classPostFxRenderer_1a3ddbca0ba5b3539e6d9c74332be083a9" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>getMat</name></member>
+      <member refid="classPostFxRenderer_1aa54b670c44d320c53e70a1dcbba6b54e" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>init</name></member>
+      <member refid="classPostFxRenderer_1ade5e9f0d96de58367c78fd903f3fa654" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>operator=</name></member>
+      <member refid="classPostFxRenderer_1a41273f9c0ac327f1152aa4f3a4d3e341" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>operator=</name></member>
+      <member refid="classPostFxRenderer_1aeab84a7156a11669c9fe63b8b2104d87" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>PostFxRenderer</name></member>
+      <member refid="classPostFxRenderer_1aa567db307d2e0d126c7dfa00bbd3dfdc" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>PostFxRenderer</name></member>
+      <member refid="classPostFxRenderer_1a2cd380302ebe20fb2547d263b9012ba7" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>PostFxRenderer</name></member>
+      <member refid="classPostFxRenderer_1a8c39ee70f634f6e6817012b09feb4fcc" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>PostFxRenderer</name></member>
+      <member refid="classPostFxRenderer_1a961dcf3d13e041cca87275644f879a39" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>render</name></member>
+      <member refid="classPostFxRenderer_1a20f0379e6c2db9aa829cd214df03d904" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>renderTiled</name></member>
+      <member refid="classPostFxRenderer_1af9d6d21dd4fa7a4ddd339043ae1603d4" prot="protected" virt="non-virtual"><scope>PostFxRenderer</scope><name>shElem</name></member>
+      <member refid="classPostFxRenderer_1ac027cd8c63322d4671e462002802d67d" prot="protected" virt="non-virtual"><scope>PostFxRenderer</scope><name>shmat</name></member>
+      <member refid="classPostFxRenderer_1af642a66da3dd71930de0202a2b8c287f" prot="public" virt="non-virtual"><scope>PostFxRenderer</scope><name>~PostFxRenderer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

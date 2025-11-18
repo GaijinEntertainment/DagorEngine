@@ -1,0 +1,1122 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Heaps</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Driver Info API" href="Info.html" />
+    <link rel="prev" title="GPU Capture and Debug Tools" href="GPUCaptureAndDebugTools.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Heaps</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#callable-d3d-methods">Callable D3D:: Methods</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv434get_resource_allocation_propertiesRK19ResourceDescription"><code class="docutils literal notranslate"><span class="pre">get_resource_allocation_properties()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv420create_resource_heapP17ResourceHeapGroup6size_t23ResourceHeapCreateFlags"><code class="docutils literal notranslate"><span class="pre">create_resource_heap()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv421destroy_resource_heapP12ResourceHeap"><code class="docutils literal notranslate"><span class="pre">destroy_resource_heap()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv429place_buffer_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc"><code class="docutils literal notranslate"><span class="pre">place_buffer_in_resource_heap()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv430place_texture_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc"><code class="docutils literal notranslate"><span class="pre">place_texture_in_resource_heap()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv434get_resource_heap_group_propertiesP17ResourceHeapGroup"><code class="docutils literal notranslate"><span class="pre">get_resource_heap_group_properties()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv415activate_bufferP7Sbuffer24ResourceActivationAction11GpuPipeline"><code class="docutils literal notranslate"><span class="pre">activate_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv416activate_textureP11BaseTexture24ResourceActivationActionRK18ResourceClearValue11GpuPipeline"><code class="docutils literal notranslate"><span class="pre">activate_texture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv417deactivate_bufferP7Sbuffer11GpuPipeline"><code class="docutils literal notranslate"><span class="pre">deactivate_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv418deactivate_textureP11BaseTexture11GpuPipeline"><code class="docutils literal notranslate"><span class="pre">deactivate_texture()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv423ResourceHeapCreateFlags"><code class="docutils literal notranslate"><span class="pre">ResourceHeapCreateFlags</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv424ResourceActivationAction"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction27REWRITE_AS_COPY_DESTINATIONE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::REWRITE_AS_COPY_DESTINATION</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction14REWRITE_AS_UAVE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::REWRITE_AS_UAV</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction18REWRITE_AS_RTV_DSVE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::REWRITE_AS_RTV_DSV</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction14CLEAR_F_AS_UAVE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::CLEAR_F_AS_UAV</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction14CLEAR_I_AS_UAVE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::CLEAR_I_AS_UAV</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction16CLEAR_AS_RTV_DSVE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::CLEAR_AS_RTV_DSV</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction14DISCARD_AS_UAVE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::DISCARD_AS_UAV</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24ResourceActivationAction18DISCARD_AS_RTV_DSVE"><code class="docutils literal notranslate"><span class="pre">ResourceActivationAction::DISCARD_AS_RTV_DSV</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv422ResourceHeapCreateFlag"><code class="docutils literal notranslate"><span class="pre">ResourceHeapCreateFlag</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22ResourceHeapCreateFlag9RHCF_NONEE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapCreateFlag::RHCF_NONE</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22ResourceHeapCreateFlag28RHCF_REQUIRES_DEDICATED_HEAPE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapCreateFlag::RHCF_REQUIRES_DEDICATED_HEAP</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv424BasicResourceDescription"><code class="docutils literal notranslate"><span class="pre">BasicResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24BasicResourceDescription6cFlagsE"><code class="docutils literal notranslate"><span class="pre">BasicResourceDescription::cFlags</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24BasicResourceDescription10activationE"><code class="docutils literal notranslate"><span class="pre">BasicResourceDescription::activation</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N24BasicResourceDescription10clearValueE"><code class="docutils literal notranslate"><span class="pre">BasicResourceDescription::clearValue</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv425BufferResourceDescription"><code class="docutils literal notranslate"><span class="pre">BufferResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N25BufferResourceDescription18elementSizeInBytesE"><code class="docutils literal notranslate"><span class="pre">BufferResourceDescription::elementSizeInBytes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N25BufferResourceDescription12elementCountE"><code class="docutils literal notranslate"><span class="pre">BufferResourceDescription::elementCount</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N25BufferResourceDescription10viewFormatE"><code class="docutils literal notranslate"><span class="pre">BufferResourceDescription::viewFormat</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv431BasicTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">BasicTextureResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N31BasicTextureResourceDescription9mipLevelsE"><code class="docutils literal notranslate"><span class="pre">BasicTextureResourceDescription::mipLevels</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv426TextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">TextureResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N26TextureResourceDescription5widthE"><code class="docutils literal notranslate"><span class="pre">TextureResourceDescription::width</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N26TextureResourceDescription6heightE"><code class="docutils literal notranslate"><span class="pre">TextureResourceDescription::height</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv429VolTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">VolTextureResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N29VolTextureResourceDescription5depthE"><code class="docutils literal notranslate"><span class="pre">VolTextureResourceDescription::depth</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv431ArrayTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">ArrayTextureResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N31ArrayTextureResourceDescription11arrayLayersE"><code class="docutils literal notranslate"><span class="pre">ArrayTextureResourceDescription::arrayLayers</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv430CubeTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">CubeTextureResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N30CubeTextureResourceDescription6extentE"><code class="docutils literal notranslate"><span class="pre">CubeTextureResourceDescription::extent</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv435ArrayCubeTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">ArrayCubeTextureResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N35ArrayCubeTextureResourceDescription5cubesE"><code class="docutils literal notranslate"><span class="pre">ArrayCubeTextureResourceDescription::cubes</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv419ResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription5HashTE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::HashT</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionEv"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK19ResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescriptionaSERK19ResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::operator=()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK25BufferResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK26TextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK29VolTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK31ArrayTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK30CubeTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK35ArrayCubeTextureResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::ResourceDescription()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK19ResourceDescriptioneqERK19ResourceDescription"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::operator==()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK19ResourceDescription4hashEv"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::hash()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK19ResourceDescription13toDebugStringEv"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::toDebugString()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription4typeE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::type</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription10asBasicResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asBasicRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription11asBufferResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asBufferRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription13asBasicTexResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asBasicTexRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription8asTexResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asTexRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription11asVolTexResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asVolTexRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription13asArrayTexResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asArrayTexRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription12asCubeTexResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asCubeTexRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N19ResourceDescription17asArrayCubeTexResE"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::asArrayCubeTexRes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK19ResourceDescription8hashPackEv"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::hashPack()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4I0DpENK19ResourceDescription8hashPackE5HashTRK1TDpRK2Ts"><code class="docutils literal notranslate"><span class="pre">ResourceDescription::hashPack()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv427ResourceHeapGroupProperties"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N27ResourceHeapGroupProperties5flagsE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties::flags</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N27ResourceHeapGroupProperties12isCPUVisibleE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties::isCPUVisible</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N27ResourceHeapGroupProperties10isGPULocalE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties::isGPULocal</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N27ResourceHeapGroupProperties23isDedicatedFastGPULocalE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties::isDedicatedFastGPULocal</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N27ResourceHeapGroupProperties15maxResourceSizeE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties::maxResourceSize</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N27ResourceHeapGroupProperties11maxHeapSizeE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties::maxHeapSize</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N27ResourceHeapGroupProperties18optimalMaxHeapSizeE"><code class="docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties::optimalMaxHeapSize</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv428ResourceAllocationProperties"><code class="docutils literal notranslate"><span class="pre">ResourceAllocationProperties</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N28ResourceAllocationProperties11sizeInBytesE"><code class="docutils literal notranslate"><span class="pre">ResourceAllocationProperties::sizeInBytes</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N28ResourceAllocationProperties15offsetAlignmentE"><code class="docutils literal notranslate"><span class="pre">ResourceAllocationProperties::offsetAlignment</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N28ResourceAllocationProperties9heapGroupE"><code class="docutils literal notranslate"><span class="pre">ResourceAllocationProperties::heapGroup</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv45eastl"><code class="docutils literal notranslate"><span class="pre">eastl</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4IEN5eastl4hashI19ResourceDescriptionEE"><code class="docutils literal notranslate"><span class="pre">eastl::hash</span></code></a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4NK5eastl4hashI19ResourceDescriptionEclERK19ResourceDescription"><code class="docutils literal notranslate"><span class="pre">eastl::hash::operator()()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Heaps</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/Heap.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="heaps">
+<h1>Heaps<a class="headerlink" href="#heaps" title="Link to this heading"></a></h1>
+<p>Heaps API provides heap object allocation and resource placement in this heap
+objects. Resources may be aliased if memory ranges of multiple resources are
+overlapping, in this case alive/to-be-used resources must be marked active via
+<code class="docutils literal notranslate"><span class="pre">activate_*</span></code> methods and dead/non-used resources must be marked inactive via
+<code class="docutils literal notranslate"><span class="pre">deactivate_*</span></code> methods.</p>
+<p>Use <a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ResourceDescription</span></code></a> to query required heap group, size and
+alignment with <a class="reference internal" href="#_CPPv434get_resource_allocation_propertiesRK19ResourceDescription" title="get_resource_allocation_properties"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">get_resource_allocation_properties()</span></code></a> Having this data,
+allocate fitting heap with <a class="reference internal" href="#_CPPv420create_resource_heapP17ResourceHeapGroup6size_t23ResourceHeapCreateFlags" title="create_resource_heap"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">create_resource_heap()</span></code></a> and place resource
+there at will with <code class="docutils literal notranslate"><span class="pre">place_*_in_resource_heap</span></code>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">ResourceHeapGroup</span></code> description, see <a class="reference internal" href="#_CPPv427ResourceHeapGroupProperties" title="ResourceHeapGroupProperties"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ResourceHeapGroupProperties</span></code></a>.</p>
+</div>
+<section id="callable-d3d-methods">
+<h2>Callable D3D:: Methods<a class="headerlink" href="#callable-d3d-methods" title="Link to this heading"></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv434get_resource_allocation_propertiesRK19ResourceDescription">
+<span id="_CPPv334get_resource_allocation_propertiesRK19ResourceDescription"></span><span id="_CPPv234get_resource_allocation_propertiesRK19ResourceDescription"></span><span id="get_resource_allocation_properties__ResourceDescriptionCR"></span><span class="target" id="group__HeapD3D_1ga74eda8748fd36b24aef174a817852158"></span><a class="reference internal" href="#_CPPv428ResourceAllocationProperties" title="ResourceAllocationProperties"><span class="n"><span class="pre">ResourceAllocationProperties</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_resource_allocation_properties</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">desc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv434get_resource_allocation_propertiesRK19ResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Retrieves the resource allocation properties for a given resource description. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>desc</strong> – The resource description. Resource descriptions that would describe a resource with one or more of its dimensions being 0 will result in an error. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resource allocation properties. On error sizeInBytes field of the returned value will be 0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420create_resource_heapP17ResourceHeapGroup6size_t23ResourceHeapCreateFlags">
+<span id="_CPPv320create_resource_heapP17ResourceHeapGroup6size_t23ResourceHeapCreateFlags"></span><span id="_CPPv220create_resource_heapP17ResourceHeapGroup6size_t23ResourceHeapCreateFlags"></span><span id="create_resource_heap__ResourceHeapGroupP.s.ResourceHeapCreateFlags"></span><span class="target" id="group__HeapD3D_1ga54e38a27118cd0f1b4f3c7b9cf72013c"></span><span class="n"><span class="pre">ResourceHeap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_resource_heap</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceHeapGroup</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">heap_group</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size</span></span>, <a class="reference internal" href="#_CPPv423ResourceHeapCreateFlags" title="ResourceHeapCreateFlags"><span class="n"><span class="pre">ResourceHeapCreateFlags</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420create_resource_heapP17ResourceHeapGroup6size_t23ResourceHeapCreateFlags" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a resource heap with the specified size and flags. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>heap_group</strong> – The resource heap group. </p></li>
+<li><p><strong>size</strong> – The size of the resource heap in bytes. A value of 0 is invalid and results in undefined behavior. </p></li>
+<li><p><strong>flags</strong> – The flags for creating the resource heap. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created resource heap. May be nullptr on error, like out of memory or invalid inputs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421destroy_resource_heapP12ResourceHeap">
+<span id="_CPPv321destroy_resource_heapP12ResourceHeap"></span><span id="_CPPv221destroy_resource_heapP12ResourceHeap"></span><span id="destroy_resource_heap__ResourceHeapP"></span><span class="target" id="group__HeapD3D_1ga3f17897004713db3b260104f811fac38"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy_resource_heap</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceHeap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">heap</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421destroy_resource_heapP12ResourceHeap" title="Link to this definition"></a><br /></dt>
+<dd><p>Destroys a resource heap. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>heap</strong> – The resource heap to destroy. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429place_buffer_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc">
+<span id="_CPPv329place_buffer_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc"></span><span id="_CPPv229place_buffer_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc"></span><span id="place_buffer_in_resource_heap__ResourceHeapP.ResourceDescriptionCR.s.ResourceAllocationPropertiesCR.cCP"></span><span class="target" id="group__HeapD3D_1ga81549ba27257214002a4223ba7fc4c0f"></span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">place_buffer_in_resource_heap</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceHeap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">heap</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">desc</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">offset</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv428ResourceAllocationProperties" title="ResourceAllocationProperties"><span class="n"><span class="pre">ResourceAllocationProperties</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">alloc_info</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429place_buffer_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Places a buffer in a resource heap at the specified offset. </p>
+<p>The heap group of heap has to match the heap group of alloc_info that was returned by get_resource_allocation_properties.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>heap</strong> – The resource heap. </p></li>
+<li><p><strong>desc</strong> – The resource description. </p></li>
+<li><p><strong>offset</strong> – The offset in the resource heap in bytes. </p></li>
+<li><p><strong>alloc_info</strong> – The resource allocation properties. </p></li>
+<li><p><strong>name</strong> – The name of the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the placed buffer. May be nullptr on error, like invalid inputs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv430place_texture_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc">
+<span id="_CPPv330place_texture_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc"></span><span id="_CPPv230place_texture_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc"></span><span id="place_texture_in_resource_heap__ResourceHeapP.ResourceDescriptionCR.s.ResourceAllocationPropertiesCR.cCP"></span><span class="target" id="group__HeapD3D_1ga8f2c870c2a4e22f14724f71fb1eaef12"></span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">place_texture_in_resource_heap</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceHeap</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">heap</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">desc</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">offset</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv428ResourceAllocationProperties" title="ResourceAllocationProperties"><span class="n"><span class="pre">ResourceAllocationProperties</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">alloc_info</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv430place_texture_in_resource_heapP12ResourceHeapRK19ResourceDescription6size_tRK28ResourceAllocationPropertiesPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Places a texture in a resource heap at the specified offset. </p>
+<p>The heap group of heap has to match the heap group of alloc_info that was returned by get_resource_allocation_properties.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>heap</strong> – The resource heap. </p></li>
+<li><p><strong>desc</strong> – The resource description. </p></li>
+<li><p><strong>offset</strong> – The offset in the resource heap in bytes. </p></li>
+<li><p><strong>alloc_info</strong> – The resource allocation properties. </p></li>
+<li><p><strong>name</strong> – The name of the texture. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the placed texture. May be nullptr on error, like invalid inputs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv434get_resource_heap_group_propertiesP17ResourceHeapGroup">
+<span id="_CPPv334get_resource_heap_group_propertiesP17ResourceHeapGroup"></span><span id="_CPPv234get_resource_heap_group_propertiesP17ResourceHeapGroup"></span><span id="get_resource_heap_group_properties__ResourceHeapGroupP"></span><span class="target" id="group__HeapD3D_1gaf0ae51e5486b049c6204482c7ec3d0f3"></span><a class="reference internal" href="#_CPPv427ResourceHeapGroupProperties" title="ResourceHeapGroupProperties"><span class="n"><span class="pre">ResourceHeapGroupProperties</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_resource_heap_group_properties</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceHeapGroup</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">heap_group</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv434get_resource_heap_group_propertiesP17ResourceHeapGroup" title="Link to this definition"></a><br /></dt>
+<dd><p>Retrieves the resource heap group properties for a given resource heap group. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Different groups may return identical values, this does not mean that the heap group is identical or can be substituted for each another. Heap groups represent purpose bound memory that may have device specific properties, that limit the use of a heap group for certain resource types.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>heap_group</strong> – The resource heap group. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resource heap group properties. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv415activate_bufferP7Sbuffer24ResourceActivationAction11GpuPipeline">
+<span id="_CPPv315activate_bufferP7Sbuffer24ResourceActivationAction11GpuPipeline"></span><span id="_CPPv215activate_bufferP7Sbuffer24ResourceActivationAction11GpuPipeline"></span><span id="activate_buffer__SbufferP.ResourceActivationAction.GpuPipeline"></span><span class="target" id="group__HeapD3D_1ga4bacf48632dca78c785b1450f15d8bb4"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">activate_buffer</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buf</span></span>, <a class="reference internal" href="#_CPPv424ResourceActivationAction" title="ResourceActivationAction"><span class="n"><span class="pre">ResourceActivationAction</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">action</span></span>, <a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv415activate_bufferP7Sbuffer24ResourceActivationAction11GpuPipeline" title="Link to this definition"></a><br /></dt>
+<dd><p>Activates a buffer with the specified action and optional clear value. </p>
+<p>Only activated placed buffer could be safely used. Using the buffer before being activated results in undefined behavior.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>gpu_pipeline parameter doesn’t work currently. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buf</strong> – The buffer to activate. </p></li>
+<li><p><strong>action</strong> – The activation action. </p></li>
+<li><p><strong>value</strong> – The clear value (optional). </p></li>
+<li><p><strong>gpu_pipeline</strong> – The GPU pipeline to use (optional). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv416activate_textureP11BaseTexture24ResourceActivationActionRK18ResourceClearValue11GpuPipeline">
+<span id="_CPPv316activate_textureP11BaseTexture24ResourceActivationActionRK18ResourceClearValue11GpuPipeline"></span><span id="_CPPv216activate_textureP11BaseTexture24ResourceActivationActionRK18ResourceClearValue11GpuPipeline"></span><span id="activate_texture__BaseTextureP.ResourceActivationAction.ResourceClearValueCR.GpuPipeline"></span><span class="target" id="group__HeapD3D_1gaaab49f2901a3be5d400072524fb899ad"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">activate_texture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <a class="reference internal" href="#_CPPv424ResourceActivationAction" title="ResourceActivationAction"><span class="n"><span class="pre">ResourceActivationAction</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">action</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="Resource.html#_CPPv418ResourceClearValue" title="ResourceClearValue"><span class="n"><span class="pre">ResourceClearValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span>, <a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv416activate_textureP11BaseTexture24ResourceActivationActionRK18ResourceClearValue11GpuPipeline" title="Link to this definition"></a><br /></dt>
+<dd><p>Activates a texture with the specified action and optional clear value. </p>
+<p>Only activated placed textures could be safely used. Using the texture before being activated results in undefined behavior.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>gpu_pipeline parameter doesn’t work currently. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex</strong> – The texture to activate. </p></li>
+<li><p><strong>action</strong> – The activation action. </p></li>
+<li><p><strong>value</strong> – The clear value (optional). </p></li>
+<li><p><strong>gpu_pipeline</strong> – The GPU pipeline to use (optional). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv417deactivate_bufferP7Sbuffer11GpuPipeline">
+<span id="_CPPv317deactivate_bufferP7Sbuffer11GpuPipeline"></span><span id="_CPPv217deactivate_bufferP7Sbuffer11GpuPipeline"></span><span id="deactivate_buffer__SbufferP.GpuPipeline"></span><span class="target" id="group__HeapD3D_1ga091d80364b236ac72510a8dc9a55509d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deactivate_buffer</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buf</span></span>, <a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv417deactivate_bufferP7Sbuffer11GpuPipeline" title="Link to this definition"></a><br /></dt>
+<dd><p>Deactivates a buffer with the specified GPU pipeline. </p>
+<p>The method call is necessary to have a correct state of the resources on a heap. Using the buffer after being deactivated results in undefined behavior.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>gpu_pipeline parameter doesn’t work currently. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buf</strong> – The placed buffer to deactivate. </p></li>
+<li><p><strong>gpu_pipeline</strong> – The GPU pipeline to use (optional). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418deactivate_textureP11BaseTexture11GpuPipeline">
+<span id="_CPPv318deactivate_textureP11BaseTexture11GpuPipeline"></span><span id="_CPPv218deactivate_textureP11BaseTexture11GpuPipeline"></span><span id="deactivate_texture__BaseTextureP.GpuPipeline"></span><span class="target" id="group__HeapD3D_1ga75e759cf1d8dbc483d3162580be929c7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deactivate_texture</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418deactivate_textureP11BaseTexture11GpuPipeline" title="Link to this definition"></a><br /></dt>
+<dd><p>Deactivates a texture with the specified GPU pipeline. </p>
+<p>The method call is necessary to have a correct state of the resources on a heap. Using the texture after being deactivated results in undefined behavior.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>gpu_pipeline parameter doesn’t work currently. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex</strong> – The placed texture to deactivate. </p></li>
+<li><p><strong>gpu_pipeline</strong> – The GPU pipeline to use (optional). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-defines">Defines</p>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.FIELD_MATCHES">
+<span class="target" id="dag__heap_8h_1ab3a72a8644849607f5e3650a6364ad55"></span><span class="sig-name descname"><span class="n"><span class="pre">FIELD_MATCHES</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">field</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FIELD_MATCHES" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv423ResourceHeapCreateFlags">
+<span id="_CPPv323ResourceHeapCreateFlags"></span><span id="_CPPv223ResourceHeapCreateFlags"></span><span class="target" id="dag__heap_8h_1aa235e00b883f2888202630b9c47ab9ec"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceHeapCreateFlags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv423ResourceHeapCreateFlags" title="Link to this definition"></a><br /></dt>
+<dd><p>Definition of ResourceHeapCreateFlags type. See ResourceHeapCreateFlag for valid values. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv424ResourceActivationAction">
+<span id="_CPPv324ResourceActivationAction"></span><span id="_CPPv224ResourceActivationAction"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4e"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceActivationAction</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><a class="headerlink" href="#_CPPv424ResourceActivationAction" title="Link to this definition"></a><br /></dt>
+<dd><p>Enumeration representing different resource activation actions. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction27REWRITE_AS_COPY_DESTINATIONE">
+<span id="_CPPv3N24ResourceActivationAction27REWRITE_AS_COPY_DESTINATIONE"></span><span id="_CPPv2N24ResourceActivationAction27REWRITE_AS_COPY_DESTINATIONE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea12558b5590fbf86eeaf1595f13555770"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REWRITE_AS_COPY_DESTINATION</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction27REWRITE_AS_COPY_DESTINATIONE" title="Link to this definition"></a><br /></dt>
+<dd><p>Rewrite the resource as a copy destination. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction14REWRITE_AS_UAVE">
+<span id="_CPPv3N24ResourceActivationAction14REWRITE_AS_UAVE"></span><span id="_CPPv2N24ResourceActivationAction14REWRITE_AS_UAVE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4eae87ac6e24c8a3bbc6815dc6302de00bf"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REWRITE_AS_UAV</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction14REWRITE_AS_UAVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Rewrite the resource as an unordered access view. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction18REWRITE_AS_RTV_DSVE">
+<span id="_CPPv3N24ResourceActivationAction18REWRITE_AS_RTV_DSVE"></span><span id="_CPPv2N24ResourceActivationAction18REWRITE_AS_RTV_DSVE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea0b231d542c5830363a9ae08011d63a96"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REWRITE_AS_RTV_DSV</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction18REWRITE_AS_RTV_DSVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Rewrite the resource as a render target or depth-stencil view. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction14CLEAR_F_AS_UAVE">
+<span id="_CPPv3N24ResourceActivationAction14CLEAR_F_AS_UAVE"></span><span id="_CPPv2N24ResourceActivationAction14CLEAR_F_AS_UAVE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4eac4e7e9bc30c5bdc80204dfd9d4a4ede0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLEAR_F_AS_UAV</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction14CLEAR_F_AS_UAVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear the resource as a floating-point unordered access view. Implemented as a clear to zero for buffers. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction14CLEAR_I_AS_UAVE">
+<span id="_CPPv3N24ResourceActivationAction14CLEAR_I_AS_UAVE"></span><span id="_CPPv2N24ResourceActivationAction14CLEAR_I_AS_UAVE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4eacf564f4df92c20de3d4549ddf9dc7f64"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLEAR_I_AS_UAV</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction14CLEAR_I_AS_UAVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear the resource as an integer unordered access view. Implemented as a clear to zero for buffers. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction16CLEAR_AS_RTV_DSVE">
+<span id="_CPPv3N24ResourceActivationAction16CLEAR_AS_RTV_DSVE"></span><span id="_CPPv2N24ResourceActivationAction16CLEAR_AS_RTV_DSVE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea5ec8c2bf649052e8013c4dae533d9d4e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLEAR_AS_RTV_DSV</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction16CLEAR_AS_RTV_DSVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear the resource as a render target or depth-stencil view. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction14DISCARD_AS_UAVE">
+<span id="_CPPv3N24ResourceActivationAction14DISCARD_AS_UAVE"></span><span id="_CPPv2N24ResourceActivationAction14DISCARD_AS_UAVE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea93e01488d6c4fb04fdcbfd89807723bd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DISCARD_AS_UAV</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction14DISCARD_AS_UAVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Discard the resource as an unordered access view. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24ResourceActivationAction18DISCARD_AS_RTV_DSVE">
+<span id="_CPPv3N24ResourceActivationAction18DISCARD_AS_RTV_DSVE"></span><span id="_CPPv2N24ResourceActivationAction18DISCARD_AS_RTV_DSVE"></span><span class="target" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea1e3dcb1b334addafafa130b9ce77c266"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DISCARD_AS_RTV_DSV</span></span></span><a class="headerlink" href="#_CPPv4N24ResourceActivationAction18DISCARD_AS_RTV_DSVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Discard the resource as a render target or depth-stencil view. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv422ResourceHeapCreateFlag">
+<span id="_CPPv322ResourceHeapCreateFlag"></span><span id="_CPPv222ResourceHeapCreateFlag"></span><span class="target" id="dag__heap_8h_1a10c4580765b252a0590421a0e1e02154"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceHeapCreateFlag</span></span></span><a class="headerlink" href="#_CPPv422ResourceHeapCreateFlag" title="Link to this definition"></a><br /></dt>
+<dd><p>A set of flags that steer the behavior of the driver during creation of resource heaps. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22ResourceHeapCreateFlag9RHCF_NONEE">
+<span id="_CPPv3N22ResourceHeapCreateFlag9RHCF_NONEE"></span><span id="_CPPv2N22ResourceHeapCreateFlag9RHCF_NONEE"></span><span class="target" id="dag__heap_8h_1a10c4580765b252a0590421a0e1e02154a3b52b0db90f6f3232ddfff48e581778a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RHCF_NONE</span></span></span><a class="headerlink" href="#_CPPv4N22ResourceHeapCreateFlag9RHCF_NONEE" title="Link to this definition"></a><br /></dt>
+<dd><p>By default the drivers are allowed to use already reserved memory of internal heaps, to source the needed memory. Drivers are also allowed to allocate larger memory heaps and use the excess memory for their internal resource and memory management. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22ResourceHeapCreateFlag28RHCF_REQUIRES_DEDICATED_HEAPE">
+<span id="_CPPv3N22ResourceHeapCreateFlag28RHCF_REQUIRES_DEDICATED_HEAPE"></span><span id="_CPPv2N22ResourceHeapCreateFlag28RHCF_REQUIRES_DEDICATED_HEAPE"></span><span class="target" id="dag__heap_8h_1a10c4580765b252a0590421a0e1e02154a1e0e082c1bebadea76c4be9e2c1e717d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RHCF_REQUIRES_DEDICATED_HEAP</span></span></span><a class="headerlink" href="#_CPPv4N22ResourceHeapCreateFlag28RHCF_REQUIRES_DEDICATED_HEAPE" title="Link to this definition"></a><br /></dt>
+<dd><p>Resource heaps created with this flag, will use their own dedicate memory heap to supply the memory for resources. When this flag is not used to create a resource heap, the driver is allowed to source the need memory from existing driver managed heaps, or create a larger underlying memory heap and use the excess memory for its internal resource and memory management. This flag should be used only when really necessary, as it restricts the drivers option to use already reserved memory for this heap and increase the memory pressure on the system.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>That on certain system configurations, for example GDK with predefined memory heap allocations, this flag may be ignored by the driver, as it would otherwise not be able to satisfy heap creation request. </p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv424BasicResourceDescription">
+<span id="_CPPv324BasicResourceDescription"></span><span id="_CPPv224BasicResourceDescription"></span><span id="BasicResourceDescription"></span><span class="target" id="structBasicResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BasicResourceDescription</span></span></span><a class="headerlink" href="#_CPPv424BasicResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Basic resource description that contains common fields for all GPU resource types. </p>
+<p>Subclassed by <a class="reference internal" href="#structBasicTextureResourceDescription"><span class="std std-ref">BasicTextureResourceDescription</span></a>, <a class="reference internal" href="#structBufferResourceDescription"><span class="std std-ref">BufferResourceDescription</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24BasicResourceDescription6cFlagsE">
+<span id="_CPPv3N24BasicResourceDescription6cFlagsE"></span><span id="_CPPv2N24BasicResourceDescription6cFlagsE"></span><span id="BasicResourceDescription::cFlags__uint32_t"></span><span class="target" id="structBasicResourceDescription_1ac416c65293ae56fc2adf988de4821bf4"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cFlags</span></span></span><a class="headerlink" href="#_CPPv4N24BasicResourceDescription6cFlagsE" title="Link to this definition"></a><br /></dt>
+<dd><p>The resource creation flags. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24BasicResourceDescription10activationE">
+<span id="_CPPv3N24BasicResourceDescription10activationE"></span><span id="_CPPv2N24BasicResourceDescription10activationE"></span><span id="BasicResourceDescription::activation__ResourceActivationAction"></span><span class="target" id="structBasicResourceDescription_1a460a3547f57649aab846fc67831faa57"></span><a class="reference internal" href="#_CPPv424ResourceActivationAction" title="ResourceActivationAction"><span class="n"><span class="pre">ResourceActivationAction</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">activation</span></span></span><a class="headerlink" href="#_CPPv4N24BasicResourceDescription10activationE" title="Link to this definition"></a><br /></dt>
+<dd><p>The resource activation action. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N24BasicResourceDescription10clearValueE">
+<span id="_CPPv3N24BasicResourceDescription10clearValueE"></span><span id="_CPPv2N24BasicResourceDescription10clearValueE"></span><span id="BasicResourceDescription::clearValue__ResourceClearValue"></span><span class="target" id="structBasicResourceDescription_1a1c14be0b1256d4dbd82e5ce464419c35"></span><a class="reference internal" href="Resource.html#_CPPv418ResourceClearValue" title="ResourceClearValue"><span class="n"><span class="pre">ResourceClearValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clearValue</span></span></span><a class="headerlink" href="#_CPPv4N24BasicResourceDescription10clearValueE" title="Link to this definition"></a><br /></dt>
+<dd><p>The clear value. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv425BufferResourceDescription">
+<span id="_CPPv325BufferResourceDescription"></span><span id="_CPPv225BufferResourceDescription"></span><span id="BufferResourceDescription"></span><span class="target" id="structBufferResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BufferResourceDescription</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv424BasicResourceDescription" title="BasicResourceDescription"><span class="n"><span class="pre">BasicResourceDescription</span></span></a><a class="headerlink" href="#_CPPv425BufferResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Buffer resource description that contains fields specific to buffer resources. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N25BufferResourceDescription18elementSizeInBytesE">
+<span id="_CPPv3N25BufferResourceDescription18elementSizeInBytesE"></span><span id="_CPPv2N25BufferResourceDescription18elementSizeInBytesE"></span><span id="BufferResourceDescription::elementSizeInBytes__uint32_t"></span><span class="target" id="structBufferResourceDescription_1a9b4cb8150be20ce458a2810b9326052c"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">elementSizeInBytes</span></span></span><a class="headerlink" href="#_CPPv4N25BufferResourceDescription18elementSizeInBytesE" title="Link to this definition"></a><br /></dt>
+<dd><p>The size of a single element in bytes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N25BufferResourceDescription12elementCountE">
+<span id="_CPPv3N25BufferResourceDescription12elementCountE"></span><span id="_CPPv2N25BufferResourceDescription12elementCountE"></span><span id="BufferResourceDescription::elementCount__uint32_t"></span><span class="target" id="structBufferResourceDescription_1ad14ec655e3480e17423dc6ddb546c6b8"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">elementCount</span></span></span><a class="headerlink" href="#_CPPv4N25BufferResourceDescription12elementCountE" title="Link to this definition"></a><br /></dt>
+<dd><p>The number of elements in the buffer. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N25BufferResourceDescription10viewFormatE">
+<span id="_CPPv3N25BufferResourceDescription10viewFormatE"></span><span id="_CPPv2N25BufferResourceDescription10viewFormatE"></span><span id="BufferResourceDescription::viewFormat__uint32_t"></span><span class="target" id="structBufferResourceDescription_1a6829853b5db7726955b2789728997aca"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">viewFormat</span></span></span><a class="headerlink" href="#_CPPv4N25BufferResourceDescription10viewFormatE" title="Link to this definition"></a><br /></dt>
+<dd><p>The view format of the buffer. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv431BasicTextureResourceDescription">
+<span id="_CPPv331BasicTextureResourceDescription"></span><span id="_CPPv231BasicTextureResourceDescription"></span><span id="BasicTextureResourceDescription"></span><span class="target" id="structBasicTextureResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BasicTextureResourceDescription</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv424BasicResourceDescription" title="BasicResourceDescription"><span class="n"><span class="pre">BasicResourceDescription</span></span></a><a class="headerlink" href="#_CPPv431BasicTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Basic texture resource description that contains fields common to all texture resources. </p>
+<p>Subclassed by <a class="reference internal" href="#structCubeTextureResourceDescription"><span class="std std-ref">CubeTextureResourceDescription</span></a>, <a class="reference internal" href="#structTextureResourceDescription"><span class="std std-ref">TextureResourceDescription</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N31BasicTextureResourceDescription9mipLevelsE">
+<span id="_CPPv3N31BasicTextureResourceDescription9mipLevelsE"></span><span id="_CPPv2N31BasicTextureResourceDescription9mipLevelsE"></span><span id="BasicTextureResourceDescription::mipLevels__uint32_t"></span><span class="target" id="structBasicTextureResourceDescription_1ae3b058fec55e414dd58b914b934103d2"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mipLevels</span></span></span><a class="headerlink" href="#_CPPv4N31BasicTextureResourceDescription9mipLevelsE" title="Link to this definition"></a><br /></dt>
+<dd><p>The number of mip levels. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv426TextureResourceDescription">
+<span id="_CPPv326TextureResourceDescription"></span><span id="_CPPv226TextureResourceDescription"></span><span id="TextureResourceDescription"></span><span class="target" id="structTextureResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TextureResourceDescription</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv431BasicTextureResourceDescription" title="BasicTextureResourceDescription"><span class="n"><span class="pre">BasicTextureResourceDescription</span></span></a><a class="headerlink" href="#_CPPv426TextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Texture resource description that contains fields specific to 2D textures. </p>
+<p>Subclassed by <a class="reference internal" href="#structArrayTextureResourceDescription"><span class="std std-ref">ArrayTextureResourceDescription</span></a>, <a class="reference internal" href="#structVolTextureResourceDescription"><span class="std std-ref">VolTextureResourceDescription</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N26TextureResourceDescription5widthE">
+<span id="_CPPv3N26TextureResourceDescription5widthE"></span><span id="_CPPv2N26TextureResourceDescription5widthE"></span><span id="TextureResourceDescription::width__uint32_t"></span><span class="target" id="structTextureResourceDescription_1a057b0f0d80db47717ee6f4458c39d2c5"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><a class="headerlink" href="#_CPPv4N26TextureResourceDescription5widthE" title="Link to this definition"></a><br /></dt>
+<dd><p>The width of the texture. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N26TextureResourceDescription6heightE">
+<span id="_CPPv3N26TextureResourceDescription6heightE"></span><span id="_CPPv2N26TextureResourceDescription6heightE"></span><span id="TextureResourceDescription::height__uint32_t"></span><span class="target" id="structTextureResourceDescription_1a4b005d017af5e735faaceef9cee6653d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><a class="headerlink" href="#_CPPv4N26TextureResourceDescription6heightE" title="Link to this definition"></a><br /></dt>
+<dd><p>The height of the texture. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv429VolTextureResourceDescription">
+<span id="_CPPv329VolTextureResourceDescription"></span><span id="_CPPv229VolTextureResourceDescription"></span><span id="VolTextureResourceDescription"></span><span class="target" id="structVolTextureResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VolTextureResourceDescription</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv426TextureResourceDescription" title="TextureResourceDescription"><span class="n"><span class="pre">TextureResourceDescription</span></span></a><a class="headerlink" href="#_CPPv429VolTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Volume texture resource description that contains fields specific to volume textures. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N29VolTextureResourceDescription5depthE">
+<span id="_CPPv3N29VolTextureResourceDescription5depthE"></span><span id="_CPPv2N29VolTextureResourceDescription5depthE"></span><span id="VolTextureResourceDescription::depth__uint32_t"></span><span class="target" id="structVolTextureResourceDescription_1aeb637e63869eb810650a27b64dbb7a3a"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depth</span></span></span><a class="headerlink" href="#_CPPv4N29VolTextureResourceDescription5depthE" title="Link to this definition"></a><br /></dt>
+<dd><p>The depth of the volume texture. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv431ArrayTextureResourceDescription">
+<span id="_CPPv331ArrayTextureResourceDescription"></span><span id="_CPPv231ArrayTextureResourceDescription"></span><span id="ArrayTextureResourceDescription"></span><span class="target" id="structArrayTextureResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ArrayTextureResourceDescription</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv426TextureResourceDescription" title="TextureResourceDescription"><span class="n"><span class="pre">TextureResourceDescription</span></span></a><a class="headerlink" href="#_CPPv431ArrayTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Array texture resource description that contains fields specific to array textures. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N31ArrayTextureResourceDescription11arrayLayersE">
+<span id="_CPPv3N31ArrayTextureResourceDescription11arrayLayersE"></span><span id="_CPPv2N31ArrayTextureResourceDescription11arrayLayersE"></span><span id="ArrayTextureResourceDescription::arrayLayers__uint32_t"></span><span class="target" id="structArrayTextureResourceDescription_1a5da22276ea8191b7e6a6308c13b20af4"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">arrayLayers</span></span></span><a class="headerlink" href="#_CPPv4N31ArrayTextureResourceDescription11arrayLayersE" title="Link to this definition"></a><br /></dt>
+<dd><p>The number of array layers. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv430CubeTextureResourceDescription">
+<span id="_CPPv330CubeTextureResourceDescription"></span><span id="_CPPv230CubeTextureResourceDescription"></span><span id="CubeTextureResourceDescription"></span><span class="target" id="structCubeTextureResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CubeTextureResourceDescription</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv431BasicTextureResourceDescription" title="BasicTextureResourceDescription"><span class="n"><span class="pre">BasicTextureResourceDescription</span></span></a><a class="headerlink" href="#_CPPv430CubeTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Cube texture resource description that contains fields specific to cube textures. </p>
+<p>Subclassed by <a class="reference internal" href="#structArrayCubeTextureResourceDescription"><span class="std std-ref">ArrayCubeTextureResourceDescription</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N30CubeTextureResourceDescription6extentE">
+<span id="_CPPv3N30CubeTextureResourceDescription6extentE"></span><span id="_CPPv2N30CubeTextureResourceDescription6extentE"></span><span id="CubeTextureResourceDescription::extent__uint32_t"></span><span class="target" id="structCubeTextureResourceDescription_1a2fc45f27ab444342c52d6a06e25be455"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">extent</span></span></span><a class="headerlink" href="#_CPPv4N30CubeTextureResourceDescription6extentE" title="Link to this definition"></a><br /></dt>
+<dd><p>The extent of the cube texture. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv435ArrayCubeTextureResourceDescription">
+<span id="_CPPv335ArrayCubeTextureResourceDescription"></span><span id="_CPPv235ArrayCubeTextureResourceDescription"></span><span id="ArrayCubeTextureResourceDescription"></span><span class="target" id="structArrayCubeTextureResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ArrayCubeTextureResourceDescription</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv430CubeTextureResourceDescription" title="CubeTextureResourceDescription"><span class="n"><span class="pre">CubeTextureResourceDescription</span></span></a><a class="headerlink" href="#_CPPv435ArrayCubeTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Array cube texture resource description that contains fields specific to array cube textures. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N35ArrayCubeTextureResourceDescription5cubesE">
+<span id="_CPPv3N35ArrayCubeTextureResourceDescription5cubesE"></span><span id="_CPPv2N35ArrayCubeTextureResourceDescription5cubesE"></span><span id="ArrayCubeTextureResourceDescription::cubes__uint32_t"></span><span class="target" id="structArrayCubeTextureResourceDescription_1a54b7e025233c2490669c40146a996653"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cubes</span></span></span><a class="headerlink" href="#_CPPv4N35ArrayCubeTextureResourceDescription5cubesE" title="Link to this definition"></a><br /></dt>
+<dd><p>The number of cubes in the array cube texture. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv419ResourceDescription">
+<span id="_CPPv319ResourceDescription"></span><span id="_CPPv219ResourceDescription"></span><span id="ResourceDescription"></span><span class="target" id="structResourceDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><a class="headerlink" href="#_CPPv419ResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>A common type for a resource description that can be used to describe any type of GPU resource. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription5HashTE">
+<span id="_CPPv3N19ResourceDescription5HashTE"></span><span id="_CPPv2N19ResourceDescription5HashTE"></span><span class="target" id="structResourceDescription_1ab0bd9db5a7647488becf257da246345c"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HashT</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription5HashTE" title="Link to this definition"></a><br /></dt>
+<dd><p>The type of the hash value. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionEv">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionEv"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionEv"></span><span id="ResourceDescription::ResourceDescription"></span><span class="target" id="structResourceDescription_1a8439dcc8f79f109f2228d61a6aa4b1fe"></span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Default constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionERK19ResourceDescription">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionERK19ResourceDescription"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionERK19ResourceDescription"></span><span id="ResourceDescription::ResourceDescription__ResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1a5a4d6f01a755359ab56198196ec34a59"></span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK19ResourceDescription" title="ResourceDescription::ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK19ResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Copy constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescriptionaSERK19ResourceDescription">
+<span id="_CPPv3N19ResourceDescriptionaSERK19ResourceDescription"></span><span id="_CPPv2N19ResourceDescriptionaSERK19ResourceDescription"></span><span id="ResourceDescription::assign-operator__ResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1a7d56ad1d19124a64d0d9e1517d0bed13"></span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N19ResourceDescriptionaSERK19ResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Copy assignment operator. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionERK25BufferResourceDescription">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionERK25BufferResourceDescription"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionERK25BufferResourceDescription"></span><span id="ResourceDescription::ResourceDescription__BufferResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1a1a36da8a75b95e09429e765dbb6b1414"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv425BufferResourceDescription" title="BufferResourceDescription"><span class="n"><span class="pre">BufferResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">buf</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK25BufferResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for buffer resources. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionERK26TextureResourceDescription">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionERK26TextureResourceDescription"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionERK26TextureResourceDescription"></span><span id="ResourceDescription::ResourceDescription__TextureResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1ac71dcb55a03fad8a78b40cad86fa1d47"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv426TextureResourceDescription" title="TextureResourceDescription"><span class="n"><span class="pre">TextureResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK26TextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for 2D textures. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionERK29VolTextureResourceDescription">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionERK29VolTextureResourceDescription"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionERK29VolTextureResourceDescription"></span><span id="ResourceDescription::ResourceDescription__VolTextureResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1acc966203f96ad9fe1555762f3881ab57"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv429VolTextureResourceDescription" title="VolTextureResourceDescription"><span class="n"><span class="pre">VolTextureResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK29VolTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for volume textures. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionERK31ArrayTextureResourceDescription">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionERK31ArrayTextureResourceDescription"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionERK31ArrayTextureResourceDescription"></span><span id="ResourceDescription::ResourceDescription__ArrayTextureResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1ae5f5d6660f98179fc115c9e9549258cd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv431ArrayTextureResourceDescription" title="ArrayTextureResourceDescription"><span class="n"><span class="pre">ArrayTextureResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK31ArrayTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for array textures. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionERK30CubeTextureResourceDescription">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionERK30CubeTextureResourceDescription"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionERK30CubeTextureResourceDescription"></span><span id="ResourceDescription::ResourceDescription__CubeTextureResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1ad6b6e032d585cb8e9c95f403a0677837"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv430CubeTextureResourceDescription" title="CubeTextureResourceDescription"><span class="n"><span class="pre">CubeTextureResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK30CubeTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for cube textures. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription19ResourceDescriptionERK35ArrayCubeTextureResourceDescription">
+<span id="_CPPv3N19ResourceDescription19ResourceDescriptionERK35ArrayCubeTextureResourceDescription"></span><span id="_CPPv2N19ResourceDescription19ResourceDescriptionERK35ArrayCubeTextureResourceDescription"></span><span id="ResourceDescription::ResourceDescription__ArrayCubeTextureResourceDescriptionCR"></span><span class="target" id="structResourceDescription_1a5643c02fb0539406def61fa4a8872f72"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceDescription</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv435ArrayCubeTextureResourceDescription" title="ArrayCubeTextureResourceDescription"><span class="n"><span class="pre">ArrayCubeTextureResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceDescription19ResourceDescriptionERK35ArrayCubeTextureResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for array cube textures. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK19ResourceDescriptioneqERK19ResourceDescription">
+<span id="_CPPv3NK19ResourceDescriptioneqERK19ResourceDescription"></span><span id="_CPPv2NK19ResourceDescriptioneqERK19ResourceDescription"></span><span id="ResourceDescription::eq-operator__ResourceDescriptionCRC"></span><span class="target" id="structResourceDescription_1ae91e518e673816f6e9ff51329a216c5f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">r</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK19ResourceDescriptioneqERK19ResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Equality operator for resource descriptions. </p>
+<p>The operator compares all necessary fields of the resource descriptions for equality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>r</strong> – The resource description to compare with. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the resource descriptions are equal, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK19ResourceDescription4hashEv">
+<span id="_CPPv3NK19ResourceDescription4hashEv"></span><span id="_CPPv2NK19ResourceDescription4hashEv"></span><span id="ResourceDescription::hashC"></span><span class="target" id="structResourceDescription_1ad809a6e59153ca10566286abeb8a36ac"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N19ResourceDescription5HashTE" title="ResourceDescription::HashT"><span class="n"><span class="pre">HashT</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hash</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK19ResourceDescription4hashEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Computes the hash value of the resource description. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The hash value of the resource description. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK19ResourceDescription13toDebugStringEv">
+<span id="_CPPv3NK19ResourceDescription13toDebugStringEv"></span><span id="_CPPv2NK19ResourceDescription13toDebugStringEv"></span><span id="ResourceDescription::toDebugStringC"></span><span class="target" id="structResourceDescription_1a667d2292f599db863627f570e5ea491d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">String</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">toDebugString</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK19ResourceDescription13toDebugStringEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription4typeE">
+<span id="_CPPv3N19ResourceDescription4typeE"></span><span id="_CPPv2N19ResourceDescription4typeE"></span><span id="ResourceDescription::type__D3DResourceType"></span><span class="target" id="structResourceDescription_1a19813d38bb21830c6a2e5115add8ca52"></span><span class="n"><span class="pre">D3DResourceType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription4typeE" title="Link to this definition"></a><br /></dt>
+<dd><p>The type of the resource. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription10asBasicResE">
+<span id="_CPPv3N19ResourceDescription10asBasicResE"></span><span id="_CPPv2N19ResourceDescription10asBasicResE"></span><span id="ResourceDescription::asBasicRes__BasicResourceDescription"></span><span class="target" id="structResourceDescription_1a0a64b467ca88a31a8b8c4cee7eae9e66"></span><a class="reference internal" href="#_CPPv424BasicResourceDescription" title="BasicResourceDescription"><span class="n"><span class="pre">BasicResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asBasicRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription10asBasicResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The basic resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription11asBufferResE">
+<span id="_CPPv3N19ResourceDescription11asBufferResE"></span><span id="_CPPv2N19ResourceDescription11asBufferResE"></span><span id="ResourceDescription::asBufferRes__BufferResourceDescription"></span><span class="target" id="structResourceDescription_1ab5da39999823280f1ac92e33601b756d"></span><a class="reference internal" href="#_CPPv425BufferResourceDescription" title="BufferResourceDescription"><span class="n"><span class="pre">BufferResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asBufferRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription11asBufferResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The buffer resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription13asBasicTexResE">
+<span id="_CPPv3N19ResourceDescription13asBasicTexResE"></span><span id="_CPPv2N19ResourceDescription13asBasicTexResE"></span><span id="ResourceDescription::asBasicTexRes__BasicTextureResourceDescription"></span><span class="target" id="structResourceDescription_1aee7bb2447921999d747f31bfac8ce556"></span><a class="reference internal" href="#_CPPv431BasicTextureResourceDescription" title="BasicTextureResourceDescription"><span class="n"><span class="pre">BasicTextureResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asBasicTexRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription13asBasicTexResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The basic texture resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription8asTexResE">
+<span id="_CPPv3N19ResourceDescription8asTexResE"></span><span id="_CPPv2N19ResourceDescription8asTexResE"></span><span id="ResourceDescription::asTexRes__TextureResourceDescription"></span><span class="target" id="structResourceDescription_1a17b585a0cfc7dd5f4406e203fa6c9419"></span><a class="reference internal" href="#_CPPv426TextureResourceDescription" title="TextureResourceDescription"><span class="n"><span class="pre">TextureResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asTexRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription8asTexResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The 2D texture resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription11asVolTexResE">
+<span id="_CPPv3N19ResourceDescription11asVolTexResE"></span><span id="_CPPv2N19ResourceDescription11asVolTexResE"></span><span id="ResourceDescription::asVolTexRes__VolTextureResourceDescription"></span><span class="target" id="structResourceDescription_1a99aa546f306654f399609a5028667e55"></span><a class="reference internal" href="#_CPPv429VolTextureResourceDescription" title="VolTextureResourceDescription"><span class="n"><span class="pre">VolTextureResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asVolTexRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription11asVolTexResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The volume texture resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription13asArrayTexResE">
+<span id="_CPPv3N19ResourceDescription13asArrayTexResE"></span><span id="_CPPv2N19ResourceDescription13asArrayTexResE"></span><span id="ResourceDescription::asArrayTexRes__ArrayTextureResourceDescription"></span><span class="target" id="structResourceDescription_1a43a084814e7a3a71691ae2448c8d03f0"></span><a class="reference internal" href="#_CPPv431ArrayTextureResourceDescription" title="ArrayTextureResourceDescription"><span class="n"><span class="pre">ArrayTextureResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asArrayTexRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription13asArrayTexResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The array texture resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription12asCubeTexResE">
+<span id="_CPPv3N19ResourceDescription12asCubeTexResE"></span><span id="_CPPv2N19ResourceDescription12asCubeTexResE"></span><span id="ResourceDescription::asCubeTexRes__CubeTextureResourceDescription"></span><span class="target" id="structResourceDescription_1a2e7ffe18d52fc4001c266a2eef9c2083"></span><a class="reference internal" href="#_CPPv430CubeTextureResourceDescription" title="CubeTextureResourceDescription"><span class="n"><span class="pre">CubeTextureResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asCubeTexRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription12asCubeTexResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The cube texture resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceDescription17asArrayCubeTexResE">
+<span id="_CPPv3N19ResourceDescription17asArrayCubeTexResE"></span><span id="_CPPv2N19ResourceDescription17asArrayCubeTexResE"></span><span id="ResourceDescription::asArrayCubeTexRes__ArrayCubeTextureResourceDescription"></span><span class="target" id="structResourceDescription_1a89a7fde21d59eb27197578e1e2fa1c12"></span><a class="reference internal" href="#_CPPv435ArrayCubeTextureResourceDescription" title="ArrayCubeTextureResourceDescription"><span class="n"><span class="pre">ArrayCubeTextureResourceDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asArrayCubeTexRes</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceDescription17asArrayCubeTexResE" title="Link to this definition"></a><br /></dt>
+<dd><p>The array cube texture resource description. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structResourceDescription_1afb4e56d08425f6dce3a15b8ba85bff37"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceDescription</span></span></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-functions">Private Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK19ResourceDescription8hashPackEv">
+<span id="_CPPv3NK19ResourceDescription8hashPackEv"></span><span id="_CPPv2NK19ResourceDescription8hashPackEv"></span><span id="ResourceDescription::hashPackC"></span><span class="target" id="structResourceDescription_1aa065b65126e6934c2d056cbad06d5ca4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N19ResourceDescription5HashTE" title="ResourceDescription::HashT"><span class="n"><span class="pre">HashT</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hashPack</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK19ResourceDescription8hashPackEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Hashes an empty tuple of values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>HashT the hash value of the tuple. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpENK19ResourceDescription8hashPackE5HashTRK1TDpRK2Ts">
+<span id="_CPPv3I0DpENK19ResourceDescription8hashPackERK1TDpRK2Ts"></span><span id="_CPPv2I0DpENK19ResourceDescription8hashPackERK1TDpRK2Ts"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Ts</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structResourceDescription_1a892d1f78ac32849e5f1b11ac874fe494"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N19ResourceDescription5HashTE" title="ResourceDescription::HashT"><span class="n"><span class="pre">HashT</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hashPack</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0DpENK19ResourceDescription8hashPackE5HashTRK1TDpRK2Ts" title="ResourceDescription::hashPack::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">first</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0DpENK19ResourceDescription8hashPackE5HashTRK1TDpRK2Ts" title="ResourceDescription::hashPack::Ts"><span class="n"><span class="pre">Ts</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0DpENK19ResourceDescription8hashPackE5HashTRK1TDpRK2Ts" title="Link to this definition"></a><br /></dt>
+<dd><p>Hashes a tuple of values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – type of the first value. </p></li>
+<li><p><strong>Ts</strong> – types of the other values. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>first</strong> – the first value. </p></li>
+<li><p><strong>other</strong> – the other values. </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>HashT the hash value of the tuple. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv427ResourceHeapGroupProperties">
+<span id="_CPPv327ResourceHeapGroupProperties"></span><span id="_CPPv227ResourceHeapGroupProperties"></span><span id="ResourceHeapGroupProperties"></span><span class="target" id="structResourceHeapGroupProperties"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceHeapGroupProperties</span></span></span><a class="headerlink" href="#_CPPv427ResourceHeapGroupProperties" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Properties of a resource heap group. A heap group is a type of memory with specific properties. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Heap groups can <strong>not</strong> be substitutes for different groups with equal properties, as some devices have different memory types with the same public properties, but with purpose bound properties that are identified by a heap group. For example, older NVIDIA hardware can not put render target and non render target textures into the same memory region, they have to be specific for render targets and non render targets, this is exposed as different heap groups, but they have the same public properties, as they are all reside on GPU local memory. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N27ResourceHeapGroupProperties5flagsE">
+<span id="_CPPv3N27ResourceHeapGroupProperties5flagsE"></span><span id="_CPPv2N27ResourceHeapGroupProperties5flagsE"></span><span id="ResourceHeapGroupProperties::flags__uint32_t"></span><span class="target" id="structResourceHeapGroupProperties_1a188f2f6b002b1d74a368b08919d8707d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flags</span></span></span><a class="headerlink" href="#_CPPv4N27ResourceHeapGroupProperties5flagsE" title="Link to this definition"></a><br /></dt>
+<dd><p>Flags of the resource heap group represented as a single dword. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N27ResourceHeapGroupProperties12isCPUVisibleE">
+<span id="_CPPv3N27ResourceHeapGroupProperties12isCPUVisibleE"></span><span id="_CPPv2N27ResourceHeapGroupProperties12isCPUVisibleE"></span><span id="ResourceHeapGroupProperties::isCPUVisible__b"></span><span class="target" id="structResourceHeapGroupProperties_1a4a19a9d780667c6df1b4412636dcbcbe"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isCPUVisible</span></span></span><a class="headerlink" href="#_CPPv4N27ResourceHeapGroupProperties12isCPUVisibleE" title="Link to this definition"></a><br /></dt>
+<dd><p>If true, the CPU can access this memory directly. On consoles this is usually true for all heap groups, on PC only for system memory heap groups. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N27ResourceHeapGroupProperties10isGPULocalE">
+<span id="_CPPv3N27ResourceHeapGroupProperties10isGPULocalE"></span><span id="_CPPv2N27ResourceHeapGroupProperties10isGPULocalE"></span><span id="ResourceHeapGroupProperties::isGPULocal__b"></span><span class="target" id="structResourceHeapGroupProperties_1a2a8dfde8145b597d570b2a1cb1d48667"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isGPULocal</span></span></span><a class="headerlink" href="#_CPPv4N27ResourceHeapGroupProperties10isGPULocalE" title="Link to this definition"></a><br /></dt>
+<dd><p>If true, the GPU can access this memory directly without going over a bus like PCIE. On consoles this is usually true for all heap groups, on PC only for memory dedicated to the GPU. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N27ResourceHeapGroupProperties23isDedicatedFastGPULocalE">
+<span id="_CPPv3N27ResourceHeapGroupProperties23isDedicatedFastGPULocalE"></span><span id="_CPPv2N27ResourceHeapGroupProperties23isDedicatedFastGPULocalE"></span><span id="ResourceHeapGroupProperties::isDedicatedFastGPULocal__b"></span><span class="target" id="structResourceHeapGroupProperties_1aa36d9d08cbab51d752e4490e13987493"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isDedicatedFastGPULocal</span></span></span><a class="headerlink" href="#_CPPv4N27ResourceHeapGroupProperties23isDedicatedFastGPULocalE" title="Link to this definition"></a><br /></dt>
+<dd><p>Same as GPU local but much more limited, like ESRAM of the XB1. User should be allowed to allocate the whole memory of this heap group. It’s a common usecase. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structResourceHeapGroupProperties_1a08ef3b278e9af5395286d6982d280fb5"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceHeapGroupProperties</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N27ResourceHeapGroupProperties15maxResourceSizeE">
+<span id="_CPPv3N27ResourceHeapGroupProperties15maxResourceSizeE"></span><span id="_CPPv2N27ResourceHeapGroupProperties15maxResourceSizeE"></span><span id="ResourceHeapGroupProperties::maxResourceSize__uint64_t"></span><span class="target" id="structResourceHeapGroupProperties_1a9011fd2273a88332d26679255b308860"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">maxResourceSize</span></span></span><a class="headerlink" href="#_CPPv4N27ResourceHeapGroupProperties15maxResourceSizeE" title="Link to this definition"></a><br /></dt>
+<dd><p>The maximum size of a resource that can be placed into a heap of this group. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N27ResourceHeapGroupProperties11maxHeapSizeE">
+<span id="_CPPv3N27ResourceHeapGroupProperties11maxHeapSizeE"></span><span id="_CPPv2N27ResourceHeapGroupProperties11maxHeapSizeE"></span><span id="ResourceHeapGroupProperties::maxHeapSize__uint64_t"></span><span class="target" id="structResourceHeapGroupProperties_1a3c6625f815c0e0e39e9f87f48fbf9562"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">maxHeapSize</span></span></span><a class="headerlink" href="#_CPPv4N27ResourceHeapGroupProperties11maxHeapSizeE" title="Link to this definition"></a><br /></dt>
+<dd><p>the maximum size of a individual heap, this is usually limited by the amount that is installed in the system. Drivers may impose other limitations. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N27ResourceHeapGroupProperties18optimalMaxHeapSizeE">
+<span id="_CPPv3N27ResourceHeapGroupProperties18optimalMaxHeapSizeE"></span><span id="_CPPv2N27ResourceHeapGroupProperties18optimalMaxHeapSizeE"></span><span id="ResourceHeapGroupProperties::optimalMaxHeapSize__uint64_t"></span><span class="target" id="structResourceHeapGroupProperties_1af670b82f1185edeb424e091784c59aca"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">optimalMaxHeapSize</span></span></span><a class="headerlink" href="#_CPPv4N27ResourceHeapGroupProperties18optimalMaxHeapSizeE" title="Link to this definition"></a><br /></dt>
+<dd><p>This is a hint for the user to try to aim for this heap size for best performance. Larger heaps until maxHeapSize are still possible, but larger heaps than optimalMaxHeapSize may yield worse performance, as the runtime may has to use sub-optimal memory sources to satisfy the allocation request. A value of 0 indicates that there is no optimal size and any size is expected to perform similarly.</p>
+<p>For example on DX12 on Windows the optimal size is 64 MiBytes, suggested by MS representatives, as windows may not be able to provide heaps in the requested memory source. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv428ResourceAllocationProperties">
+<span id="_CPPv328ResourceAllocationProperties"></span><span id="_CPPv228ResourceAllocationProperties"></span><span id="ResourceAllocationProperties"></span><span class="target" id="structResourceAllocationProperties"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceAllocationProperties</span></span></span><a class="headerlink" href="#_CPPv428ResourceAllocationProperties" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Properties of a resource allocation. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N28ResourceAllocationProperties11sizeInBytesE">
+<span id="_CPPv3N28ResourceAllocationProperties11sizeInBytesE"></span><span id="_CPPv2N28ResourceAllocationProperties11sizeInBytesE"></span><span id="ResourceAllocationProperties::sizeInBytes__s"></span><span class="target" id="structResourceAllocationProperties_1a3b74c437cd5d2d69e142716aced8722c"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sizeInBytes</span></span></span><a class="headerlink" href="#_CPPv4N28ResourceAllocationProperties11sizeInBytesE" title="Link to this definition"></a><br /></dt>
+<dd><p>The size of the resource allocation in bytes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N28ResourceAllocationProperties15offsetAlignmentE">
+<span id="_CPPv3N28ResourceAllocationProperties15offsetAlignmentE"></span><span id="_CPPv2N28ResourceAllocationProperties15offsetAlignmentE"></span><span id="ResourceAllocationProperties::offsetAlignment__s"></span><span class="target" id="structResourceAllocationProperties_1a04ab5b6356d85fb503e6850243ede40f"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">offsetAlignment</span></span></span><a class="headerlink" href="#_CPPv4N28ResourceAllocationProperties15offsetAlignmentE" title="Link to this definition"></a><br /></dt>
+<dd><p>The alignment of the offset in bytes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N28ResourceAllocationProperties9heapGroupE">
+<span id="_CPPv3N28ResourceAllocationProperties9heapGroupE"></span><span id="_CPPv2N28ResourceAllocationProperties9heapGroupE"></span><span id="ResourceAllocationProperties::heapGroup__ResourceHeapGroupP"></span><span class="target" id="structResourceAllocationProperties_1ad44697aab8e294bc9318abd4c8ea407b"></span><span class="n"><span class="pre">ResourceHeapGroup</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">heapGroup</span></span></span><a class="headerlink" href="#_CPPv4N28ResourceAllocationProperties9heapGroupE" title="Link to this definition"></a><br /></dt>
+<dd><p>The resource heap group. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv45eastl">
+<span id="_CPPv35eastl"></span><span id="_CPPv25eastl"></span><span id="eastl"></span><span class="target" id="namespaceeastl"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eastl</span></span></span><a class="headerlink" href="#_CPPv45eastl" title="Link to this definition"></a><br /></dt>
+<dd><dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4IEN5eastl4hashI19ResourceDescriptionEE">
+<span id="_CPPv3IEN5eastl4hashI19ResourceDescriptionEE"></span><span id="_CPPv2IEN5eastl4hashI19ResourceDescriptionEE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classeastl_1_1hash_3_01ResourceDescription_01_4"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hash</span></span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4IEN5eastl4hashI19ResourceDescriptionEE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_heap.h&gt;</em></div>
+<p>Hash function specialization for <a class="reference internal" href="#structResourceDescription"><span class="std std-ref">ResourceDescription</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5eastl4hashI19ResourceDescriptionEclERK19ResourceDescription">
+<span id="_CPPv3NK5eastl4hashI19ResourceDescriptionEclERK19ResourceDescription"></span><span id="_CPPv2NK5eastl4hashI19ResourceDescriptionEclERK19ResourceDescription"></span><span id="eastl::hash:ResourceDescription:::call-operator__ResourceDescriptionCRC"></span><span class="target" id="classeastl_1_1hash_3_01ResourceDescription_01_4_1a7cbee9fd12f38cec296cdb11a901b868"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv419ResourceDescription" title="ResourceDescription"><span class="n"><span class="pre">ResourceDescription</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">desc</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5eastl4hashI19ResourceDescriptionEclERK19ResourceDescription" title="Link to this definition"></a><br /></dt>
+<dd><p>Computes the hash value of a resource description. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>desc</strong> – The resource description. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The hash value of the resource description. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="GPUCaptureAndDebugTools.html" class="btn btn-neutral float-left" title="GPU Capture and Debug Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Info.html" class="btn btn-neutral float-right" title="Driver Info API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

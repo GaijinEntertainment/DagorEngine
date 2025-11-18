@@ -1,0 +1,143 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="unionShaderClass_1_1StVarValue" kind="union" language="C++" prot="public">
+    <compoundname>ShaderClass::StVarValue</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionShaderClass_1_1StVarValue_1a6d9cc1e2ce23e04f0a312248f55b3e0b" prot="public" static="no" mutable="no">
+        <type><ref refid="structshc_1_1Col4" kindref="compound">shc::Col4</ref></type>
+        <definition>shc::Col4 ShaderClass::StVarValue::c4</definition>
+        <argsstring></argsstring>
+        <name>c4</name>
+        <qualifiedname>ShaderClass::StVarValue::c4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="132" column="15" bodyfile="shcode.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderClass_1_1StVarValue_1a154c7cd2737f8d3b6c7e7fc2d605054c" prot="public" static="no" mutable="no">
+        <type><ref refid="structshc_1_1Int4" kindref="compound">shc::Int4</ref></type>
+        <definition>shc::Int4 ShaderClass::StVarValue::i4</definition>
+        <argsstring></argsstring>
+        <name>i4</name>
+        <qualifiedname>ShaderClass::StVarValue::i4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="133" column="15" bodyfile="shcode.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderClass_1_1StVarValue_1a08bdc288d0cb2c67d066dd0bd11f2056" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real ShaderClass::StVarValue::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>ShaderClass::StVarValue::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="134" column="10" bodyfile="shcode.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderClass_1_1StVarValue_1af34a1f1e427afb840a9393a58a03e7e1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderClass::StVarValue::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>ShaderClass::StVarValue::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="135" column="9" bodyfile="shcode.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderClass_1_1StVarValue_1a44473a2bad40960859ea8df8f0526a95" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderClass::StVarValue::texId</definition>
+        <argsstring></argsstring>
+        <name>texId</name>
+        <qualifiedname>ShaderClass::StVarValue::texId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="136" column="14" bodyfile="shcode.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderClass_1_1StVarValue_1aec07d9793c9d807b25868f00478db309" prot="public" static="no" mutable="no">
+        <type>d3d::SamplerInfo</type>
+        <definition>d3d::SamplerInfo ShaderClass::StVarValue::samplerInfo</definition>
+        <argsstring></argsstring>
+        <name>samplerInfo</name>
+        <qualifiedname>ShaderClass::StVarValue::samplerInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="137" column="22" bodyfile="shcode.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="unionShaderClass_1_1StVarValue_1ae8ff58244ec46fe805d31e0bdb8bab74" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderClass::StVarValue::StVarValue</definition>
+        <argsstring>()</argsstring>
+        <name>StVarValue</name>
+        <qualifiedname>ShaderClass::StVarValue::StVarValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="138" column="5" bodyfile="shcode.h" bodystart="138" bodyend="138"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderClass::StVarValue</label>
+        <link refid="unionShaderClass_1_1StVarValue"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>c4</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>i4</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shc::Col4</label>
+        <link refid="structshc_1_1Col4"/>
+      </node>
+      <node id="3">
+        <label>shc::Int4</label>
+        <link refid="structshc_1_1Int4"/>
+      </node>
+    </collaborationgraph>
+    <location file="shcode.h" line="130" column="3" bodyfile="shcode.h" bodystart="131" bodyend="139"/>
+    <listofallmembers>
+      <member refid="unionShaderClass_1_1StVarValue_1a6d9cc1e2ce23e04f0a312248f55b3e0b" prot="public" virt="non-virtual"><scope>ShaderClass::StVarValue</scope><name>c4</name></member>
+      <member refid="unionShaderClass_1_1StVarValue_1af34a1f1e427afb840a9393a58a03e7e1" prot="public" virt="non-virtual"><scope>ShaderClass::StVarValue</scope><name>i</name></member>
+      <member refid="unionShaderClass_1_1StVarValue_1a154c7cd2737f8d3b6c7e7fc2d605054c" prot="public" virt="non-virtual"><scope>ShaderClass::StVarValue</scope><name>i4</name></member>
+      <member refid="unionShaderClass_1_1StVarValue_1a08bdc288d0cb2c67d066dd0bd11f2056" prot="public" virt="non-virtual"><scope>ShaderClass::StVarValue</scope><name>r</name></member>
+      <member refid="unionShaderClass_1_1StVarValue_1aec07d9793c9d807b25868f00478db309" prot="public" virt="non-virtual"><scope>ShaderClass::StVarValue</scope><name>samplerInfo</name></member>
+      <member refid="unionShaderClass_1_1StVarValue_1ae8ff58244ec46fe805d31e0bdb8bab74" prot="public" virt="non-virtual"><scope>ShaderClass::StVarValue</scope><name>StVarValue</name></member>
+      <member refid="unionShaderClass_1_1StVarValue_1a44473a2bad40960859ea8df8f0526a95" prot="public" virt="non-virtual"><scope>ShaderClass::StVarValue</scope><name>texId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

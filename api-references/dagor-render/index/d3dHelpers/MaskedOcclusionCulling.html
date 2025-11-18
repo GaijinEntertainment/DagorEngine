@@ -1,0 +1,891 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Masked Occlusion Culling</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="daFrameGraph API" href="../daFrameGraph.html" />
+    <link rel="prev" title="DriverNetManager" href="DriverNetManager.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="DriverNetManager.html">DriverNetManager</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Masked Occlusion Culling</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14ImplementationE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Implementation</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14Implementation4SSE2E"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Implementation::SSE2</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14Implementation5SSE41E"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Implementation::SSE41</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14Implementation4AVX2E"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Implementation::AVX2</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14Implementation4NEONE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Implementation::NEON</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWindingE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::BackfaceWinding</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding13BACKFACE_NONEE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::BackfaceWinding::BACKFACE_NONE</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::BackfaceWinding::BACKFACE_CW</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding12BACKFACE_CCWE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::BackfaceWinding::BACKFACE_CCW</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13CullingResultE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::CullingResult</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13CullingResult7VISIBLEE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::CullingResult::VISIBLE</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13CullingResult8OCCLUDEDE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::CullingResult::OCCLUDED</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13CullingResult11VIEW_CULLEDE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::CullingResult::VIEW_CULLED</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanesE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NONEE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_NONE</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NEARE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_NEAR</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_LEFTE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_LEFT</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_RIGHTE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_RIGHT</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes17CLIP_PLANE_BOTTOME"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_BOTTOM</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_TOPE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_TOP</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_SIDESE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_SIDES</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClipPlanes::CLIP_PLANE_ALL</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15pfnAlignedAllocE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::pfnAlignedAlloc</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14pfnAlignedFreeE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::pfnAlignedFree</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13SetResolutionEjj"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::SetResolution()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK22MaskedOcclusionCulling13GetResolutionERjRj"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::GetResolution()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling21ComputeBinWidthHeightEjjRjRj"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ComputeBinWidthHeight()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling16SetNearClipPlaneEf"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::SetNearClipPlane()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK22MaskedOcclusionCulling16GetNearClipPlaneEv"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::GetNearClipPlane()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ClearBufferEv"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ClearBuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11MergeBufferEP22MaskedOcclusionCulling"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::MergeBuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15RenderTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::RenderTriangles()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK22MaskedOcclusionCulling8TestRectEfffff"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::TestRect()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13TestTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::TestTriangles()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling12BinTrianglesEPKfPKtiP7TriListjjPKf15BackfaceWinding10ClipPlanes"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::BinTriangles()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13RenderTrilistERK7TriListPK11ScissorRect"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::RenderTrilist()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling23ComputePixelDepthBufferEPfb"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ComputePixelDepthBuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13GetStatisticsEv"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::GetStatistics()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling17GetImplementationEv"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::GetImplementation()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling20GetAllocFreeCallbackER15pfnAlignedAllocR14pfnAlignedFree"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::GetAllocFreeCallback()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling25CombinePixelDepthBuffer2WEPfii"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::CombinePixelDepthBuffer2W()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling24DecodePixelDepthBuffer2WEPfii"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::DecodePixelDepthBuffer2W()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15mergeOcclusionsEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::mergeOcclusions()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling19mergeOcclusionsZminEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::mergeOcclusionsZmin()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK22MaskedOcclusionCulling13getTilesCountEv"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::getTilesCount()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling6CreateEv"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Create()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling6CreateE14Implementation15pfnAlignedAlloc14pfnAlignedFree"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Create()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling7DestroyEP22MaskedOcclusionCulling"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::Destroy()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling17TransformVerticesEPKfPKfPfj"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::TransformVertices()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCullingD0Ev"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::~MaskedOcclusionCulling()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling21mAlignedAllocCallbackE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::mAlignedAllocCallback</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling20mAlignedFreeCallbackE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::mAlignedFreeCallback</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling6mStatsE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::mStats</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatisticsE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics22mNumProcessedTrianglesE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedTriangles</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumRasterizedTrianglesE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mNumRasterizedTriangles</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics18mNumTilesTraversedE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesTraversed</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics16mNumTilesUpdatedE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesUpdated</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics15mNumTilesMergedE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesMerged</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludersE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mOccluders</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumProcessedRectanglesE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedRectangles</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludeesE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::OcclusionCullingStatistics::mOccludees</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRectE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ScissorRect</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect11ScissorRectEv"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ScissorRect::ScissorRect()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect11ScissorRectEiiii"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ScissorRect::ScissorRect()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMinXE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ScissorRect::mMinX</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMinYE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ScissorRect::mMinY</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMaxXE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ScissorRect::mMaxX</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMaxYE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::ScissorRect::mMaxY</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling7TriListE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::TriList</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling7TriList13mNumTrianglesE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::TriList::mNumTriangles</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling7TriList7mTriIdxE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::TriList::mTriIdx</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling7TriList4mPtrE"><code class="docutils literal notranslate"><span class="pre">MaskedOcclusionCulling::TriList::mPtr</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+      <li class="breadcrumb-item active">Masked Occlusion Culling</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dHelpers/MaskedOcclusionCulling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="masked-occlusion-culling">
+<h1>Masked Occlusion Culling<a class="headerlink" href="#masked-occlusion-culling" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-defines">Defines</p>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.QUICK_MASK">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1aff26d3fb3dd5fd95f2fdd48b69be45f3"></span><span class="sig-name descname"><span class="n"><span class="pre">QUICK_MASK</span></span></span><a class="headerlink" href="#c.QUICK_MASK" title="Link to this definition"></a><br /></dt>
+<dd><p>Configure the algorithm used for updating and merging hierarchical z buffer entries. If QUICK_MASK is defined to 1, use the algorithm from the paper “Masked Software Occlusion Culling”, which has good balance between performance and low leakage. If QUICK_MASK is defined to 0, use the algorithm from “Masked Depth Culling for Graphics Hardware” which has less leakage, but also lower performance. </p>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.USE_D3D">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1a72c366d12bc4a47321429c33847c85c2"></span><span class="sig-name descname"><span class="n"><span class="pre">USE_D3D</span></span></span><a class="headerlink" href="#c.USE_D3D" title="Link to this definition"></a><br /></dt>
+<dd><p>Configures the library for use with Direct3D (default) or OpenGL rendering. This changes whether the screen space Y axis points downwards (D3D) or upwards (OGL), and is primarily important in combination with the PRECISE_COVERAGE define, where this is important to ensure correct rounding and tie-breaker behaviour. It also affects the ScissorRect screen space coordinates and the memory layout of the buffer returned by ComputePixelDepthBuffer(). </p>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.PRECISE_COVERAGE">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1a855546ee8dc10a6e6bc125c5ea9b0f55"></span><span class="sig-name descname"><span class="n"><span class="pre">PRECISE_COVERAGE</span></span></span><a class="headerlink" href="#c.PRECISE_COVERAGE" title="Link to this definition"></a><br /></dt>
+<dd><p>Define PRECISE_COVERAGE to 1 to more closely match GPU rasterization rules. The increased precision comes at a cost of slightly lower performance. </p>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ENABLE_STATS">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1a5446852165fb3c08078b5f2b2339cc32"></span><span class="sig-name descname"><span class="n"><span class="pre">ENABLE_STATS</span></span></span><a class="headerlink" href="#c.ENABLE_STATS" title="Link to this definition"></a><br /></dt>
+<dd><p>Define ENABLE_STATS to 1 to gather various statistics during occlusion culling. Can be used for profiling and debugging. Note that enabling this function will reduce performance significantly. </p>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.MASKED_TARGET_SIMD_SSE">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1ac0097e8bcc74e938cc018d3044077a6f"></span><span class="sig-name descname"><span class="n"><span class="pre">MASKED_TARGET_SIMD_SSE</span></span></span><a class="headerlink" href="#c.MASKED_TARGET_SIMD_SSE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.MOC_VIRTUAL">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1aa76038988585242d50158762f6237939"></span><span class="sig-name descname"><span class="n"><span class="pre">MOC_VIRTUAL</span></span></span><a class="headerlink" href="#c.MOC_VIRTUAL" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.MOC_PURE">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1a01db9b4597c7b4eecd5f16a0fa2c392c"></span><span class="sig-name descname"><span class="n"><span class="pre">MOC_PURE</span></span></span><a class="headerlink" href="#c.MOC_PURE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.MOC_OVERRIDE">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1a12a3c5a32f51fbab4fbe23420a4b4076"></span><span class="sig-name descname"><span class="n"><span class="pre">MOC_OVERRIDE</span></span></span><a class="headerlink" href="#c.MOC_OVERRIDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.MOC_SINGLE_IMPLEMENTATION">
+<span class="target" id="dag__maskedOcclusionCulling_8h_1a96180a5e98830a5309d3d9bd9d4f3fbe"></span><span class="sig-name descname"><span class="n"><span class="pre">MOC_SINGLE_IMPLEMENTATION</span></span></span><a class="headerlink" href="#c.MOC_SINGLE_IMPLEMENTATION" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv422MaskedOcclusionCulling">
+<span id="_CPPv322MaskedOcclusionCulling"></span><span id="_CPPv222MaskedOcclusionCulling"></span><span id="MaskedOcclusionCulling"></span><span class="target" id="classMaskedOcclusionCulling"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></span><a class="headerlink" href="#_CPPv422MaskedOcclusionCulling" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_maskedOcclusionCulling.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling14ImplementationE">
+<span id="_CPPv3N22MaskedOcclusionCulling14ImplementationE"></span><span id="_CPPv2N22MaskedOcclusionCulling14ImplementationE"></span><span class="target" id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bd"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Implementation</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling14ImplementationE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling14Implementation4SSE2E">
+<span id="_CPPv3N22MaskedOcclusionCulling14Implementation4SSE2E"></span><span id="_CPPv2N22MaskedOcclusionCulling14Implementation4SSE2E"></span><span class="target" id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bda40565de3ad3893f8035409e691fe45fc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SSE2</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling14Implementation4SSE2E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling14Implementation5SSE41E">
+<span id="_CPPv3N22MaskedOcclusionCulling14Implementation5SSE41E"></span><span id="_CPPv2N22MaskedOcclusionCulling14Implementation5SSE41E"></span><span class="target" id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bda9ad913a8de92904505d38c8b47169218"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SSE41</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling14Implementation5SSE41E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling14Implementation4AVX2E">
+<span id="_CPPv3N22MaskedOcclusionCulling14Implementation4AVX2E"></span><span id="_CPPv2N22MaskedOcclusionCulling14Implementation4AVX2E"></span><span class="target" id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bdaa651a0e3a301e7ad08020589ba3c567d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVX2</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling14Implementation4AVX2E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling14Implementation4NEONE">
+<span id="_CPPv3N22MaskedOcclusionCulling14Implementation4NEONE"></span><span id="_CPPv2N22MaskedOcclusionCulling14Implementation4NEONE"></span><span class="target" id="classMaskedOcclusionCulling_1a45f29275099296b3b5d0cce506f759bdab55e8050d08b3f398902185b2e28419f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NEON</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling14Implementation4NEONE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling15BackfaceWindingE">
+<span id="_CPPv3N22MaskedOcclusionCulling15BackfaceWindingE"></span><span id="_CPPv2N22MaskedOcclusionCulling15BackfaceWindingE"></span><span class="target" id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BackfaceWinding</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWindingE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling15BackfaceWinding13BACKFACE_NONEE">
+<span id="_CPPv3N22MaskedOcclusionCulling15BackfaceWinding13BACKFACE_NONEE"></span><span id="_CPPv2N22MaskedOcclusionCulling15BackfaceWinding13BACKFACE_NONEE"></span><span class="target" id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488af8a4798752ce31a9570d45e1798d6bed"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BACKFACE_NONE</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding13BACKFACE_NONEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE">
+<span id="_CPPv3N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE"></span><span id="_CPPv2N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE"></span><span class="target" id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488a958730433e95c5c19c41cdfbd595cfa7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BACKFACE_CW</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling15BackfaceWinding12BACKFACE_CCWE">
+<span id="_CPPv3N22MaskedOcclusionCulling15BackfaceWinding12BACKFACE_CCWE"></span><span id="_CPPv2N22MaskedOcclusionCulling15BackfaceWinding12BACKFACE_CCWE"></span><span class="target" id="classMaskedOcclusionCulling_1a8492bae7e15c3c6491466acf06eef488aa5a85f4d4af2fefb0e4499b231fbcb80"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BACKFACE_CCW</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding12BACKFACE_CCWE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13CullingResultE">
+<span id="_CPPv3N22MaskedOcclusionCulling13CullingResultE"></span><span id="_CPPv2N22MaskedOcclusionCulling13CullingResultE"></span><span class="target" id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CullingResult</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13CullingResultE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13CullingResult7VISIBLEE">
+<span id="_CPPv3N22MaskedOcclusionCulling13CullingResult7VISIBLEE"></span><span id="_CPPv2N22MaskedOcclusionCulling13CullingResult7VISIBLEE"></span><span class="target" id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3a16fc888a5f76b24d91f8584f8661bebd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VISIBLE</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13CullingResult7VISIBLEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13CullingResult8OCCLUDEDE">
+<span id="_CPPv3N22MaskedOcclusionCulling13CullingResult8OCCLUDEDE"></span><span id="_CPPv2N22MaskedOcclusionCulling13CullingResult8OCCLUDEDE"></span><span class="target" id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3ac51a6eccddc67661e9102074b7d7efff"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OCCLUDED</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13CullingResult8OCCLUDEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13CullingResult11VIEW_CULLEDE">
+<span id="_CPPv3N22MaskedOcclusionCulling13CullingResult11VIEW_CULLEDE"></span><span id="_CPPv2N22MaskedOcclusionCulling13CullingResult11VIEW_CULLEDE"></span><span class="target" id="classMaskedOcclusionCulling_1a0d289b9e1152750707dea597c294d3a3abba9cdc903628d5d31dded5688c9f78f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VIEW_CULLED</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13CullingResult11VIEW_CULLEDE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanesE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanesE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanesE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ClipPlanes</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanesE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NONEE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NONEE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NONEE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9af8b536644b5ceafb4c0f5bfacdb0262d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_NONE</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NONEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NEARE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NEARE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NEARE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9af38beadd46c5045e5307521efd50f94e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_NEAR</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_NEARE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_LEFTE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_LEFTE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_LEFTE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9aaeebfdcc769d111509367f7486f5c04f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_LEFT</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes15CLIP_PLANE_LEFTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_RIGHTE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_RIGHTE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_RIGHTE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a2e545476b2ab87bbf7e8c1bd88c3dca3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_RIGHT</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_RIGHTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes17CLIP_PLANE_BOTTOME">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes17CLIP_PLANE_BOTTOME"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes17CLIP_PLANE_BOTTOME"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a1ecdee75d2d222b3f3b3913c58d1ee73"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_BOTTOM</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes17CLIP_PLANE_BOTTOME" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_TOPE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_TOPE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_TOPE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a65c229787e3315384fa18f9d2efff4dc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_TOP</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_TOPE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_SIDESE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_SIDESE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_SIDESE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a0a8cf25b502e5e26b030443cb44fdb67"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_SIDES</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes16CLIP_PLANE_SIDESE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE">
+<span id="_CPPv3N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE"></span><span id="_CPPv2N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE"></span><span class="target" id="classMaskedOcclusionCulling_1af80af7d22acd7b23f0fc87aa2ac852f9a12991e46fc63247f747098aa80980feb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIP_PLANE_ALL</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling15pfnAlignedAllocE">
+<span id="_CPPv3N22MaskedOcclusionCulling15pfnAlignedAllocE"></span><span id="_CPPv2N22MaskedOcclusionCulling15pfnAlignedAllocE"></span><span id="MaskedOcclusionCulling::pfnAlignedAlloc"></span><span class="target" id="classMaskedOcclusionCulling_1a8fe12f626eecace52c67844295423450"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">pfnAlignedAlloc</span></span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">alignment</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling15pfnAlignedAllocE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling14pfnAlignedFreeE">
+<span id="_CPPv3N22MaskedOcclusionCulling14pfnAlignedFreeE"></span><span id="_CPPv2N22MaskedOcclusionCulling14pfnAlignedFreeE"></span><span id="MaskedOcclusionCulling::pfnAlignedFree"></span><span class="target" id="classMaskedOcclusionCulling_1adecb44fd14619ed0ebc8f547a21b11df"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">pfnAlignedFree</span></span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">ptr</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling14pfnAlignedFreeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13SetResolutionEjj">
+<span id="_CPPv3N22MaskedOcclusionCulling13SetResolutionEjj"></span><span id="_CPPv2N22MaskedOcclusionCulling13SetResolutionEjj"></span><span id="MaskedOcclusionCulling::SetResolution__unsigned-i.unsigned-i"></span><span class="target" id="classMaskedOcclusionCulling_1a31dc21213cfe983afc64856a574e72e6"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SetResolution</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">height</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13SetResolutionEjj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the resolution of the hierarchical depth buffer. This function will re-allocate the current depth buffer (if present). The contents of the buffer is undefined until <a class="reference internal" href="#classMaskedOcclusionCulling_1a8ca38e929880fefba257f96a87212288"><span class="std std-ref">ClearBuffer()</span></a> is called. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>witdh</strong> – The width of the buffer in pixels, must be a multiple of 8 </p></li>
+<li><p><strong>height</strong> – The height of the buffer in pixels, must be a multiple of 4 </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK22MaskedOcclusionCulling13GetResolutionERjRj">
+<span id="_CPPv3NK22MaskedOcclusionCulling13GetResolutionERjRj"></span><span id="_CPPv2NK22MaskedOcclusionCulling13GetResolutionERjRj"></span><span id="MaskedOcclusionCulling::GetResolution__unsigned-iR.unsigned-iRC"></span><span class="target" id="classMaskedOcclusionCulling_1a66073be3b909a4c9d6b057c984b5ab0b"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetResolution</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">width</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">height</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK22MaskedOcclusionCulling13GetResolutionERjRj" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the resolution of the hierarchical depth buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>witdh</strong> – Output: The width of the buffer in pixels </p></li>
+<li><p><strong>height</strong> – Output: The height of the buffer in pixels </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling21ComputeBinWidthHeightEjjRjRj">
+<span id="_CPPv3N22MaskedOcclusionCulling21ComputeBinWidthHeightEjjRjRj"></span><span id="_CPPv2N22MaskedOcclusionCulling21ComputeBinWidthHeightEjjRjRj"></span><span id="MaskedOcclusionCulling::ComputeBinWidthHeight__unsigned-i.unsigned-i.unsigned-iR.unsigned-iR"></span><span class="target" id="classMaskedOcclusionCulling_1a5605061cd58ee62cf71d18fe84229aff"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ComputeBinWidthHeight</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nBinsW</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nBinsH</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">outBinWidth</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">outBinHeight</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling21ComputeBinWidthHeightEjjRjRj" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the tile size for the current implementation. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nBinsW</strong> – Number of vertical bins, the screen is divided into nBinsW x nBinsH rectangular bins. </p></li>
+<li><p><strong>nBinsH</strong> – Number of horizontal bins, the screen is divided into nBinsW x nBinsH rectangular bins. </p></li>
+<li><p><strong>outBinWidth</strong> – Output: The width of the single bin in pixels (except for the rightmost bin width, which is extended to resolution width) </p></li>
+<li><p><strong>outBinHeight</strong> – Output: The height of the single bin in pixels (except for the bottommost bin height, which is extended to resolution height) </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling16SetNearClipPlaneEf">
+<span id="_CPPv3N22MaskedOcclusionCulling16SetNearClipPlaneEf"></span><span id="_CPPv2N22MaskedOcclusionCulling16SetNearClipPlaneEf"></span><span id="MaskedOcclusionCulling::SetNearClipPlane__float"></span><span class="target" id="classMaskedOcclusionCulling_1a4aff6b2f29f019d64cc6f8c0acc00ad8"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SetNearClipPlane</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nearDist</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling16SetNearClipPlaneEf" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the distance for the near clipping plane. Default is nearDist = 0. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nearDist</strong> – The distance to the near clipping plane, given as clip space w </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK22MaskedOcclusionCulling16GetNearClipPlaneEv">
+<span id="_CPPv3NK22MaskedOcclusionCulling16GetNearClipPlaneEv"></span><span id="_CPPv2NK22MaskedOcclusionCulling16GetNearClipPlaneEv"></span><span id="MaskedOcclusionCulling::GetNearClipPlaneC"></span><span class="target" id="classMaskedOcclusionCulling_1a4a3fde45cfd7c3044a3b1157d9654f2d"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetNearClipPlane</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK22MaskedOcclusionCulling16GetNearClipPlaneEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the distance for the near clipping plane. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ClearBufferEv">
+<span id="_CPPv3N22MaskedOcclusionCulling11ClearBufferEv"></span><span id="_CPPv2N22MaskedOcclusionCulling11ClearBufferEv"></span><span id="MaskedOcclusionCulling::ClearBuffer"></span><span class="target" id="classMaskedOcclusionCulling_1a8ca38e929880fefba257f96a87212288"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ClearBuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ClearBufferEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clears the hierarchical depth buffer. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11MergeBufferEP22MaskedOcclusionCulling">
+<span id="_CPPv3N22MaskedOcclusionCulling11MergeBufferEP22MaskedOcclusionCulling"></span><span id="_CPPv2N22MaskedOcclusionCulling11MergeBufferEP22MaskedOcclusionCulling"></span><span id="MaskedOcclusionCulling::MergeBuffer__MaskedOcclusionCullingP"></span><span class="target" id="classMaskedOcclusionCulling_1ac485575dc75d718699cefb0b8a182ea8"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MergeBuffer</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">BufferB</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11MergeBufferEP22MaskedOcclusionCulling" title="Link to this definition"></a><br /></dt>
+<dd><p>Merge a second hierarchical depth buffer into the main buffer. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling15RenderTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes">
+<span id="_CPPv3N22MaskedOcclusionCulling15RenderTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes"></span><span id="_CPPv2N22MaskedOcclusionCulling15RenderTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes"></span><span id="MaskedOcclusionCulling::RenderTriangles__floatCP.unsigned-shortCP.i.floatCP.BackfaceWinding.ClipPlanes"></span><span class="target" id="classMaskedOcclusionCulling_1a025bcb2e422c77840dabbceaa5722a99"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13CullingResultE" title="MaskedOcclusionCulling::CullingResult"><span class="n"><span class="pre">CullingResult</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderTriangles</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inVtx</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inTris</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nTris</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">modelToClipMatrix</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWindingE" title="MaskedOcclusionCulling::BackfaceWinding"><span class="n"><span class="pre">BackfaceWinding</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bfWinding</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE" title="MaskedOcclusionCulling::BACKFACE_CW"><span class="n"><span class="pre">BACKFACE_CW</span></span></a>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanesE" title="MaskedOcclusionCulling::ClipPlanes"><span class="n"><span class="pre">ClipPlanes</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clipPlaneMask</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE" title="MaskedOcclusionCulling::CLIP_PLANE_ALL"><span class="n"><span class="pre">CLIP_PLANE_ALL</span></span></a><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling15RenderTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes" title="Link to this definition"></a><br /></dt>
+<dd><p>Renders a mesh of occluder triangles and updates the hierarchical z buffer with conservative depth values. </p>
+<p>This function is optimized for vertex layouts with stride 16 and y and w offsets of 4 and 12 bytes, respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inVtx</strong> – Pointer to an array of input vertices, should point to the x component of the first vertex. The input vertices are given as (x,y,w) coordinates in clip space. The memory layout can be changed using vtxLayout. </p></li>
+<li><p><strong>inTris</strong> – Pointer to an array of vertex indices. Each triangle is created from three indices consecutively fetched from the array. </p></li>
+<li><p><strong>nTris</strong> – The number of triangles to render (inTris must contain atleast 3*nTris entries) </p></li>
+<li><p><strong>modelToClipMatrix</strong> – all vertices will be transformed by this matrix before performing projection. If nullptr is passed the transform step will be skipped </p></li>
+<li><p><strong>bfWinding</strong> – Sets triangle winding order to consider backfacing, must be one one of (BACKFACE_NONE, BACKFACE_CW and BACKFACE_CCW). Back-facing triangles are culled and will not be rasterized. You may use BACKFACE_NONE to disable culling for double sided geometry </p></li>
+<li><p><strong>clipPlaneMask</strong> – A mask indicating which clip planes should be considered by the triangle clipper. Can be used as an optimization if your application can determine (for example during culling) that a group of triangles does not intersect a certain frustum plane. However, setting an incorrect mask may cause out of bounds memory accesses. </p></li>
+<li><p><strong>vtxLayout</strong> – A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Will return VIEW_CULLED if all triangles are either outside the frustum or backface culled, returns VISIBLE otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK22MaskedOcclusionCulling8TestRectEfffff">
+<span id="_CPPv3NK22MaskedOcclusionCulling8TestRectEfffff"></span><span id="_CPPv2NK22MaskedOcclusionCulling8TestRectEfffff"></span><span id="MaskedOcclusionCulling::TestRect__float.float.float.float.floatC"></span><span class="target" id="classMaskedOcclusionCulling_1afaac101042e8262a81d19ac3064a8d17"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13CullingResultE" title="MaskedOcclusionCulling::CullingResult"><span class="n"><span class="pre">CullingResult</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TestRect</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xmin</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ymin</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xmax</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ymax</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">wmin</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK22MaskedOcclusionCulling8TestRectEfffff" title="Link to this definition"></a><br /></dt>
+<dd><p>Occlusion query for a rectangle with a given depth. The rectangle is given in normalized device coordinates where (x,y) coordinates between [-1,1] map to the visible screen area. The query uses a GREATER_EQUAL (reversed) depth test meaning that depth values equal to the contents of the depth buffer are counted as visible. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xmin</strong> – NDC coordinate of the left side of the rectangle. </p></li>
+<li><p><strong>ymin</strong> – NDC coordinate of the bottom side of the rectangle. </p></li>
+<li><p><strong>xmax</strong> – NDC coordinate of the right side of the rectangle. </p></li>
+<li><p><strong>ymax</strong> – NDC coordinate of the top side of the rectangle. </p></li>
+<li><p><strong>ymax</strong> – NDC coordinate of the top side of the rectangle. </p></li>
+<li><p><strong>wmin</strong> – Clip space W coordinate for the rectangle. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The query will return VISIBLE if the rectangle may be visible, OCCLUDED if the rectangle is occluded by a previously rendered object, or VIEW_CULLED if the rectangle is outside the view frustum. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13TestTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes">
+<span id="_CPPv3N22MaskedOcclusionCulling13TestTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes"></span><span id="_CPPv2N22MaskedOcclusionCulling13TestTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes"></span><span id="MaskedOcclusionCulling::TestTriangles__floatCP.unsigned-shortCP.i.floatCP.BackfaceWinding.ClipPlanes"></span><span class="target" id="classMaskedOcclusionCulling_1a33295dcfc3bc3c2e57e09d3099a7e8ca"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling13CullingResultE" title="MaskedOcclusionCulling::CullingResult"><span class="n"><span class="pre">CullingResult</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TestTriangles</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inVtx</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inTris</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nTris</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">modelToClipMatrix</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWindingE" title="MaskedOcclusionCulling::BackfaceWinding"><span class="n"><span class="pre">BackfaceWinding</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bfWinding</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE" title="MaskedOcclusionCulling::BACKFACE_CW"><span class="n"><span class="pre">BACKFACE_CW</span></span></a>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanesE" title="MaskedOcclusionCulling::ClipPlanes"><span class="n"><span class="pre">ClipPlanes</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clipPlaneMask</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE" title="MaskedOcclusionCulling::CLIP_PLANE_ALL"><span class="n"><span class="pre">CLIP_PLANE_ALL</span></span></a><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13TestTrianglesEPKfPKtiPKf15BackfaceWinding10ClipPlanes" title="Link to this definition"></a><br /></dt>
+<dd><p>This function is similar to <a class="reference internal" href="#classMaskedOcclusionCulling_1a025bcb2e422c77840dabbceaa5722a99"><span class="std std-ref">RenderTriangles()</span></a>, but performs an occlusion query instead and does not update the hierarchical z buffer. The query uses a GREATER_EQUAL (reversed) depth test meaning that depth values equal to the contents of the depth buffer are counted as visible. </p>
+<p>This function is optimized for vertex layouts with stride 16 and y and w offsets of 4 and 12 bytes, respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inVtx</strong> – Pointer to an array of input vertices, should point to the x component of the first vertex. The input vertices are given as (x,y,w) coordinates in clip space. The memory layout can be changed using vtxLayout. </p></li>
+<li><p><strong>inTris</strong> – Pointer to an array of triangle indices. Each triangle is created from three indices consecutively fetched from the array. </p></li>
+<li><p><strong>nTris</strong> – The number of triangles to render (inTris must contain atleast 3*nTris entries) </p></li>
+<li><p><strong>modelToClipMatrix</strong> – all vertices will be transformed by this matrix before performing projection. If nullptr is passed the transform step will be skipped </p></li>
+<li><p><strong>bfWinding</strong> – Sets triangle winding order to consider backfacing, must be one one of (BACKFACE_NONE, BACKFACE_CW and BACKFACE_CCW). Back-facing triangles are culled and will not be occlusion tested. You may use BACKFACE_NONE to disable culling for double sided geometry </p></li>
+<li><p><strong>clipPlaneMask</strong> – A mask indicating which clip planes should be considered by the triangle clipper. Can be used as an optimization if your application can determine (for example during culling) that a group of triangles does not intersect a certain frustum plane. However, setting an incorrect mask may cause out of bounds memory accesses. </p></li>
+<li><p><strong>vtxLayout</strong> – A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The query will return VISIBLE if the triangle mesh may be visible, OCCLUDED if the mesh is occluded by a previously rendered object, or VIEW_CULLED if all triangles are entirely outside the view frustum or backface culled. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling12BinTrianglesEPKfPKtiP7TriListjjPKf15BackfaceWinding10ClipPlanes">
+<span id="_CPPv3N22MaskedOcclusionCulling12BinTrianglesEPKfPKtiP7TriListjjPKf15BackfaceWinding10ClipPlanes"></span><span id="_CPPv2N22MaskedOcclusionCulling12BinTrianglesEPKfPKtiP7TriListjjPKf15BackfaceWinding10ClipPlanes"></span><span id="MaskedOcclusionCulling::BinTriangles__floatCP.unsigned-shortCP.i.TriListP.unsigned-i.unsigned-i.floatCP.BackfaceWinding.ClipPlanes"></span><span class="target" id="classMaskedOcclusionCulling_1a8c5a3dc3ece64807e0141bb93a62474b"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BinTriangles</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inVtx</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">short</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inTris</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nTris</span></span>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling7TriListE" title="MaskedOcclusionCulling::TriList"><span class="n"><span class="pre">TriList</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">triLists</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nBinsW</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nBinsH</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">modelToClipMatrix</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWindingE" title="MaskedOcclusionCulling::BackfaceWinding"><span class="n"><span class="pre">BackfaceWinding</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bfWinding</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15BackfaceWinding11BACKFACE_CWE" title="MaskedOcclusionCulling::BACKFACE_CW"><span class="n"><span class="pre">BACKFACE_CW</span></span></a>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanesE" title="MaskedOcclusionCulling::ClipPlanes"><span class="n"><span class="pre">ClipPlanes</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clipPlaneMask</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling10ClipPlanes14CLIP_PLANE_ALLE" title="MaskedOcclusionCulling::CLIP_PLANE_ALL"><span class="n"><span class="pre">CLIP_PLANE_ALL</span></span></a><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling12BinTrianglesEPKfPKtiP7TriListjjPKf15BackfaceWinding10ClipPlanes" title="Link to this definition"></a><br /></dt>
+<dd><p>Perform input assembly, clipping , projection, triangle setup, and write triangles to the screen space bins they overlap. This function can be used to distribute work for threading (See the CullingThreadpool class for an example) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inVtx</strong> – Pointer to an array of input vertices, should point to the x component of the first vertex. The input vertices are given as (x,y,w) coordinates in clip space. The memory layout can be changed using vtxLayout. </p></li>
+<li><p><strong>inTris</strong> – Pointer to an array of vertex indices. Each triangle is created from three indices consecutively fetched from the array. </p></li>
+<li><p><strong>nTris</strong> – The number of triangles to render (inTris must contain atleast 3*nTris entries) </p></li>
+<li><p><strong>triLists</strong> – Pointer to an array of <a class="reference internal" href="#structMaskedOcclusionCulling_1_1TriList"><span class="std std-ref">TriList</span></a> objects with one <a class="reference internal" href="#structMaskedOcclusionCulling_1_1TriList"><span class="std std-ref">TriList</span></a> object per bin. If a triangle overlaps a bin, it will be written to the corresponding trilist. Note that this method appends the triangles to the current list, to start writing from the beginning of the list, set triList.mTriIdx = 0 </p></li>
+<li><p><strong>nBinsW</strong> – Number of vertical bins, the screen is divided into nBinsW x nBinsH rectangular bins. </p></li>
+<li><p><strong>nBinsH</strong> – Number of horizontal bins, the screen is divided into nBinsW x nBinsH rectangular bins. </p></li>
+<li><p><strong>modelToClipMatrix</strong> – all vertices will be transformed by this matrix before performing projection. If nullptr is passed the transform step will be skipped </p></li>
+<li><p><strong>clipPlaneMask</strong> – A mask indicating which clip planes should be considered by the triangle clipper. Can be used as an optimization if your application can determine (for example during culling) that a group of triangles does not intersect a certain frustum plane. However, setting an incorrect mask may cause out of bounds memory accesses. </p></li>
+<li><p><strong>vtxLayout</strong> – A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. </p></li>
+<li><p><strong>bfWinding</strong> – Sets triangle winding order to consider backfacing, must be one one of (BACKFACE_NONE, BACKFACE_CW and BACKFACE_CCW). Back-facing triangles are culled and will not be binned / rasterized. You may use BACKFACE_NONE to disable culling for double sided geometry </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13RenderTrilistERK7TriListPK11ScissorRect">
+<span id="_CPPv3N22MaskedOcclusionCulling13RenderTrilistERK7TriListPK11ScissorRect"></span><span id="_CPPv2N22MaskedOcclusionCulling13RenderTrilistERK7TriListPK11ScissorRect"></span><span id="MaskedOcclusionCulling::RenderTrilist__TriListCR.ScissorRectCP"></span><span class="target" id="classMaskedOcclusionCulling_1a976bed9467e6022bed44af7e240cba5e"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderTrilist</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling7TriListE" title="MaskedOcclusionCulling::TriList"><span class="n"><span class="pre">TriList</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">triList</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRectE" title="MaskedOcclusionCulling::ScissorRect"><span class="n"><span class="pre">ScissorRect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scissor</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13RenderTrilistERK7TriListPK11ScissorRect" title="Link to this definition"></a><br /></dt>
+<dd><p>Renders all occluder triangles in a trilist. This function can be used in combination with <a class="reference internal" href="#classMaskedOcclusionCulling_1a8c5a3dc3ece64807e0141bb93a62474b"><span class="std std-ref">BinTriangles()</span></a> to create a threded (binning) rasterizer. The bins can be processed independently by different threads without risking writing to overlapping memory regions. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>triLists</strong> – A triangle list, filled using the <a class="reference internal" href="#classMaskedOcclusionCulling_1a8c5a3dc3ece64807e0141bb93a62474b"><span class="std std-ref">BinTriangles()</span></a> function that is to be rendered. </p></li>
+<li><p><strong>scissor</strong> – A scissor box limiting the rendering region to the bin. The size of each bin must be a multiple of 32x8 pixels due to implementation constraints. For a render target with (width, height) resolution and (nBinsW, nBinsH) bins, the size of a bin is: binWidth = (width / nBinsW) - (width / nBinsW) % 32; binHeight = (height / nBinsH) - (height / nBinsH) % 8; The last row and column of tiles have a different size: lastColBinWidth = width - (nBinsW-1)*binWidth; lastRowBinHeight = height - (nBinsH-1)*binHeight; </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling23ComputePixelDepthBufferEPfb">
+<span id="_CPPv3N22MaskedOcclusionCulling23ComputePixelDepthBufferEPfb"></span><span id="_CPPv2N22MaskedOcclusionCulling23ComputePixelDepthBufferEPfb"></span><span id="MaskedOcclusionCulling::ComputePixelDepthBuffer__floatP.b"></span><span class="target" id="classMaskedOcclusionCulling_1a4b6ed10a1f5eeab63769ca015443b5e7"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ComputePixelDepthBuffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">depthData</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flipY</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling23ComputePixelDepthBufferEPfb" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a per-pixel depth buffer from the hierarchical z buffer representation. Intended for visualizing the hierarchical depth buffer for debugging. The buffer is written in scanline order, from the top to bottom (D3D) or bottom to top (OGL) of the surface. See the USE_D3D define. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>depthData</strong> – Pointer to memory where the per-pixel depth data is written. Must hold storage for atleast width*height elements as set by setResolution. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling13GetStatisticsEv">
+<span id="_CPPv3N22MaskedOcclusionCulling13GetStatisticsEv"></span><span id="_CPPv2N22MaskedOcclusionCulling13GetStatisticsEv"></span><span id="MaskedOcclusionCulling::GetStatistics"></span><span class="target" id="classMaskedOcclusionCulling_1aa14ab2651b1246cc3add7371bded7121"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatisticsE" title="MaskedOcclusionCulling::OcclusionCullingStatistics"><span class="n"><span class="pre">OcclusionCullingStatistics</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetStatistics</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling13GetStatisticsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Fetch occlusion culling statistics, returns zeroes if ENABLE_STATS define is not defined. The statistics can be used for profiling or debugging. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling17GetImplementationEv">
+<span id="_CPPv3N22MaskedOcclusionCulling17GetImplementationEv"></span><span id="_CPPv2N22MaskedOcclusionCulling17GetImplementationEv"></span><span id="MaskedOcclusionCulling::GetImplementation"></span><span class="target" id="classMaskedOcclusionCulling_1a82f3d406fcaf82ac4e80a196a9556cd1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14ImplementationE" title="MaskedOcclusionCulling::Implementation"><span class="n"><span class="pre">Implementation</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetImplementation</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling17GetImplementationEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the implementation (CPU instruction set) version of this object. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling20GetAllocFreeCallbackER15pfnAlignedAllocR14pfnAlignedFree">
+<span id="_CPPv3N22MaskedOcclusionCulling20GetAllocFreeCallbackER15pfnAlignedAllocR14pfnAlignedFree"></span><span id="_CPPv2N22MaskedOcclusionCulling20GetAllocFreeCallbackER15pfnAlignedAllocR14pfnAlignedFree"></span><span id="MaskedOcclusionCulling::GetAllocFreeCallback__pfnAlignedAllocR.pfnAlignedFreeR"></span><span class="target" id="classMaskedOcclusionCulling_1af51f2ec3444351a3576da99ccf157213"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetAllocFreeCallback</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15pfnAlignedAllocE" title="MaskedOcclusionCulling::pfnAlignedAlloc"><span class="n"><span class="pre">pfnAlignedAlloc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">allocCallback</span></span>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14pfnAlignedFreeE" title="MaskedOcclusionCulling::pfnAlignedFree"><span class="n"><span class="pre">pfnAlignedFree</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">freeCallback</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling20GetAllocFreeCallbackER15pfnAlignedAllocR14pfnAlignedFree" title="Link to this definition"></a><br /></dt>
+<dd><p>Get used memory alloc/free callbacks. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling25CombinePixelDepthBuffer2WEPfii">
+<span id="_CPPv3N22MaskedOcclusionCulling25CombinePixelDepthBuffer2WEPfii"></span><span id="_CPPv2N22MaskedOcclusionCulling25CombinePixelDepthBuffer2WEPfii"></span><span id="MaskedOcclusionCulling::CombinePixelDepthBuffer2W__floatP.i.i"></span><span class="target" id="classMaskedOcclusionCulling_1a8072b6d6cd41da7301bc27c4fdd605d2"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CombinePixelDepthBuffer2W</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">depthData</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling25CombinePixelDepthBuffer2WEPfii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling24DecodePixelDepthBuffer2WEPfii">
+<span id="_CPPv3N22MaskedOcclusionCulling24DecodePixelDepthBuffer2WEPfii"></span><span id="_CPPv2N22MaskedOcclusionCulling24DecodePixelDepthBuffer2WEPfii"></span><span id="MaskedOcclusionCulling::DecodePixelDepthBuffer2W__floatP.i.i"></span><span class="target" id="classMaskedOcclusionCulling_1aefded8eb2cd069363191f96374139ff1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DecodePixelDepthBuffer2W</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">depthData</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling24DecodePixelDepthBuffer2WEPfii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling15mergeOcclusionsEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t">
+<span id="_CPPv3N22MaskedOcclusionCulling15mergeOcclusionsEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t"></span><span id="_CPPv2N22MaskedOcclusionCulling15mergeOcclusionsEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t"></span><span id="MaskedOcclusionCulling::mergeOcclusions__MaskedOcclusionCullingPP.uint32_t.uint32_t.uint32_t"></span><span class="target" id="classMaskedOcclusionCulling_1a1f17e371ed25845168e79aa7f788bec9"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mergeOcclusions</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">another_occl</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">occl_count</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">first_tile</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">last_tile</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling15mergeOcclusionsEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Fetch occlusion culling statistics, returns zeroes if ENABLE_STATS define is not defined. The statistics can be used for profiling or debugging. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling19mergeOcclusionsZminEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t">
+<span id="_CPPv3N22MaskedOcclusionCulling19mergeOcclusionsZminEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t"></span><span id="_CPPv2N22MaskedOcclusionCulling19mergeOcclusionsZminEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t"></span><span id="MaskedOcclusionCulling::mergeOcclusionsZmin__MaskedOcclusionCullingPP.uint32_t.uint32_t.uint32_t"></span><span class="target" id="classMaskedOcclusionCulling_1ab9c28036ab2d5934076c273d8907db7b"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mergeOcclusionsZmin</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">another_occl</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">occl_count</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">first_tile</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">last_tile</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling19mergeOcclusionsZminEPP22MaskedOcclusionCulling8uint32_t8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK22MaskedOcclusionCulling13getTilesCountEv">
+<span id="_CPPv3NK22MaskedOcclusionCulling13getTilesCountEv"></span><span id="_CPPv2NK22MaskedOcclusionCulling13getTilesCountEv"></span><span id="MaskedOcclusionCulling::getTilesCountC"></span><span class="target" id="classMaskedOcclusionCulling_1a2ace027bb75ff88b39355de12b7490d2"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getTilesCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK22MaskedOcclusionCulling13getTilesCountEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling6CreateEv">
+<span id="_CPPv3N22MaskedOcclusionCulling6CreateEv"></span><span id="_CPPv2N22MaskedOcclusionCulling6CreateEv"></span><span id="MaskedOcclusionCulling::Create"></span><span class="target" id="classMaskedOcclusionCulling_1ae7b4b044fc74ac7858294e62b17b8823"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">Create</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling6CreateEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a new object with default state, no z buffer attached/allocated. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling6CreateE14Implementation15pfnAlignedAlloc14pfnAlignedFree">
+<span id="_CPPv3N22MaskedOcclusionCulling6CreateE14Implementation15pfnAlignedAlloc14pfnAlignedFree"></span><span id="_CPPv2N22MaskedOcclusionCulling6CreateE14Implementation15pfnAlignedAlloc14pfnAlignedFree"></span><span id="MaskedOcclusionCulling::Create__Implementation.pfnAlignedAlloc.pfnAlignedFree"></span><span class="target" id="classMaskedOcclusionCulling_1a70ca004a05adf4dd6b6f1c73a2eb76a3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">Create</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14ImplementationE" title="MaskedOcclusionCulling::Implementation"><span class="n"><span class="pre">Implementation</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">RequestedSIMD</span></span>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15pfnAlignedAllocE" title="MaskedOcclusionCulling::pfnAlignedAlloc"><span class="n"><span class="pre">pfnAlignedAlloc</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">alignedAlloc</span></span>, <a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14pfnAlignedFreeE" title="MaskedOcclusionCulling::pfnAlignedFree"><span class="n"><span class="pre">pfnAlignedFree</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">alignedFree</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling6CreateE14Implementation15pfnAlignedAlloc14pfnAlignedFree" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a new object with default state, no z buffer attached/allocated. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alignedAlloc</strong> – Pointer to a callback function used when allocating memory </p></li>
+<li><p><strong>alignedFree</strong> – Pointer to a callback function used when freeing memory </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling7DestroyEP22MaskedOcclusionCulling">
+<span id="_CPPv3N22MaskedOcclusionCulling7DestroyEP22MaskedOcclusionCulling"></span><span id="_CPPv2N22MaskedOcclusionCulling7DestroyEP22MaskedOcclusionCulling"></span><span id="MaskedOcclusionCulling::Destroy__MaskedOcclusionCullingP"></span><span class="target" id="classMaskedOcclusionCulling_1a6b58c7c50559afb190ea7b212164962c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Destroy</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">moc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling7DestroyEP22MaskedOcclusionCulling" title="Link to this definition"></a><br /></dt>
+<dd><p>Destroys an object and frees the z buffer memory. Note that you cannot use the delete operator, and should rather use this function to free up memory. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling17TransformVerticesEPKfPKfPfj">
+<span id="_CPPv3N22MaskedOcclusionCulling17TransformVerticesEPKfPKfPfj"></span><span id="_CPPv2N22MaskedOcclusionCulling17TransformVerticesEPKfPKfPfj"></span><span id="MaskedOcclusionCulling::TransformVertices__floatCP.floatCP.floatP.unsigned-i"></span><span class="target" id="classMaskedOcclusionCulling_1adaccd2d2109fd8b401a482224054fb1c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TransformVertices</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">mtx</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inVtx</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">xfVtx</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nVtx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling17TransformVerticesEPKfPKfPfj" title="Link to this definition"></a><br /></dt>
+<dd><p>Utility function for transforming vertices and outputting them to an (x,y,z,w) format suitable for the occluder rasterization and occludee testing functions. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mtx</strong> – Pointer to matrix data. The matrix should column major for post multiplication (OGL) and row major for pre-multiplication (DX). This is consistent with OpenGL / DirectX behavior. </p></li>
+<li><p><strong>inVtx</strong> – Pointer to an array of input vertices. The input vertices are given as (x,y,z) coordinates. The memory layout can be changed using vtxLayout. </p></li>
+<li><p><strong>xfVtx</strong> – Pointer to an array to store transformed vertices. The transformed vertices are always stored as array of structs (AoS) (x,y,z,w) packed in memory. </p></li>
+<li><p><strong>nVtx</strong> – Number of vertices to transform. </p></li>
+<li><p><strong>vtxLayout</strong> – A struct specifying the vertex layout (see struct for detailed description). For best performance, it is advisable to store position data as compactly in memory as possible. Note that for this function, the w-component is assumed to be 1.0. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-functions">Protected Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCullingD0Ev">
+<span id="_CPPv3N22MaskedOcclusionCullingD0Ev"></span><span id="_CPPv2N22MaskedOcclusionCullingD0Ev"></span><span id="MaskedOcclusionCulling::~MaskedOcclusionCulling"></span><span class="target" id="classMaskedOcclusionCulling_1a9cae88e2a4a27ed4c410abc73c2fb721"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~MaskedOcclusionCulling</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCullingD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-attributes">Protected Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling21mAlignedAllocCallbackE">
+<span id="_CPPv3N22MaskedOcclusionCulling21mAlignedAllocCallbackE"></span><span id="_CPPv2N22MaskedOcclusionCulling21mAlignedAllocCallbackE"></span><span id="MaskedOcclusionCulling::mAlignedAllocCallback__pfnAlignedAlloc"></span><span class="target" id="classMaskedOcclusionCulling_1a42e0b9f44bc170702f1d04dd319c1707"></span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling15pfnAlignedAllocE" title="MaskedOcclusionCulling::pfnAlignedAlloc"><span class="n"><span class="pre">pfnAlignedAlloc</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mAlignedAllocCallback</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling21mAlignedAllocCallbackE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling20mAlignedFreeCallbackE">
+<span id="_CPPv3N22MaskedOcclusionCulling20mAlignedFreeCallbackE"></span><span id="_CPPv2N22MaskedOcclusionCulling20mAlignedFreeCallbackE"></span><span id="MaskedOcclusionCulling::mAlignedFreeCallback__pfnAlignedFree"></span><span class="target" id="classMaskedOcclusionCulling_1a754a3d68084b5d7833ccecde6b9881be"></span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling14pfnAlignedFreeE" title="MaskedOcclusionCulling::pfnAlignedFree"><span class="n"><span class="pre">pfnAlignedFree</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mAlignedFreeCallback</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling20mAlignedFreeCallbackE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling6mStatsE">
+<span id="_CPPv3N22MaskedOcclusionCulling6mStatsE"></span><span id="_CPPv2N22MaskedOcclusionCulling6mStatsE"></span><span id="MaskedOcclusionCulling::mStats__OcclusionCullingStatistics"></span><span class="target" id="classMaskedOcclusionCulling_1a55c70a3e8f3b764d5237eecdabccc8d6"></span><span class="k"><span class="pre">mutable</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatisticsE" title="MaskedOcclusionCulling::OcclusionCullingStatistics"><span class="n"><span class="pre">OcclusionCullingStatistics</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mStats</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling6mStatsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatisticsE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatisticsE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatisticsE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OcclusionCullingStatistics</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatisticsE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_maskedOcclusionCulling.h&gt;</em></div>
+<p>Statistics that can be gathered during occluder rendering and visibility to aid debugging and profiling. Must be enabled by changing the ENABLE_STATS define. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics22mNumProcessedTrianglesE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics22mNumProcessedTrianglesE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics22mNumProcessedTrianglesE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedTriangles__l-l"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1aafe8a4f38ae4af724f1ba82c87a97264"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mNumProcessedTriangles</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics22mNumProcessedTrianglesE" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of occluder triangles processed in total. </p>
+<p>Number of ocludee triangles processed (<a class="reference internal" href="#classMaskedOcclusionCulling_1a33295dcfc3bc3c2e57e09d3099a7e8ca"><span class="std std-ref">TestTriangles()</span></a>) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumRasterizedTrianglesE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumRasterizedTrianglesE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumRasterizedTrianglesE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mNumRasterizedTriangles__l-l"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a6c715d2fa8d19e68b98657721a3a51c0"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mNumRasterizedTriangles</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumRasterizedTrianglesE" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of occluder triangles passing view frustum and backface culling</p>
+<p>Number of ocludee triangle passing view frustum and backface culling </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics18mNumTilesTraversedE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics18mNumTilesTraversedE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics18mNumTilesTraversedE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesTraversed__l-l"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a60832e57020de7dd585a76ba9fa1bd10"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mNumTilesTraversed</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics18mNumTilesTraversedE" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of tiles traversed by the rasterizer. </p>
+<p>Number of tiles traversed by triangle &amp; rect rasterizers. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics16mNumTilesUpdatedE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics16mNumTilesUpdatedE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics16mNumTilesUpdatedE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesUpdated__l-l"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1afe3dd23f0f31d9df0283ddae029712f3"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mNumTilesUpdated</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics16mNumTilesUpdatedE" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of tiles where the hierarchical z buffer was updated. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics15mNumTilesMergedE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics15mNumTilesMergedE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics15mNumTilesMergedE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesMerged__l-l"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a65561e97a91f8c779a92c71ff7feaa75"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mNumTilesMerged</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics15mNumTilesMergedE" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of tiles where the hierarchical z buffer was updated. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludersE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludersE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludersE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mOccluders__MaskedOcclusionCulling::OcclusionCullingStatistics"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a66dabca6773e643f6098f8e4c5813920"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatisticsE" title="MaskedOcclusionCulling::OcclusionCullingStatistics"><span class="n"><span class="pre">OcclusionCullingStatistics</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mOccluders</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludersE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumProcessedRectanglesE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumProcessedRectanglesE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumProcessedRectanglesE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedRectangles__l-l"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a954af5f47d9c836a53be5ab2d922f4cb"></span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mNumProcessedRectangles</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics23mNumProcessedRectanglesE" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of rects processed (<a class="reference internal" href="#classMaskedOcclusionCulling_1afaac101042e8262a81d19ac3064a8d17"><span class="std std-ref">TestRect()</span></a>) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludeesE">
+<span id="_CPPv3N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludeesE"></span><span id="_CPPv2N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludeesE"></span><span id="MaskedOcclusionCulling::OcclusionCullingStatistics::mOccludees__MaskedOcclusionCulling::OcclusionCullingStatistics"></span><span class="target" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a410635850a4155260ed790d39e8deb44"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv422MaskedOcclusionCulling" title="MaskedOcclusionCulling"><span class="n"><span class="pre">MaskedOcclusionCulling</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatisticsE" title="MaskedOcclusionCulling::OcclusionCullingStatistics"><span class="n"><span class="pre">OcclusionCullingStatistics</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mOccludees</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling26OcclusionCullingStatistics10mOccludeesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ScissorRectE">
+<span id="_CPPv3N22MaskedOcclusionCulling11ScissorRectE"></span><span id="_CPPv2N22MaskedOcclusionCulling11ScissorRectE"></span><span id="MaskedOcclusionCulling::ScissorRect"></span><span class="target" id="structMaskedOcclusionCulling_1_1ScissorRect"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ScissorRect</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRectE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_maskedOcclusionCulling.h&gt;</em></div>
+<p>Used to control scissoring during rasterization. Note that we only provide coarse scissor support. The scissor box x coordinates must be a multiple of 32, and the y coordinates a multiple of 8. Scissoring is mainly meant as a means of enabling binning (sort middle) rasterizers in case application developers want to use that approach for multithreading. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ScissorRect11ScissorRectEv">
+<span id="_CPPv3N22MaskedOcclusionCulling11ScissorRect11ScissorRectEv"></span><span id="_CPPv2N22MaskedOcclusionCulling11ScissorRect11ScissorRectEv"></span><span id="MaskedOcclusionCulling::ScissorRect::ScissorRect"></span><span class="target" id="structMaskedOcclusionCulling_1_1ScissorRect_1a8a609403ef7591fe8a0306d13727a84d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ScissorRect</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect11ScissorRectEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ScissorRect11ScissorRectEiiii">
+<span id="_CPPv3N22MaskedOcclusionCulling11ScissorRect11ScissorRectEiiii"></span><span id="_CPPv2N22MaskedOcclusionCulling11ScissorRect11ScissorRectEiiii"></span><span id="MaskedOcclusionCulling::ScissorRect::ScissorRect__i.i.i.i"></span><span class="target" id="structMaskedOcclusionCulling_1_1ScissorRect_1a9ad8547c33bea770739779650388bbff"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ScissorRect</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">minX</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">minY</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">maxX</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">maxY</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect11ScissorRectEiiii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMinXE">
+<span id="_CPPv3N22MaskedOcclusionCulling11ScissorRect5mMinXE"></span><span id="_CPPv2N22MaskedOcclusionCulling11ScissorRect5mMinXE"></span><span id="MaskedOcclusionCulling::ScissorRect::mMinX__i"></span><span class="target" id="structMaskedOcclusionCulling_1_1ScissorRect_1a62dfc7341a5e5955382ddf7d7238e05d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mMinX</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMinXE" title="Link to this definition"></a><br /></dt>
+<dd><p>Screen space X coordinate for left side of scissor rect, inclusive and must be a multiple of 32 </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMinYE">
+<span id="_CPPv3N22MaskedOcclusionCulling11ScissorRect5mMinYE"></span><span id="_CPPv2N22MaskedOcclusionCulling11ScissorRect5mMinYE"></span><span id="MaskedOcclusionCulling::ScissorRect::mMinY__i"></span><span class="target" id="structMaskedOcclusionCulling_1_1ScissorRect_1a71f81e24acc64800c804e756f3d76df6"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mMinY</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMinYE" title="Link to this definition"></a><br /></dt>
+<dd><p>Screen space Y coordinate for bottom side of scissor rect, inclusive and must be a multiple of 8 </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMaxXE">
+<span id="_CPPv3N22MaskedOcclusionCulling11ScissorRect5mMaxXE"></span><span id="_CPPv2N22MaskedOcclusionCulling11ScissorRect5mMaxXE"></span><span id="MaskedOcclusionCulling::ScissorRect::mMaxX__i"></span><span class="target" id="structMaskedOcclusionCulling_1_1ScissorRect_1a47da6c2e21a14a6bcd5e09c78a5a49ab"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mMaxX</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMaxXE" title="Link to this definition"></a><br /></dt>
+<dd><p>Screen space X coordinate for right side of scissor rect, <strong>non</strong> inclusive and must be a multiple of 32 </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMaxYE">
+<span id="_CPPv3N22MaskedOcclusionCulling11ScissorRect5mMaxYE"></span><span id="_CPPv2N22MaskedOcclusionCulling11ScissorRect5mMaxYE"></span><span id="MaskedOcclusionCulling::ScissorRect::mMaxY__i"></span><span class="target" id="structMaskedOcclusionCulling_1_1ScissorRect_1aa031c4359ba5be1f89c0b0203f19cb2b"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mMaxY</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling11ScissorRect5mMaxYE" title="Link to this definition"></a><br /></dt>
+<dd><p>Screen space Y coordinate for top side of scissor rect, <strong>non</strong> inclusive and must be a multiple of 8 </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling7TriListE">
+<span id="_CPPv3N22MaskedOcclusionCulling7TriListE"></span><span id="_CPPv2N22MaskedOcclusionCulling7TriListE"></span><span id="MaskedOcclusionCulling::TriList"></span><span class="target" id="structMaskedOcclusionCulling_1_1TriList"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TriList</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling7TriListE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_maskedOcclusionCulling.h&gt;</em></div>
+<p>Used to specify storage area for a binlist, containing triangles. This struct is used for binning and multithreading. The host application is responsible for allocating memory for the binlists. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling7TriList13mNumTrianglesE">
+<span id="_CPPv3N22MaskedOcclusionCulling7TriList13mNumTrianglesE"></span><span id="_CPPv2N22MaskedOcclusionCulling7TriList13mNumTrianglesE"></span><span id="MaskedOcclusionCulling::TriList::mNumTriangles__unsigned-i"></span><span class="target" id="structMaskedOcclusionCulling_1_1TriList_1a1d15adf084a9c7bb692805c70f6393f7"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mNumTriangles</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling7TriList13mNumTrianglesE" title="Link to this definition"></a><br /></dt>
+<dd><p>Maximum number of triangles that may be stored in mPtr. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling7TriList7mTriIdxE">
+<span id="_CPPv3N22MaskedOcclusionCulling7TriList7mTriIdxE"></span><span id="_CPPv2N22MaskedOcclusionCulling7TriList7mTriIdxE"></span><span id="MaskedOcclusionCulling::TriList::mTriIdx__unsigned-i"></span><span class="target" id="structMaskedOcclusionCulling_1_1TriList_1a7cef0921a3b22b8422adb85701bfc521"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mTriIdx</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling7TriList7mTriIdxE" title="Link to this definition"></a><br /></dt>
+<dd><p>Index of next triangle to be written, clear before calling BinTriangles to start from the beginning of the list </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N22MaskedOcclusionCulling7TriList4mPtrE">
+<span id="_CPPv3N22MaskedOcclusionCulling7TriList4mPtrE"></span><span id="_CPPv2N22MaskedOcclusionCulling7TriList4mPtrE"></span><span id="MaskedOcclusionCulling::TriList::mPtr__floatP"></span><span class="target" id="structMaskedOcclusionCulling_1_1TriList_1ab537aa0e4a4bc54091d78f2aed411e70"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">mPtr</span></span></span><a class="headerlink" href="#_CPPv4N22MaskedOcclusionCulling7TriList4mPtrE" title="Link to this definition"></a><br /></dt>
+<dd><p>Scratchpad buffer allocated by the host application. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="DriverNetManager.html" class="btn btn-neutral float-left" title="DriverNetManager" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../daFrameGraph.html" class="btn btn-neutral float-right" title="daFrameGraph API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,234 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSamplerTable" kind="class" language="C++" prot="public">
+    <compoundname>SamplerTable</compoundname>
+    <includes refid="samplers_8h" local="no">samplers.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSamplerTable_1a05eba5c981e20d6f55cb57753cd69dc0" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classSampler" kindref="compound">Sampler</ref> &gt;</type>
+        <definition>Tab&lt;Sampler&gt; SamplerTable::mSamplers</definition>
+        <argsstring></argsstring>
+        <name>mSamplers</name>
+        <qualifiedname>SamplerTable::mSamplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="45" column="7" bodyfile="samplers.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSamplerTable_1a10c62aba5e579df3a10290f57d2c19c7" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; eastl::string, int &gt;</type>
+        <definition>ska::flat_hash_map&lt;eastl::string, int&gt; SamplerTable::mSamplerIds</definition>
+        <argsstring></argsstring>
+        <name>mSamplerIds</name>
+        <qualifiedname>SamplerTable::mSamplerIds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="46" column="22" bodyfile="samplers.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSamplerTable_1a09e21d9846500a56df91a97baad54785" prot="private" static="no" mutable="no">
+        <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+        <definition>VarNameMap&amp; SamplerTable::varNameMap</definition>
+        <argsstring></argsstring>
+        <name>varNameMap</name>
+        <qualifiedname>SamplerTable::varNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="47" column="14" bodyfile="samplers.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSamplerTable_1adf3230e0b6edac4df9ea545218e8d8c0" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderGlobal_1_1VarTable" kindref="compound">ShaderGlobal::VarTable</ref> &amp;</type>
+        <definition>ShaderGlobal::VarTable&amp; SamplerTable::globvars</definition>
+        <argsstring></argsstring>
+        <name>globvars</name>
+        <qualifiedname>SamplerTable::globvars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="48" column="26" bodyfile="samplers.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSamplerTable_1ae79e57fa8773d5db47c3d432cc19b645" prot="private" static="no" mutable="no">
+        <type><ref refid="structStcodeShader" kindref="compound">StcodeShader</ref> &amp;</type>
+        <definition>StcodeShader&amp; SamplerTable::cppstcode</definition>
+        <argsstring></argsstring>
+        <name>cppstcode</name>
+        <qualifiedname>SamplerTable::cppstcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="49" column="16" bodyfile="samplers.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSamplerTable_1a0fcaf714b94bb87512d3d4643eb7da07" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SamplerTable::SamplerTable</definition>
+        <argsstring>(VarNameMap &amp;var_map, ShaderGlobal::VarTable &amp;gvars, StcodeShader &amp;cppcode)</argsstring>
+        <name>SamplerTable</name>
+        <qualifiedname>SamplerTable::SamplerTable</qualifiedname>
+        <param>
+          <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+          <declname>var_map</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderGlobal_1_1VarTable" kindref="compound">ShaderGlobal::VarTable</ref> &amp;</type>
+          <declname>gvars</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeShader" kindref="compound">StcodeShader</ref> &amp;</type>
+          <declname>cppcode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="52" column="3" bodyfile="samplers.h" bodystart="52" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classSamplerTable_1afe3dd516a03bff06a65ea05d9464c62a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SamplerTable::add</definition>
+        <argsstring>(ShaderTerminal::sampler_decl &amp;smp_decl, Parser &amp;parser)</argsstring>
+        <name>add</name>
+        <qualifiedname>SamplerTable::add</qualifiedname>
+        <param>
+          <type>ShaderTerminal::sampler_decl &amp;</type>
+          <declname>smp_decl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="56" column="8" bodyfile="samplers.cpp" bodystart="113" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="classSamplerTable_1a29ec9847d0c38b0b5068d5cba1689eab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SamplerTable::link</definition>
+        <argsstring>(const Tab&lt; Sampler &gt; &amp;new_samplers, Tab&lt; int &gt; &amp;smp_link_table)</argsstring>
+        <name>link</name>
+        <qualifiedname>SamplerTable::link</qualifiedname>
+        <param>
+          <type>const Tab&lt; <ref refid="classSampler" kindref="compound">Sampler</ref> &gt; &amp;</type>
+          <declname>new_samplers</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>smp_link_table</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="57" column="8" bodyfile="samplers.cpp" bodystart="159" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="classSamplerTable_1a1c33dc6753383f00e5b365e45a541194" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classSampler" kindref="compound">Sampler</ref> *</type>
+        <definition>Sampler * SamplerTable::get</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>get</name>
+        <qualifiedname>SamplerTable::get</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="58" column="11" bodyfile="samplers.cpp" bodystart="189" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="classSamplerTable_1a010fb1c25456ed7bfe5e303ecbeef808" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SamplerTable::emplaceSamplers</definition>
+        <argsstring>(Tab&lt; Sampler &gt; &amp;&amp;samplers)</argsstring>
+        <name>emplaceSamplers</name>
+        <qualifiedname>SamplerTable::emplaceSamplers</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="classSampler" kindref="compound">Sampler</ref> &gt; &amp;&amp;</type>
+          <declname>samplers</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="60" column="8" bodyfile="samplers.h" bodystart="60" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="classSamplerTable_1a4385cbae1f97351063aa29390f99d48c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Tab&lt; <ref refid="classSampler" kindref="compound">Sampler</ref> &gt;</type>
+        <definition>Tab&lt; Sampler &gt; SamplerTable::releaseSamplers</definition>
+        <argsstring>()</argsstring>
+        <name>releaseSamplers</name>
+        <qualifiedname>SamplerTable::releaseSamplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="65" column="7" bodyfile="samplers.cpp" bodystart="195" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="classSamplerTable_1aefae0ffd54c1adbe26f005ec41a46be1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SamplerTable::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>SamplerTable::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="67" column="8" bodyfile="samplers.cpp" bodystart="201" bodyend="205"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="samplers.h" line="43" column="1" bodyfile="samplers.h" bodystart="44" bodyend="68"/>
+    <listofallmembers>
+      <member refid="classSamplerTable_1afe3dd516a03bff06a65ea05d9464c62a" prot="public" virt="non-virtual"><scope>SamplerTable</scope><name>add</name></member>
+      <member refid="classSamplerTable_1aefae0ffd54c1adbe26f005ec41a46be1" prot="public" virt="non-virtual"><scope>SamplerTable</scope><name>clear</name></member>
+      <member refid="classSamplerTable_1ae79e57fa8773d5db47c3d432cc19b645" prot="private" virt="non-virtual"><scope>SamplerTable</scope><name>cppstcode</name></member>
+      <member refid="classSamplerTable_1a010fb1c25456ed7bfe5e303ecbeef808" prot="public" virt="non-virtual"><scope>SamplerTable</scope><name>emplaceSamplers</name></member>
+      <member refid="classSamplerTable_1a1c33dc6753383f00e5b365e45a541194" prot="public" virt="non-virtual"><scope>SamplerTable</scope><name>get</name></member>
+      <member refid="classSamplerTable_1adf3230e0b6edac4df9ea545218e8d8c0" prot="private" virt="non-virtual"><scope>SamplerTable</scope><name>globvars</name></member>
+      <member refid="classSamplerTable_1a29ec9847d0c38b0b5068d5cba1689eab" prot="public" virt="non-virtual"><scope>SamplerTable</scope><name>link</name></member>
+      <member refid="classSamplerTable_1a10c62aba5e579df3a10290f57d2c19c7" prot="private" virt="non-virtual"><scope>SamplerTable</scope><name>mSamplerIds</name></member>
+      <member refid="classSamplerTable_1a05eba5c981e20d6f55cb57753cd69dc0" prot="private" virt="non-virtual"><scope>SamplerTable</scope><name>mSamplers</name></member>
+      <member refid="classSamplerTable_1a4385cbae1f97351063aa29390f99d48c" prot="public" virt="non-virtual"><scope>SamplerTable</scope><name>releaseSamplers</name></member>
+      <member refid="classSamplerTable_1a0fcaf714b94bb87512d3d4643eb7da07" prot="public" virt="non-virtual"><scope>SamplerTable</scope><name>SamplerTable</name></member>
+      <member refid="classSamplerTable_1a09e21d9846500a56df91a97baad54785" prot="private" virt="non-virtual"><scope>SamplerTable</scope><name>varNameMap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

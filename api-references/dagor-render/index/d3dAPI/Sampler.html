@@ -1,0 +1,595 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sampler</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Shader Programs" href="Shader.html" />
+    <link rel="prev" title="Read/Write (UAV) Resources" href="RwResource.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Sampler</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError14TEXMIPMAP_NONEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXMIPMAP_NONE</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError15TEXMIPMAP_POINTE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXMIPMAP_POINT</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N19PhonyNameDueToError16TEXMIPMAP_LINEARE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::TEXMIPMAP_LINEAR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10MipMapModeE"><code class="docutils literal notranslate"><span class="pre">d3d::MipMapMode</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10MipMapMode8DisabledE"><code class="docutils literal notranslate"><span class="pre">d3d::MipMapMode::Disabled</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10MipMapMode5PointE"><code class="docutils literal notranslate"><span class="pre">d3d::MipMapMode::Point</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10MipMapMode6LinearE"><code class="docutils literal notranslate"><span class="pre">d3d::MipMapMode::Linear</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10FilterModeE"><code class="docutils literal notranslate"><span class="pre">d3d::FilterMode</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10FilterMode8DisabledE"><code class="docutils literal notranslate"><span class="pre">d3d::FilterMode::Disabled</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10FilterMode5PointE"><code class="docutils literal notranslate"><span class="pre">d3d::FilterMode::Point</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10FilterMode6LinearE"><code class="docutils literal notranslate"><span class="pre">d3d::FilterMode::Linear</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10FilterMode4BestE"><code class="docutils literal notranslate"><span class="pre">d3d::FilterMode::Best</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d10FilterMode7CompareE"><code class="docutils literal notranslate"><span class="pre">d3d::FilterMode::Compare</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d11AddressModeE"><code class="docutils literal notranslate"><span class="pre">d3d::AddressMode</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11AddressMode4WrapE"><code class="docutils literal notranslate"><span class="pre">d3d::AddressMode::Wrap</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11AddressMode6MirrorE"><code class="docutils literal notranslate"><span class="pre">d3d::AddressMode::Mirror</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11AddressMode5ClampE"><code class="docutils literal notranslate"><span class="pre">d3d::AddressMode::Clamp</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11AddressMode6BorderE"><code class="docutils literal notranslate"><span class="pre">d3d::AddressMode::Border</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11AddressMode10MirrorOnceE"><code class="docutils literal notranslate"><span class="pre">d3d::AddressMode::MirrorOnce</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d15request_samplerERK11SamplerInfo"><code class="docutils literal notranslate"><span class="pre">d3d::request_sampler()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d11set_samplerEjj13SamplerHandle"><code class="docutils literal notranslate"><span class="pre">d3d::set_sampler()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d11BorderColorE"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5ColorE"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::Color</span></code></a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5Color16TransparentBlackE"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::Color::TransparentBlack</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5Color11OpaqueBlackE"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::Color::OpaqueBlack</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5Color11OpaqueWhiteE"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::Color::OpaqueWhite</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11BorderColor11UnderlyingTE"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::UnderlyingT</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11BorderColor11BorderColorE5Color"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::BorderColor()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d11BorderColorcv8E3DCOLOREv"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::operator</span> <span class="pre">E3DCOLOR()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d11BorderColorcv11UnderlyingTEv"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::operator</span> <span class="pre">UnderlyingT()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5colorE"><code class="docutils literal notranslate"><span class="pre">d3d::BorderColor::color</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfoE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d11SamplerInfoeqERK11SamplerInfo"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::operator==()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d11SamplerInfoneERK11SamplerInfo"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::operator!=()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d11SamplerInfoltERK11SamplerInfo"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::operator&lt;()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo12mip_map_modeE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::mip_map_mode</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo11filter_modeE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::filter_mode</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo14address_mode_uE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::address_mode_u</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo14address_mode_vE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::address_mode_v</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo14address_mode_wE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::address_mode_w</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo12border_colorE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::border_color</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo15anisotropic_maxE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::anisotropic_max</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfo12mip_map_biasE"><code class="docutils literal notranslate"><span class="pre">d3d::SamplerInfo::mip_map_bias</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Sampler</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/Sampler.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="sampler">
+<h1>Sampler<a class="headerlink" href="#sampler" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-defines">Defines</p>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.EQU">
+<span class="target" id="dag__sampler_8h_1ac471fda7962440b8faea63b3f2a0da33"></span><span class="sig-name descname"><span class="n"><span class="pre">EQU</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">field</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.EQU" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.CMP">
+<span class="target" id="dag__sampler_8h_1aed703b01b922c16fc2e6653b18b96a03"></span><span class="sig-name descname"><span class="n"><span class="pre">CMP</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">field</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CMP" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.FOR_EACH_FIELD">
+<span class="target" id="dag__sampler_8h_1a8ac90979cb928eef961dafe355fcbdc2"></span><span class="sig-name descname"><span class="n"><span class="pre">FOR_EACH_FIELD</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">op</span></span>, <span class="n"><span class="pre">sep</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FOR_EACH_FIELD" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp">
+<span class="target" id="dag__sampler_8h_1a900dca9b26de42491763226e12dcd47b"></span><span class="sig-name descname"></span></dt>
+<dd><p>MipMapMode enum. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError14TEXMIPMAP_NONEE">
+<span id="_CPPv3N19PhonyNameDueToError14TEXMIPMAP_NONEE"></span><span id="_CPPv2N19PhonyNameDueToError14TEXMIPMAP_NONEE"></span><span class="target" id="dag__sampler_8h_1a900dca9b26de42491763226e12dcd47ba6e709719e9b0e118dc67991344129ad2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXMIPMAP_NONE</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError14TEXMIPMAP_NONEE" title="Link to this definition"></a><br /></dt>
+<dd><p>no mipmapping </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError15TEXMIPMAP_POINTE">
+<span id="_CPPv3N19PhonyNameDueToError15TEXMIPMAP_POINTE"></span><span id="_CPPv2N19PhonyNameDueToError15TEXMIPMAP_POINTE"></span><span class="target" id="dag__sampler_8h_1a900dca9b26de42491763226e12dcd47ba811af40a72e4cf843d35c0c07499b3d8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXMIPMAP_POINT</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError15TEXMIPMAP_POINTE" title="Link to this definition"></a><br /></dt>
+<dd><p>point mipmapping </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError16TEXMIPMAP_LINEARE">
+<span id="_CPPv3N19PhonyNameDueToError16TEXMIPMAP_LINEARE"></span><span id="_CPPv2N19PhonyNameDueToError16TEXMIPMAP_LINEARE"></span><span class="target" id="dag__sampler_8h_1a900dca9b26de42491763226e12dcd47ba9926907feb69d1c6d72dc710185a3adb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEXMIPMAP_LINEAR</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError16TEXMIPMAP_LINEARE" title="Link to this definition"></a><br /></dt>
+<dd><p>linear mipmapping </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10MipMapModeE">
+<span id="_CPPv3N3d3d10MipMapModeE"></span><span id="_CPPv2N3d3d10MipMapModeE"></span><span class="target" id="namespaced3d_1aea6114c753431df075c9eae6250f6ebc"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MipMapMode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N3d3d10MipMapModeE" title="Link to this definition"></a><br /></dt>
+<dd><p>MipMapMode enum class. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10MipMapMode8DisabledE">
+<span id="_CPPv3N3d3d10MipMapMode8DisabledE"></span><span id="_CPPv2N3d3d10MipMapMode8DisabledE"></span><span class="target" id="namespaced3d_1aea6114c753431df075c9eae6250f6ebcab9f5c797ebbf55adccdd8539a65a0241"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Disabled</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10MipMapMode8DisabledE" title="Link to this definition"></a><br /></dt>
+<dd><p>[DEPRECATED] no mipmapping </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10MipMapMode5PointE">
+<span id="_CPPv3N3d3d10MipMapMode5PointE"></span><span id="_CPPv2N3d3d10MipMapMode5PointE"></span><span class="target" id="namespaced3d_1aea6114c753431df075c9eae6250f6ebca2a3cd5946cfd317eb99c3d32e35e2d4c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Point</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10MipMapMode5PointE" title="Link to this definition"></a><br /></dt>
+<dd><p>point mipmapping </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10MipMapMode6LinearE">
+<span id="_CPPv3N3d3d10MipMapMode6LinearE"></span><span id="_CPPv2N3d3d10MipMapMode6LinearE"></span><span class="target" id="namespaced3d_1aea6114c753431df075c9eae6250f6ebca32a843da6ea40ab3b17a3421ccdf671b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Linear</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10MipMapMode6LinearE" title="Link to this definition"></a><br /></dt>
+<dd><p>linear mipmapping </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10FilterModeE">
+<span id="_CPPv3N3d3d10FilterModeE"></span><span id="_CPPv2N3d3d10FilterModeE"></span><span class="target" id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FilterMode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N3d3d10FilterModeE" title="Link to this definition"></a><br /></dt>
+<dd><p>FilterMode enum class. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10FilterMode8DisabledE">
+<span id="_CPPv3N3d3d10FilterMode8DisabledE"></span><span id="_CPPv2N3d3d10FilterMode8DisabledE"></span><span class="target" id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaab9f5c797ebbf55adccdd8539a65a0241"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Disabled</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10FilterMode8DisabledE" title="Link to this definition"></a><br /></dt>
+<dd><p>[DEPRECATED] </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10FilterMode5PointE">
+<span id="_CPPv3N3d3d10FilterMode5PointE"></span><span id="_CPPv2N3d3d10FilterMode5PointE"></span><span class="target" id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa2a3cd5946cfd317eb99c3d32e35e2d4c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Point</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10FilterMode5PointE" title="Link to this definition"></a><br /></dt>
+<dd><p>point sampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10FilterMode6LinearE">
+<span id="_CPPv3N3d3d10FilterMode6LinearE"></span><span id="_CPPv2N3d3d10FilterMode6LinearE"></span><span class="target" id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa32a843da6ea40ab3b17a3421ccdf671b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Linear</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10FilterMode6LinearE" title="Link to this definition"></a><br /></dt>
+<dd><p>linear sampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10FilterMode4BestE">
+<span id="_CPPv3N3d3d10FilterMode4BestE"></span><span id="_CPPv2N3d3d10FilterMode4BestE"></span><span class="target" id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa68ef004de6166492c1d668eb8efe09bd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Best</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10FilterMode4BestE" title="Link to this definition"></a><br /></dt>
+<dd><p>[DEPRECATED] anisotropic and similar, if available </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10FilterMode7CompareE">
+<span id="_CPPv3N3d3d10FilterMode7CompareE"></span><span id="_CPPv2N3d3d10FilterMode7CompareE"></span><span class="target" id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa7eece51cf3938103677db7a5051ef8f5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Compare</span></span></span><a class="headerlink" href="#_CPPv4N3d3d10FilterMode7CompareE" title="Link to this definition"></a><br /></dt>
+<dd><p>point comparasion for using in pcf </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11AddressModeE">
+<span id="_CPPv3N3d3d11AddressModeE"></span><span id="_CPPv2N3d3d11AddressModeE"></span><span class="target" id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AddressMode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N3d3d11AddressModeE" title="Link to this definition"></a><br /></dt>
+<dd><p>AddressMode enum class. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11AddressMode4WrapE">
+<span id="_CPPv3N3d3d11AddressMode4WrapE"></span><span id="_CPPv2N3d3d11AddressMode4WrapE"></span><span class="target" id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaaa212b19ef5f2fb30acf92e6cbccc1f2d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Wrap</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11AddressMode4WrapE" title="Link to this definition"></a><br /></dt>
+<dd><p>Repeats the texture when texture coordinates are outside [0, 1]. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11AddressMode6MirrorE">
+<span id="_CPPv3N3d3d11AddressMode6MirrorE"></span><span id="_CPPv2N3d3d11AddressMode6MirrorE"></span><span class="target" id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaa2403def5083f02105e7802b3b315681e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mirror</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11AddressMode6MirrorE" title="Link to this definition"></a><br /></dt>
+<dd><p>Mirrors the texture when texture coordinates are outside [0, 1]. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11AddressMode5ClampE">
+<span id="_CPPv3N3d3d11AddressMode5ClampE"></span><span id="_CPPv2N3d3d11AddressMode5ClampE"></span><span class="target" id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaa08825280e3f8137556325061ba67ff8c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Clamp</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11AddressMode5ClampE" title="Link to this definition"></a><br /></dt>
+<dd><p>Clamps texture coordinates to [0, 1]. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11AddressMode6BorderE">
+<span id="_CPPv3N3d3d11AddressMode6BorderE"></span><span id="_CPPv2N3d3d11AddressMode6BorderE"></span><span class="target" id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaa070554647306343cbea29ebfdd278ba8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Border</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11AddressMode6BorderE" title="Link to this definition"></a><br /></dt>
+<dd><p>Uses the border color when texture coordinates are outside [0, 1]. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11AddressMode10MirrorOnceE">
+<span id="_CPPv3N3d3d11AddressMode10MirrorOnceE"></span><span id="_CPPv2N3d3d11AddressMode10MirrorOnceE"></span><span class="target" id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaabbfe58735042c726d2d04562ea4e265a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MirrorOnce</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11AddressMode10MirrorOnceE" title="Link to this definition"></a><br /></dt>
+<dd><p>Similar to Mirror and Clamp. Takes the absolute value of the texture coordinate (thus, mirroring around 0), and then clamps to the maximum value. The most common usage is for volume textures, where support for the full MirrorOnce texture-addressing mode is not necessary, but the data is symmetrical around the one axis. </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d15request_samplerERK11SamplerInfo">
+<span id="_CPPv3N3d3d15request_samplerERK11SamplerInfo"></span><span id="_CPPv2N3d3d15request_samplerERK11SamplerInfo"></span><span id="d3d::request_sampler__SamplerInfoCR"></span><span class="target" id="namespaced3d_1ae852591d5ab574238949dfc13e40848d"></span><span class="n"><span class="pre">SamplerHandle</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">request_sampler</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfoE" title="d3d::SamplerInfo"><span class="n"><span class="pre">SamplerInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">sampler_info</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d15request_samplerERK11SamplerInfo" title="Link to this definition"></a><br /></dt>
+<dd><p>Request a sampler handle with the given sampler info. </p>
+<p>Creates a sampler, when necessary. Identical infos should yield identical handles. This call is thread-safe and does not require external synchronization. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sampler_info</strong> – The information needed to create the sampler </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SamplerHandle The handle to the sampler </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11set_samplerEjj13SamplerHandle">
+<span id="_CPPv3N3d3d11set_samplerEjj13SamplerHandle"></span><span id="_CPPv2N3d3d11set_samplerEjj13SamplerHandle"></span><span id="d3d::set_sampler__unsigned.unsigned.SamplerHandle"></span><span class="target" id="namespaced3d_1a46f411ec180adee30d74784ee27fb9c7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_sampler</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shader_stage</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <span class="n"><span class="pre">SamplerHandle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sampler</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d11set_samplerEjj13SamplerHandle" title="Link to this definition"></a><br /></dt>
+<dd><p>Binds given sampler to the slot. </p>
+<p>This call is not thread-safe, requires global gpu lock to be held</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shader_stage</strong> – The shader stage to bind the sampler to. One of STAGE_XXX enum. </p></li>
+<li><p><strong>slot</strong> – The slot to bind the sampler to </p></li>
+<li><p><strong>sampler</strong> – The handle to the sampler to be bound </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColorE">
+<span id="_CPPv3N3d3d11BorderColorE"></span><span id="_CPPv2N3d3d11BorderColorE"></span><span id="d3d::BorderColor"></span><span class="target" id="structd3d_1_1BorderColor"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BorderColor</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11BorderColorE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_sampler.h&gt;</em></div>
+<p><a class="reference internal" href="#structd3d_1_1BorderColor"><span class="std std-ref">BorderColor</span></a> struct. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColor5ColorE">
+<span id="_CPPv3N3d3d11BorderColor5ColorE"></span><span id="_CPPv2N3d3d11BorderColor5ColorE"></span><span class="target" id="structd3d_1_1BorderColor_1a834dbf1ab4dcb80d21374d7911ea3953"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Color</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11BorderColor11UnderlyingTE" title="d3d::BorderColor::UnderlyingT"><span class="n"><span class="pre">UnderlyingT</span></span></a><a class="headerlink" href="#_CPPv4N3d3d11BorderColor5ColorE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColor5Color16TransparentBlackE">
+<span id="_CPPv3N3d3d11BorderColor5Color16TransparentBlackE"></span><span id="_CPPv2N3d3d11BorderColor5Color16TransparentBlackE"></span><span class="target" id="structd3d_1_1BorderColor_1a834dbf1ab4dcb80d21374d7911ea3953a890d9049f815b10b66e84123cd7f5c54"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TransparentBlack</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11BorderColor5Color16TransparentBlackE" title="Link to this definition"></a><br /></dt>
+<dd><p>Transparent black color. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColor5Color11OpaqueBlackE">
+<span id="_CPPv3N3d3d11BorderColor5Color11OpaqueBlackE"></span><span id="_CPPv2N3d3d11BorderColor5Color11OpaqueBlackE"></span><span class="target" id="structd3d_1_1BorderColor_1a834dbf1ab4dcb80d21374d7911ea3953ae264fa6d4bbd78199f1533e4e2a9d261"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OpaqueBlack</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11BorderColor5Color11OpaqueBlackE" title="Link to this definition"></a><br /></dt>
+<dd><p>Opaque black color. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColor5Color11OpaqueWhiteE">
+<span id="_CPPv3N3d3d11BorderColor5Color11OpaqueWhiteE"></span><span id="_CPPv2N3d3d11BorderColor5Color11OpaqueWhiteE"></span><span class="target" id="structd3d_1_1BorderColor_1a834dbf1ab4dcb80d21374d7911ea3953ab5acb7ca0dd0bfffaae1b3e6c784f993"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OpaqueWhite</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11BorderColor5Color11OpaqueWhiteE" title="Link to this definition"></a><br /></dt>
+<dd><p>Opaque white color. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColor11UnderlyingTE">
+<span id="_CPPv3N3d3d11BorderColor11UnderlyingTE"></span><span id="_CPPv2N3d3d11BorderColor11UnderlyingTE"></span><span class="target" id="structd3d_1_1BorderColor_1a657d624a08e8a4a04501533e273563ea"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UnderlyingT</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N3d3d11BorderColor11UnderlyingTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColor11BorderColorE5Color">
+<span id="_CPPv3N3d3d11BorderColor11BorderColorE5Color"></span><span id="_CPPv2N3d3d11BorderColor11BorderColorE5Color"></span><span id="d3d::BorderColor::BorderColor__Color"></span><span class="target" id="structd3d_1_1BorderColor_1a2e49caa60c6d1885a2b3bc8d0e4c0161"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BorderColor</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5ColorE" title="d3d::BorderColor::Color"><span class="n"><span class="pre">Color</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5ColorE" title="d3d::BorderColor::Color"><span class="n"><span class="pre">Color</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5Color16TransparentBlackE" title="d3d::BorderColor::Color::TransparentBlack"><span class="n"><span class="pre">TransparentBlack</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d11BorderColor11BorderColorE5Color" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d11BorderColorcv8E3DCOLOREv">
+<span id="_CPPv3NK3d3d11BorderColorcv8E3DCOLOREv"></span><span id="_CPPv2NK3d3d11BorderColorcv8E3DCOLOREv"></span><span id="d3d::BorderColor::castto-E3DCOLOR-operatorC"></span><span class="target" id="structd3d_1_1BorderColor_1a3fd439a8f8c3f12b19c894da2d3b6d16"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="n"><span class="pre">E3DCOLOR</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d11BorderColorcv8E3DCOLOREv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d11BorderColorcv11UnderlyingTEv">
+<span id="_CPPv3NK3d3d11BorderColorcv11UnderlyingTEv"></span><span id="_CPPv2NK3d3d11BorderColorcv11UnderlyingTEv"></span><span id="d3d::BorderColor::castto-UnderlyingT-operatorC"></span><span class="target" id="structd3d_1_1BorderColor_1ac45cbcb6b447b0643e9ffa91be991bfb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11BorderColor11UnderlyingTE" title="d3d::BorderColor::UnderlyingT"><span class="n"><span class="pre">UnderlyingT</span></span></a></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d11BorderColorcv11UnderlyingTEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11BorderColor5colorE">
+<span id="_CPPv3N3d3d11BorderColor5colorE"></span><span id="_CPPv2N3d3d11BorderColor5colorE"></span><span id="d3d::BorderColor::color__d3d::BorderColor::Color"></span><span class="target" id="structd3d_1_1BorderColor_1a3e18d0b553486fbf21a1de4cc33ff159"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><a class="reference internal" href="Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d11BorderColorE" title="d3d::BorderColor"><span class="n"><span class="pre">BorderColor</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d11BorderColor5ColorE" title="d3d::BorderColor::Color"><span class="n"><span class="pre">Color</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11BorderColor5colorE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfoE">
+<span id="_CPPv3N3d3d11SamplerInfoE"></span><span id="_CPPv2N3d3d11SamplerInfoE"></span><span id="d3d::SamplerInfo"></span><span class="target" id="structd3d_1_1SamplerInfo"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SamplerInfo</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfoE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_sampler.h&gt;</em></div>
+<p><a class="reference internal" href="#structd3d_1_1SamplerInfo"><span class="std std-ref">SamplerInfo</span></a> struct. </p>
+<p>This struct contains the information needed to create a sampler </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d11SamplerInfoeqERK11SamplerInfo">
+<span id="_CPPv3NK3d3d11SamplerInfoeqERK11SamplerInfo"></span><span id="_CPPv2NK3d3d11SamplerInfoeqERK11SamplerInfo"></span><span id="d3d::SamplerInfo::eq-operator__SamplerInfoCRC"></span><span class="target" id="structd3d_1_1SamplerInfo_1a6edfec03c7088ec5e393fce87220b767"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfoE" title="d3d::SamplerInfo"><span class="n"><span class="pre">SamplerInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d11SamplerInfoeqERK11SamplerInfo" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d11SamplerInfoneERK11SamplerInfo">
+<span id="_CPPv3NK3d3d11SamplerInfoneERK11SamplerInfo"></span><span id="_CPPv2NK3d3d11SamplerInfoneERK11SamplerInfo"></span><span id="d3d::SamplerInfo::neq-operator__SamplerInfoCRC"></span><span class="target" id="structd3d_1_1SamplerInfo_1a5dce46d89d11228f7ebf2dedbaf500cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">!=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfoE" title="d3d::SamplerInfo"><span class="n"><span class="pre">SamplerInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d11SamplerInfoneERK11SamplerInfo" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d11SamplerInfoltERK11SamplerInfo">
+<span id="_CPPv3NK3d3d11SamplerInfoltERK11SamplerInfo"></span><span id="_CPPv2NK3d3d11SamplerInfoltERK11SamplerInfo"></span><span id="d3d::SamplerInfo::lt-operator__SamplerInfoCRC"></span><span class="target" id="structd3d_1_1SamplerInfo_1a6602fd48eacc0babfdfff2d079dc6802"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11SamplerInfoE" title="d3d::SamplerInfo"><span class="n"><span class="pre">SamplerInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d11SamplerInfoltERK11SamplerInfo" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo12mip_map_modeE">
+<span id="_CPPv3N3d3d11SamplerInfo12mip_map_modeE"></span><span id="_CPPv2N3d3d11SamplerInfo12mip_map_modeE"></span><span id="d3d::SamplerInfo::mip_map_mode__MipMapMode"></span><span class="target" id="structd3d_1_1SamplerInfo_1a26e8e5b65a3575fde6ab343ada5ef599"></span><a class="reference internal" href="#_CPPv4N3d3d10MipMapModeE" title="d3d::MipMapMode"><span class="n"><span class="pre">MipMapMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mip_map_mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d10MipMapModeE" title="d3d::MipMapMode"><span class="n"><span class="pre">MipMapMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d10MipMapMode6LinearE" title="d3d::MipMapMode::Linear"><span class="n"><span class="pre">Linear</span></span></a><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo12mip_map_modeE" title="Link to this definition"></a><br /></dt>
+<dd><p>MipMapMode. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo11filter_modeE">
+<span id="_CPPv3N3d3d11SamplerInfo11filter_modeE"></span><span id="_CPPv2N3d3d11SamplerInfo11filter_modeE"></span><span id="d3d::SamplerInfo::filter_mode__FilterMode"></span><span class="target" id="structd3d_1_1SamplerInfo_1acbe701f4402ce9494f2a67aabc154e37"></span><a class="reference internal" href="#_CPPv4N3d3d10FilterModeE" title="d3d::FilterMode"><span class="n"><span class="pre">FilterMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">filter_mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d10FilterModeE" title="d3d::FilterMode"><span class="n"><span class="pre">FilterMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d10FilterMode6LinearE" title="d3d::FilterMode::Linear"><span class="n"><span class="pre">Linear</span></span></a><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo11filter_modeE" title="Link to this definition"></a><br /></dt>
+<dd><p>FilterMode. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo14address_mode_uE">
+<span id="_CPPv3N3d3d11SamplerInfo14address_mode_uE"></span><span id="_CPPv2N3d3d11SamplerInfo14address_mode_uE"></span><span id="d3d::SamplerInfo::address_mode_u__AddressMode"></span><span class="target" id="structd3d_1_1SamplerInfo_1ad56ca2145d10af60add0c2702508e807"></span><a class="reference internal" href="#_CPPv4N3d3d11AddressModeE" title="d3d::AddressMode"><span class="n"><span class="pre">AddressMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_mode_u</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11AddressModeE" title="d3d::AddressMode"><span class="n"><span class="pre">AddressMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d11AddressMode4WrapE" title="d3d::AddressMode::Wrap"><span class="n"><span class="pre">Wrap</span></span></a><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo14address_mode_uE" title="Link to this definition"></a><br /></dt>
+<dd><p>AddressMode for U coordinate. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo14address_mode_vE">
+<span id="_CPPv3N3d3d11SamplerInfo14address_mode_vE"></span><span id="_CPPv2N3d3d11SamplerInfo14address_mode_vE"></span><span id="d3d::SamplerInfo::address_mode_v__AddressMode"></span><span class="target" id="structd3d_1_1SamplerInfo_1a2ac0af9e9b248fdbad8790c9f724b08a"></span><a class="reference internal" href="#_CPPv4N3d3d11AddressModeE" title="d3d::AddressMode"><span class="n"><span class="pre">AddressMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_mode_v</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11AddressModeE" title="d3d::AddressMode"><span class="n"><span class="pre">AddressMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d11AddressMode4WrapE" title="d3d::AddressMode::Wrap"><span class="n"><span class="pre">Wrap</span></span></a><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo14address_mode_vE" title="Link to this definition"></a><br /></dt>
+<dd><p>AddressMode for V coordinate. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo14address_mode_wE">
+<span id="_CPPv3N3d3d11SamplerInfo14address_mode_wE"></span><span id="_CPPv2N3d3d11SamplerInfo14address_mode_wE"></span><span id="d3d::SamplerInfo::address_mode_w__AddressMode"></span><span class="target" id="structd3d_1_1SamplerInfo_1a4813fc992b79bf424b6f94938335dd29"></span><a class="reference internal" href="#_CPPv4N3d3d11AddressModeE" title="d3d::AddressMode"><span class="n"><span class="pre">AddressMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_mode_w</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d11AddressModeE" title="d3d::AddressMode"><span class="n"><span class="pre">AddressMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d11AddressMode4WrapE" title="d3d::AddressMode::Wrap"><span class="n"><span class="pre">Wrap</span></span></a><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo14address_mode_wE" title="Link to this definition"></a><br /></dt>
+<dd><p>AddressMode for W coordinate. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo12border_colorE">
+<span id="_CPPv3N3d3d11SamplerInfo12border_colorE"></span><span id="_CPPv2N3d3d11SamplerInfo12border_colorE"></span><span id="d3d::SamplerInfo::border_color__BorderColor"></span><span class="target" id="structd3d_1_1SamplerInfo_1a4b28c754ed57009aafd34c5455b1f3dd"></span><a class="reference internal" href="#_CPPv4N3d3d11BorderColorE" title="d3d::BorderColor"><span class="n"><span class="pre">BorderColor</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">border_color</span></span></span><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo12border_colorE" title="Link to this definition"></a><br /></dt>
+<dd><p>Border color. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo15anisotropic_maxE">
+<span id="_CPPv3N3d3d11SamplerInfo15anisotropic_maxE"></span><span id="_CPPv2N3d3d11SamplerInfo15anisotropic_maxE"></span><span id="d3d::SamplerInfo::anisotropic_max__float"></span><span class="target" id="structd3d_1_1SamplerInfo_1aa6995e09239865420f627faf61797c6d"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">anisotropic_max</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1.f</span></span><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo15anisotropic_maxE" title="Link to this definition"></a><br /></dt>
+<dd><p>Max anisotropic value. Only positive power of two values &lt;= 16 are valid. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d11SamplerInfo12mip_map_biasE">
+<span id="_CPPv3N3d3d11SamplerInfo12mip_map_biasE"></span><span id="_CPPv2N3d3d11SamplerInfo12mip_map_biasE"></span><span id="d3d::SamplerInfo::mip_map_bias__float"></span><span class="target" id="structd3d_1_1SamplerInfo_1abb55a1469a05358397ca59173528b7f0"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mip_map_bias</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.f</span></span><a class="headerlink" href="#_CPPv4N3d3d11SamplerInfo12mip_map_biasE" title="Link to this definition"></a><br /></dt>
+<dd><p>MipMap bias. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RwResource.html" class="btn btn-neutral float-left" title="Read/Write (UAV) Resources" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Shader.html" class="btn btn-neutral float-right" title="Shader Programs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

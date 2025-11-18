@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSemCode_1_1StVarMapping" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderSemCode::StVarMapping</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSemCode_1_1StVarMapping_1a8853a7cd153a42d9441fa20dfc3e9cfa" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSemCode::StVarMapping::v</definition>
+        <argsstring></argsstring>
+        <name>v</name>
+        <qualifiedname>ShaderSemCode::StVarMapping::v</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="196" column="9" bodyfile="shSemCode.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1StVarMapping_1ad50ee56fbcd9de4d0ba30bca89479829" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSemCode::StVarMapping::sv</definition>
+        <argsstring></argsstring>
+        <name>sv</name>
+        <qualifiedname>ShaderSemCode::StVarMapping::sv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="196" column="11" bodyfile="shSemCode.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shSemCode.h" line="194" column="3" bodyfile="shSemCode.h" bodystart="195" bodyend="197"/>
+    <listofallmembers>
+      <member refid="structShaderSemCode_1_1StVarMapping_1ad50ee56fbcd9de4d0ba30bca89479829" prot="public" virt="non-virtual"><scope>ShaderSemCode::StVarMapping</scope><name>sv</name></member>
+      <member refid="structShaderSemCode_1_1StVarMapping_1a8853a7cd153a42d9441fa20dfc3e9cfa" prot="public" virt="non-virtual"><scope>ShaderSemCode::StVarMapping</scope><name>v</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

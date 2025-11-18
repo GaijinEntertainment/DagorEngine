@@ -1,0 +1,1259 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceShaderParser" kind="namespace" language="C++">
+    <compoundname>ShaderParser</compoundname>
+    <innerclass refid="classShaderParser_1_1AssembleShaderEvalCB" prot="public">ShaderParser::AssembleShaderEvalCB</innerclass>
+    <innerclass refid="classShaderParser_1_1ColorChannelExpression" prot="public">ShaderParser::ColorChannelExpression</innerclass>
+    <innerclass refid="classShaderParser_1_1ColorValueExpression" prot="public">ShaderParser::ColorValueExpression</innerclass>
+    <innerclass refid="classShaderParser_1_1ComplexExpression" prot="public">ShaderParser::ComplexExpression</innerclass>
+    <innerclass refid="classShaderParser_1_1ConstColor4Value" prot="public">ShaderParser::ConstColor4Value</innerclass>
+    <innerclass refid="classShaderParser_1_1ConstRealValue" prot="public">ShaderParser::ConstRealValue</innerclass>
+    <innerclass refid="structShaderParser_1_1EvaluatedShaderVariant" prot="public">ShaderParser::EvaluatedShaderVariant</innerclass>
+    <innerclass refid="classShaderParser_1_1Expression" prot="public">ShaderParser::Expression</innerclass>
+    <innerclass refid="classShaderParser_1_1ExpressionParser" prot="public">ShaderParser::ExpressionParser</innerclass>
+    <innerclass refid="classShaderParser_1_1FunctionExpression" prot="public">ShaderParser::FunctionExpression</innerclass>
+    <innerclass refid="classShaderParser_1_1GatherVarShaderEvalCB" prot="public">ShaderParser::GatherVarShaderEvalCB</innerclass>
+    <innerclass refid="classShaderParser_1_1LVarValueExpression" prot="public">ShaderParser::LVarValueExpression</innerclass>
+    <innerclass refid="classShaderParser_1_1MultiColorChannelExpression" prot="public">ShaderParser::MultiColorChannelExpression</innerclass>
+    <innerclass refid="classShaderParser_1_1ShaderBoolEvalCB" prot="public">ShaderParser::ShaderBoolEvalCB</innerclass>
+    <innerclass refid="classShaderParser_1_1ShaderEvalCB" prot="public">ShaderParser::ShaderEvalCB</innerclass>
+    <innerclass refid="classShaderParser_1_1SingleColorChannelExpression" prot="public">ShaderParser::SingleColorChannelExpression</innerclass>
+    <innerclass refid="classShaderParser_1_1StVarValueExpression" prot="public">ShaderParser::StVarValueExpression</innerclass>
+    <innerclass refid="structShaderParser_1_1TokenInfo" prot="public">ShaderParser::TokenInfo</innerclass>
+    <innerclass refid="structShaderParser_1_1VariablesMerger" prot="public">ShaderParser::VariablesMerger</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" prot="public" static="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>typedef Tab&lt;int&gt; ShaderParser::CodeTable</definition>
+        <argsstring></argsstring>
+        <name>CodeTable</name>
+        <qualifiedname>ShaderParser::CodeTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="25" column="13" bodyfile="shExpr.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceShaderParser_1ab4b8a9d96a5cf3248e842617aa3fe8a7" prot="public" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap ShaderParser::renderStageToIdxMap</definition>
+        <argsstring></argsstring>
+        <name>renderStageToIdxMap</name>
+        <qualifiedname>ShaderParser::renderStageToIdxMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="263" column="15" bodyfile="shsem.cpp" bodystart="263" bodyend="-1" declfile="assemblyShader.h" declline="224" declcolumn="22"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderParser_1aee6486690122ed0b79d805c40be4203e" prot="public" static="no" mutable="no">
+        <type><ref refid="structPerHlslStage" kindref="compound">PerHlslStage</ref>&lt; <ref refid="classCodeSourceBlocks" kindref="compound">CodeSourceBlocks</ref> * &gt;</type>
+        <definition>PerHlslStage&lt;CodeSourceBlocks *&gt; ShaderParser::curHlslBlks</definition>
+        <argsstring></argsstring>
+        <name>curHlslBlks</name>
+        <qualifiedname>ShaderParser::curHlslBlks</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="262" column="14" bodyfile="shsem.cpp" bodystart="262" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderParser_1a04bd4fa84062ddd9de12fe7a88d4f083" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="mdArray_8h_1a48e4feaea80f719e11e2a32982a2b7f2" kindref="member">MdArray</ref>&lt; <ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">semantic::VariableType</ref>, <ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a949110cdaf2cd3cfb33d526cc7208931" kindref="member">VariablesMerger::TYPE_COUNT</ref>, 5 &gt;</type>
+        <definition>constexpr MdArray&lt;semantic::VariableType, VariablesMerger::TYPE_COUNT, 5&gt; ShaderParser::VEC_TYPES_TABLE</definition>
+        <argsstring></argsstring>
+        <name>VEC_TYPES_TABLE</name>
+        <qualifiedname>ShaderParser::VEC_TYPES_TABLE</qualifiedname>
+        <initializer>{
+  {<ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182a88183b946cc5f0e8c96b2e66e1c74a7e" kindref="member">semantic::VariableType::Unknown</ref>, semantic::VariableType::f1, semantic::VariableType::f2, semantic::VariableType::f3,
+    semantic::VariableType::f4},
+  {<ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182a88183b946cc5f0e8c96b2e66e1c74a7e" kindref="member">semantic::VariableType::Unknown</ref>, semantic::VariableType::i1, semantic::VariableType::i2, semantic::VariableType::i3,
+    semantic::VariableType::i4},
+  {<ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182a88183b946cc5f0e8c96b2e66e1c74a7e" kindref="member">semantic::VariableType::Unknown</ref>, semantic::VariableType::u1, semantic::VariableType::u2, semantic::VariableType::u3,
+    semantic::VariableType::u4}}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.cpp" line="19" column="26" bodyfile="variablesMerger.cpp" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceShaderParser_1ae2d67b44cdc73a518d5c28755f23f61e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="mdArray_8h_1a48e4feaea80f719e11e2a32982a2b7f2" kindref="member">MdArray</ref>&lt; const char *, <ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a949110cdaf2cd3cfb33d526cc7208931" kindref="member">VariablesMerger::TYPE_COUNT</ref>, 5 &gt;</type>
+        <definition>constexpr MdArray&lt;const char *, VariablesMerger::TYPE_COUNT, 5&gt; ShaderParser::VEC_TYPE_NAMES_TABLE</definition>
+        <argsstring></argsstring>
+        <name>VEC_TYPE_NAMES_TABLE</name>
+        <qualifiedname>ShaderParser::VEC_TYPE_NAMES_TABLE</qualifiedname>
+        <initializer>{
+  {&quot;&quot;, &quot;f1&quot;, &quot;f2&quot;, &quot;f3&quot;, &quot;f4&quot;},
+  {&quot;&quot;, &quot;i1&quot;, &quot;i2&quot;, &quot;i3&quot;, &quot;i4&quot;},
+  {&quot;&quot;, &quot;u1&quot;, &quot;u2&quot;, &quot;u3&quot;, &quot;u4&quot;},
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.cpp" line="27" column="26" bodyfile="variablesMerger.cpp" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceShaderParser_1a8d3720af0f21bad15c0361671744eb12" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::clear_per_file_caches</definition>
+        <argsstring>()</argsstring>
+        <name>clear_per_file_caches</name>
+        <qualifiedname>ShaderParser::clear_per_file_caches</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="216" column="6" bodyfile="assemblyShader.cpp" bodystart="2814" bodyend="2814" declfile="assemblyShader.h" declline="216" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a5a3210b2d749584757e6b05160d0ebd8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classCodeSourceBlocks" kindref="compound">CodeSourceBlocks</ref> *</type>
+        <definition>CodeSourceBlocks * ShaderParser::getSourceBlocks</definition>
+        <argsstring>(const char *profile)</argsstring>
+        <name>getSourceBlocks</name>
+        <qualifiedname>ShaderParser::getSourceBlocks</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="218" column="25" bodyfile="assemblyShader.h" bodystart="218" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a10671c559a54843a5f0fbfc2337ad6da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_global_var</definition>
+        <argsstring>(global_var_decl *decl, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_global_var</name>
+        <qualifiedname>ShaderParser::add_global_var</qualifiedname>
+        <param>
+          <type>global_var_decl *</type>
+          <declname>decl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="26" column="6" bodyfile="globVarSem.cpp" bodystart="26" bodyend="172"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a74499c9c84544475e78a6f1c5cef0b24" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_sampler</definition>
+        <argsstring>(sampler_decl *decl, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_sampler</name>
+        <qualifiedname>ShaderParser::add_sampler</qualifiedname>
+        <param>
+          <type>sampler_decl *</type>
+          <declname>decl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="174" column="6" bodyfile="globVarSem.cpp" bodystart="174" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1afc2603df5d94963150dadf1c94c46be6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_interval</definition>
+        <argsstring>(IntervalList &amp;intervals, interval &amp;interv, ShaderVariant::VarType type, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_interval</name>
+        <qualifiedname>ShaderParser::add_interval</qualifiedname>
+        <param>
+          <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+          <declname>intervals</declname>
+        </param>
+        <param>
+          <type>interval &amp;</type>
+          <declname>interv</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="176" column="6" bodyfile="globVarSem.cpp" bodystart="176" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a3a609923c411d04789c30e49f564e7ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_global_interval</definition>
+        <argsstring>(ShaderTerminal::interval &amp;interv, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_global_interval</name>
+        <qualifiedname>ShaderParser::add_global_interval</qualifiedname>
+        <param>
+          <type>ShaderTerminal::interval &amp;</type>
+          <declname>interv</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="212" column="6" bodyfile="globVarSem.cpp" bodystart="212" bodyend="216" declfile="globVarSem.h" declline="36" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1acac621edf1a729ab75e56e57594afea8" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::add_assume_impl</definition>
+        <argsstring>(ShaderAssumesTable &amp;table, const IntervalList &amp;intervals, auto &amp;stat, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_assume_impl</name>
+        <qualifiedname>ShaderParser::add_assume_impl</qualifiedname>
+        <param>
+          <type><ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref> &amp;</type>
+          <declname>table</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+          <declname>intervals</declname>
+        </param>
+        <param>
+          <type>auto &amp;</type>
+          <declname>stat</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="218" column="13" bodyfile="globVarSem.cpp" bodystart="218" bodyend="264"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a902443a4c7749a22da19ef6406a3ef37" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_shader_assume</definition>
+        <argsstring>(assume_stat &amp;s, Parser &amp;parser, shc::ShaderContext &amp;ctx)</argsstring>
+        <name>add_shader_assume</name>
+        <qualifiedname>ShaderParser::add_shader_assume</qualifiedname>
+        <param>
+          <type>assume_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="266" column="6" bodyfile="globVarSem.cpp" bodystart="266" bodyend="269"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a746c1d89a06e7cfcf4dcf303deace014" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_shader_assume_if_not_assumed</definition>
+        <argsstring>(ShaderTerminal::assume_if_not_assumed_stat &amp;s, Parser &amp;parser, shc::ShaderContext &amp;ctx)</argsstring>
+        <name>add_shader_assume_if_not_assumed</name>
+        <qualifiedname>ShaderParser::add_shader_assume_if_not_assumed</qualifiedname>
+        <param>
+          <type>ShaderTerminal::assume_if_not_assumed_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="271" column="6" bodyfile="globVarSem.cpp" bodystart="271" bodyend="274" declfile="globVarSem.h" declline="51" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a3694aa6c4ff0bd461c5d54c42339bd16" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_global_assume</definition>
+        <argsstring>(ShaderTerminal::assume_stat &amp;assume, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_global_assume</name>
+        <qualifiedname>ShaderParser::add_global_assume</qualifiedname>
+        <param>
+          <type>ShaderTerminal::assume_stat &amp;</type>
+          <declname>assume</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="276" column="6" bodyfile="globVarSem.cpp" bodystart="276" bodyend="279" declfile="globVarSem.h" declline="43" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a055504365a173c54c1335ecec383cdc0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_global_assume_if_not_assumed</definition>
+        <argsstring>(ShaderTerminal::assume_if_not_assumed_stat &amp;assume, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_global_assume_if_not_assumed</name>
+        <qualifiedname>ShaderParser::add_global_assume_if_not_assumed</qualifiedname>
+        <param>
+          <type>ShaderTerminal::assume_if_not_assumed_stat &amp;</type>
+          <declname>assume</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.cpp" line="281" column="6" bodyfile="globVarSem.cpp" bodystart="281" bodyend="284" declfile="globVarSem.h" declline="46" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a31bbcd12ff4bebef8d8d3d786dda16f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_global_var</definition>
+        <argsstring>(ShaderTerminal::global_var_decl *decl, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_global_var</name>
+        <qualifiedname>ShaderParser::add_global_var</qualifiedname>
+        <param>
+          <type>ShaderTerminal::global_var_decl *</type>
+          <declname>decl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.h" line="30" column="6" declfile="globVarSem.h" declline="30" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a7b62ca3a859e964270c2241752921297" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_sampler</definition>
+        <argsstring>(ShaderTerminal::sampler_decl *decl, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_sampler</name>
+        <qualifiedname>ShaderParser::add_sampler</qualifiedname>
+        <param>
+          <type>ShaderTerminal::sampler_decl *</type>
+          <declname>decl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.h" line="33" column="6" declfile="globVarSem.h" declline="33" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a18790dcf08d20559accf3d651c200519" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_interval</definition>
+        <argsstring>(IntervalList &amp;intervals, ShaderTerminal::interval &amp;interv, ShaderVariant::VarType type, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_interval</name>
+        <qualifiedname>ShaderParser::add_interval</qualifiedname>
+        <param>
+          <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+          <declname>intervals</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::interval &amp;</type>
+          <declname>interv</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.h" line="39" column="6" declfile="globVarSem.h" declline="39" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1ae7469ccff0ddcef76b3c6a342486e4c1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_shader_assume</definition>
+        <argsstring>(ShaderTerminal::assume_stat &amp;assume, Parser &amp;parser, shc::ShaderContext &amp;ctx)</argsstring>
+        <name>add_shader_assume</name>
+        <qualifiedname>ShaderParser::add_shader_assume</qualifiedname>
+        <param>
+          <type>ShaderTerminal::assume_stat &amp;</type>
+          <declname>assume</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVarSem.h" line="49" column="6" declfile="globVarSem.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a1835341922f689756f9fe23a73c47e4e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool_expr *</type>
+        <definition>bool_expr * ShaderParser::parse_condition</definition>
+        <argsstring>(const char *cond_str, int cond_str_len, const char *file_name, int line, shc::TargetContext &amp;ctx)</argsstring>
+        <name>parse_condition</name>
+        <qualifiedname>ShaderParser::parse_condition</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>cond_str</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cond_str_len</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>file_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.cpp" line="528" column="11" bodyfile="shlexterm.cpp" bodystart="528" bodyend="536" declfile="shsem.h" declline="90" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1acec58086555ee7795c411d86d0df6143" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>shader_stat *</type>
+        <definition>shader_stat * ShaderParser::parse_shader_stat</definition>
+        <argsstring>(const char *stat_str, int stat_str_len, shc::TargetContext &amp;ctx, IMemAlloc *alloc)</argsstring>
+        <name>parse_shader_stat</name>
+        <qualifiedname>ShaderParser::parse_shader_stat</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>stat_str</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stat_str_len</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.cpp" line="538" column="13" bodyfile="shlexterm.cpp" bodystart="538" bodyend="548" declfile="shsem.h" declline="91" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a4310021d367fb360ca3ac70926e91f5f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::eval_shader_stat</definition>
+        <argsstring>(shader_stat &amp;s, ShaderEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_stat</name>
+        <qualifiedname>ShaderParser::eval_shader_stat</qualifiedname>
+        <param>
+          <type>shader_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderEvalCB" kindref="compound">ShaderEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="289" column="13" bodyfile="shsem.cpp" bodystart="289" bodyend="332" declfile="shsem.cpp" declline="265" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1aba5cbdeebc8daa51ed87b322a5cd07e9" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::eval_shader_stat</definition>
+        <argsstring>(shader_stat *s, ShaderEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_stat</name>
+        <qualifiedname>ShaderParser::eval_shader_stat</qualifiedname>
+        <param>
+          <type>shader_stat *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderEvalCB" kindref="compound">ShaderEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="334" column="13" bodyfile="shsem.cpp" bodystart="334" bodyend="338" declfile="shsem.cpp" declline="266" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a6ff2e52d396655bd971c648a3d91f1aa" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::eval_shader_if</definition>
+        <argsstring>(shader_if &amp;s, ShaderEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_if</name>
+        <qualifiedname>ShaderParser::eval_shader_if</qualifiedname>
+        <param>
+          <type>shader_if &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderEvalCB" kindref="compound">ShaderEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="268" column="13" bodyfile="shsem.cpp" bodystart="268" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1ad3799e803d81c791353939112d40cd1d" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool ShaderParser::is_compute</definition>
+        <argsstring>(hlsl_compile_class &amp;hlsl_compile)</argsstring>
+        <name>is_compute</name>
+        <qualifiedname>ShaderParser::is_compute</qualifiedname>
+        <param>
+          <type>hlsl_compile_class &amp;</type>
+          <declname>hlsl_compile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="340" column="13" bodyfile="shsem.cpp" bodystart="340" bodyend="343"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a8b2de0f58f42716ceef426ff537f1c0d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::eval_shader</definition>
+        <argsstring>(shader_decl &amp;sh, ShaderEvalCB &amp;cb)</argsstring>
+        <name>eval_shader</name>
+        <qualifiedname>ShaderParser::eval_shader</qualifiedname>
+        <param>
+          <type>shader_decl &amp;</type>
+          <declname>sh</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderEvalCB" kindref="compound">ShaderEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="345" column="6" bodyfile="shsem.cpp" bodystart="345" bodyend="349" declfile="shsem.h" declline="71" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a9f2d35c58b23ed5816e4411d7ade9eea" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>USE_CB_FOR_NESTED_EXPRESSIONS</declname>
+            <defname>USE_CB_FOR_NESTED_EXPRESSIONS</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>static ShVarBool ShaderParser::eval_shader_bool_not</definition>
+        <argsstring>(not_expr &amp;e, ShaderBoolEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_bool_not</name>
+        <qualifiedname>ShaderParser::eval_shader_bool_not</qualifiedname>
+        <param>
+          <type>not_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="354" column="18" bodyfile="shsem.cpp" bodystart="354" bodyend="366"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a5265a0ba06f5666cf3e780fcde3034c7" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>USE_CB_FOR_NESTED_EXPRESSIONS</declname>
+            <defname>USE_CB_FOR_NESTED_EXPRESSIONS</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>static ShVarBool ShaderParser::eval_shader_bool_and</definition>
+        <argsstring>(and_expr &amp;e, ShaderBoolEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_bool_and</name>
+        <qualifiedname>ShaderParser::eval_shader_bool_and</qualifiedname>
+        <param>
+          <type>and_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="369" column="18" bodyfile="shsem.cpp" bodystart="369" bodyend="387"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1abe4ee9e9422afa7c95b8fdac0635a539" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>USE_CB_FOR_NESTED_EXPRESSIONS</declname>
+            <defname>USE_CB_FOR_NESTED_EXPRESSIONS</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>ShVarBool ShaderParser::eval_shader_bool</definition>
+        <argsstring>(bool_expr &amp;e, ShaderBoolEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_bool</name>
+        <qualifiedname>ShaderParser::eval_shader_bool</qualifiedname>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="390" column="11" bodyfile="shsem.cpp" bodystart="390" bodyend="409" declfile="shsem.h" declline="74" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a5b550ff262c6d3c7c43fd77364b80d63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template <ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>template ShVarBool ShaderParser::eval_shader_bool&lt; true &gt;</definition>
+        <argsstring>(bool_expr &amp;e, ShaderBoolEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_bool&lt; true &gt;</name>
+        <qualifiedname>ShaderParser::eval_shader_bool&lt; true &gt;</qualifiedname>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="411" column="10" declfile="shsem.cpp" declline="411" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a654be2836a5b79c2a4f99eee45309501" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template <ref refid="classShVarBool" kindref="compound">ShVarBool</ref></type>
+        <definition>template ShVarBool ShaderParser::eval_shader_bool&lt; false &gt;</definition>
+        <argsstring>(bool_expr &amp;e, ShaderBoolEvalCB &amp;cb)</argsstring>
+        <name>eval_shader_bool&lt; false &gt;</name>
+        <qualifiedname>ShaderParser::eval_shader_bool&lt; false &gt;</qualifiedname>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="412" column="10" declfile="shsem.cpp" declline="412" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a14c6ff614567454fdbb7a32423f8ad29" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="structShaderParser_1_1EvaluatedShaderVariant" kindref="compound">EvaluatedShaderVariant</ref> &gt;</type>
+        <definition>static eastl::optional&lt; EvaluatedShaderVariant &gt; ShaderParser::evalShaderVariant</definition>
+        <argsstring>(shader_decl *sh, Parser &amp;parser, const ShaderVariant::VariantInfo &amp;variant, shc::ShaderContext &amp;ctx)</argsstring>
+        <name>evalShaderVariant</name>
+        <qualifiedname>ShaderParser::evalShaderVariant</qualifiedname>
+        <param>
+          <type>shader_decl *</type>
+          <declname>sh</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderVariant_1_1VariantInfo" kindref="compound">ShaderVariant::VariantInfo</ref> &amp;</type>
+          <declname>variant</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="425" column="24" bodyfile="shsem.cpp" bodystart="425" bodyend="451"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a318c18b8fb2bf4a4ccc7a60804ca1cd2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::shaderError</definition>
+        <argsstring>(Parser &amp;parser, const char *msg, Terminal *t)</argsstring>
+        <name>shaderError</name>
+        <qualifiedname>ShaderParser::shaderError</qualifiedname>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="453" column="13" bodyfile="shsem.cpp" bodystart="453" bodyend="459"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a522faef075278bdd361ace6c17f29314" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::shaderWarn</definition>
+        <argsstring>(Parser &amp;parser, const char *msg, Terminal *t)</argsstring>
+        <name>shaderWarn</name>
+        <qualifiedname>ShaderParser::shaderWarn</qualifiedname>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="461" column="13" bodyfile="shsem.cpp" bodystart="461" bodyend="465"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1af7f52c4f95f2b958dcf164c57f63d28e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool ShaderParser::validate_cs</definition>
+        <argsstring>(const ShaderClass &amp;sclass, ShaderSemCode *ssc, int staticVariantCount)</argsstring>
+        <name>validate_cs</name>
+        <qualifiedname>ShaderParser::validate_cs</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderClass" kindref="compound">ShaderClass</ref> &amp;</type>
+          <declname>sclass</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> *</type>
+          <declname>ssc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>staticVariantCount</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="467" column="13" bodyfile="shsem.cpp" bodystart="467" bodyend="536"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1ab37258da9ece75c426eb3354549ec138" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::add_shader</definition>
+        <argsstring>(shader_decl *sh, Parser &amp;parser, Terminal *shname, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_shader</name>
+        <qualifiedname>ShaderParser::add_shader</qualifiedname>
+        <param>
+          <type>shader_decl *</type>
+          <declname>sh</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>shname</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="538" column="13" bodyfile="shsem.cpp" bodystart="538" bodyend="941"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a0c180ba1524745096d2a5cc95d0fe803" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_shader</definition>
+        <argsstring>(shader_decl *sh, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_shader</name>
+        <qualifiedname>ShaderParser::add_shader</qualifiedname>
+        <param>
+          <type>shader_decl *</type>
+          <declname>sh</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="944" column="6" bodyfile="shsem.cpp" bodystart="944" bodyend="951" declfile="shsem.h" declline="76" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a0992bf85185ecd14c0e61eaad3bedf91" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::eval_block_stat</definition>
+        <argsstring>(block_stat *s, auto &amp;cb, Parser &amp;parser)</argsstring>
+        <name>eval_block_stat</name>
+        <qualifiedname>ShaderParser::eval_block_stat</qualifiedname>
+        <param>
+          <type>block_stat *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>auto &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="1003" column="13" bodyfile="shsem.cpp" bodystart="1003" bodyend="1007" declfile="shsem.cpp" declline="953" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1aa9d6b760615114174d8395b3b913b552" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::eval_block_if</definition>
+        <argsstring>(block_if &amp;s, auto &amp;cb, Parser &amp;parser)</argsstring>
+        <name>eval_block_if</name>
+        <qualifiedname>ShaderParser::eval_block_if</qualifiedname>
+        <param>
+          <type>block_if &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>auto &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="955" column="13" bodyfile="shsem.cpp" bodystart="955" bodyend="981"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a2d0518ca8d00dd75556a310a0d519e22" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::eval_block_stat</definition>
+        <argsstring>(block_stat &amp;s, auto &amp;cb, Parser &amp;parser)</argsstring>
+        <name>eval_block_stat</name>
+        <qualifiedname>ShaderParser::eval_block_stat</qualifiedname>
+        <param>
+          <type>block_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>auto &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="983" column="13" bodyfile="shsem.cpp" bodystart="983" bodyend="1001"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a2d1d416db6ad5de1921d63cad3884df0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderParser::eval_block</definition>
+        <argsstring>(block_decl &amp;bl, auto &amp;cb, Parser &amp;parser)</argsstring>
+        <name>eval_block</name>
+        <qualifiedname>ShaderParser::eval_block</qualifiedname>
+        <param>
+          <type>block_decl &amp;</type>
+          <declname>bl</declname>
+        </param>
+        <param>
+          <type>auto &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="1009" column="13" bodyfile="shsem.cpp" bodystart="1009" bodyend="1013"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1ae0f69a7c7e5d7877b4976cda83521b5b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_block</definition>
+        <argsstring>(block_decl *bl, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_block</name>
+        <qualifiedname>ShaderParser::add_block</qualifiedname>
+        <param>
+          <type>block_decl *</type>
+          <declname>bl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="1015" column="6" bodyfile="shsem.cpp" bodystart="1015" bodyend="1083" declfile="shsem.h" declline="77" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a590ae58ba545da701fc9fe7688bac1b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_hlsl</definition>
+        <argsstring>(hlsl_global_decl_class &amp;sh, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_hlsl</name>
+        <qualifiedname>ShaderParser::add_hlsl</qualifiedname>
+        <param>
+          <type>hlsl_global_decl_class &amp;</type>
+          <declname>sh</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="1085" column="6" bodyfile="shsem.cpp" bodystart="1085" bodyend="1107" declfile="shsem.h" declline="82" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1aec0c601358ebb5108c2204229539df3d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::add_global_bool</definition>
+        <argsstring>(ShaderTerminal::bool_decl &amp;bool_var, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>add_global_bool</name>
+        <qualifiedname>ShaderParser::add_global_bool</qualifiedname>
+        <param>
+          <type>ShaderTerminal::bool_decl &amp;</type>
+          <declname>bool_var</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.cpp" line="1110" column="6" bodyfile="shsem.cpp" bodystart="1110" bodyend="1116" declfile="shsem.h" declline="80" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a4a17bbf595067ae88a41f034719c3ff1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::build_bool_expr_string</definition>
+        <argsstring>(bool_expr &amp;e, String &amp;out, bool clr_str=true)</argsstring>
+        <name>build_bool_expr_string</name>
+        <qualifiedname>ShaderParser::build_bool_expr_string</qualifiedname>
+        <param>
+          <type>bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>out</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>clr_str</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="84" column="6" bodyfile="shsem.cpp" bodystart="1243" bodyend="1248" declfile="shsem.h" declline="84" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1ab3462116b1620a58f8ada21b41e65826" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::addSourceCode</definition>
+        <argsstring>(String &amp;text, SHTOK_hlsl_text *source_text, Parser &amp;parser, SCFastNameMap &amp;messages_table, bool need_file_idx)</argsstring>
+        <name>addSourceCode</name>
+        <qualifiedname>ShaderParser::addSourceCode</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>SHTOK_hlsl_text *</type>
+          <declname>source_text</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref> &amp;</type>
+          <declname>messages_table</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>need_file_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="86" column="6" bodyfile="shsem.cpp" bodystart="48" bodyend="51" declfile="shsem.h" declline="86" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderParser_1a1a9a3f18f4fa742c34d7f31366d951a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::addSourceCode</definition>
+        <argsstring>(String &amp;text, Symbol *term, const char *source_text, Parser &amp;parser, SCFastNameMap &amp;messages_table, bool need_file_idx)</argsstring>
+        <name>addSourceCode</name>
+        <qualifiedname>ShaderParser::addSourceCode</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>Symbol *</type>
+          <declname>term</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_text</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref> &amp;</type>
+          <declname>messages_table</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>need_file_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="87" column="6" bodyfile="shsem.cpp" bodystart="37" bodyend="46" declfile="shsem.h" declline="87" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="assemblyShader.h" line="35" column="1"/>
+  </compounddef>
+</doxygen>

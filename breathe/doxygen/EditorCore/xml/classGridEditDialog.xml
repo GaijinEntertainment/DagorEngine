@@ -1,0 +1,192 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGridEditDialog" kind="class" language="C++" prot="public">
+    <compoundname>GridEditDialog</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <includes refid="ec__gridobject_8h" local="no">ec_gridobject.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classGridEditDialog_1a7c89bb8b73ef2cc01af1ebb4eb8b3e3f" prot="private" static="no" mutable="no">
+        <type><ref refid="classGridObject" kindref="compound">GridObject</ref> &amp;</type>
+        <definition>GridObject&amp; GridEditDialog::mGrid</definition>
+        <argsstring></argsstring>
+        <name>mGrid</name>
+        <qualifiedname>GridEditDialog::mGrid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="202" column="14" bodyfile="ec_gridobject.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGridEditDialog_1a57cee413ed2df2b1b79975731e17b490" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GridEditDialog::index</definition>
+        <argsstring></argsstring>
+        <name>index</name>
+        <qualifiedname>GridEditDialog::index</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="203" column="7" bodyfile="ec_gridobject.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGridEditDialog_1aa89f8bda00af16443c771cceb350e329" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GridEditDialog::GridEditDialog</definition>
+        <argsstring>(void *phandle, GridObject &amp;grid, const char *caption)</argsstring>
+        <name>GridEditDialog</name>
+        <qualifiedname>GridEditDialog::GridEditDialog</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>phandle</declname>
+        </param>
+        <param>
+          <type><ref refid="classGridObject" kindref="compound">GridObject</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="191" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridEditDialog_1ab876949dee56cf04a48a716ee7ee514d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridEditDialog::showGridEditDialog</definition>
+        <argsstring>(int viewport_index)</argsstring>
+        <name>showGridEditDialog</name>
+        <qualifiedname>GridEditDialog::showGridEditDialog</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>viewport_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="193" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridEditDialog_1a92c6be406175bc1529c33ed159fbf74a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridEditDialog::onGridVisibilityChanged</definition>
+        <argsstring>(int viewport_index)</argsstring>
+        <name>onGridVisibilityChanged</name>
+        <qualifiedname>GridEditDialog::onGridVisibilityChanged</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>viewport_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="194" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classGridEditDialog_1ab21474549d6cfdd9403d7ef43cbe9074" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridEditDialog::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>GridEditDialog::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="197" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridEditDialog_1a7121d4ded2dfa2003e6402164ecaf25f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridEditDialog::fillPanel</definition>
+        <argsstring>()</argsstring>
+        <name>fillPanel</name>
+        <qualifiedname>GridEditDialog::fillPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="199" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGridEditDialog_1a1da84b75f41fb848567192bdf29c34d1" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GridEditDialog::updateShowGridDialogControl</definition>
+        <argsstring>()</argsstring>
+        <name>updateShowGridDialogControl</name>
+        <qualifiedname>GridEditDialog::updateShowGridDialogControl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="200" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>GridEditDialog</label>
+        <link refid="classGridEditDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>GridEditDialog</label>
+        <link refid="classGridEditDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_gridobject.h" line="188" column="1" bodyfile="ec_gridobject.h" bodystart="189" bodyend="204"/>
+    <listofallmembers>
+      <member refid="classGridEditDialog_1a7121d4ded2dfa2003e6402164ecaf25f" prot="private" virt="non-virtual"><scope>GridEditDialog</scope><name>fillPanel</name></member>
+      <member refid="classGridEditDialog_1aa89f8bda00af16443c771cceb350e329" prot="public" virt="non-virtual"><scope>GridEditDialog</scope><name>GridEditDialog</name></member>
+      <member refid="classGridEditDialog_1a57cee413ed2df2b1b79975731e17b490" prot="private" virt="non-virtual"><scope>GridEditDialog</scope><name>index</name></member>
+      <member refid="classGridEditDialog_1a7c89bb8b73ef2cc01af1ebb4eb8b3e3f" prot="private" virt="non-virtual"><scope>GridEditDialog</scope><name>mGrid</name></member>
+      <member refid="classGridEditDialog_1ab21474549d6cfdd9403d7ef43cbe9074" prot="private" virt="non-virtual"><scope>GridEditDialog</scope><name>onChange</name></member>
+      <member refid="classGridEditDialog_1a92c6be406175bc1529c33ed159fbf74a" prot="public" virt="non-virtual"><scope>GridEditDialog</scope><name>onGridVisibilityChanged</name></member>
+      <member refid="classGridEditDialog_1ab876949dee56cf04a48a716ee7ee514d" prot="public" virt="non-virtual"><scope>GridEditDialog</scope><name>showGridEditDialog</name></member>
+      <member refid="classGridEditDialog_1a1da84b75f41fb848567192bdf29c34d1" prot="private" virt="non-virtual"><scope>GridEditDialog</scope><name>updateShowGridDialogControl</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

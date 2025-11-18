@@ -1,0 +1,219 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dllmain_8cpp" kind="file" language="C++">
+    <compoundname>dllmain.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <incdepgraph>
+      <node id="3">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="1">
+        <label>dllmain.cpp</label>
+        <link refid="dllmain_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dllmain_8cpp_1a74029128723095e7bf00a71d46af8b24" prot="public" static="no" mutable="no">
+        <type>HINSTANCE</type>
+        <definition>HINSTANCE hInstance</definition>
+        <argsstring></argsstring>
+        <name>hInstance</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dllmain.cpp" line="6" column="11" bodyfile="dllmain.cpp" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dllmain_8cpp_1aeb87de5dfb5d632579574b4bc8709019" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TCHAR *</type>
+        <definition>TCHAR * GetString</definition>
+        <argsstring>(int id)</argsstring>
+        <name>GetString</name>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dllmain.cpp" line="8" column="7" bodyfile="dllmain.cpp" bodystart="8" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="dllmain_8cpp_1ad2cee9802522144660fc9d0d6f6df99d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void load_dagorpath_cfg</definition>
+        <argsstring>()</argsstring>
+        <name>load_dagorpath_cfg</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dllmain.cpp" line="17" column="6" bodyfile="util.cpp" bodystart="677" bodyend="719" declfile="dllmain.cpp" declline="17" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dllmain_8cpp_1a12e82cac787941374946f3bf147e678d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL WINAPI</type>
+        <definition>BOOL WINAPI DllMain</definition>
+        <argsstring>(HINSTANCE hinstDLL, ULONG fdwReason, LPVOID lpvReserved)</argsstring>
+        <name>DllMain</name>
+        <param>
+          <type>HINSTANCE</type>
+          <declname>hinstDLL</declname>
+        </param>
+        <param>
+          <type>ULONG</type>
+          <declname>fdwReason</declname>
+        </param>
+        <param>
+          <type>LPVOID</type>
+          <declname>lpvReserved</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dllmain.cpp" line="19" column="13" bodyfile="dllmain.cpp" bodystart="19" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="dllmain_8cpp_1af0b2997000e173f3d05b47115c77a329" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>__declspec</definition>
+        <argsstring>(dllexport) const TCHAR *LibDescription()</argsstring>
+        <name>__declspec</name>
+        <param>
+          <type>dllexport</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dllmain.cpp" line="35" column="1" bodyfile="dllmain.cpp" bodystart="35" bodyend="35"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal">HINSTANCE<sp/><ref refid="dllmain_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">TCHAR<sp/>*<ref refid="dllmain_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>TCHAR<sp/>buf[256];</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="dllmain_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>LoadString(<ref refid="dllmain_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>buf,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(buf)<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*buf))<sp/>?<sp/>buf<sp/>:<sp/>NULL;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dllmain_8cpp_1ad2cee9802522144660fc9d0d6f6df99d" kindref="member">load_dagorpath_cfg</ref>();</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">BOOL<sp/>WINAPI<sp/><ref refid="dllmain_8cpp_1a12e82cac787941374946f3bf147e678d" kindref="member">DllMain</ref>(HINSTANCE<sp/>hinstDLL,<sp/>ULONG<sp/>fdwReason,<sp/>LPVOID<sp/>lpvReserved)</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>controlsInit<sp/>=<sp/>FALSE;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><ref refid="dllmain_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref><sp/>=<sp/>hinstDLL;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!controlsInit)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>controlsInit<sp/>=<sp/>TRUE;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!defined(MAX_RELEASE_R13)<sp/>||<sp/>MAX_RELEASE<sp/>&lt;<sp/>MAX_RELEASE_R13</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>InitCustomControls(<ref refid="dllmain_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>InitCommonControls();</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><ref refid="dllmain_8cpp_1ad2cee9802522144660fc9d0d6f6df99d" kindref="member">load_dagorpath_cfg</ref>();</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><ref refid="dllmain_8cpp_1af0b2997000e173f3d05b47115c77a329" kindref="member">__declspec</ref>(dllexport)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*LibDescription()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>_T(</highlight><highlight class="stringliteral">&quot;Dagor<sp/>Utilities<sp/>-<sp/>for<sp/>internal<sp/>usage<sp/>only<sp/>:-)&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><ref refid="dllmain_8cpp_1af0b2997000e173f3d05b47115c77a329" kindref="member">__declspec</ref>(dllexport)<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>LibNumberClasses()</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PUBLIC_RELEASE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>MAX_RELEASE<sp/>&gt;=<sp/>4000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>11;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>10;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>MAX_RELEASE<sp/>&gt;=<sp/>4000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>19;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>16;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><ref refid="dllmain_8cpp_1af0b2997000e173f3d05b47115c77a329" kindref="member">__declspec</ref>(dllexport)<sp/>ClassDesc<sp/>*LibClassDesc(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(i)</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PUBLIC_RELEASE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>0:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a19b802bb73c1ac5c42f7a248124e1c9f" kindref="member">GetMaterCD</ref>();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>1:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a648d944ee20b47d93f2d7e3da3c8ffe1" kindref="member">GetMaterCD2</ref>();</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>2:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a40fe9c6c4fd75189564015d351c7681a" kindref="member">GetExpUtilCD</ref>();</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>3:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a8e31b6fa0d20015c2d397732b9ace88c" kindref="member">GetDummyCD</ref>();</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a2bece4085d8ae2809881b433b3b5e285" kindref="member">GetTexmapsCD</ref>();</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>5:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aea94833ed89d839db0817676484aeba8" kindref="member">GetMatConvUtilCD</ref>();</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>6:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aac208454072ecfdbe8427f0557853d64" kindref="member">GetObjectPropertiesEditorCD</ref>();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>8:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a273f5592dd92108b41cf55c45a98a4c9" kindref="member">GetRBDummyCD</ref>();</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>9:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a3f889cd4c09a1ef307f5385e45e51d8b" kindref="member">GetDAGEXPCD</ref>();</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>MAX_RELEASE<sp/>&gt;=<sp/>4000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>10:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a8cc1dd80a4df65e008f91f543ee8822c" kindref="member">GetDagFreeCamUtilCD</ref>();</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>0:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aa3cc63d87e712361670a0daa08a955da" kindref="member">GetFontUtilCD</ref>();</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>1:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a19b802bb73c1ac5c42f7a248124e1c9f" kindref="member">GetMaterCD</ref>();</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>2:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a648d944ee20b47d93f2d7e3da3c8ffe1" kindref="member">GetMaterCD2</ref>();</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>3:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a40fe9c6c4fd75189564015d351c7681a" kindref="member">GetExpUtilCD</ref>();</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a1d8210e1722943c3147a9125a79fdbf5" kindref="member">GetDagUtilCD</ref>();</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>5:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a8e31b6fa0d20015c2d397732b9ace88c" kindref="member">GetDummyCD</ref>();</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>6:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a2bece4085d8ae2809881b433b3b5e285" kindref="member">GetTexmapsCD</ref>();</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>7:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a4456f7c1251078051260f3932fbc9584" kindref="member">GetVPnormCD</ref>();</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>8:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1ae4377332d5b625bf84821942642e3ba6" kindref="member">GetVPzbufCD</ref>();</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>9:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1ad31546814d0958bee1a1042b7a2fb582" kindref="member">GetTexAnimIOCD</ref>();</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>10:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1af20e98760027213d0aca5ea4e9aa52e4" kindref="member">GetPolyBumpCD</ref>();</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>11:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aea94833ed89d839db0817676484aeba8" kindref="member">GetMatConvUtilCD</ref>();</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>12:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aac208454072ecfdbe8427f0557853d64" kindref="member">GetObjectPropertiesEditorCD</ref>();</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>14:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a273f5592dd92108b41cf55c45a98a4c9" kindref="member">GetRBDummyCD</ref>();</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>15:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a3f889cd4c09a1ef307f5385e45e51d8b" kindref="member">GetDAGEXPCD</ref>();</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>MAX_RELEASE<sp/>&gt;=<sp/>4000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>16:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a8cc1dd80a4df65e008f91f543ee8822c" kindref="member">GetDagFreeCamUtilCD</ref>();</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>17:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagimp_8cpp_1a29bf723d61dbb94b9dde74ae7c3fe3e0" kindref="member">GetDAGIMPCD</ref>();</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>18:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagimp_8cpp_1a087ee67f0c94cc487312ccd5a4f327dc" kindref="member">GetImpUtilCD</ref>();</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><ref refid="dllmain_8cpp_1af0b2997000e173f3d05b47115c77a329" kindref="member">__declspec</ref>(dllexport)<sp/>ULONG<sp/>LibVersion()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>VERSION_3DSMAX;<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="dllmain.cpp"/>
+  </compounddef>
+</doxygen>

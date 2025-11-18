@@ -1,0 +1,223 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBindPoseBufferManager" kind="class" language="C++" prot="public">
+    <compoundname>BindPoseBufferManager</compoundname>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classBindPoseBufferManager_1a1bc31489cf12a9be3aefb8aedf150614" prot="public" static="no">
+        <type>LinearHeapAllocatorMatrixBuffer::Region</type>
+        <definition>using BindPoseBufferManager::Region =  LinearHeapAllocatorMatrixBuffer::Region</definition>
+        <argsstring></argsstring>
+        <name>Region</name>
+        <qualifiedname>BindPoseBufferManager::Region</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="42" column="3" bodyfile="dag_bindposeBufferManager.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classBindPoseBufferManager_1acdbc50c785073b6445faae03502f0578" prot="public" static="no">
+        <type>LinearHeapAllocatorMatrixBuffer::RegionId</type>
+        <definition>using BindPoseBufferManager::RegionId =  LinearHeapAllocatorMatrixBuffer::RegionId</definition>
+        <argsstring></argsstring>
+        <name>RegionId</name>
+        <qualifiedname>BindPoseBufferManager::RegionId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="43" column="3" bodyfile="dag_bindposeBufferManager.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classBindPoseBufferManager_1ad7dfa6ff5bb49905b0ba5f28062dd81e" prot="protected" static="no" mutable="no">
+        <type><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocatorMatrixBuffer</ref></type>
+        <definition>LinearHeapAllocatorMatrixBuffer BindPoseBufferManager::bindposeAllocator</definition>
+        <argsstring></argsstring>
+        <name>bindposeAllocator</name>
+        <qualifiedname>BindPoseBufferManager::bindposeAllocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="60" column="35" bodyfile="dag_bindposeBufferManager.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBindPoseBufferManager_1a225397d0627fd3d96580475596732c66" prot="protected" static="no" mutable="no">
+        <type>PtrTab&lt; <ref refid="classBindPoseElem" kindref="compound">BindPoseElem</ref> &gt;</type>
+        <definition>PtrTab&lt;BindPoseElem&gt; BindPoseBufferManager::bindposeElemArr</definition>
+        <argsstring></argsstring>
+        <name>bindposeElemArr</name>
+        <qualifiedname>BindPoseBufferManager::bindposeElemArr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="61" column="10" bodyfile="dag_bindposeBufferManager.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBindPoseBufferManager_1a023e52e880fc6bd2772b020c67ed41c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BindPoseBufferManager::BindPoseBufferManager</definition>
+        <argsstring>()</argsstring>
+        <name>BindPoseBufferManager</name>
+        <qualifiedname>BindPoseBufferManager::BindPoseBufferManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="45" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseBufferManager_1ad3ccfd3d8814d70712d956716c997858" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Ptr&lt; <ref refid="classBindPoseElem" kindref="compound">BindPoseElem</ref> &gt;</type>
+        <definition>Ptr&lt; BindPoseElem &gt; BindPoseBufferManager::createOrGetBindposeElem</definition>
+        <argsstring>(dag::ConstSpan&lt; TMatrix &gt; target_bind_pose_arr)</argsstring>
+        <name>createOrGetBindposeElem</name>
+        <qualifiedname>BindPoseBufferManager::createOrGetBindposeElem</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; TMatrix &gt;</type>
+          <declname>target_bind_pose_arr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="47" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseBufferManager_1a8a4eb4edd69e8b4f4ba03c8b38621797" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BindPoseBufferManager::closeElem</definition>
+        <argsstring>(RegionId region_id)</argsstring>
+        <name>closeElem</name>
+        <qualifiedname>BindPoseBufferManager::closeElem</qualifiedname>
+        <param>
+          <type>RegionId</type>
+          <declname>region_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="49" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseBufferManager_1af4133c339650e6e1dd17cd459bd10528" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Region</type>
+        <definition>Region BindPoseBufferManager::getRegion</definition>
+        <argsstring>(RegionId region_id) const</argsstring>
+        <name>getRegion</name>
+        <qualifiedname>BindPoseBufferManager::getRegion</qualifiedname>
+        <param>
+          <type>RegionId</type>
+          <declname>region_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="51" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseBufferManager_1a3fbecef1143b2c7bf01ad1f664479d83" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool BindPoseBufferManager::checkBindPoseArr</definition>
+        <argsstring>(RegionId region_id, dag::ConstSpan&lt; TMatrix &gt; target_bind_pose_arr) const</argsstring>
+        <name>checkBindPoseArr</name>
+        <qualifiedname>BindPoseBufferManager::checkBindPoseArr</qualifiedname>
+        <param>
+          <type>RegionId</type>
+          <declname>region_id</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; TMatrix &gt;</type>
+          <declname>target_bind_pose_arr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="53" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseBufferManager_1a3623906a49d70799485c635650c87a31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BindPoseBufferManager::closeHeap</definition>
+        <argsstring>()</argsstring>
+        <name>closeHeap</name>
+        <qualifiedname>BindPoseBufferManager::closeHeap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="55" column="8" bodyfile="dag_bindposeBufferManager.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classBindPoseBufferManager_1a5d3437707ec89b732e3bd67651753198" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BindPoseBufferManager::resizeIncrement</definition>
+        <argsstring>(size_t min_size_increment)</argsstring>
+        <name>resizeIncrement</name>
+        <qualifiedname>BindPoseBufferManager::resizeIncrement</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>min_size_increment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="58" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>BindPoseBufferManager</label>
+        <link refid="classBindPoseBufferManager"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>bindposeAllocator</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>LinearHeapAllocator&lt; MatrixBufferHeapManager &gt;</label>
+        <link refid="structLinearHeapAllocator"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_bindposeBufferManager.h" line="39" column="1" bodyfile="dag_bindposeBufferManager.h" bodystart="40" bodyend="62"/>
+    <listofallmembers>
+      <member refid="classBindPoseBufferManager_1ad7dfa6ff5bb49905b0ba5f28062dd81e" prot="protected" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>bindposeAllocator</name></member>
+      <member refid="classBindPoseBufferManager_1a023e52e880fc6bd2772b020c67ed41c0" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>BindPoseBufferManager</name></member>
+      <member refid="classBindPoseBufferManager_1a225397d0627fd3d96580475596732c66" prot="protected" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>bindposeElemArr</name></member>
+      <member refid="classBindPoseBufferManager_1a3fbecef1143b2c7bf01ad1f664479d83" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>checkBindPoseArr</name></member>
+      <member refid="classBindPoseBufferManager_1a8a4eb4edd69e8b4f4ba03c8b38621797" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>closeElem</name></member>
+      <member refid="classBindPoseBufferManager_1a3623906a49d70799485c635650c87a31" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>closeHeap</name></member>
+      <member refid="classBindPoseBufferManager_1ad3ccfd3d8814d70712d956716c997858" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>createOrGetBindposeElem</name></member>
+      <member refid="classBindPoseBufferManager_1af4133c339650e6e1dd17cd459bd10528" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>getRegion</name></member>
+      <member refid="classBindPoseBufferManager_1a1bc31489cf12a9be3aefb8aedf150614" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>Region</name></member>
+      <member refid="classBindPoseBufferManager_1acdbc50c785073b6445faae03502f0578" prot="public" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>RegionId</name></member>
+      <member refid="classBindPoseBufferManager_1a5d3437707ec89b732e3bd67651753198" prot="protected" virt="non-virtual"><scope>BindPoseBufferManager</scope><name>resizeIncrement</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

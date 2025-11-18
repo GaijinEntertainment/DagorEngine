@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCompilerRestartProc" kind="class" language="C++" prot="public">
+    <compoundname>CompilerRestartProc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">SRestartProc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCompilerRestartProc_1a16f9d949a1d12165284d8388a083a5bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * CompilerRestartProc::procname</definition>
+        <argsstring>() override</argsstring>
+        <name>procname</name>
+        <qualifiedname>CompilerRestartProc::procname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="main.cpp" line="806" column="14" bodyfile="main.cpp" bodystart="806" bodyend="806"/>
+      </memberdef>
+      <memberdef kind="function" id="classCompilerRestartProc_1ace750207e2656706e37ff6adb5129615" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CompilerRestartProc::CompilerRestartProc</definition>
+        <argsstring>()</argsstring>
+        <name>CompilerRestartProc</name>
+        <qualifiedname>CompilerRestartProc::CompilerRestartProc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="main.cpp" line="808" column="3" bodyfile="main.cpp" bodystart="808" bodyend="808"/>
+      </memberdef>
+      <memberdef kind="function" id="classCompilerRestartProc_1a5b2b1905d4b2902d4b0457d537e4a75f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CompilerRestartProc::startup</definition>
+        <argsstring>() override</argsstring>
+        <name>startup</name>
+        <qualifiedname>CompilerRestartProc::startup</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="main.cpp" line="810" column="8" bodyfile="main.cpp" bodystart="810" bodyend="810"/>
+      </memberdef>
+      <memberdef kind="function" id="classCompilerRestartProc_1aad4bc78744fd982285cc49860cad722b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CompilerRestartProc::shutdown</definition>
+        <argsstring>() override</argsstring>
+        <name>shutdown</name>
+        <qualifiedname>CompilerRestartProc::shutdown</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="main.cpp" line="812" column="8" bodyfile="main.cpp" bodystart="812" bodyend="812"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CompilerRestartProc</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SRestartProc</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>CompilerRestartProc</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SRestartProc</label>
+      </node>
+    </collaborationgraph>
+    <location file="main.cpp" line="803" column="8" bodyfile="main.cpp" bodystart="804" bodyend="813"/>
+    <listofallmembers>
+      <member refid="classCompilerRestartProc_1ace750207e2656706e37ff6adb5129615" prot="public" virt="non-virtual"><scope>CompilerRestartProc</scope><name>CompilerRestartProc</name></member>
+      <member refid="classCompilerRestartProc_1a16f9d949a1d12165284d8388a083a5bc" prot="public" virt="non-virtual"><scope>CompilerRestartProc</scope><name>procname</name></member>
+      <member refid="classCompilerRestartProc_1aad4bc78744fd982285cc49860cad722b" prot="public" virt="non-virtual"><scope>CompilerRestartProc</scope><name>shutdown</name></member>
+      <member refid="classCompilerRestartProc_1a5b2b1905d4b2902d4b0457d537e4a75f" prot="public" virt="non-virtual"><scope>CompilerRestartProc</scope><name>startup</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

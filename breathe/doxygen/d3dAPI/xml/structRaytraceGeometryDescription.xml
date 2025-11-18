@@ -1,0 +1,168 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceGeometryDescription" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceGeometryDescription</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+    <innerclass refid="structRaytraceGeometryDescription_1_1AABBsInfo" prot="public">RaytraceGeometryDescription::AABBsInfo</innerclass>
+    <innerclass refid="unionRaytraceGeometryDescription_1_1AnyInfo" prot="public">RaytraceGeometryDescription::AnyInfo</innerclass>
+    <innerclass refid="structRaytraceGeometryDescription_1_1TrianglesInfo" prot="public">RaytraceGeometryDescription::TrianglesInfo</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>Flags</name>
+        <qualifiedname>RaytraceGeometryDescription::Flags</qualifiedname>
+        <enumvalue id="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756ab50339a10e1de285ac99d4c3990b8693" prot="public">
+          <name>NONE</name>
+          <initializer>= 0x00</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756ae2f9fd48951e26b1b462801104b30cb0" prot="public">
+          <name>IS_OPAQUE</name>
+          <initializer>= 0x01</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756af0e7d156e324d5227c262ff2e13b22d0" prot="public">
+          <name>NO_DUPLICATE_ANY_HIT_INVOCATION</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="50" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="51" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="enum" id="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>Type</name>
+        <qualifiedname>RaytraceGeometryDescription::Type</qualifiedname>
+        <enumvalue id="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94add3bfee8042d1b85c224f08b42a3fc2e" prot="public">
+          <name>TRIANGLES</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94a55940c67e181c2df0e888038d15b7a3e" prot="public">
+          <name>AABBS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="56" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="57" bodyend="60"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1a350113cb1703c37c5712a3fe9de528ba" prot="public" static="no" mutable="no">
+        <type><ref refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94" kindref="member">Type</ref></type>
+        <definition>Type RaytraceGeometryDescription::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>RaytraceGeometryDescription::type</qualifiedname>
+        <initializer>= <ref refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94add3bfee8042d1b85c224f08b42a3fc2e" kindref="member">Type::TRIANGLES</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="93" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1ae92ef81c39f76b085cc24bbd2a7911e8" prot="public" static="no" mutable="no">
+        <type><ref refid="unionRaytraceGeometryDescription_1_1AnyInfo" kindref="compound">AnyInfo</ref></type>
+        <definition>AnyInfo RaytraceGeometryDescription::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>RaytraceGeometryDescription::data</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="94" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="5">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>RaytraceGeometryDescription</label>
+        <link refid="structRaytraceGeometryDescription"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>data</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>RaytraceGeometryDescription::AABBsInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1AABBsInfo"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RaytraceGeometryDescription::AnyInfo</label>
+        <link refid="unionRaytraceGeometryDescription_1_1AnyInfo"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>aabbs</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>triangles</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>RaytraceGeometryDescription::TrianglesInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1TrianglesInfo"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>indexBuffer</edgelabel>
+          <edgelabel>transformBuffer</edgelabel>
+          <edgelabel>vertexBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="4">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="48" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="49" bodyend="95"/>
+    <listofallmembers>
+      <member refid="structRaytraceGeometryDescription_1ae92ef81c39f76b085cc24bbd2a7911e8" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription</scope><name>data</name></member>
+      <member refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription</scope><name>Flags</name></member>
+      <member refid="structRaytraceGeometryDescription_1a89dbf76f97b193c3eff9001d1f34db94" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription</scope><name>Type</name></member>
+      <member refid="structRaytraceGeometryDescription_1a350113cb1703c37c5712a3fe9de528ba" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,445 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderWarmUpInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderWarmUpInfo</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a4ecc56247c0a2491a19e4e5a82e4c460" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t ShaderWarmUpInfo::shaderProgram</definition>
+        <argsstring></argsstring>
+        <name>shaderProgram</name>
+        <qualifiedname>ShaderWarmUpInfo::shaderProgram</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="251" column="11" bodyfile="dag_decl.h" bodystart="251" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a33e4a942c200db10e280c828941eadb0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::colorFormats[Driver3dRenderTarget::MAX_SIMRT]</definition>
+        <argsstring>[Driver3dRenderTarget::MAX_SIMRT]</argsstring>
+        <name>colorFormats</name>
+        <qualifiedname>ShaderWarmUpInfo::colorFormats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="252" column="12" bodyfile="dag_decl.h" bodystart="252" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a5a38e068a2eb7003762681727bf343ca" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthStencilFormat</definition>
+        <argsstring></argsstring>
+        <name>depthStencilFormat</name>
+        <qualifiedname>ShaderWarmUpInfo::depthStencilFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="253" column="12" bodyfile="dag_decl.h" bodystart="253" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1ac23d1282e6164c7bc38c6ff62316276b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::validColorTargetAndDepthStencilMask</definition>
+        <argsstring></argsstring>
+        <name>validColorTargetAndDepthStencilMask</name>
+        <qualifiedname>ShaderWarmUpInfo::validColorTargetAndDepthStencilMask</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="255" column="12" bodyfile="dag_decl.h" bodystart="255" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a8c5473202edcaf630d38d14e9214e111" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::colorWriteMask</definition>
+        <argsstring></argsstring>
+        <name>colorWriteMask</name>
+        <qualifiedname>ShaderWarmUpInfo::colorWriteMask</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="256" column="12" bodyfile="dag_decl.h" bodystart="256" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a22ef386c3bb2c696ae7be8d6af58a90b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::vertexInputStreamStrides[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>vertexInputStreamStrides</name>
+        <qualifiedname>ShaderWarmUpInfo::vertexInputStreamStrides</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="258" column="12" bodyfile="dag_decl.h" bodystart="258" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a0737eb764455f63a5f7d64a6f8b42a66" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::primitiveTopologyMask</definition>
+        <argsstring></argsstring>
+        <name>primitiveTopologyMask</name>
+        <qualifiedname>ShaderWarmUpInfo::primitiveTopologyMask</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="262" column="11" bodyfile="dag_decl.h" bodystart="262" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1add5e47caa4bd742bd6533cd3ce3c8a8e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::cullMode</definition>
+        <argsstring></argsstring>
+        <name>cullMode</name>
+        <qualifiedname>ShaderWarmUpInfo::cullMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="263" column="11" bodyfile="dag_decl.h" bodystart="263" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a7b1f2411886514c086c1d1cf222c6e2c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::depthTestFunction</definition>
+        <argsstring></argsstring>
+        <name>depthTestFunction</name>
+        <qualifiedname>ShaderWarmUpInfo::depthTestFunction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="264" column="11" bodyfile="dag_decl.h" bodystart="264" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a6be7e00ac564ce931d36b23c13a5314d" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilTestFunction</definition>
+        <argsstring></argsstring>
+        <name>stencilTestFunction</name>
+        <qualifiedname>ShaderWarmUpInfo::stencilTestFunction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="265" column="11" bodyfile="dag_decl.h" bodystart="265" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a15d8023b7fe4f2162c7d5417dff1d303" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilOnStencilFail</definition>
+        <argsstring></argsstring>
+        <name>stencilOnStencilFail</name>
+        <qualifiedname>ShaderWarmUpInfo::stencilOnStencilFail</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="266" column="11" bodyfile="dag_decl.h" bodystart="266" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a2da4e5a58fe93b68a57f1ce133ba98de" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilOnDepthFail</definition>
+        <argsstring></argsstring>
+        <name>stencilOnDepthFail</name>
+        <qualifiedname>ShaderWarmUpInfo::stencilOnDepthFail</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="267" column="11" bodyfile="dag_decl.h" bodystart="267" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1ad791befd7aa4c01021774b2a1efee79c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilOnAllPass</definition>
+        <argsstring></argsstring>
+        <name>stencilOnAllPass</name>
+        <qualifiedname>ShaderWarmUpInfo::stencilOnAllPass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="268" column="11" bodyfile="dag_decl.h" bodystart="268" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a4b14e5dd4fa14efcea6e95f8a1802b09" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendOpRGB</definition>
+        <argsstring></argsstring>
+        <name>blendOpRGB</name>
+        <qualifiedname>ShaderWarmUpInfo::blendOpRGB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="269" column="11" bodyfile="dag_decl.h" bodystart="269" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a98f41c1a970ec7b5015aeeeefc118907" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendOpAlpha</definition>
+        <argsstring></argsstring>
+        <name>blendOpAlpha</name>
+        <qualifiedname>ShaderWarmUpInfo::blendOpAlpha</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="270" column="11" bodyfile="dag_decl.h" bodystart="270" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a187bb15f703afad37afc1ca6a5b166fd" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendSrcFactorRGB</definition>
+        <argsstring></argsstring>
+        <name>blendSrcFactorRGB</name>
+        <qualifiedname>ShaderWarmUpInfo::blendSrcFactorRGB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="271" column="11" bodyfile="dag_decl.h" bodystart="271" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a0b556032a06007d6d6f63ec3a015cf15" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendSrcFactorAlpha</definition>
+        <argsstring></argsstring>
+        <name>blendSrcFactorAlpha</name>
+        <qualifiedname>ShaderWarmUpInfo::blendSrcFactorAlpha</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="272" column="11" bodyfile="dag_decl.h" bodystart="272" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1ad28b08fc8798a3b992d6f26c0c87d5fa" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendDstFactorRGB</definition>
+        <argsstring></argsstring>
+        <name>blendDstFactorRGB</name>
+        <qualifiedname>ShaderWarmUpInfo::blendDstFactorRGB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="273" column="11" bodyfile="dag_decl.h" bodystart="273" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1aabb38ed90f6727bc0d487e553efa0b10" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendDstFactorAlpha</definition>
+        <argsstring></argsstring>
+        <name>blendDstFactorAlpha</name>
+        <qualifiedname>ShaderWarmUpInfo::blendDstFactorAlpha</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="274" column="11" bodyfile="dag_decl.h" bodystart="274" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a11ebb4edbf04d5525e20d81d65deabf3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::polyLineEnable</definition>
+        <argsstring></argsstring>
+        <name>polyLineEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::polyLineEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="276" column="12" bodyfile="dag_decl.h" bodystart="276" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a0faab35352616b22697960640fbbfda2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::flipCullEnable</definition>
+        <argsstring></argsstring>
+        <name>flipCullEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::flipCullEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="277" column="12" bodyfile="dag_decl.h" bodystart="277" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a88a62c14a6d18d65f1f5af21071302b7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthTestEnable</definition>
+        <argsstring></argsstring>
+        <name>depthTestEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::depthTestEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="278" column="12" bodyfile="dag_decl.h" bodystart="278" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1ac994586b1b1509a422c21318cbac78d0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthWriteEnable</definition>
+        <argsstring></argsstring>
+        <name>depthWriteEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::depthWriteEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="279" column="12" bodyfile="dag_decl.h" bodystart="279" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a1a90f5e3acff276f2624db736dc4c795" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthBoundsEnable</definition>
+        <argsstring></argsstring>
+        <name>depthBoundsEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::depthBoundsEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="280" column="12" bodyfile="dag_decl.h" bodystart="280" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a23f0921a7c24607d58bbf78178e9ced9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthClipEnable</definition>
+        <argsstring></argsstring>
+        <name>depthClipEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::depthClipEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="281" column="12" bodyfile="dag_decl.h" bodystart="281" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a518bbd848bc318bf9eef8cb029c22fb0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::stencilTestEnable</definition>
+        <argsstring></argsstring>
+        <name>stencilTestEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::stencilTestEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="282" column="12" bodyfile="dag_decl.h" bodystart="282" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1a4fc3c69f6e4241daeb5203cf9ec7bc8b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::blendEnable</definition>
+        <argsstring></argsstring>
+        <name>blendEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::blendEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="283" column="12" bodyfile="dag_decl.h" bodystart="283" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderWarmUpInfo_1adb02c9e0245763b3238b438e1c549454" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::separateBlendEnable</definition>
+        <argsstring></argsstring>
+        <name>separateBlendEnable</name>
+        <qualifiedname>ShaderWarmUpInfo::separateBlendEnable</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="284" column="12" bodyfile="dag_decl.h" bodystart="284" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_decl.h" line="249" column="1" bodyfile="dag_decl.h" bodystart="250" bodyend="285"/>
+    <listofallmembers>
+      <member refid="structShaderWarmUpInfo_1aabb38ed90f6727bc0d487e553efa0b10" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendDstFactorAlpha</name></member>
+      <member refid="structShaderWarmUpInfo_1ad28b08fc8798a3b992d6f26c0c87d5fa" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendDstFactorRGB</name></member>
+      <member refid="structShaderWarmUpInfo_1a4fc3c69f6e4241daeb5203cf9ec7bc8b" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a98f41c1a970ec7b5015aeeeefc118907" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendOpAlpha</name></member>
+      <member refid="structShaderWarmUpInfo_1a4b14e5dd4fa14efcea6e95f8a1802b09" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendOpRGB</name></member>
+      <member refid="structShaderWarmUpInfo_1a0b556032a06007d6d6f63ec3a015cf15" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendSrcFactorAlpha</name></member>
+      <member refid="structShaderWarmUpInfo_1a187bb15f703afad37afc1ca6a5b166fd" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendSrcFactorRGB</name></member>
+      <member refid="structShaderWarmUpInfo_1a33e4a942c200db10e280c828941eadb0" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>colorFormats</name></member>
+      <member refid="structShaderWarmUpInfo_1a8c5473202edcaf630d38d14e9214e111" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>colorWriteMask</name></member>
+      <member refid="structShaderWarmUpInfo_1add5e47caa4bd742bd6533cd3ce3c8a8e" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>cullMode</name></member>
+      <member refid="structShaderWarmUpInfo_1a1a90f5e3acff276f2624db736dc4c795" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthBoundsEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a23f0921a7c24607d58bbf78178e9ced9" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthClipEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a5a38e068a2eb7003762681727bf343ca" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthStencilFormat</name></member>
+      <member refid="structShaderWarmUpInfo_1a88a62c14a6d18d65f1f5af21071302b7" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthTestEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a7b1f2411886514c086c1d1cf222c6e2c" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthTestFunction</name></member>
+      <member refid="structShaderWarmUpInfo_1ac994586b1b1509a422c21318cbac78d0" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthWriteEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a0faab35352616b22697960640fbbfda2" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>flipCullEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a11ebb4edbf04d5525e20d81d65deabf3" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>polyLineEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a0737eb764455f63a5f7d64a6f8b42a66" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>primitiveTopologyMask</name></member>
+      <member refid="structShaderWarmUpInfo_1adb02c9e0245763b3238b438e1c549454" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>separateBlendEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a4ecc56247c0a2491a19e4e5a82e4c460" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>shaderProgram</name></member>
+      <member refid="structShaderWarmUpInfo_1ad791befd7aa4c01021774b2a1efee79c" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilOnAllPass</name></member>
+      <member refid="structShaderWarmUpInfo_1a2da4e5a58fe93b68a57f1ce133ba98de" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilOnDepthFail</name></member>
+      <member refid="structShaderWarmUpInfo_1a15d8023b7fe4f2162c7d5417dff1d303" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilOnStencilFail</name></member>
+      <member refid="structShaderWarmUpInfo_1a518bbd848bc318bf9eef8cb029c22fb0" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilTestEnable</name></member>
+      <member refid="structShaderWarmUpInfo_1a6be7e00ac564ce931d36b23c13a5314d" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilTestFunction</name></member>
+      <member refid="structShaderWarmUpInfo_1ac23d1282e6164c7bc38c6ff62316276b" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>validColorTargetAndDepthStencilMask</name></member>
+      <member refid="structShaderWarmUpInfo_1a22ef386c3bb2c696ae7be8d6af58a90b" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>vertexInputStreamStrides</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

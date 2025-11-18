@@ -1,0 +1,181 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1VirtualResourceSemiRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::VirtualResourceSemiRequest</compoundname>
+    <includes refid="virtualResourceSemiRequest_8h" local="no">virtualResourceSemiRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>detail::ResourceRequestPolicy</type>
+        <declname>policy</declname>
+        <defname>policy</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdafg_1_1VirtualResourceSemiRequest_1ad211f4dbbde70500395b42d346d589db" prot="private" static="no">
+        <type>detail::VirtualResourceRequestBase</type>
+        <definition>using dafg::VirtualResourceSemiRequest&lt; policy &gt;::Base =  detail::VirtualResourceRequestBase</definition>
+        <argsstring></argsstring>
+        <name>Base</name>
+        <qualifiedname>dafg::VirtualResourceSemiRequest::Base</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceSemiRequest.h" line="29" column="3" bodyfile="virtualResourceSemiRequest.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceSemiRequest_1ad8a601007837e050685a914b6d74e8cb" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class StateRequest</definition>
+        <argsstring></argsstring>
+        <name>StateRequest</name>
+        <qualifiedname>dafg::VirtualResourceSemiRequest::StateRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceSemiRequest.h" line="31" column="16" bodyfile="virtualResourceSemiRequest.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceSemiRequest_1af224c83d458368ae6a14843794518f16" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class NameSpaceRequest</definition>
+        <argsstring></argsstring>
+        <name>NameSpaceRequest</name>
+        <qualifiedname>dafg::VirtualResourceSemiRequest::NameSpaceRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceSemiRequest.h" line="32" column="16" bodyfile="virtualResourceSemiRequest.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceSemiRequest_1a3a32d9f687ee989a1a8e291b529697be" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::VirtualResourceSemiRequest&lt; policy &gt;::VirtualResourceSemiRequest</definition>
+        <argsstring>(detail::ResUid resId, NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>VirtualResourceSemiRequest</name>
+        <qualifiedname>dafg::VirtualResourceSemiRequest::VirtualResourceSemiRequest</qualifiedname>
+        <param>
+          <type>detail::ResUid</type>
+          <declname>resId</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceSemiRequest.h" line="33" column="3" bodyfile="virtualResourceSemiRequest.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceSemiRequest_1a72339a420e8b812f13066ad9cf8ff643" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; BaseTexture, policy &gt; dafg::VirtualResourceSemiRequest&lt; policy &gt;::texture</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>texture</name>
+        <qualifiedname>dafg::VirtualResourceSemiRequest::texture</qualifiedname>
+        <briefdescription>
+<para>Specifies this to be a texture request. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceSemiRequest.h" line="37" column="26" bodyfile="virtualResourceSemiRequest.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceSemiRequest_1aaeef42b7d5ccbd06b5ee13219e4f0fa2" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Sbuffer, policy &gt; dafg::VirtualResourceSemiRequest&lt; policy &gt;::buffer</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>buffer</name>
+        <qualifiedname>dafg::VirtualResourceSemiRequest::buffer</qualifiedname>
+        <briefdescription>
+<para>Specifies this to be a buffer request. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceSemiRequest.h" line="40" column="26" bodyfile="virtualResourceSemiRequest.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceSemiRequest_1aeb3a2110657f5e74ea8b299f858b24a4" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; T, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; T, policy &gt; dafg::VirtualResourceSemiRequest&lt; policy &gt;::blob</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>blob</name>
+        <qualifiedname>dafg::VirtualResourceSemiRequest::blob</qualifiedname>
+        <briefdescription>
+<para>Specifies this to be a blob request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the blob to be requested. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceSemiRequest.h" line="48" column="26" bodyfile="virtualResourceSemiRequest.h" bodystart="48" bodyend="52"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A builder object for an incomplete resource creation request: we want to read, modify or rename something, but don&apos;t know what yet. Note that all methods of this class return a new request object which should be used for further specification. Never re-use objects of this type for several requests. </para>
+    </briefdescription>
+    <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Static data about this request&apos;s structure used for erroring out at compile time if this class is used incorrectly. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="virtualResourceSemiRequest.h" line="24" column="1" bodyfile="virtualResourceSemiRequest.h" bodystart="28" bodyend="53"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1VirtualResourceSemiRequest_1ad211f4dbbde70500395b42d346d589db" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceSemiRequest</scope><name>Base</name></member>
+      <member refid="classdafg_1_1VirtualResourceSemiRequest_1aeb3a2110657f5e74ea8b299f858b24a4" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceSemiRequest</scope><name>blob</name></member>
+      <member refid="classdafg_1_1VirtualResourceSemiRequest_1aaeef42b7d5ccbd06b5ee13219e4f0fa2" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceSemiRequest</scope><name>buffer</name></member>
+      <member refid="classdafg_1_1VirtualResourceSemiRequest_1af224c83d458368ae6a14843794518f16" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceSemiRequest</scope><name>NameSpaceRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceSemiRequest_1ad8a601007837e050685a914b6d74e8cb" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceSemiRequest</scope><name>StateRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceSemiRequest_1a72339a420e8b812f13066ad9cf8ff643" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceSemiRequest</scope><name>texture</name></member>
+      <member refid="classdafg_1_1VirtualResourceSemiRequest_1a3a32d9f687ee989a1a8e291b529697be" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceSemiRequest</scope><name>VirtualResourceSemiRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

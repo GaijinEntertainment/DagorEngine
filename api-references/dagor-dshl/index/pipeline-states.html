@@ -1,0 +1,419 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline state configuration</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Keywords" href="keywords.html" />
+    <link rel="prev" title="Global constants" href="global-constants.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Shading Language (DSHL) docs</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic-concepts.html">Basic Concepts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="channels.html">Channels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shaders.html">Shaders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="materials.html">Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="directives.html">Common directives</a></li>
+<li class="toctree-l3"><a class="reference internal" href="intrinsics.html">Intrinsics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="global-constants.html">Global constants</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Pipeline state configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blending">Blending</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#depth-stencil">Depth/Stencil</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#culling">Culling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#alpha-to-coverage">Alpha to coverage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#view-instancing">View instancing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#color-write-mask">Color write mask</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="keywords.html">Keywords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stream_output.html">Stream output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Shading Language (DSHL) docs</a></li>
+      <li class="breadcrumb-item active">Pipeline state configuration</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-dshl/index/pipeline-states.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pipeline-state-configuration">
+<span id="pipeline-states"></span><h1>Pipeline state configuration<a class="headerlink" href="#pipeline-state-configuration" title="Link to this heading"></a></h1>
+<p>DSHL has some state variables that are used for configuring fixed pipeline stages (blending, depth/stencil testing, etc.).
+You can optionally define them inside a shader.</p>
+<section id="blending">
+<h2>Blending<a class="headerlink" href="#blending" title="Link to this heading"></a></h2>
+<p>Blending settings can be configured in DSHL shader using the following syntax:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">blend_target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blend_factor</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">blend_target</span></code> is one of these state variables</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">blend_src</span></code> – blend source</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">blend_dst</span></code> – blend destination</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">blend_asrc</span></code> – blend alpha source</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">blend_adst</span></code> – blend alpha destination</p></li>
+</ul>
+<p>and <code class="docutils literal notranslate"><span class="pre">blend_factor</span></code> is one of these keywords:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Keyword</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>RGB Blend Factor</p></th>
+<th class="head"><p>Alpha Blend Factor</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">zero</span></code> or <code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Zero</p></td>
+<td><p>(0, 0, 0)</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">one</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>One</p></td>
+<td><p>(1, 1, 1)</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sc</span></code></p></td>
+<td><p>Source Color</p></td>
+<td><p>(R_s, G_s, B_s)</p></td>
+<td><p>A_s</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">isc</span></code></p></td>
+<td><p>Inverse Source Color</p></td>
+<td><p>(1 - R_s, 1 - G_s, 1 - B_s)</p></td>
+<td><p>1 - A_s</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sa</span></code></p></td>
+<td><p>Source Alpha</p></td>
+<td><p>(A_s, A_s, A_s)</p></td>
+<td><p>A_s</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">isa</span></code></p></td>
+<td><p>Inverse Source Alpha</p></td>
+<td><p>(1 - A_s, 1 - A_s, 1 - A_s)</p></td>
+<td><p>1 - A_s</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dc</span></code></p></td>
+<td><p>Destination Color</p></td>
+<td><p>(R_d, G_d, B_d)</p></td>
+<td><p>A_d</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">idc</span></code></p></td>
+<td><p>Inverse Destination Color</p></td>
+<td><p>(1 - R_d, 1 - G_d, 1 - B_d)</p></td>
+<td><p>1 - A_d</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">da</span></code></p></td>
+<td><p>Destination Alpha</p></td>
+<td><p>(A_d, A_d, A_d)</p></td>
+<td><p>A_d</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ida</span></code></p></td>
+<td><p>Inverse Destination Alpha</p></td>
+<td><p>(1 - A_d, 1 - A_d, 1 - A_d)</p></td>
+<td><p>1 - A_d</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sasat</span></code></p></td>
+<td><p>Source Alpha Saturation</p></td>
+<td><p>(f, f, f); f = min(A_s, 1 - A_d)</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bf</span></code></p></td>
+<td><p>Blend Constant</p></td>
+<td><p>(R_c, G_c, B_c)</p></td>
+<td><p>A_c</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ibf</span></code></p></td>
+<td><p>Inverse Blend Constant</p></td>
+<td><p>(1 - R_c, 1 - G_c, 1 - B_c)</p></td>
+<td><p>1 - A_c</p></td>
+</tr>
+</tbody>
+</table>
+<p>where</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">(R_s,</span> <span class="pre">G_s,</span> <span class="pre">B_s)</span></code> and <code class="docutils literal notranslate"><span class="pre">A_s</span></code> represent R, G, B, A components of the source (new value which shader just produced)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">(R_d,</span> <span class="pre">G_d,</span> <span class="pre">B_d)</span></code> and <code class="docutils literal notranslate"><span class="pre">A_d</span></code> represent R, G, B, A components of the destination (old value in the current render target)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">(R_c,</span> <span class="pre">G_c,</span> <span class="pre">B_c)</span></code> and <code class="docutils literal notranslate"><span class="pre">A_c</span></code> represent configurable blend constants</p></li>
+</ul>
+<p>Blending is performed using the following pseudocode:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">blendEnable</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">finalColor</span><span class="p">.</span><span class="n">rgb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">srcColorBlendFactor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">srcColor</span><span class="p">.</span><span class="n">rgb</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="n">colorBlendOp</span><span class="o">&gt;</span><span class="w"> </span><span class="p">(</span><span class="n">dstColorBlendFactor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dstColor</span><span class="p">.</span><span class="n">rgb</span><span class="p">);</span>
+<span class="w">    </span><span class="n">finalColor</span><span class="p">.</span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">srcAlphaBlendFactor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">srcColor</span><span class="p">.</span><span class="n">a</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="n">alphaBlendOp</span><span class="o">&gt;</span><span class="w"> </span><span class="p">(</span><span class="n">dstAlphaBlendFactor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dstColor</span><span class="p">.</span><span class="n">a</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">finalColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">srcColor</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="n">finalColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">finalColor</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">colorWriteMask</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">blend_src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sa</span><span class="p">;</span><span class="w"> </span><span class="n">blend_dst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="n">blend_asrc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sa</span><span class="p">;</span><span class="w"> </span><span class="n">blend_adst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Blending <em>operations</em> (as well as blending constants for <code class="docutils literal notranslate"><span class="pre">bf</span></code> and <code class="docutils literal notranslate"><span class="pre">ibf</span></code> blending modes) need to be configured in C++ code.</p>
+</div>
+<p>If you don’t configure blending factors in the shader, these defaults will be used:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">blend_src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">blend_dst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="n">blend_asrc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">blend_adst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><strong>Independent blending</strong></p>
+<p>Dagor supports independent blending, i.e. different render targets may have different blending settings.
+This is done by providing an index to <code class="docutils literal notranslate"><span class="pre">blend_src,</span> <span class="pre">blend_dst,</span> <span class="pre">blend_asrc,</span> <span class="pre">blend_adst</span></code> variables with <code class="docutils literal notranslate"><span class="pre">[]</span></code> operator.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">blend_src</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">blend_dst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="n">blend_src</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">blend_dst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Without an index, the desired blend factor affects all render targets.</p>
+</section>
+<section id="depth-stencil">
+<h2>Depth/Stencil<a class="headerlink" href="#depth-stencil" title="Link to this heading"></a></h2>
+<p>Depth and stencil tests can also be configured in DSHL using similar syntax.</p>
+<p><strong>Depth state variables</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">z_write</span></code> – enables/disables writing to depth buffer. Valid values: <code class="docutils literal notranslate"><span class="pre">true</span></code> / <code class="docutils literal notranslate"><span class="pre">false</span></code>. Default value: <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">z_test</span></code> – enables/disables depth testing. Valid values: <code class="docutils literal notranslate"><span class="pre">true</span></code> / <code class="docutils literal notranslate"><span class="pre">false</span></code>. Default value: <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">z_func</span></code> – specifies comparison function for depth testing. Valid values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">equal</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} = \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">notequal</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} \neq \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">always</span></code> always evaluates to <code class="docutils literal notranslate"><span class="pre">true</span></code></p></li>
+</ul>
+<p>Default value is <code class="docutils literal notranslate"><span class="pre">GREATER_OR_EQUAL</span></code> (evaluates to <span class="math notranslate nohighlight">\(\text{reference} \geq \text{test}\)</span>).
+Note that this value cannot be set explicitly, as it is the default behavior,
+because Dagor follows the convention that <strong>closer</strong> objects have <strong>more</strong> depth value.</p>
+<p>Example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">z_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="n">z_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="n">z_func</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">always</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><strong>Stencil state variables</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">stencil</span></code> – enables/disables stencil test. Valid values: <code class="docutils literal notranslate"><span class="pre">true</span></code> / <code class="docutils literal notranslate"><span class="pre">false</span></code>. Default value: <code class="docutils literal notranslate"><span class="pre">false</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">stencil_func</span></code> – specifies comparison function for stencil testing. Valid values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">never</span></code> always evaluates to <code class="docutils literal notranslate"><span class="pre">false</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">less</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} &lt; \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">equal</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} = \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lessequal</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} \leq \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">greater</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} &gt; \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">notequal</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} \neq \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">greaterequal</span></code> evaluates to <span class="math notranslate nohighlight">\(\text{reference} \geq \text{test}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">always</span></code> always evaluates to <code class="docutils literal notranslate"><span class="pre">true</span></code></p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">stencil_ref</span></code> – specifies reference value for the stencil test. Valid values: <code class="docutils literal notranslate"><span class="pre">int</span></code>, clamped to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">255]</span></code> range.</p>
+<p><code class="docutils literal notranslate"><span class="pre">stencil_pass</span></code> – specifies the action performed on samples that pass both stencil and depth tests.</p>
+<p><code class="docutils literal notranslate"><span class="pre">stencil_fail</span></code> – specifies the action performed on samples that fail the stencil test.</p>
+<p><code class="docutils literal notranslate"><span class="pre">stencil_zfail</span></code> – specifies the action performed on samples that pass the stencil test and fail the depth test.</p>
+<p>Valid actions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">keep</span></code> – keeps the current value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zero</span></code> – sets the value to <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replace</span></code> – sets the value to reference <code class="docutils literal notranslate"><span class="pre">stencil_ref</span></code> value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">incrsat</span></code> – increments the current value and clamps to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">255]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">decrsat</span></code> – decrements the current value and clamps to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">255]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">incr</span></code> – increments the current value and wraps to <code class="docutils literal notranslate"><span class="pre">0</span></code> when the maximum value would have been exceeded.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">decr</span></code> – decrements the current value and wraps to <code class="docutils literal notranslate"><span class="pre">255</span></code> the maximum possible value when the value would go below <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+</ul>
+<p>Example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">stencil</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="n">stencil_func</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">always</span><span class="p">;</span>
+<span class="n">stencil_pass</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">replace</span><span class="p">;</span>
+<span class="n">stencil_ref</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">255</span><span class="p">;</span>
+<span class="n">stencil_zfail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">keep</span><span class="p">;</span>
+<span class="n">stencil_fail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">keep</span><span class="p">;</span>
+</pre></div>
+</div>
+</section>
+<section id="culling">
+<h2>Culling<a class="headerlink" href="#culling" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cull_mode</span></code> specifies culling mode.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ccw</span></code> – counterclockwise.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cw</span></code> – clockwise.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code> – no culling is done.</p></li>
+</ul>
+<p>Default value is <code class="docutils literal notranslate"><span class="pre">ccw</span></code>.</p>
+<p>Example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">cull_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cw</span><span class="p">;</span>
+</pre></div>
+</div>
+</section>
+<section id="alpha-to-coverage">
+<h2>Alpha to coverage<a class="headerlink" href="#alpha-to-coverage" title="Link to this heading"></a></h2>
+<p>Alpha to coverage (A2C) maps the alpha output value from a pixel shader
+to the coverage mask of MSAA.
+This feature might be helpful for smoothing out the edges of alpha-tested texture (e.g. vegetation).</p>
+<p>For example, with 4x MSAA and A2C enabled, if the output alpha of a pixel is 0.5,
+only 2 of the 4 coverage samples will store the color.</p>
+<p>Can be toggled by setting <code class="docutils literal notranslate"><span class="pre">alpha_to_coverage</span></code> to <code class="docutils literal notranslate"><span class="pre">true</span></code> / <code class="docutils literal notranslate"><span class="pre">false</span></code>.</p>
+</section>
+<section id="view-instancing">
+<h2>View instancing<a class="headerlink" href="#view-instancing" title="Link to this heading"></a></h2>
+<p>View instancing feature allows a shader to be run multiple times in a single draw call to draw different view instances.
+The <code class="docutils literal notranslate"><span class="pre">SV_ViewID</span></code> semantic is provided to the shader which defines the index of the view instance.
+This feature is supported only on DX12 and enforces Shader Model 6.1 compilation.</p>
+<p>Maximum number of view instances is defined by <code class="docutils literal notranslate"><span class="pre">MAX_VIEW_INSTANCES</span> <span class="pre">=</span> <span class="pre">4</span></code>.
+For example, using view instancing, you can capture a cube shadow map for a point light in 2 render passes with 3 view instances per pass.</p>
+<p>Valid syntax is <code class="docutils literal notranslate"><span class="pre">view_instances</span> <span class="pre">=</span> <span class="pre">1..4</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">view_instances</span> <span class="pre">=</span> <span class="pre">1</span></code> means one instance (which is the default case).</p>
+</section>
+<section id="color-write-mask">
+<span id="id1"></span><h2>Color write mask<a class="headerlink" href="#color-write-mask" title="Link to this heading"></a></h2>
+<p>Color write mask can be configured with <code class="docutils literal notranslate"><span class="pre">color_write</span></code> state variable.
+You can set the mask via RGBA swizzle or by an <code class="docutils literal notranslate"><span class="pre">int</span></code> number (in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">15]</span></code> range).
+So <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">=</span> <span class="pre">0b0001</span></code>, <code class="docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0b0010</span></code>, <code class="docutils literal notranslate"><span class="pre">b</span> <span class="pre">=</span> <span class="pre">0b0100</span></code>, <code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">=</span> <span class="pre">0b1000</span></code>.</p>
+<p>For example,</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">color_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rg</span><span class="p">;</span>
+<span class="c1">// color_write = 3 is the same</span>
+<span class="c1">// 3 = 0b0011 = rg</span>
+</pre></div>
+</div>
+<p>Color mask supports multiple render targets, i.e. for each render target the mask can be different.
+You can use <code class="docutils literal notranslate"><span class="pre">[]</span></code> operator to specify the mask for the specific render target.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">color_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// sets RGBA for all RT</span>
+<span class="n">color_write</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rg</span><span class="p">;</span><span class="w"> </span><span class="c1">// sets RG for RT[1]</span>
+</pre></div>
+</div>
+<p>By default, color mask is RGBA for all render targets.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="global-constants.html" class="btn btn-neutral float-left" title="Global constants" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="keywords.html" class="btn btn-neutral float-right" title="Keywords" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

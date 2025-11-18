@@ -1,0 +1,274 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFpsCameraConfig" kind="struct" language="C++" prot="public">
+    <compoundname>FpsCameraConfig</compoundname>
+    <basecompoundref refid="structCameraConfig" prot="public" virt="non-virtual">CameraConfig</basecompoundref>
+    <derivedcompoundref refid="structTpsCameraConfig" prot="public" virt="non-virtual">TpsCameraConfig</derivedcompoundref>
+    <includes refid="ec__camera__dlg_8h" local="no">ec_camera_dlg.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFpsCameraConfig_1aefab0889ffb691735d97254282846100" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real FpsCameraConfig::radius</definition>
+        <argsstring></argsstring>
+        <name>radius</name>
+        <qualifiedname>FpsCameraConfig::radius</qualifiedname>
+        <briefdescription>
+<para>Radius of the capsula (representing FPS camera). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="85" column="8" bodyfile="ec_camera_dlg.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFpsCameraConfig_1a0fc8735c821609e74d601e2eff555f65" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real FpsCameraConfig::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>FpsCameraConfig::height</qualifiedname>
+        <briefdescription>
+<para>Height above collision for FPS camera. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="88" column="8" bodyfile="ec_camera_dlg.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFpsCameraConfig_1a62ae8a887b44405cdb2749100973cc0a" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real FpsCameraConfig::halfHeight</definition>
+        <argsstring></argsstring>
+        <name>halfHeight</name>
+        <qualifiedname>FpsCameraConfig::halfHeight</qualifiedname>
+        <briefdescription>
+<para>Height above collision for FPS camera with key [C] pressed (bowing mode). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="91" column="8" bodyfile="ec_camera_dlg.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFpsCameraConfig_1a00125a2dd02ea47357bb34ae3fdcb626" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real FpsCameraConfig::stepHeight</definition>
+        <argsstring></argsstring>
+        <name>stepHeight</name>
+        <qualifiedname>FpsCameraConfig::stepHeight</qualifiedname>
+        <briefdescription>
+<para>Step height FPS camera may climb up. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="94" column="8" bodyfile="ec_camera_dlg.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFpsCameraConfig_1a4a6158f4099de0dc3a5a3ad1a47b08f8" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real FpsCameraConfig::stepHalfHeight</definition>
+        <argsstring></argsstring>
+        <name>stepHalfHeight</name>
+        <qualifiedname>FpsCameraConfig::stepHalfHeight</qualifiedname>
+        <briefdescription>
+<para>Step height FPS camera may climb up with key [C] pressed (bowing mode). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="97" column="8" bodyfile="ec_camera_dlg.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFpsCameraConfig_1a28fec5ac1583fceac138d45c504c3d17" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real FpsCameraConfig::gravity</definition>
+        <argsstring></argsstring>
+        <name>gravity</name>
+        <qualifiedname>FpsCameraConfig::gravity</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="99" column="8" bodyfile="ec_camera_dlg.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFpsCameraConfig_1ad93aaf59f19444a71d843b6bcdb045ea" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real FpsCameraConfig::jumpSpeed</definition>
+        <argsstring></argsstring>
+        <name>jumpSpeed</name>
+        <qualifiedname>FpsCameraConfig::jumpSpeed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="99" column="16" bodyfile="ec_camera_dlg.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structFpsCameraConfig_1a0750dfe3172e125974e87b87ac70aaab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FpsCameraConfig::FpsCameraConfig</definition>
+        <argsstring>()</argsstring>
+        <name>FpsCameraConfig</name>
+        <qualifiedname>FpsCameraConfig::FpsCameraConfig</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="102" column="3" bodyfile="ec_camera_dlg.h" bodystart="102" bodyend="108"/>
+      </memberdef>
+      <memberdef kind="function" id="structFpsCameraConfig_1aa91120b9c3dbeec53fc8c3fcf5380fca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FpsCameraConfig::~FpsCameraConfig</definition>
+        <argsstring>() override</argsstring>
+        <name>~FpsCameraConfig</name>
+        <qualifiedname>FpsCameraConfig::~FpsCameraConfig</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="110" column="3" bodyfile="ec_camera_dlg.h" bodystart="110" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="structFpsCameraConfig_1a5445cb46ae718715ea4a90824210bece" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraConfig::load</definition>
+        <argsstring>(const DataBlock &amp;blk) override</argsstring>
+        <name>load</name>
+        <qualifiedname>FpsCameraConfig::load</qualifiedname>
+        <reimplements refid="structCameraConfig_1a54e9f39130b0d340a840f8c2ad7bc838">load</reimplements>
+        <reimplementedby refid="structTpsCameraConfig_1a287950993a12948ef484b8339b1bcda6">load</reimplementedby>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load camera parameters from BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to load (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="114" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structFpsCameraConfig_1acc4a923538646c12ec26d830cde799c4" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraConfig::save</definition>
+        <argsstring>(DataBlock &amp;blk) override</argsstring>
+        <name>save</name>
+        <qualifiedname>FpsCameraConfig::save</qualifiedname>
+        <reimplements refid="structCameraConfig_1ab674182e03b699e80aabbae6e33659c4">save</reimplements>
+        <reimplementedby refid="structTpsCameraConfig_1adb6d56edf8fcdf2cbc7e2028ce2cf231">save</reimplementedby>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Save camera parameters to BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to save (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="118" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>FPS Camera parameters. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+      </node>
+      <node id="1">
+        <label>FpsCameraConfig</label>
+        <link refid="structFpsCameraConfig"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>TpsCameraConfig</label>
+        <link refid="structTpsCameraConfig"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>FpsCameraConfig</label>
+        <link refid="structFpsCameraConfig"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_dlg.h" line="82" column="1" bodyfile="ec_camera_dlg.h" bodystart="83" bodyend="119"/>
+    <listofallmembers>
+      <member refid="structCameraConfig_1a03e6228afa19acfc757e310781372b6e" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>CameraConfig</name></member>
+      <member refid="structCameraConfig_1a2ef6e79a8f85139af9e82fd20e39daa4" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>commonInertia</name></member>
+      <member refid="structCameraConfig_1afe04197a7270fc0bcbaf923d68caae08" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>controlMultiplier</name></member>
+      <member refid="structFpsCameraConfig_1a0750dfe3172e125974e87b87ac70aaab" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>FpsCameraConfig</name></member>
+      <member refid="structFpsCameraConfig_1a28fec5ac1583fceac138d45c504c3d17" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>gravity</name></member>
+      <member refid="structFpsCameraConfig_1a62ae8a887b44405cdb2749100973cc0a" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>halfHeight</name></member>
+      <member refid="structCameraConfig_1a026422c7967d2889c442767cfd573716" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>hangInertia</name></member>
+      <member refid="structFpsCameraConfig_1a0fc8735c821609e74d601e2eff555f65" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>height</name></member>
+      <member refid="structFpsCameraConfig_1ad93aaf59f19444a71d843b6bcdb045ea" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>jumpSpeed</name></member>
+      <member refid="structFpsCameraConfig_1a5445cb46ae718715ea4a90824210bece" prot="public" virt="virtual"><scope>FpsCameraConfig</scope><name>load</name></member>
+      <member refid="structCameraConfig_1a45e059755be23ae1a48c7a7edf2ff5fc" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>moveStep</name></member>
+      <member refid="structFpsCameraConfig_1aefab0889ffb691735d97254282846100" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>radius</name></member>
+      <member refid="structCameraConfig_1a21528b862aa626c9487453e990d14c9c" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>rotationStep</name></member>
+      <member refid="structFpsCameraConfig_1acc4a923538646c12ec26d830cde799c4" prot="public" virt="virtual"><scope>FpsCameraConfig</scope><name>save</name></member>
+      <member refid="structCameraConfig_1aa0e8652e3be842ae4b0f8d8b11007ee3" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>speedChangeMultiplier</name></member>
+      <member refid="structFpsCameraConfig_1a4a6158f4099de0dc3a5a3ad1a47b08f8" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>stepHalfHeight</name></member>
+      <member refid="structFpsCameraConfig_1a00125a2dd02ea47357bb34ae3fdcb626" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>stepHeight</name></member>
+      <member refid="structCameraConfig_1a9d69289b1c797049162140ae8e9dd8ca" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>strifeStep</name></member>
+      <member refid="structCameraConfig_1aee3364bf8c8f0d5ae3368fccf8f50834" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>vangInertia</name></member>
+      <member refid="structCameraConfig_1a11277a3ed6e860a07a0941631f295690" prot="public" virt="virtual"><scope>FpsCameraConfig</scope><name>~CameraConfig</name></member>
+      <member refid="structFpsCameraConfig_1aa91120b9c3dbeec53fc8c3fcf5380fca" prot="public" virt="non-virtual"><scope>FpsCameraConfig</scope><name>~FpsCameraConfig</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceamd" kind="namespace" language="C++">
+    <compoundname>amd</compoundname>
+    <innerclass refid="structamd_1_1FSR" prot="public">amd::FSR</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceamd_1ae5f5972110965af9b3bbab6e4df860a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structamd_1_1FSR" kindref="compound">FSR</ref> *</type>
+        <definition>FSR * amd::createFSR</definition>
+        <argsstring>()</argsstring>
+        <name>createFSR</name>
+        <qualifiedname>amd::createFSR</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="184" column="5" declfile="dag_amdFsr.h" declline="184" declcolumn="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_amdFsr.h" line="18" column="1"/>
+  </compounddef>
+</doxygen>

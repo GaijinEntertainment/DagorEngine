@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGenericEditorAppWindow_1_1OrtMultiScrData" kind="struct" language="C++" prot="public">
+    <compoundname>GenericEditorAppWindow::OrtMultiScrData</compoundname>
+    <includes refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1afe8cd5a212c8b578e61d6d6ccef44934" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::OrtMultiScrData::useIt</definition>
+        <argsstring></argsstring>
+        <name>useIt</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::useIt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="95" column="10" bodyfile="ec_genappwnd.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1a9316c64ddf2e7fc61fa0fe83825491e5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::OrtMultiScrData::renderObjects</definition>
+        <argsstring></argsstring>
+        <name>renderObjects</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::renderObjects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="95" column="16" bodyfile="ec_genappwnd.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1aae69aef90c30bf1c692ad45997cf8014" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GenericEditorAppWindow::OrtMultiScrData::mapPos</definition>
+        <argsstring></argsstring>
+        <name>mapPos</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::mapPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="96" column="12" bodyfile="ec_genappwnd.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1ae3db2e5bf4a617720ff83f6163870722" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GenericEditorAppWindow::OrtMultiScrData::mapSize</definition>
+        <argsstring></argsstring>
+        <name>mapSize</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::mapSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="96" column="19" bodyfile="ec_genappwnd.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2ecaaaf57f17e0ee27c3dd27792c8887" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GenericEditorAppWindow::OrtMultiScrData::tileSize</definition>
+        <argsstring></argsstring>
+        <name>tileSize</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::tileSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="97" column="9" bodyfile="ec_genappwnd.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1a88efd75aae8a396d1ea491e96b1f5e71" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float GenericEditorAppWindow::OrtMultiScrData::res</definition>
+        <argsstring></argsstring>
+        <name>res</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::res</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="98" column="11" bodyfile="ec_genappwnd.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2523e4cc7332be63b3827e8e071f860f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GenericEditorAppWindow::OrtMultiScrData::q_type</definition>
+        <argsstring></argsstring>
+        <name>q_type</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::q_type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="99" column="9" bodyfile="ec_genappwnd.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1add6e215f914f7a04640d5be1adabce56" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GenericEditorAppWindow::OrtMultiScrData::mipLevels</definition>
+        <argsstring></argsstring>
+        <name>mipLevels</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::mipLevels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="100" column="9" bodyfile="ec_genappwnd.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structGenericEditorAppWindow_1_1OrtMultiScrData_1af15f3d076e9525250bb760aef3abe013" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GenericEditorAppWindow::OrtMultiScrData::OrtMultiScrData</definition>
+        <argsstring>()</argsstring>
+        <name>OrtMultiScrData</name>
+        <qualifiedname>GenericEditorAppWindow::OrtMultiScrData::OrtMultiScrData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="91" column="5" bodyfile="ec_genappwnd.h" bodystart="91" bodyend="93"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_genappwnd.h" line="89" column="3" bodyfile="ec_genappwnd.h" bodystart="90" bodyend="101"/>
+    <listofallmembers>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1aae69aef90c30bf1c692ad45997cf8014" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>mapPos</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1ae3db2e5bf4a617720ff83f6163870722" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>mapSize</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1add6e215f914f7a04640d5be1adabce56" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>mipLevels</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1af15f3d076e9525250bb760aef3abe013" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>OrtMultiScrData</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2523e4cc7332be63b3827e8e071f860f" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>q_type</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a9316c64ddf2e7fc61fa0fe83825491e5" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>renderObjects</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a88efd75aae8a396d1ea491e96b1f5e71" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>res</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1a2ecaaaf57f17e0ee27c3dd27792c8887" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>tileSize</name></member>
+      <member refid="structGenericEditorAppWindow_1_1OrtMultiScrData_1afe8cd5a212c8b578e61d6d6ccef44934" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::OrtMultiScrData</scope><name>useIt</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

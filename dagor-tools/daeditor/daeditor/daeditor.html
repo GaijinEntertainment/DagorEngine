@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daEditor</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="daEditor Console Commands" href="../daeditor-console-commands/index.html" />
+    <link rel="prev" title="daEditor" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">daEditor</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">daEditor</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">daEditor</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#navigation">Navigation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#working-with-assets-on-the-landscape">Working with Assets on the Landscape</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#basic-logic-and-controls">Basic Logic and Controls</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#create-entity">Create Entity</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#console">Console</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#object-movement-controls">Object Movement Controls</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#snap-settings">Snap Settings</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#drop-pivot-to-ground">Drop Pivot to Ground</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#move-to-selected-object">Move to Selected Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#select-object-by-name">Select Object by Name</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#export-group-as-composite">Export Group as Composite</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#break-composite-into-individual-entities">Break Composite into Individual Entities</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#working-with-object-properties">Working with Object Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#exporting-a-location">Exporting a Location</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../daeditor-console-commands/index.html">daEditor Console Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../navmesh/index.html">Navigation Mesh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../splines_in_daeditor.html">Splines in daEditor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">daEditor</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daEditor</a></li>
+      <li class="breadcrumb-item active">daEditor</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/daeditor/daeditor/daeditor.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="daeditor">
+<h1>daEditor<a class="headerlink" href="#daeditor" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>daEditor (Dagor Editor) is one of the two primary tools for working with assets,
+and in some cases, for creating them. It offers a vast array of parameters and
+features. In this article, we will cover the basic principles of using daEditor,
+aimed at helping new users get started.</p>
+</section>
+<section id="navigation">
+<h2>Navigation<a class="headerlink" href="#navigation" title="Link to this heading"></a></h2>
+<p>The navigation within daEditor closely mirrors the controls in 3ds Max. The key
+combinations and shortcuts are directly carried over. You can get a hint window
+with navigation shortcuts within daEditor by clicking on the <strong>Eye</strong> icon in the
+control panel:</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_01.jpg"><img alt="Navigation info" class="align-center" src="../../../_images/daeditor_01.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="working-with-assets-on-the-landscape">
+<h2>Working with Assets on the Landscape<a class="headerlink" href="#working-with-assets-on-the-landscape" title="Link to this heading"></a></h2>
+<p>All asset-related work is performed within the <strong>Landscape</strong> tab. This is the
+central workspace for placing, editing, and managing assets on the terrain or
+environment you’re developing.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_02.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_02.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="basic-logic-and-controls">
+<h2>Basic Logic and Controls<a class="headerlink" href="#basic-logic-and-controls" title="Link to this heading"></a></h2>
+<p>The logic in daEditor is largely similar to that of 3ds Max. Below is an
+overview of the essential controls and buttons, all of which come with tooltips
+– be sure to read them for more detailed information.</p>
+<section id="create-entity">
+<h3>Create Entity<a class="headerlink" href="#create-entity" title="Link to this heading"></a></h3>
+<p>This button allows you to place an object onto the map.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_03.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_03.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="console">
+<h3>Console<a class="headerlink" href="#console" title="Link to this heading"></a></h3>
+<p>If something isn’t working as expected, or if something isn’t working at all,
+check the console for errors (look for red text).</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_04.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_04.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="object-movement-controls">
+<h3>Object Movement Controls<a class="headerlink" href="#object-movement-controls" title="Link to this heading"></a></h3>
+<p>These buttons control the movement of objects. The hotkeys are the same as in
+3ds Max.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_05.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_05.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="snap-settings">
+<h3>Snap Settings<a class="headerlink" href="#snap-settings" title="Link to this heading"></a></h3>
+<p>This button allows you to snap objects to the landscape grid (for object
+movement), as well as snap rotation and scale.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_06.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_06.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="drop-pivot-to-ground">
+<h3>Drop Pivot to Ground<a class="headerlink" href="#drop-pivot-to-ground" title="Link to this heading"></a></h3>
+<p>Use this to “drop” the pivot point to the ground if you’ve accidentally placed
+it in the air. If your object has the <strong>Place on collision</strong> property, this will
+only affect the pivot, while the object itself will always remain on the
+landscape.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_07.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_07.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="move-to-selected-object">
+<h3>Move to Selected Object<a class="headerlink" href="#move-to-selected-object" title="Link to this heading"></a></h3>
+<p>This button will move your camera to the currently selected object.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_08.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_08.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="select-object-by-name">
+<h3>Select Object by Name<a class="headerlink" href="#select-object-by-name" title="Link to this heading"></a></h3>
+<p>This allows you to select an object by its name.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_09.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_09.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="export-group-as-composite">
+<h3>Export Group as Composite<a class="headerlink" href="#export-group-as-composite" title="Link to this heading"></a></h3>
+<p>This button lets you export a group of objects as a composite entity.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_10.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_10.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="break-composite-into-individual-entities">
+<h3>Break Composite into Individual Entities<a class="headerlink" href="#break-composite-into-individual-entities" title="Link to this heading"></a></h3>
+<p>Use this button to break down a composite entity into its individual components
+(<code class="docutils literal notranslate"><span class="pre">.dag</span></code> files).</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_11.jpg"><img alt="Control panel" class="align-center" src="../../../_images/daeditor_11.jpg" style="width: 60em;" />
+</a>
+</section>
+</section>
+<section id="working-with-object-properties">
+<h2>Working with Object Properties<a class="headerlink" href="#working-with-object-properties" title="Link to this heading"></a></h2>
+<p>When an object is selected, you can access its properties by pressing <code class="docutils literal notranslate"><span class="pre">P</span></code> (for
+“Properties”) on your keyboard.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_12.jpg"><img alt="Object properties" class="align-left" src="../../../_images/daeditor_12.jpg" style="width: 17em;" />
+</a>
+<p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>  <strong>Object Name in Scene</strong> This field displays the name of the
+object within the scene. It is often helpful to have the scene names match the
+asset names. You can use the <strong>Landscape &gt; Unify object names</strong> command to
+accomplish this.</p>
+<p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>  <strong>Collision Placement Settings</strong> This property defines how
+the object interacts with landscape collision:</p>
+<ul class="simple">
+<li><p><strong>Ignore Collision</strong>: the object’s height matches its pivot point.</p></li>
+<li><p><strong>Place Pivot</strong>: the pivot point (typically the origin point of the asset in
+the 3ds Max scene) is placed directly on the collision surface.</p></li>
+<li><p><strong>Place Pivot and Use Normal</strong>: the object’s pivot aligns to the normal of
+the landscape, useful for placing objects like houses on hills so that they
+tilt naturally.</p></li>
+<li><p><strong>Place 3-Point (bbox)</strong>: a bounding box is created around the object, and
+the object is placed so that at least three points of the bounding box align
+with the collision surface.</p></li>
+<li><p><strong>Place Foundation (bbox)</strong>: all four points of the bounding box base align
+with the collision surface.</p></li>
+<li><p><strong>Place on Water (floatable)</strong>: specifically for floating objects, this
+option places the object on a water surface.</p></li>
+<li><p><strong>Place Pivot with RendInst Collision</strong>: this option aligns the object’s
+pivot with the collision of the corresponding rendinst.</p></li>
+</ul>
+<p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>  <strong>Actual Object Name</strong> This property shows the real name of
+the object placed on the map. You can select a different object here instead of
+placing a new one.</p>
+<p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span>  <strong>Shader Parameter Seed Generation</strong> This option generates
+seeds for the shader parameters of selected objects, including those within
+composite entities (as they contain many sub-objects):</p>
+<ul>
+<li><p><strong>Individual</strong>: generates a unique seed for each selected object.</p></li>
+<li><p><strong>Equal</strong>: generates the same seed for all selected objects.</p></li>
+<li><p><strong>Seed Slider</strong>: adjust the seed value for the previously selected seed type
+(either individual or equal).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These seeds affect only shader parameters, not other aspects of composites.
+Currently, this feature is used solely for procedural painting.</p>
+</div>
+</li>
+</ul>
+<p><span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span>  <strong>Object Seed Generation on the Map</strong> This is similar to the
+previous property but operates on a larger scale, generating seeds for entire
+composite entities rather than individual shader parameters:</p>
+<ul class="simple">
+<li><p><strong>Individual</strong>: generates a unique seed for each selected object.</p></li>
+<li><p><strong>Equal</strong>: generates the same seed for all selected objects.</p></li>
+<li><p><strong>Seed Slider</strong>: adjust the seed value for the previously selected seed type
+(either individual or equal).</p></li>
+</ul>
+</section>
+<section id="exporting-a-location">
+<h2>Exporting a Location<a class="headerlink" href="#exporting-a-location" title="Link to this heading"></a></h2>
+<p>To export a location, navigate to the menu <strong>Project &gt; Export to Game (PC
+format)</strong>.</p>
+<a class="reference internal image-reference" href="../../../_images/daeditor_13.jpg"><img alt="Exporting a location" class="align-center" src="../../../_images/daeditor_13.jpg" style="width: 60em;" />
+</a>
+<p>After selecting this option, a series of dialogs will appear, allowing you to
+choose whether to export all elements of the created location. The default
+settings are typically correct and do not require adjustments.</p>
+<p>The most critical part of this process is specifying the correct export path for
+the level. Occasionally, the tools might malfunction and suggest saving the
+level in incorrect directories.</p>
+<p>A simple way to verify that you’re exporting the level to the right location is
+to check whether you’re replacing the existing binary file. If you’re prompted
+with a message indicating that you’re about to overwrite an existing file, and
+given the option to “replace” or “rename”, then you’re exporting to the correct
+directory.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="daEditor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../daeditor-console-commands/index.html" class="btn btn-neutral float-right" title="daEditor Console Commands" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

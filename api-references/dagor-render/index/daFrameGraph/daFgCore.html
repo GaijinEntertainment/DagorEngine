@@ -1,0 +1,1097 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daFgCore Daslang Module</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Managed Resources" href="../resMgr.html" />
+    <link rel="prev" title="daFrameGraph in Daslang + ECS" href="fg_ecs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="core.html">Core Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="declaringNodes.html">Declaring Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="graphState.html">Controlling Graph State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="runtime.html">Dispatching Work in Nodes at Runtime</a></li>
+<li class="toctree-l4"><a class="reference internal" href="das.html">daFrameGraph in Daslang</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fg_ecs.html">daFrameGraph in Daslang + ECS</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">daFgCore Daslang Module</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#type-aliases">Type Aliases</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#enumerations">Enumerations</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#handled-structures">Handled Structures</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#top-level-functions">Top Level Functions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../daFrameGraph.html">daFrameGraph API</a></li>
+      <li class="breadcrumb-item active">daFgCore Daslang Module</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/daFrameGraph/daFgCore.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dafgcore-daslang-module">
+<span id="stdlib-dafgcore"></span><h1>daFgCore Daslang Module<a class="headerlink" href="#dafgcore-daslang-module" title="Link to this heading"></a></h1>
+<p>daFgCore module contains data structures and bindings from Daslang to C++.</p>
+<section id="type-aliases">
+<h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="alias-bindingsmap">
+<dt class="sig sig-object das" id="BindingsMap = fixedVectorMap`int`Binding`8">
+<span class="sig-name descname"><span class="pre">BindingsMap</span> <span class="pre">=</span> <span class="pre">fixedVectorMap`int`Binding`8</span></span><a class="headerlink" href="#BindingsMap = fixedVectorMap`int`Binding`8" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id1"><span class="problematic" id="id2">|typedef-daFgCore-BindingsMap|</span></a></p>
+</section>
+<section id="enumerations">
+<h2>Enumerations<a class="headerlink" href="#enumerations" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="enum-dafgcore-namespacenameid">
+<dt class="sig sig-object das" id="NameSpaceNameId">
+<span class="sig-name descname"><span class="pre">NameSpaceNameId</span></span><a class="headerlink" href="#NameSpaceNameId" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>65535</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id3"><span class="problematic" id="id4">|enumeration-daFgCore-NameSpaceNameId|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-nodenameid">
+<dt class="sig sig-object das" id="NodeNameId">
+<span class="sig-name descname"><span class="pre">NodeNameId</span></span><a class="headerlink" href="#NodeNameId" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>65535</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id5"><span class="problematic" id="id6">|enumeration-daFgCore-NodeNameId|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-resnameid">
+<dt class="sig sig-object das" id="ResNameId">
+<span class="sig-name descname"><span class="pre">ResNameId</span></span><a class="headerlink" href="#ResNameId" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>65535</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id7"><span class="problematic" id="id8">|enumeration-daFgCore-ResNameId|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-history">
+<dt class="sig sig-object das" id="History">
+<span class="sig-name descname"><span class="pre">History</span></span><a class="headerlink" href="#History" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>No</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ClearZeroOnFirstFrame</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DiscardOnFirstFrame</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id9"><span class="problematic" id="id10">|enumeration-daFgCore-History|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-resourceactivationaction">
+<dt class="sig sig-object das" id="ResourceActivationAction">
+<span class="sig-name descname"><span class="pre">ResourceActivationAction</span></span><a class="headerlink" href="#ResourceActivationAction" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>REWRITE_AS_COPY_DESTINATION</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>REWRITE_AS_UAV</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>REWRITE_AS_RTV_DSV</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CLEAR_F_AS_UAV</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CLEAR_I_AS_UAV</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CLEAR_AS_RTV_DSV</p></td>
+<td rowspan="2"><p>5</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DISCARD_AS_UAV</p></td>
+<td rowspan="2"><p>6</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DISCARD_AS_RTV_DSV</p></td>
+<td rowspan="2"><p>7</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id11"><span class="problematic" id="id12">|enumeration-daFgCore-ResourceActivationAction|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-multiplexingmode">
+<dt class="sig sig-object das" id="MultiplexingMode">
+<span class="sig-name descname"><span class="pre">MultiplexingMode</span></span><a class="headerlink" href="#MultiplexingMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>None</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>SuperSampling</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>SubSampling</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Viewport</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>FullMultiplex</p></td>
+<td rowspan="2"><p>7</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id13"><span class="problematic" id="id14">|enumeration-daFgCore-MultiplexingMode|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-sideeffect">
+<dt class="sig sig-object das" id="SideEffect">
+<span class="sig-name descname"><span class="pre">SideEffect</span></span><a class="headerlink" href="#SideEffect" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>None</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Internal</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>External</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id15"><span class="problematic" id="id16">|enumeration-daFgCore-SideEffect|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-access">
+<dt class="sig sig-object das" id="Access">
+<span class="sig-name descname"><span class="pre">Access</span></span><a class="headerlink" href="#Access" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>UNKNOWN</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>READ_ONLY</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>READ_WRITE</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id17"><span class="problematic" id="id18">|enumeration-daFgCore-Access|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-usage">
+<dt class="sig sig-object das" id="Usage">
+<span class="sig-name descname"><span class="pre">Usage</span></span><a class="headerlink" href="#Usage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>UNKNOWN</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>COLOR_ATTACHMENT</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>INPUT_ATTACHMENT</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DEPTH_ATTACHMENT</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>DEPTH_ATTACHMENT_AND_SHADER_RESOURCE</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>RESOLVE_ATTACHMENT</p></td>
+<td rowspan="2"><p>5</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>SHADER_RESOURCE</p></td>
+<td rowspan="2"><p>6</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>CONSTANT_BUFFER</p></td>
+<td rowspan="2"><p>7</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>INDEX_BUFFER</p></td>
+<td rowspan="2"><p>8</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VERTEX_BUFFER</p></td>
+<td rowspan="2"><p>9</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>COPY</p></td>
+<td rowspan="2"><p>10</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>BLIT</p></td>
+<td rowspan="2"><p>11</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>INDIRECTION_BUFFER</p></td>
+<td rowspan="2"><p>12</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_RATE_TEXTURE</p></td>
+<td rowspan="2"><p>13</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id19"><span class="problematic" id="id20">|enumeration-daFgCore-Usage|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-stage">
+<dt class="sig sig-object das" id="Stage">
+<span class="sig-name descname"><span class="pre">Stage</span></span><a class="headerlink" href="#Stage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>UNKNOWN</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>PRE_RASTER</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>POST_RASTER</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>COMPUTE</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>TRANSFER</p></td>
+<td rowspan="2"><p>8</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>RAYTRACE</p></td>
+<td rowspan="2"><p>16</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ALL_GRAPHICS</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ALL_INDIRECTION</p></td>
+<td rowspan="2"><p>21</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id21"><span class="problematic" id="id22">|enumeration-daFgCore-Stage|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-resourcetype">
+<dt class="sig sig-object das" id="ResourceType">
+<span class="sig-name descname"><span class="pre">ResourceType</span></span><a class="headerlink" href="#ResourceType" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Texture</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Buffer</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Blob</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id23"><span class="problematic" id="id24">|enumeration-daFgCore-ResourceType|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-autorestypenameid">
+<dt class="sig sig-object das" id="AutoResTypeNameId">
+<span class="sig-name descname"><span class="pre">AutoResTypeNameId</span></span><a class="headerlink" href="#AutoResTypeNameId" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>65535</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id25"><span class="problematic" id="id26">|enumeration-daFgCore-AutoResTypeNameId|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-variablerateshadingcombiner">
+<dt class="sig sig-object das" id="VariableRateShadingCombiner">
+<span class="sig-name descname"><span class="pre">VariableRateShadingCombiner</span></span><a class="headerlink" href="#VariableRateShadingCombiner" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>VRS_PASSTHROUGH</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_OVERRIDE</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_MIN</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_MAX</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>VRS_SUM</p></td>
+<td rowspan="2"><p>4</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id27"><span class="problematic" id="id28">|enumeration-daFgCore-VariableRateShadingCombiner|</span></a></p>
+<dl class="das attribute" id="enum-dafgcore-bindingtype">
+<dt class="sig sig-object das" id="BindingType">
+<span class="sig-name descname"><span class="pre">BindingType</span></span><a class="headerlink" href="#BindingType" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>ShaderVar</p></td>
+<td rowspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ViewMatrix</p></td>
+<td rowspan="2"><p>1</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>ProjMatrix</p></td>
+<td rowspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>Invalid</p></td>
+<td rowspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id29"><span class="problematic" id="id30">|enumeration-daFgCore-BindingType|</span></a></p>
+</section>
+<section id="handled-structures">
+<h2>Handled Structures<a class="headerlink" href="#handled-structures" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="handle-dafgcore-textureresourcedescription">
+<dt class="sig sig-object das" id="TextureResourceDescription">
+<span class="sig-name descname"><span class="pre">TextureResourceDescription</span></span><a class="headerlink" href="#TextureResourceDescription" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>TextureResourceDescription fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>height</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevels</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>activation</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-resourceactivationaction"><span class="std std-ref">daFgCore::ResourceActivationAction</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>width</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>cFlags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id31"><span class="problematic" id="id32">|structure_annotation-daFgCore-TextureResourceDescription|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-voltextureresourcedescription">
+<dt class="sig sig-object das" id="VolTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">VolTextureResourceDescription</span></span><a class="headerlink" href="#VolTextureResourceDescription" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id33"><span class="problematic" id="id34">|structure_annotation-daFgCore-VolTextureResourceDescription|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-arraytextureresourcedescription">
+<dt class="sig sig-object das" id="ArrayTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">ArrayTextureResourceDescription</span></span><a class="headerlink" href="#ArrayTextureResourceDescription" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id35"><span class="problematic" id="id36">|structure_annotation-daFgCore-ArrayTextureResourceDescription|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-cubetextureresourcedescription">
+<dt class="sig sig-object das" id="CubeTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">CubeTextureResourceDescription</span></span><a class="headerlink" href="#CubeTextureResourceDescription" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id37"><span class="problematic" id="id38">|structure_annotation-daFgCore-CubeTextureResourceDescription|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-arraycubetextureresourcedescription">
+<dt class="sig sig-object das" id="ArrayCubeTextureResourceDescription">
+<span class="sig-name descname"><span class="pre">ArrayCubeTextureResourceDescription</span></span><a class="headerlink" href="#ArrayCubeTextureResourceDescription" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id39"><span class="problematic" id="id40">|structure_annotation-daFgCore-ArrayCubeTextureResourceDescription|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-resourcedata">
+<dt class="sig sig-object das" id="ResourceData">
+<span class="sig-name descname"><span class="pre">ResourceData</span></span><a class="headerlink" href="#ResourceData" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResourceData fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-resourcetype"><span class="std std-ref">daFgCore::ResourceType</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-history"><span class="std std-ref">daFgCore::History</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id41"><span class="problematic" id="id42">|structure_annotation-daFgCore-ResourceData|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-autoresolutiondata">
+<dt class="sig sig-object das" id="AutoResolutionData">
+<span class="sig-name descname"><span class="pre">AutoResolutionData</span></span><a class="headerlink" href="#AutoResolutionData" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>AutoResolutionData fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>multiplier</p></td>
+<td rowspan="2"><p>float</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>id</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-autorestypenameid"><span class="std std-ref">daFgCore::AutoResTypeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id43"><span class="problematic" id="id44">|structure_annotation-daFgCore-AutoResolutionData|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-shaderblocklayersinfo">
+<dt class="sig sig-object das" id="ShaderBlockLayersInfo">
+<span class="sig-name descname"><span class="pre">ShaderBlockLayersInfo</span></span><a class="headerlink" href="#ShaderBlockLayersInfo" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ShaderBlockLayersInfo fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>sceneLayer</p></td>
+<td rowspan="2"><p>int</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>objectLayer</p></td>
+<td rowspan="2"><p>int</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>frameLayer</p></td>
+<td rowspan="2"><p>int</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id45"><span class="problematic" id="id46">|structure_annotation-daFgCore-ShaderBlockLayersInfo|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-vrsstaterequirements">
+<dt class="sig sig-object das" id="VrsStateRequirements">
+<span class="sig-name descname"><span class="pre">VrsStateRequirements</span></span><a class="headerlink" href="#VrsStateRequirements" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VrsStateRequirements fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>rateTextureResId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-resnameid"><span class="std std-ref">daFgCore::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>pixelCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-variablerateshadingcombiner"><span class="std std-ref">daFgCore::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateY</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vertexCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-variablerateshadingcombiner"><span class="std std-ref">daFgCore::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateX</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id47"><span class="problematic" id="id48">|structure_annotation-daFgCore-VrsStateRequirements|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-virtualsubresourceref">
+<dt class="sig sig-object das" id="VirtualSubresourceRef">
+<span class="sig-name descname"><span class="pre">VirtualSubresourceRef</span></span><a class="headerlink" href="#VirtualSubresourceRef" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualSubresourceRef fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>layer</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nameId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-resnameid"><span class="std std-ref">daFgCore::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevel</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id49"><span class="problematic" id="id50">|structure_annotation-daFgCore-VirtualSubresourceRef|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-binding">
+<dt class="sig sig-object das" id="Binding">
+<span class="sig-name descname"><span class="pre">Binding</span></span><a class="headerlink" href="#Binding" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Binding fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>bindType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-bindingtype"><span class="std std-ref">daFgCore::BindingType</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resource</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-resnameid"><span class="std std-ref">daFgCore::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id51"><span class="problematic" id="id52">|structure_annotation-daFgCore-Binding|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-resourceusage">
+<dt class="sig sig-object das" id="ResourceUsage">
+<span class="sig-name descname"><span class="pre">ResourceUsage</span></span><a class="headerlink" href="#ResourceUsage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResourceUsage fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>stage</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-stage"><span class="std std-ref">daFgCore::Stage</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>usageType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-usage"><span class="std std-ref">daFgCore::Usage</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>access</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-access"><span class="std std-ref">daFgCore::Access</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id53"><span class="problematic" id="id54">|structure_annotation-daFgCore-ResourceUsage|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-resourcerequest">
+<dt class="sig sig-object das" id="ResourceRequest">
+<span class="sig-name descname"><span class="pre">ResourceRequest</span></span><a class="headerlink" href="#ResourceRequest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResourceRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>usage</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dafgcore-resourceusage"><span class="std std-ref">daFgCore::ResourceUsage</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slotRequest</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>optional</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id55"><span class="problematic" id="id56">|structure_annotation-daFgCore-ResourceRequest|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-bufferresourcedescription">
+<dt class="sig sig-object das" id="BufferResourceDescription">
+<span class="sig-name descname"><span class="pre">BufferResourceDescription</span></span><a class="headerlink" href="#BufferResourceDescription" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>BufferResourceDescription fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>viewFormat</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>activation</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-resourceactivationaction"><span class="std std-ref">daFgCore::ResourceActivationAction</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>elementCount</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>cFlags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>elementSizeInBytes</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id57"><span class="problematic" id="id58">|structure_annotation-daFgCore-BufferResourceDescription|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-nodestaterequirements">
+<dt class="sig sig-object das" id="NodeStateRequirements">
+<span class="sig-name descname"><span class="pre">NodeStateRequirements</span></span><a class="headerlink" href="#NodeStateRequirements" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NodeStateRequirements fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>supportsWireframe</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>pipelineStateOverride</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::optional`OverrideState</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vrsState</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::optional`VrsStateRequirements</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id59"><span class="problematic" id="id60">|structure_annotation-daFgCore-NodeStateRequirements|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-virtualpassrequirements">
+<dt class="sig sig-object das" id="VirtualPassRequirements">
+<span class="sig-name descname"><span class="pre">VirtualPassRequirements</span></span><a class="headerlink" href="#VirtualPassRequirements" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualPassRequirements fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>colorAttachments</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::fixedVector`VirtualSubresourceRef`8</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>depthReadOnly</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>depthAttachment</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dafgcore-virtualsubresourceref"><span class="std std-ref">daFgCore::VirtualSubresourceRef</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id61"><span class="problematic" id="id62">|structure_annotation-daFgCore-VirtualPassRequirements|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-nodedata">
+<dt class="sig sig-object das" id="NodeData">
+<span class="sig-name descname"><span class="pre">NodeData</span></span><a class="headerlink" href="#NodeData" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NodeData fields are
++—————————+————————————————————————————————————————–+
++multiplexingMode           + <a class="reference internal" href="#enum-dafgcore-multiplexingmode"><span class="std std-ref">daFgCore::MultiplexingMode</span></a>                                                       +
++—————————+————————————————————————————————————————–+
++generation                 +uint16                                                                                                                    +
++—————————+————————————————————————————————————————–+
++precedingNodeIds           + <span class="xref std std-ref">builtin::fixedVectorSet`NodeNameId`4</span>                                 +
++—————————+————————————————————————————————————————–+
++modifiedResources          + <span class="xref std std-ref">builtin::fixedVectorSet`ResNameId`8</span>                                   +
++—————————+————————————————————————————————————————–+
++followingNodeIds           + <span class="xref std std-ref">builtin::fixedVectorSet`NodeNameId`4</span>                                 +
++—————————+————————————————————————————————————————–+
++resourceRequests           + <span class="xref std std-ref">builtin::fixedVectorMap`ResNameId`ResourceRequest`16</span> +
++—————————+————————————————————————————————————————–+
++readResources              + <span class="xref std std-ref">builtin::fixedVectorSet`ResNameId`8</span>                                   +
++—————————+————————————————————————————————————————–+
++nodeSource                 + <span class="xref std std-ref">builtin::das_string</span>                                                                   +
++—————————+————————————————————————————————————————–+
++shaderBlockLayers          + <a class="reference internal" href="#handle-dafgcore-shaderblocklayersinfo"><span class="std std-ref">daFgCore::ShaderBlockLayersInfo</span></a>                                           +
++—————————+————————————————————————————————————————–+
++bindings                   + <span class="xref std std-ref">builtin::fixedVectorMap`int`Binding`8</span>                               +
++—————————+————————————————————————————————————————–+
++historyResourceReadRequests+ <span class="xref std std-ref">builtin::fixedVectorMap`ResNameId`ResourceRequest`16</span> +
++—————————+————————————————————————————————————————–+
++stateRequirements          + <span class="xref std std-ref">builtin::optional`NodeStateRequirements</span>                           +
++—————————+————————————————————————————————————————–+
++createdResources           + <span class="xref std std-ref">builtin::fixedVectorSet`ResNameId`8</span>                                   +
++—————————+————————————————————————————————————————–+
++renderingRequirements      + <span class="xref std std-ref">builtin::optional`VirtualPassRequirements</span>                       +
++—————————+————————————————————————————————————————–+
++renamedResources           + <span class="xref std std-ref">builtin::fixedVectorMap`ResNameId`ResNameId`8</span>               +
++—————————+————————————————————————————————————————–+
++priority                   +int                                                                                                                       +
++—————————+————————————————————————————————————————–+
++sideEffect                 + <a class="reference internal" href="#enum-dafgcore-sideeffect"><span class="std std-ref">daFgCore::SideEffect</span></a>                                                                   +
++—————————+————————————————————————————————————————–+</p>
+<p><a href="#id63"><span class="problematic" id="id64">|structure_annotation-daFgCore-NodeData|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-resourceprovider">
+<dt class="sig sig-object das" id="ResourceProvider">
+<span class="sig-name descname"><span class="pre">ResourceProvider</span></span><a class="headerlink" href="#ResourceProvider" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id65"><span class="problematic" id="id66">|structure_annotation-daFgCore-ResourceProvider|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-internalregistry">
+<dt class="sig sig-object das" id="InternalRegistry">
+<span class="sig-name descname"><span class="pre">InternalRegistry</span></span><a class="headerlink" href="#InternalRegistry" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>InternalRegistry fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resources</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::idIndexedMapping`ResNameId`ResourceData</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodes</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::idIndexedMapping`NodeNameId`NodeData</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>knownNames</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">builtin::idNameMap`NameSpaceNameId`ResNameId`NodeNameId`AutoResTypeNameId</span></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id67"><span class="problematic" id="id68">|structure_annotation-daFgCore-InternalRegistry|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-nodetracker">
+<dt class="sig sig-object das" id="NodeTracker">
+<span class="sig-name descname"><span class="pre">NodeTracker</span></span><a class="headerlink" href="#NodeTracker" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p><a href="#id69"><span class="problematic" id="id70">|structure_annotation-daFgCore-NodeTracker|</span></a></p>
+<dl class="das attribute" id="handle-dafgcore-nodehandle">
+<dt class="sig sig-object das" id="NodeHandle">
+<span class="sig-name descname"><span class="pre">NodeHandle</span></span><a class="headerlink" href="#NodeHandle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NodeHandle property operators are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>valid</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id71"><span class="problematic" id="id72">|structure_annotation-daFgCore-NodeHandle|</span></a></p>
+</section>
+<section id="top-level-functions">
+<h2>Top Level Functions<a class="headerlink" href="#top-level-functions" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#function-at-dafgcore-c-c-registernode-ih-ls-dafgcore-c-c-nodetracker-gr-ce16-ls-dafgcore-c-c-nodenameid-gr-c-c"><span class="std std-ref">registerNode (arg0:daFgCore::NodeTracker implicit;arg1:daFgCore::NodeNameId const;arg2:__context const) : void</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dafgcore-c-c-get-shader-variable-id-cis"><span class="std std-ref">get_shader_variable_id (arg0:string const implicit) : int</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dafgcore-c-c-fill-slot-ce16-ls-dafgcore-c-c-namespacenameid-gr-cis-ce16-ls-dafgcore-c-c-namespacenameid-gr-cis"><span class="std std-ref">fill_slot (arg0:daFgCore::NameSpaceNameId const;arg1:string const implicit;arg2:daFgCore::NameSpaceNameId const;arg3:string const implicit) : void</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-dafgcore-c-c-resetnode-ih-ls-dafgcore-c-c-nodehandle-gr"><span class="std std-ref">resetNode (arg0:daFgCore::NodeHandle implicit) : void</span></a></p></li>
+</ul>
+</div></blockquote>
+<dl class="das function" id="function-at-dafgcore-c-c-registernode-ih-ls-dafgcore-c-c-nodetracker-gr-ce16-ls-dafgcore-c-c-nodenameid-gr-c-c">
+<dt class="sig sig-object das" id="registerNode">
+<span class="sig-name descname"><span class="pre">registerNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">NodeTracker</span> <span class="pre">implicit;</span> <span class="pre">arg1:</span> <span class="pre">NodeNameId</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#registerNode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dafgcore-nodetracker"><span class="std std-ref">daFgCore::NodeTracker</span></a>  implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg1</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id73"><span class="problematic" id="id74">|function-daFgCore-registerNode|</span></a></p>
+<dl class="das function" id="function-at-dafgcore-c-c-get-shader-variable-id-cis">
+<dt class="sig sig-object das" id="get_shader_variable_id">
+<span class="sig-name descname"><span class="pre">get_shader_variable_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">string</span> <span class="pre">const</span> <span class="pre">implicit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#get_shader_variable_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>get_shader_variable_id returns int</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p>string const implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id75"><span class="problematic" id="id76">|function-daFgCore-get_shader_variable_id|</span></a></p>
+<dl class="das function" id="function-at-dafgcore-c-c-fill-slot-ce16-ls-dafgcore-c-c-namespacenameid-gr-cis-ce16-ls-dafgcore-c-c-namespacenameid-gr-cis">
+<dt class="sig sig-object das" id="fill_slot">
+<span class="sig-name descname"><span class="pre">fill_slot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">NameSpaceNameId</span> <span class="pre">const;</span> <span class="pre">arg1:</span> <span class="pre">string</span> <span class="pre">const</span> <span class="pre">implicit;</span> <span class="pre">arg2:</span> <span class="pre">NameSpaceNameId</span> <span class="pre">const;</span> <span class="pre">arg3:</span> <span class="pre">string</span> <span class="pre">const</span> <span class="pre">implicit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fill_slot" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-namespacenameid"><span class="std std-ref">daFgCore::NameSpaceNameId</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg1</p></td>
+<td rowspan="2"><p>string const implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg2</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#enum-dafgcore-namespacenameid"><span class="std std-ref">daFgCore::NameSpaceNameId</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>arg3</p></td>
+<td rowspan="2"><p>string const implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id77"><span class="problematic" id="id78">|function-daFgCore-fill_slot|</span></a></p>
+<dl class="das function" id="function-at-dafgcore-c-c-resetnode-ih-ls-dafgcore-c-c-nodehandle-gr">
+<dt class="sig sig-object das" id="resetNode">
+<span class="sig-name descname"><span class="pre">resetNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0:</span> <span class="pre">NodeHandle</span> <span class="pre">implicit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#resetNode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>arg0</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#handle-dafgcore-nodehandle"><span class="std std-ref">daFgCore::NodeHandle</span></a>  implicit</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id79"><span class="problematic" id="id80">|function-daFgCore-resetNode|</span></a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fg_ecs.html" class="btn btn-neutral float-left" title="daFrameGraph in Daslang + ECS" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../resMgr.html" class="btn btn-neutral float-right" title="Managed Resources" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

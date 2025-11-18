@@ -1,0 +1,909 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flickering Lights</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Photometric Lights (IES)" href="photometric_lights.html" />
+    <link rel="prev" title="Lights" href="lights.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Lighting</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lights_creation_guide.html">Lights Creation Guide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lights.html">Lights</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Flickering Lights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#general-workflow">General Workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#working-with-geometry">Working with Geometry</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#rendinst-dynmodel-geometry-splitting">RendInst + DynModel (Geometry Splitting)</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#naming-of-exported-objects">Naming of Exported Objects</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaders">Shaders</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#destructions">Destructions</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#working-with-textures-and-materials">Working with Textures and Materials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuring-the-folder-blk">Configuring the .folder.blk</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#static-geometry-processing">Static Geometry Processing</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dynamic-geometry-processing">Dynamic Geometry Processing</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#collision-processing">Collision Processing</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#animchar">AnimChar</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#gameobjects">GameObjects</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#composite-object">Composite Object</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#light-and-flicker-templates">Light and Flicker Templates</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#flicker-template">Flicker Template</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#cycle-elements">Cycle Elements</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#brightness-control">Brightness Control</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#additional-micro-noise">Additional Micro-Noise</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#vfx">VFX</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#flickering-light-template-light-source">Flickering Light Template (Light Source)</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#flickering-dynamic-model-template">Flickering Dynamic Model Template</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="photometric_lights.html">Photometric Lights (IES)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adding_light_fixtures_to_building_composites.html">Adding Light Fixtures to Building Composites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="replacing_or_modifying_lights.html">Replacing or Modifying Lights in Props</a></li>
+<li class="toctree-l3"><a class="reference internal" href="in_game_placeable_light_source.html">Placeable In-Game Light with Render Instance and Dynamic Model Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lighting_catalog.html">Lighting Catalog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Lighting</a></li>
+      <li class="breadcrumb-item active">Flickering Lights</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/lighting/flickering_lights.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="flickering-lights">
+<h1>Flickering Lights<a class="headerlink" href="#flickering-lights" title="Link to this heading"></a></h1>
+<section id="general-workflow">
+<h2>General Workflow<a class="headerlink" href="#general-workflow" title="Link to this heading"></a></h2>
+<p>A flickering light source object is composed of several components.</p>
+<table style="style=text-align:left; width=98%"><thead>
+  <tr style="border-bottom: 2px solid #ddd">
+    <th style="text-align:center"><p>Object Type</p></th>
+    <th style="text-align:center"><p>Naming Template</p></th>
+    <th style="text-align:center"><p>Description</p></th></tr></thead>
+  <tr style="border-bottom: 2px solid #ddd">
+    <td style="padding-top: 10px"><b>Base RendInst</b></td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a.lod**.dag</td>
+    <td style="padding-left: 15px; padding-top: 10px">This is the model used as
+    the base for creating a flickering lamp. In some cases, it may not be
+    required, especially if you are designing a lamp from scratch with built-in
+    flickering functionality.</td>
+  </tr>
+  <tr style="border-bottom: 2px solid #ddd">
+    <td style="padding-top: 10px"><b>RendInst</b> without Emissive</td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>base</b>.lod**.dag</td>
+    <td style="padding-left: 15px; padding-top: 10px">A detached part of the
+    object without any emissive properties, exported as a separate render
+    instance.
+<p>This is necessary for:</p>
+<ul class="simple">
+<li><p>Casting shadows (render instance shadows are significantly computationally
+cheaper than dynamic models shadows).</p></li>
+<li><p>Destroying the light source (lights disappear when the render instance
+whose bounding box contains the centers of the light sources is destroyed).</p></li>
+<li><p>Visually destroying the object (render instances are easily destroyed via
+destructors. Dealing with dynamic models is more complex, so we make them
+disappear following the light source rules – their pivots must fall within
+the bounding box of the destroyed render instance).</p></li>
+</ul>
+<p>Simply put, when the render instance is destroyed, the dynamic model
+disappears, the light source is removed, and the render instance breaks apart
+via the destructor.</td></p>
+  </tr>
+  <tr style="border-bottom: 2px solid #ddd">
+    <td style="padding-top: 10px"><b>DynModel</b> with Emissive</td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_dynmodel</b>.lod**.dag</td>
+    <td style="padding-left: 15px; padding-top: 10px">A detached part of the
+    overall model, exported with a dynamic glowing shader. Essentially, this
+    is the part that will glow and flicker.</td>
+  </tr>
+  <tr style="border-bottom: 2px solid #ddd">
+    <td style="padding-top: 10px"><b>AnimChar</b></td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_char</b>.animChar.blk</td>
+    <td style="padding-left: 15px; padding-top: 10px">A simple .blk file that
+    contains references to the dynamic model and its skeleton. Technically, this
+    is necessary because we cannot place a dynamic model directly on the map, as
+    it's not a static object. However, placing an animChar is possible.
+<p>Example:</p>
+<ul class="simple">
+<li><p>dynModel:t=“industrial_lamp_steel_wall_a_flicker_dynmodel”</p></li>
+<li><p>skeleton:t=“industrial_lamp_steel_wall_a_flicker_skeleton”</td></p></li>
+</ul>
+  </tr>
+  <tr style="border-bottom: 2px solid #ddd">
+    <td style="padding-top: 10px"><b>GameObj</b> (Flickering Light)</td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_8m_light</b>.gameObj.blk</td>
+    <td style="padding-left: 15px; padding-top: 10px">A .blk file containing the
+    name of the light source template from lights.blk file in the
+    <project_name>/prog directory. It is placed in
+    develop/assets/common/gameRes/gameObjects directory. This game object will
+    be placed on the map as a "flickering light source" with an 8-meter radius.</td>
+  </tr>
+  <tr style="border-bottom: 2px solid #ddd">
+    <td style="padding-top: 10px"><b>GameObj</b> (Flickering DynModel)</td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_8m_mesh</b>.gameObj.blk</td>
+    <td style="padding-left: 15px; padding-top: 10px">A .blk file containing the
+    name of the light source template from lights.blk file in the
+    <project_name>/prog directory. It is placed in
+    develop/assets/common/gameRes/gameObjects directory. This game object will
+    be placed on the map as a "flickering dynamic model".</td>
+  </tr>
+  <tr style="border-bottom: 2px solid #ddd">
+    <td style="padding-top: 10px"><b>Composite</b></td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_8m_cmp</b>.composit.blk</td>
+    <td style="padding-left: 15px; padding-top: 10px">This composite.blk file
+   includes:
+<ul class="simple">
+<li><p>The base render instance: industrial_lamp_steel_wall_a_base.lod**.dag</p></li>
+<li><p>The flickering light game object: industrial_lamp_steel_wall_a_flicker_8m_light.gameObj.blk</p></li>
+<li><p>The flickering dynamic model game object: industrial_lamp_steel_wall_a_flicker_8m_mesh.gameObj.blk</td></p></li>
+</ul>
+  </tr>
+  <tr>
+    <td style="padding-top: 10px" rowspan="3"><b>Flicker and Light Source Templates</b>
+    (All templates are located in lights.blk file in the <project_name>/prog directory)</td>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_8m_template</b></td>
+    <td style="padding-left: 15px; padding-top: 10px">Flicker Template. Defines
+    the flicker parameters.</td>
+  </tr>
+  <tr>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_8m_light</b></td>
+    <td style="padding-left: 15px; padding-top: 10px">Flickering Light Source
+    Template. Links the light source to the flicker behavior (you can use a
+    ready-made light source or make your own). The file has the same name as the
+    industrial_lamp_steel_wall_a_flicker_8m_light.gameObj.blk file.</td>
+  </tr>
+  <tr>
+    <td style="padding-left: 15px; padding-top: 10px">industrial_lamp_steel_wall_a_<b>flicker_8m_mesh</b></td>
+    <td style="padding-left: 15px; padding-top: 10px">Flickering Dynamic Model
+    Template. Links the dynamic model to the flicker behavior (via AnimChar).
+    The file has the same name as the industrial_lamp_steel_wall_a_flicker_8m_mesh.gameObj.blk file.</td>
+  </tr>
+</table>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Pay attention to the file name postfixes highlighted in the text, for example: <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_**flicker_8m_light**</span></code>. Please follow the same
+naming conventions for your files and templates.</p>
+</div>
+</section>
+<section id="working-with-geometry">
+<h2>Working with Geometry<a class="headerlink" href="#working-with-geometry" title="Link to this heading"></a></h2>
+<p>For flickering light sources, the visual model must be divided into two parts:
+the <strong>Render Instance</strong> and the <strong>Dynamic Model</strong>. The reasons for this have
+already been outlined:</p>
+<ul>
+<li><p><strong>Shadow Casting</strong>:</p>
+<p>Shadow casting for light sources from static models and dynamic models is
+enabled separately in the <a class="reference internal" href="lights.html"><span class="std std-doc">light source template</span></a>. While shadows
+from static objects impact performance, the effect is not as significant.
+However, shadows from dynamic models are very computationally expensive. That
+is the reason why they are rarely used. If the entire light fixture is made
+into a dynamic model, the light source inside it will not cast a shadow on the
+fixture.</p>
+</li>
+<li><p><strong>Destruction</strong>:</p>
+<p>The render instance is replaced with a destructible version when destroyed.
+This is a straightforward mechanism. In contrast, substituting the entire lamp
+dynamic model with a broken version involves a new, more complex pipeline,
+which isn’t practical. Therefore, we destroy the dynamic model alongside the
+render instance. In this case, the dynamic model simply disappears, and the
+destroyed render instance is replaced with a damaged version of the dynamic
+model’s section, broken as necessary.</p>
+</li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If you’re creating rare lamps that will be placed in around 10 locations on the
+map and need to always flicker, follow the pipeline outlined in this article.</p>
+<p>If you’re creating lamps that will be used extensively across the map, with only
+a few needing to flicker, follow this approach:</p>
+<ul class="simple">
+<li><p>Create a standard render instance with emissive properties for the majority of
+placements.</p></li>
+<li><p>Separately, create the flickering lamps using the current pipeline.</p></li>
+</ul>
+<p>For example, for the current lamp, you’ll have two distinct objects:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_on.lod**.dag</span></code> – a render instance of the
+constantly illuminated lamp.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_cmp.composit.blk</span></code> – a composite file
+for the flickering lamp.</p></li>
+</ul>
+</div>
+<p>The example used here is the lamp <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a</span></code>:</p>
+<p><img alt="industrial_lamp_steel_wall_a" src="../../_images/industrial_lamp_steel_wall_a.jpg" /></p>
+<section id="rendinst-dynmodel-geometry-splitting">
+<h3>RendInst + DynModel (Geometry Splitting)<a class="headerlink" href="#rendinst-dynmodel-geometry-splitting" title="Link to this heading"></a></h3>
+<p>A practical splitting between the render instance and the dynamic model is as
+follows:</p>
+<ul class="simple">
+<li><p><strong>Dynamic Model</strong>: Contains the bulb and part of the lamp that uses a lightmap
+with an emissive intensity mask in the alpha channel of the texture.</p></li>
+<li><p><strong>Render Instance</strong>: Includes everything non-emissive and elements that cast
+interesting shadows, such as the protective bulb net. While the protective net
+could be part of the dynamic model (since it is illuminated), this would
+result in flat, uninteresting shadows. The net adds variation and depth to the
+shadow.</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/industrial_lamp_steel_wall_a_01.jpg"><img alt="../../_images/industrial_lamp_steel_wall_a_01.jpg" class="bg-primary" src="../../_images/industrial_lamp_steel_wall_a_01.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/industrial_lamp_steel_wall_a_02.jpg"><img alt="../../_images/industrial_lamp_steel_wall_a_02.jpg" class="bg-primary" src="../../_images/industrial_lamp_steel_wall_a_02.jpg" style="width: 49%;" />
+</a>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>To prevent de-synchronization between the matrices of the dynamic model and the
+render instance, their pivots must align (positioned correctly in the scene
+before exporting to <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files). In the image above, they are shown side by
+side for demonstration purposes only.</p>
+</div>
+</section>
+<section id="naming-of-exported-objects">
+<h3>Naming of Exported Objects<a class="headerlink" href="#naming-of-exported-objects" title="Link to this heading"></a></h3>
+<p>For an object initially named <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a.lod**.dag</span></code>, the
+split render instance and dynamic model should be named as follows:</p>
+<ul class="simple">
+<li><p><strong>RendInst</strong>: <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_base.lod**.dag</span></code> – the non-emissive
+base, to which the rest is added.</p></li>
+<li><p><strong>Dynamic Model</strong>: <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_dynmodel.lod**.dag</span></code> –
+the flickering dynamic model.</p></li>
+</ul>
+</section>
+<section id="shaders">
+<h3>Shaders<a class="headerlink" href="#shaders" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>RendInst</strong>: Uses standard shaders based on the asset creation technology.</p></li>
+<li><p><strong>Dynamic Model</strong>: Uses a dynamic emissive shader, typically the
+<a class="reference internal" href="../shaders/dng-shaders/rendinst_emissive.html"><span class="std std-doc">dynamic_emissive</span></a> shader.</p></li>
+</ul>
+</section>
+<section id="destructions">
+<h3>Destructions<a class="headerlink" href="#destructions" title="Link to this heading"></a></h3>
+<p>As mentioned earlier, destruction is only applied to render instances. Since
+destroying dynamic models is more complex, both the dynamic models and light
+sources will simply vanish when the associated render instance is destroyed, as
+long as they are within its bounding box.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>“Automatic” destruction of lights and dynamic models will only occur under the
+following conditions:</p>
+<ol class="arabic simple">
+<li><p>Their pivots must be inside the bounding box of the destroyed render
+instance. If they merely touch the edge, destruction will not occur.</p></li>
+<li><p>The property <code class="docutils literal notranslate"><span class="pre">destroyable_with_rendinst:tag{}</span></code> must be specified in their
+templates. Most lights (99%) inherit this property from their base templates,
+so it typically doesn’t need to be added manually. However, for each new
+dynamic model, you must include this property in the template, such as in
+<code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_mesh</span></code>.</p></li>
+</ol>
+</div>
+<p>To properly configure destruction, you only need to:</p>
+<ol class="arabic simple">
+<li><p>Create a standard <code class="docutils literal notranslate"><span class="pre">_destr</span></code> for the render instance.</p></li>
+<li><p>Define the render instance destruction in <code class="docutils literal notranslate"><span class="pre">rendinst_dmg.blk</span></code> according to
+standard guidelines.</p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>When destroying the render instance, the entire model must be affected, meaning
+the destruction process must cover both the static and dynamic parts. Otherwise,
+the dynamic model will disappear abruptly, leaving gaps in the remaining render
+instance’s geometry.</p>
+</div>
+<p>Here’s the proper destruction process:</p>
+<table style="text-align:center; width:96%"><thead><tr>
+  <th style="text-align:center; width:24%"><p>Render Instance</p></th>
+  <th style="text-align:center; width:24%"><p>Dynamic Model</p></th>
+  <th style="text-align:center; width:24%"><p>Render Instance Dynamic Model Destruction</p></th>
+  <th style="text-align:center; width:24%"><p>Render Instance Dynamic Model Destruction DMG(optional)</p></th></tr></thead>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/industrial_lamp_steel_wall_a_03.jpg"><img alt="../../_images/industrial_lamp_steel_wall_a_03.jpg" class="bg-primary" src="../../_images/industrial_lamp_steel_wall_a_03.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/industrial_lamp_steel_wall_a_04.jpg"><img alt="../../_images/industrial_lamp_steel_wall_a_04.jpg" class="bg-primary" src="../../_images/industrial_lamp_steel_wall_a_04.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/industrial_lamp_steel_wall_a_05.jpg"><img alt="../../_images/industrial_lamp_steel_wall_a_05.jpg" class="bg-primary" src="../../_images/industrial_lamp_steel_wall_a_05.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/industrial_lamp_steel_wall_a_06.jpg"><img alt="../../_images/industrial_lamp_steel_wall_a_06.jpg" class="bg-primary" src="../../_images/industrial_lamp_steel_wall_a_06.jpg" style="width: 24%;" />
+</a>
+</section>
+</section>
+<section id="working-with-textures-and-materials">
+<h2>Working with Textures and Materials<a class="headerlink" href="#working-with-textures-and-materials" title="Link to this heading"></a></h2>
+<p>Some key considerations:</p>
+<ul class="simple">
+<li><p>The emissive mask, which is stored in the alpha channel of the albedo texture
+based on the
+<a class="reference internal" href="../shaders/dng-shaders/rendinst_emissive.html"><span class="std std-doc">rendinst_emissive/dynamic_emissive</span></a>
+shader system, should only be baked for the part of the model included in the
+dynamic model. Flickering is not supported for the render instance.</p></li>
+<li><p>Therefore, the render instance should not use an emissive shader unless
+specifically required by the artistic design (e.g., in a sci-fi setting).</p></li>
+<li><p>Keep in mind that the flickering light source does not account for the light
+color or the emissive color in the material. You must manually adjust the
+emissive color to match the desired light color (or vice versa if you’re
+creating a new light). There is no automatic synchronization between them.</p></li>
+<li><p>Unless required by the artistic design, avoid baking colored light into the
+albedo texture. Doing so will restrict the emissive color options for the
+model (if someone else wishes to use it with a different color). The color and
+intensity of the emissive effect are controlled in the
+<a class="reference internal" href="../shaders/dng-shaders/rendinst_emissive.html"><span class="std std-doc">rendinst_emissive/dynamic_emissive</span></a>
+shader settings.</p></li>
+<li><p>As a result, if you need two identical lamps with different emission colors
+(e.g., white and red), you must create two separate dynamic models with
+different emissive material settings. This won’t be possible if the emissive
+color is baked into the albedo.</p></li>
+<li><p>Be aware that the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a> does not
+accurately display emissive color and intensity. All testing should be done
+in-game. Do not rely on the <em>Asset Viewer</em> for accurate results.</p></li>
+</ul>
+</section>
+<section id="configuring-the-folder-blk">
+<h2>Configuring the .folder.blk<a class="headerlink" href="#configuring-the-folder-blk" title="Link to this heading"></a></h2>
+<p>If you’re unsure how the system handles <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files and distinguishes between
+dynamic models and render instances, please refer to the following
+documentation:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../../dagor-tools/blk/blk.html"><span class="std std-doc">.blk</span></a></p></li>
+<li><p><a class="reference internal" href="../all-about-blk/folder_blk.html"><span class="std std-doc">.folder.blk</span></a></p></li>
+<li><p><a class="reference internal" href="../about-assets/about_assets.html"><span class="std std-doc">Assets Philosophy</span></a></p></li>
+</ul>
+<section id="static-geometry-processing">
+<h3>Static Geometry Processing<a class="headerlink" href="#static-geometry-processing" title="Link to this heading"></a></h3>
+<p>As usual, follow the standard procedure for processing static geometry. The only
+thing to note is that if you’re handling static geometry at the beginning of the
+<code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>, make sure to <strong>exclude dynamic models</strong>. Failing to do so will
+cause them to be processed incorrectly.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">virtual_res_blk</span><span class="ni">{</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)\.lod00\.dag$&quot;</span>
+  <span class="no">exclude</span><span class="nt">:t=</span><span class="nf">&quot;_destr\.lod00\.dag$&quot;</span>
+  <span class="no">exclude</span><span class="nt">:t=</span><span class="nf">&quot;_dynmodel\.lod00\.dag$&quot;</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;rendInst&quot;</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">12</span><span class="gp">;</span><span class="ni">}</span>
+    <span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">30</span><span class="gp">;</span><span class="ni">}</span>
+    <span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">80</span><span class="gp">;</span><span class="ni">}</span>
+    <span class="no">allowProxyMat</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>If you process dynamic models first, no exclusion is needed later (since a
+resource processed twice will not be handled again). Just remember to remove
+unnecessary <code class="docutils literal notranslate"><span class="pre">stopProcessing:b=false</span></code> flags.</p>
+</section>
+<section id="dynamic-geometry-processing">
+<h3>Dynamic Geometry Processing<a class="headerlink" href="#dynamic-geometry-processing" title="Link to this heading"></a></h3>
+<p>In Dagor Engine’s logic, a dynamic model is considered a dynamic model if:</p>
+<ol class="arabic simple">
+<li><p>It uses dynamic shaders.</p></li>
+<li><p>It has a skeleton.</p></li>
+</ol>
+<p>We’ve already assigned dynamic shaders in the materials, so now we need to
+create the skeleton:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">virtual_res_blk</span><span class="ni">{</span>                          <span class="ge">// Skeleton creation block</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^((.*)_dynmodel)\.lod00\.dag$&quot;</span>  <span class="ge">// Find all LOD00s with the _dynmodel postfix</span>
+  <span class="no">stopProcessing</span><span class="nt">:b=</span><span class="si">false</span>                  <span class="ge">// Allows reprocessing of these .dag files in the next block</span>
+
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;skeleton&quot;</span>                  <span class="ge">/* Treat the found assets as skeletons</span>
+<span class="ge">                                             (extracting data to build a skeleton asset) */</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;$2_skeleton&quot;</span>                    <span class="ge">/* Name the skeleton using the dynamic model name ($2)</span>
+<span class="ge">                                             with a _skeleton postfix */</span>
+  <span class="se">contents</span><span class="ni">{</span>                               <span class="ge">// Additional data processing rules</span>
+    <span class="no">addSkinNodes</span><span class="nt">:b=</span><span class="si">yes</span>
+    <span class="no">reduceNodes</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+
+<span class="se">virtual_res_blk</span><span class="ni">{</span>                          <span class="ge">// Dynamic model creation block</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^((.*)_dynmodel)\.lod00\.dag$&quot;</span>  <span class="ge">/* Find all LOD00s with the _dynmodel postfix</span>
+<span class="ge">                                             (due to the previous block&#39;s stopProcessing:b=false) */</span>
+  <span class="no">stopProcessing</span><span class="nt">:b=</span><span class="si">false</span>                  <span class="ge">// Likely a redundant parameter here.</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;DynModel&quot;</span>                  <span class="ge">/* Process the found assets as dynamic models</span>
+<span class="ge">                                             (extracting data to build the dynamic model asset) */</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;$2_dynmodel&quot;</span>                    <span class="ge">/* Name the dynamic model as $2_dynmodel</span>
+<span class="ge">                                             (i.e., dynamic model name with _dynmodel postfix) */</span>
+  <span class="se">contents</span><span class="ni">{</span>                               <span class="ge">// Additional data processing rules</span>
+    <span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">12</span><span class="gp">;</span><span class="ni">}</span>                      <span class="ge">// LOD distances</span>
+    <span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">30</span><span class="gp">;</span><span class="ni">}</span>
+    <span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">80</span><span class="gp">;</span><span class="ni">}</span>
+    <span class="no">ref_skeleton</span><span class="nt">:t=</span><span class="nf">&quot;$2_skeleton&quot;</span>          <span class="ge">// Reference the skeleton created in the previous block</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>There may be some confusion regarding the naming of assets. We process objects
+with the <code class="docutils literal notranslate"><span class="pre">_dynmodel</span></code> postfix, then assign two additional postfixes in the
+skeleton and dynamic model creation blocks:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_skeleton</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_dynmodel</span></code></p></li>
+</ul>
+<p>This might lead to an expectation of names like:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_dynmodel_skeleton</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_dynmodel_dynmodel</span></code></p></li>
+</ul>
+<p>However, the <em>Asset Viewer</em> shows correct names without the redundant
+<code class="docutils literal notranslate"><span class="pre">_dynmodel</span></code>.</p>
+<p><img alt="Important: Naming Considerations" src="../../_images/industrial_lamp_steel_wall_a_07.jpg" /></p>
+<p>This is due to the search query defined in the
+<code class="docutils literal notranslate"><span class="pre">find:t=&quot;^((.*)_dynmodel)\.lod00\.dag$&quot;</span></code> statement.</p>
+<p>Had the query been <code class="docutils literal notranslate"><span class="pre">find:t=&quot;^(.*_dynmodel)\.lod00\.dag$&quot;</span></code>, the entire dynamic
+model name, including <code class="docutils literal notranslate"><span class="pre">_dynmodel</span></code>, would be treated as the object name ($2). The
+query we use ensures that only the inner-most group (i.e., the core object name
+without <code class="docutils literal notranslate"><span class="pre">_dynmodel</span></code>) is treated as the object name.</p>
+</div>
+</section>
+<section id="collision-processing">
+<h3>Collision Processing<a class="headerlink" href="#collision-processing" title="Link to this heading"></a></h3>
+<p>As we know, collisions are now processed through file includes like <code class="docutils literal notranslate"><span class="pre">include</span> <span class="pre">&quot;#/develop/assets/_ri_collision_lod1.blk&quot;</span></code>. By default, this include will also
+affect dynamic models, as it doesn’t exclude them. A logical approach would be
+to first include the dynamic model collision block, but dynamic models don’t
+handle collisions the same way – they are processed through damage models (DMs).</p>
+<p>Thus, a hybrid processing solution is needed:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">include</span> <span class="nf">&quot;#/develop/assets/_ri_collision_lod1.blk&quot;</span>   <span class="ge">// Include RenderInst collision processing.</span>
+<span class="nf">&quot;@override-last&quot;</span><span class="ni">{</span>                                   <span class="ge">// Override parameters from the included file.</span>
+  <span class="nf">&quot;@override:find&quot;</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)_dynmodel\.lod01\.dag$&quot;</span>  <span class="ge">// Find LOD01s specifically for dynamic models.</span>
+  <span class="nf">&quot;@override:contents&quot;</span><span class="ni">{</span><span class="no">gameResPack</span><span class="nt">:t=</span><span class="nf">&quot;game_logic.grp&quot;</span><span class="gp">;</span> <span class="no">defCollidable</span><span class="nt">:b=</span><span class="si">no</span><span class="gp">;</span><span class="ni">}</span>  <span class="ge">/* Set assembly parameters</span>
+<span class="ge">                                                                                for dynamic model collisions.*/</span>
+  <span class="no">stopProcessing</span><span class="nt">:b=</span><span class="si">no</span>                               <span class="ge">// Likely a redundant parameter here.</span>
+<span class="ni">}</span>
+
+<span class="se">include</span> <span class="nf">&quot;#/develop/assets/_ri_collision_lod1.blk&quot;</span>   <span class="ge">// Repeat the RenderInst collision processing include.</span>
+</pre></div>
+</div>
+<p>This hybrid approach ensures that both the render instances and dynamic models
+are handled appropriately within the collision pipeline.</p>
+</section>
+<section id="animchar">
+<h3>AnimChar<a class="headerlink" href="#animchar" title="Link to this heading"></a></h3>
+<p>Technically, we cannot directly place a dynamic model on the map or use it
+within the flicker templates we need. However, we can achieve this with an
+animChar (animated character). Despite the abstract name, it allows us to manage
+dynamic resources effectively.</p>
+<p>In essence, the animChar file lists the dynamic resources that should be applied
+to a specific animated model (flickering light is simply another form of
+animation).</p>
+<p>For instance, the <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_char.animChar.blk</span></code>
+contains the following two lines:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">dynModel</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_dynmodel&quot;</span>  <span class="ge">// Dynamic model</span>
+<span class="no">skeleton</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_skeleton&quot;</span>  <span class="ge">// Associated skeleton</span>
+</pre></div>
+</div>
+<p>Place the animChar file alongside the dynamic model, naming it after the model
+with the suffix <code class="docutils literal notranslate"><span class="pre">_char.animChar.blk</span></code>. No additional <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> processing is
+required.</p>
+</section>
+<section id="gameobjects">
+<h3>GameObjects<a class="headerlink" href="#gameobjects" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="#../about-assets/gameobjects/gameobjects.md"><span class="xref myst"><em>Game Objects</em></span></a> are essentially
+placeholders, containers, or dummies with the same name as the related template.
+They are used to position objects in the environment or to add them to template
+composites. GameObjects provide the matrix information needed to trigger effects
+like sound (SFX), visual effects (VFX), game triggers, and light sources.</p>
+<p>Typically, GameObjects are stored in a common directory with other GameObjects.
+In <em>daNetGame-based</em> projects, for example, this would be located at:</p>
+<p><code class="docutils literal notranslate"><span class="pre">/&lt;project_name&gt;/develop/assets/common/gameRes/gameObjects/</span></code></p>
+<p>We need the following:</p>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_light.gameObj.blk</span></code> – This GameObject
+represents the flickering light source (with an 8-meter radius) and will be
+placed on the map as a light source. Inside the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, define:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">volumeType</span><span class="nt">:t=</span><span class="nf">&quot;point&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_mesh.gameObj.blk</span></code> – This GameObject
+represents the flickering dynamic model and will be placed on the map as the
+dynamic object. Inside the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, define:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">volumeType</span><span class="nt">:t=</span><span class="nf">&quot;point&quot;</span>
+<span class="no">ref_dynmodel</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_dynmodel&quot;</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Make sure to reference the correct dynamic model; otherwise, incorrect
+resources may be loaded.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="composite-object">
+<h3>Composite Object<a class="headerlink" href="#composite-object" title="Link to this heading"></a></h3>
+<p>To place everything on the map, you’ll need to create a composite object, which
+will include:</p>
+<ul class="simple">
+<li><p>The base render instance</p></li>
+<li><p>The flickering light game object</p></li>
+<li><p>The flickering dynamic model game object</p></li>
+</ul>
+<p>Don’t forget to adjust the orientation of the light source based on the lamp’s
+configuration (usually, lights are directed sideways along the X-axis).
+Additionally, for optimal visuals, make use of <a class="reference internal" href="photometric_lights.html"><span class="std std-doc">photometric light
+sources</span></a> in <em>daNetGame</em>-based projects.</p>
+<p>An example composite file for the flickering lamp:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_base:rendInst&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+<span class="ni">}</span>
+
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_8m_mesh:gameObj&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+<span class="ni">}</span>
+
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_8m_light:gameObj&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">0.961074</span><span class="gp">,</span> <span class="m">0.27629</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">-2.08593</span><span class="no">e</span><span class="m">-08</span><span class="gp">,</span> <span class="m">7.25591</span><span class="no">e</span><span class="m">-08</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0.27629</span><span class="gp">,</span> <span class="m">-0.961074</span><span class="gp">,</span> <span class="m">7.54979</span><span class="no">e</span><span class="m">-08</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0.624191</span><span class="gp">,</span> <span class="m">-0.270539</span><span class="gp">,</span> <span class="m">0.0204315</span><span class="ni">]]</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="light-and-flicker-templates">
+<h3>Light and Flicker Templates<a class="headerlink" href="#light-and-flicker-templates" title="Link to this heading"></a></h3>
+<p>Flicker sources are defined by templates, similar to light source templates, and
+are stored in the <code class="docutils literal notranslate"><span class="pre">lights.blk</span></code> file within the <code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog</span></code> directory. For
+example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog/gameBase/content/common/gamedata/templates/lights.blk</span></code></p>
+<p>These templates usually extend from or use base templates found in
+<code class="docutils literal notranslate"><span class="pre">light_flicker.blk</span></code>, which is located in the “global” <code class="docutils literal notranslate"><span class="pre">prog</span></code> directory:</p>
+<p><code class="docutils literal notranslate"><span class="pre">/prog/daNetGameLibs/light_flicker/templates/light_flicker.blk</span></code></p>
+<p>These templates define the flickering behavior for light sources and/or emissive
+intensity for dynamic models using
+<a class="reference internal" href="../shaders/dng-shaders/rendinst_emissive.html"><span class="std std-doc">rendinst_emissive/dynamic_emissive</span></a>
+shaders.</p>
+<p>In general, three templates cover 99% of the cases, and they follow a specific
+order. Using our current lamp as an example:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_template</span></code> – Flicker template that
+defines flicker parameters (frequency, pauses, emissive intensity, etc.).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_light</span></code> – Flickering light template,
+which links a light source (either an existing one or a custom one) to the
+flicker behavior defined above.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_mesh</span></code> – Flickering lamp template,
+which links the flicker template to the dynamic model via the animChar.</p></li>
+</ol>
+<p>The relationship between these templates is as follows:</p>
+<ul class="simple">
+<li><p>The flicker template links to:</p>
+<ul>
+<li><p>The flickering light template.</p></li>
+<li><p>The flickering dynamic model template.</p></li>
+</ul>
+</li>
+</ul>
+<p>You don’t always need to create new templates from scratch. If you have an
+appropriate flicker template, you can reuse it by linking it to the required
+light and dynamic model. However, the flickering lamp template (for the dynamic
+model) will need to be recreated each time, as it uses specific animChars.</p>
+<p>The flicker and flickering light templates can be reused in various combinations
+and scenarios.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>All templates are named after the lamps they are created for. Reusing templates
+is possible, but this naming scheme can lead to confusion. It’s up to you to
+decide whether to recreate all templates from scratch or reuse existing ones
+(though they may be named after other objects).</p>
+</div>
+</section>
+<section id="flicker-template">
+<h3>Flicker Template<a class="headerlink" href="#flicker-template" title="Link to this heading"></a></h3>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The randomization settings for flickering will apply synchronously to all
+identical lamps. This means that if you place two identical lamps next to each
+other, they will flicker randomly but in sync! Each lamp can look very artistic,
+but the sync flickering may not be desirable almost in all cases.</p>
+<p>If you need to place multiple identical flickering lamps in close proximity,
+create several flicker templates (and corresponding templates) along with
+multiple composites, then place them randomly.</p>
+</div>
+<p>Let’s review the flicker template for the current lamp
+(<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog/gameBase/content/common/gamedata/templates/lights.blk</span></code>):</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">industrial_lamp_steel_wall_a_flicker_8m_template</span><span class="ni">{</span>
+  <span class="no">_use</span><span class="nt">:t=</span><span class="nf">&quot;light_flicker_with_sparks&quot;</span>
+
+  <span class="no">light_flicker__attack_time</span><span class="nt">:p2=</span> <span class="m">0.01</span><span class="gp">,</span> <span class="m">0.15</span>        <span class="ge">// Transition time from &quot;off&quot; to &quot;on&quot;</span>
+  <span class="no">light_flicker__on_time</span><span class="nt">:p2=</span> <span class="m">1</span><span class="gp">,</span> <span class="m">10</span>                 <span class="ge">// Duration of &quot;on&quot; state</span>
+  <span class="no">light_flicker__release_time</span><span class="nt">:p2=</span> <span class="m">0.75</span><span class="gp">,</span> <span class="m">1.25</span>       <span class="ge">// Transition time from &quot;on&quot; to &quot;off&quot;</span>
+  <span class="no">light_flicker__off_time</span><span class="nt">:p2=</span> <span class="m">0.01</span><span class="gp">,</span> <span class="m">6</span>              <span class="ge">// Duration of &quot;off&quot; state</span>
+
+  <span class="no">light_flicker__on_brightness</span><span class="nt">:p2=</span> <span class="m">1.0</span><span class="gp">,</span> <span class="m">1.6</span>        <span class="ge">// Brightness during &quot;on&quot; state, multiplied by light__brightness</span>
+  <span class="no">light_flicker__off_brightness</span><span class="nt">:p2=</span> <span class="m">0.0</span><span class="gp">,</span> <span class="m">0.2</span>       <span class="ge">// Brightness during &quot;off&quot; state, multiplied by light__brightness</span>
+
+  <span class="no">light_flicker__noise_brightness_on</span><span class="nt">:p2=</span> <span class="m">0.5</span><span class="gp">,</span> <span class="m">1.0</span>  <span class="ge">// Noise amplitude multiplier during &quot;on&quot; state</span>
+  <span class="no">light_flicker__noise_brightness_off</span><span class="nt">:p2=</span> <span class="m">0.0</span><span class="gp">,</span> <span class="m">1.0</span> <span class="ge">// Noise amplitude multiplier during &quot;off&quot; state</span>
+  <span class="no">light_flicker__noise_time</span><span class="nt">:r=</span> <span class="m">17.0</span>                <span class="ge">// Noise frequency (per second)</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This template extends the root template <code class="docutils literal notranslate"><span class="pre">_use:t=&quot;light_flicker_with_sparks&quot;</span></code>,
+which contains additional parameters, including settings for sparks (covered in
+the <a class="reference internal" href="#vfx"><span class="std std-ref">VFX</span></a> section).</p>
+<p>The key thing to understand about flicker parameter configuration is that each
+parameter has a minimum and maximum value, and a random value between the two is
+selected for each cycle. This allows you to create both uniform and highly
+random flickering patterns.</p>
+<p>Overall, the flicker effect is described by the following parameters, which
+we’ll explore in detail below.</p>
+<p><img alt="Flicker Template" src="../../_images/industrial_lamp_steel_wall_a_08.jpg" /></p>
+</section>
+<section id="cycle-elements">
+<h3>Cycle Elements<a class="headerlink" href="#cycle-elements" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__attack_time:p2</span> <span class="pre">=</span> <span class="pre">0.01,</span> <span class="pre">0.15</span></code>: Time required for the light
+source to transition from the “off” to “on” state. The time, in seconds, for
+the light source to ignite. With these parameters, each new cycle will take
+between <code class="docutils literal notranslate"><span class="pre">0.01</span></code> and <code class="docutils literal notranslate"><span class="pre">0.15</span></code> seconds.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__on_time:p2</span> <span class="pre">=</span> <span class="pre">0.01,</span> <span class="pre">0.5</span></code>: Duration of the “on” state. The time,
+in seconds, the light source will remain lit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__release_time:p2</span> <span class="pre">=</span> <span class="pre">0.25,</span> <span class="pre">0.75</span></code>: Time required for the light
+source to transition from the “on” to “off” state. The time, in seconds, for
+the light source to fade out.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__off_time:p2</span> <span class="pre">=</span> <span class="pre">0.01,</span> <span class="pre">4</span></code>: Duration of the “off” state. The time,
+in seconds, the light source will remain off.</p></li>
+</ul>
+</section>
+<section id="brightness-control">
+<h3>Brightness Control<a class="headerlink" href="#brightness-control" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__on_brightness:p2</span> <span class="pre">=</span> <span class="pre">0.6,</span> <span class="pre">1.0</span></code>: Brightness multiplier during
+the “on” state. Multiplies the brightness of the base light source or
+emissive shader when the light is on.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__off_brightness:p2</span> <span class="pre">=</span> <span class="pre">0.0,</span> <span class="pre">0.1</span></code>: Brightness multiplier during
+the “off” state. Multiplies the brightness of the base light source or
+emissive shader when the light is off.</p></li>
+</ul>
+</section>
+<section id="additional-micro-noise">
+<h3>Additional Micro-Noise<a class="headerlink" href="#additional-micro-noise" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__noise_brightness_on:p2=0.25,1.0</span></code>: Multiplier for low/high
+noise amplitude when the light is “on”. Multiplies the micro-flickering
+effect during the “on” state, based on the <code class="docutils literal notranslate"><span class="pre">light_flicker__on_brightness</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__noise_brightness_off:p2=0.0,1.0</span></code>: Multiplier for low/high
+noise amplitude when the light is “off”. Multiplies the micro-flickering
+effect during the “off” state, based on the <code class="docutils literal notranslate"><span class="pre">light_flicker__off_brightness</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker__noise_time:r=50.0</span></code>: Noise frequency (per second). The
+frequency of micro-flickering. This value is deterministic and does not
+involve randomness.</p></li>
+</ul>
+</section>
+<section id="vfx">
+<h3>VFX<a class="headerlink" href="#vfx" title="Link to this heading"></a></h3>
+<p>We can choose from various base templates, which are extended in our
+implementation. Examples include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_use:t=&quot;light_flicker&quot;</span></code>: Basic template without additional effects.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_use:t=&quot;light_flicker_with_sparks&quot;</span></code>: Adds sparks and sound effects, suitable
+for indoor lamps.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_use:t=&quot;light_flicker_with_sparks_nightly&quot;</span></code>: Adds sparks and sound effects
+only during nighttime, which is appropriate for outdoor lights.</p></li>
+</ul>
+<p>The sparks will appear as shown below:</p>
+<p><img alt="VFX" src="../../_images/industrial_lamp_steel_wall_a_09.jpg" /></p>
+<p>The chance of sparks appearing can be overridden using the parameter
+<code class="docutils literal notranslate"><span class="pre">light_flicker__sparksEffectSpawnChance:r=0.3</span></code>.</p>
+<p>Other settings are embedded in the base template <code class="docutils literal notranslate"><span class="pre">light_flicker.blk</span></code> in the
+global program. By default, the <code class="docutils literal notranslate"><span class="pre">envir_sparks_burst_tiny_smoke</span></code> VFX is used, but
+future updates will allow customization of the VFX.</p>
+</section>
+<section id="flickering-light-template-light-source">
+<h3>Flickering Light Template (Light Source)<a class="headerlink" href="#flickering-light-template-light-source" title="Link to this heading"></a></h3>
+<p>As an example, consider <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_light</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">industrial_lamp_steel_wall_a_flicker_8m_light</span><span class="ni">{</span>
+  <span class="no">_use</span><span class="nt">:t=</span><span class="nf">&quot;spot_light_little_b&quot;</span>
+  <span class="no">_use</span><span class="nt">:t=</span><span class="nf">&quot;light_flicker_updater_light&quot;</span>
+  <span class="no">light_flicker_updater__template</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_8m_template&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This template includes:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">_use:t=&quot;spot_light_little_b&quot;</span></code>: Inherits the light source. However, you can
+override the light source parameters as needed. For example:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">light__max_radius</span><span class="nt">:r=</span><span class="m">7</span>
+<span class="no">light__color</span><span class="nt">:c=</span><span class="m">208</span><span class="gp">,</span> <span class="m">191</span><span class="gp">,</span> <span class="m">152</span><span class="gp">,</span> <span class="m">255</span>
+<span class="no">light__brightness</span><span class="nt">:r=</span><span class="m">121</span>
+<span class="no">light__nightly</span><span class="nt">:b=</span><span class="si">no</span>
+</pre></div>
+</div>
+</li>
+<li><p>`_use:t=“light_flicker_updater_light”: A required parameter for flickering
+light source templates. Synchronizes the flickering effect.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker_updater__template:t=&quot;industrial_lamp_steel_wall_a_flicker_8m_template&quot;</span></code>:
+Points to our flickering settings template from the previous section.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Regarding <code class="docutils literal notranslate"><span class="pre">_use:t=&quot;spot_light_little_b&quot;</span></code></p>
+<p>It’s recommended to create a unique light source for each new lamp. This
+approach eliminates the need for overrides within the template. Layering
+extended light sources on top of each other can create issues when trying to
+modify the settings of a specific light source. You would need to ensure that no
+other light source is extending it.</p>
+<p>Alternatively, instead of extending a light source, you could define it entirely
+within the current template. However, in this case, the light source would
+always be tied to the flickering template. Typically, flickering light sources
+are used to add variation to non-flickering lights. For example, in a hallway
+with several identical lamps, only some of them flicker. It makes sense to use a
+single reference light source for both variants.</p>
+</div>
+</section>
+<section id="flickering-dynamic-model-template">
+<h3>Flickering Dynamic Model Template<a class="headerlink" href="#flickering-dynamic-model-template" title="Link to this heading"></a></h3>
+<p>For example, consider <code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_mesh</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">industrial_lamp_steel_wall_a_flicker_8m_mesh</span><span class="ni">{</span>
+  <span class="no">_use</span><span class="nt">:t=</span><span class="nf">&quot;light_flicker_updater_mesh&quot;</span>
+  <span class="no">animchar__res</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_char&quot;</span>
+  <span class="no">light_flicker_updater__template</span><span class="nt">:t=</span><span class="nf">&quot;industrial_lamp_steel_wall_a_flicker_8m_template&quot;</span>
+  <span class="nf">&quot;destroyable_with_rendinst:tag&quot;</span> <span class="ni">{}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This template includes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_use:t=&quot;light_flicker_updater_mesh&quot;</span></code>: A required parameter for flickering
+dynamic model templates. Synchronizes the flickering effect.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">animchar__res:t=&quot;industrial_lamp_steel_wall_a_flicker_char&quot;</span></code>: Specifies the
+animation character for our model. This effectively transmits the flickering
+effect to the dynamic model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">light_flicker_updater__template:t=&quot;industrial_lamp_steel_wall_a_flicker_8m_template&quot;</span></code>:
+Points to our flickering settings template.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;destroyable_with_rendinst:tag&quot;</span> <span class="pre">{}</span></code>: Specifies that the dynamic model should
+disappear if its pivot intersects with the bounding box of a destroyed render
+instance.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All emissive settings of the dynamic model (except for color, likely) will be
+overridden by the parameters from the flickering template
+(<code class="docutils literal notranslate"><span class="pre">industrial_lamp_steel_wall_a_flicker_8m_template</span></code>).</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="lights.html" class="btn btn-neutral float-left" title="Lights" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="photometric_lights.html" class="btn btn-neutral float-right" title="Photometric Lights (IES)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

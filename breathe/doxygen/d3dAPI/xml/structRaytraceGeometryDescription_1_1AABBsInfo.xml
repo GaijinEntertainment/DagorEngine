@@ -1,0 +1,116 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceGeometryDescription_1_1AABBsInfo" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceGeometryDescription::AABBsInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1AABBsInfo_1a1fad0b071da74b3d60dacab034ba96a4" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* RaytraceGeometryDescription::AABBsInfo::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>RaytraceGeometryDescription::AABBsInfo::buffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="64" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1AABBsInfo_1ad2a71e6bc22e4b2c58da6f7cef96fbc3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::AABBsInfo::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>RaytraceGeometryDescription::AABBsInfo::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="65" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1AABBsInfo_1a4703345ead327ce6d60a01b6c2d6f144" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::AABBsInfo::stride</definition>
+        <argsstring></argsstring>
+        <name>stride</name>
+        <qualifiedname>RaytraceGeometryDescription::AABBsInfo::stride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="66" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1AABBsInfo_1ab6f1cab3da901c63da14b041bf5e452f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::AABBsInfo::offset</definition>
+        <argsstring></argsstring>
+        <name>offset</name>
+        <qualifiedname>RaytraceGeometryDescription::AABBsInfo::offset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="67" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1AABBsInfo_1ae50ab93bfb7b03b18e8eeb715b1d0933" prot="public" static="no" mutable="no">
+        <type><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" kindref="member">Flags</ref></type>
+        <definition>Flags RaytraceGeometryDescription::AABBsInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>RaytraceGeometryDescription::AABBsInfo::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="68" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>RaytraceGeometryDescription::AABBsInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1AABBsInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="62" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="63" bodyend="69"/>
+    <listofallmembers>
+      <member refid="structRaytraceGeometryDescription_1_1AABBsInfo_1a1fad0b071da74b3d60dacab034ba96a4" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::AABBsInfo</scope><name>buffer</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ad2a71e6bc22e4b2c58da6f7cef96fbc3" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::AABBsInfo</scope><name>count</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ae50ab93bfb7b03b18e8eeb715b1d0933" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::AABBsInfo</scope><name>flags</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1AABBsInfo_1ab6f1cab3da901c63da14b041bf5e452f" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::AABBsInfo</scope><name>offset</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1AABBsInfo_1a4703345ead327ce6d60a01b6c2d6f144" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::AABBsInfo</scope><name>stride</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

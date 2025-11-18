@@ -1,0 +1,409 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynamicShadersBuffer" kind="class" language="C++" prot="public">
+    <compoundname>DynamicShadersBuffer</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1aafda8a733b79e4f2909afcb7a82a684b" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::maxVerts</definition>
+        <argsstring></argsstring>
+        <name>maxVerts</name>
+        <qualifiedname>DynamicShadersBuffer::maxVerts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="56" column="7" bodyfile="dag_DynamicShadersBuffer.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1a5ef220784a239f9ed1862cf9e0429fbe" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::maxFaces</definition>
+        <argsstring></argsstring>
+        <name>maxFaces</name>
+        <qualifiedname>DynamicShadersBuffer::maxFaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="56" column="16" bodyfile="dag_DynamicShadersBuffer.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1ae67e312ea0d0397562cc0b4a3bac4595" prot="private" static="no" mutable="no">
+        <type>VertexBuffer *</type>
+        <definition>VertexBuffer* DynamicShadersBuffer::vBuf</definition>
+        <argsstring></argsstring>
+        <name>vBuf</name>
+        <qualifiedname>DynamicShadersBuffer::vBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="61" column="16" bodyfile="dag_DynamicShadersBuffer.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1afda4f7254ed471140ce4a164d9b1082c" prot="private" static="no" mutable="no">
+        <type>IndexBuffer *</type>
+        <definition>IndexBuffer* DynamicShadersBuffer::iBuf</definition>
+        <argsstring></argsstring>
+        <name>iBuf</name>
+        <qualifiedname>DynamicShadersBuffer::iBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="62" column="15" bodyfile="dag_DynamicShadersBuffer.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1a9d996e5c6220c8fd70379ea39ae9d320" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::startVerts</definition>
+        <argsstring></argsstring>
+        <name>startVerts</name>
+        <qualifiedname>DynamicShadersBuffer::startVerts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="63" column="7" bodyfile="dag_DynamicShadersBuffer.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1acb3d7fe598b6534c82f5031613f2a222" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::startFaces</definition>
+        <argsstring></argsstring>
+        <name>startFaces</name>
+        <qualifiedname>DynamicShadersBuffer::startFaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="63" column="18" bodyfile="dag_DynamicShadersBuffer.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1a511843a5f547fbc514ad5ecf18ce78b9" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; DynamicShadersBuffer::currentShader</definition>
+        <argsstring></argsstring>
+        <name>currentShader</name>
+        <qualifiedname>DynamicShadersBuffer::currentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="65" column="7" bodyfile="dag_DynamicShadersBuffer.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1a6973f82c5b66d9dcd6d056df9dc56183" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::usedVerts</definition>
+        <argsstring></argsstring>
+        <name>usedVerts</name>
+        <qualifiedname>DynamicShadersBuffer::usedVerts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="67" column="7" bodyfile="dag_DynamicShadersBuffer.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicShadersBuffer_1acef37d712ba41379b84b715539e51e60" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::usedFaces</definition>
+        <argsstring></argsstring>
+        <name>usedFaces</name>
+        <qualifiedname>DynamicShadersBuffer::usedFaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="67" column="17" bodyfile="dag_DynamicShadersBuffer.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynamicShadersBuffer_1a5edf6c2f255012e90add1f2108bd9c30" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynamicShadersBuffer::DynamicShadersBuffer</definition>
+        <argsstring>()</argsstring>
+        <name>DynamicShadersBuffer</name>
+        <qualifiedname>DynamicShadersBuffer::DynamicShadersBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="14" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1afcb29400e9245c525d4b6fe3d1c81d03" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynamicShadersBuffer::DynamicShadersBuffer</definition>
+        <argsstring>(CompiledShaderChannelId *channels, int channel_count, int max_verts, int max_faces)</argsstring>
+        <name>DynamicShadersBuffer</name>
+        <qualifiedname>DynamicShadersBuffer::DynamicShadersBuffer</qualifiedname>
+        <param>
+          <type><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> *</type>
+          <declname>channels</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_verts</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_faces</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="17" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1a20546dabad6c6b27da717ef961dba404" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicShadersBuffer::init</definition>
+        <argsstring>(CompiledShaderChannelId *channels, int channel_count, int max_verts, int max_faces)</argsstring>
+        <name>init</name>
+        <qualifiedname>DynamicShadersBuffer::init</qualifiedname>
+        <param>
+          <type><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> *</type>
+          <declname>channels</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_verts</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_faces</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="20" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1ae4344a162d82af4c903943c74dcf440a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynamicShadersBuffer::~DynamicShadersBuffer</definition>
+        <argsstring>()</argsstring>
+        <name>~DynamicShadersBuffer</name>
+        <qualifiedname>DynamicShadersBuffer::~DynamicShadersBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="24" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1a1d701e181410a2df35282fb7b6201e32" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicShadersBuffer::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>DynamicShadersBuffer::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="27" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1ab7f93f3e2473f14d0631f4170ab8de65" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>ShaderElement * DynamicShadersBuffer::getCurrentShader</definition>
+        <argsstring>()</argsstring>
+        <name>getCurrentShader</name>
+        <qualifiedname>DynamicShadersBuffer::getCurrentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="30" column="24" bodyfile="dag_DynamicShadersBuffer.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1afb06fa52393a02fdbd804459a07ef76e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicShadersBuffer::setCurrentShader</definition>
+        <argsstring>(ShaderElement *shader)</argsstring>
+        <name>setCurrentShader</name>
+        <qualifiedname>DynamicShadersBuffer::setCurrentShader</qualifiedname>
+        <param>
+          <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+          <declname>shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="33" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1aeee15fbd3e7f14b42f64bfb2579e0a4f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicShadersBuffer::addFaces</definition>
+        <argsstring>(const void *vertex_data, int num_verts, const int *indices, int num_faces)</argsstring>
+        <name>addFaces</name>
+        <qualifiedname>DynamicShadersBuffer::addFaces</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>vertex_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_verts</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>indices</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_faces</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="40" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1a0cafb71604670377d905dfba12c91fa9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicShadersBuffer::fillRawFaces</definition>
+        <argsstring>(void **vertex_data, int num_verts, uint32_t **indices, int num_faces, int &amp;used_verts)</argsstring>
+        <name>fillRawFaces</name>
+        <qualifiedname>DynamicShadersBuffer::fillRawFaces</qualifiedname>
+        <param>
+          <type>void **</type>
+          <declname>vertex_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_verts</declname>
+        </param>
+        <param>
+          <type>uint32_t **</type>
+          <declname>indices</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_faces</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>used_verts</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="43" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1a974484ba088a1d39093c30cf1af5dd7f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicShadersBuffer::flush</definition>
+        <argsstring>(bool reset=false)</argsstring>
+        <name>flush</name>
+        <qualifiedname>DynamicShadersBuffer::flush</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>reset</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="48" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1a1f1bc4dc44bf89dea86eb8766c9d5fd1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::getUsedVertices</definition>
+        <argsstring>()</argsstring>
+        <name>getUsedVertices</name>
+        <qualifiedname>DynamicShadersBuffer::getUsedVertices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="50" column="14" bodyfile="dag_DynamicShadersBuffer.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicShadersBuffer_1af09d9e1affbf1e8ce1d9b5eb382af708" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicShadersBuffer::getUsedFaces</definition>
+        <argsstring>()</argsstring>
+        <name>getUsedFaces</name>
+        <qualifiedname>DynamicShadersBuffer::getUsedFaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DynamicShadersBuffer.h" line="52" column="14" bodyfile="dag_DynamicShadersBuffer.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_DynamicShadersBuffer.h" line="11" column="1" bodyfile="dag_DynamicShadersBuffer.h" bodystart="12" bodyend="68"/>
+    <listofallmembers>
+      <member refid="classDynamicShadersBuffer_1aeee15fbd3e7f14b42f64bfb2579e0a4f" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>addFaces</name></member>
+      <member refid="classDynamicShadersBuffer_1a1d701e181410a2df35282fb7b6201e32" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>close</name></member>
+      <member refid="classDynamicShadersBuffer_1a511843a5f547fbc514ad5ecf18ce78b9" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>currentShader</name></member>
+      <member refid="classDynamicShadersBuffer_1a5edf6c2f255012e90add1f2108bd9c30" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>DynamicShadersBuffer</name></member>
+      <member refid="classDynamicShadersBuffer_1afcb29400e9245c525d4b6fe3d1c81d03" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>DynamicShadersBuffer</name></member>
+      <member refid="classDynamicShadersBuffer_1a0cafb71604670377d905dfba12c91fa9" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>fillRawFaces</name></member>
+      <member refid="classDynamicShadersBuffer_1a974484ba088a1d39093c30cf1af5dd7f" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>flush</name></member>
+      <member refid="classDynamicShadersBuffer_1ab7f93f3e2473f14d0631f4170ab8de65" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>getCurrentShader</name></member>
+      <member refid="classDynamicShadersBuffer_1af09d9e1affbf1e8ce1d9b5eb382af708" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>getUsedFaces</name></member>
+      <member refid="classDynamicShadersBuffer_1a1f1bc4dc44bf89dea86eb8766c9d5fd1" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>getUsedVertices</name></member>
+      <member refid="classDynamicShadersBuffer_1afda4f7254ed471140ce4a164d9b1082c" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>iBuf</name></member>
+      <member refid="classDynamicShadersBuffer_1a20546dabad6c6b27da717ef961dba404" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>init</name></member>
+      <member refid="classDynamicShadersBuffer_1a5ef220784a239f9ed1862cf9e0429fbe" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>maxFaces</name></member>
+      <member refid="classDynamicShadersBuffer_1aafda8a733b79e4f2909afcb7a82a684b" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>maxVerts</name></member>
+      <member refid="classDynamicShadersBuffer_1afb06fa52393a02fdbd804459a07ef76e" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>setCurrentShader</name></member>
+      <member refid="classDynamicShadersBuffer_1acb3d7fe598b6534c82f5031613f2a222" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>startFaces</name></member>
+      <member refid="classDynamicShadersBuffer_1a9d996e5c6220c8fd70379ea39ae9d320" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>startVerts</name></member>
+      <member refid="classDynamicShadersBuffer_1acef37d712ba41379b84b715539e51e60" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>usedFaces</name></member>
+      <member refid="classDynamicShadersBuffer_1a6973f82c5b66d9dcd6d056df9dc56183" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>usedVerts</name></member>
+      <member refid="classDynamicShadersBuffer_1ae67e312ea0d0397562cc0b4a3bac4595" prot="private" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>vBuf</name></member>
+      <member refid="classDynamicShadersBuffer_1ae4344a162d82af4c903943c74dcf440a" prot="public" virt="non-virtual"><scope>DynamicShadersBuffer</scope><name>~DynamicShadersBuffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

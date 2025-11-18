@@ -1,0 +1,383 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__gizmofilter_8h" kind="file" language="C++">
+    <compoundname>ec_gizmofilter.h</compoundname>
+    <includes refid="ec__interface_8h" local="no">EditorCore/ec_interface.h</includes>
+    <includes refid="ec__geneditordata_8h" local="no">EditorCore/ec_geneditordata.h</includes>
+    <includes refid="ec__gridobject_8h" local="no">EditorCore/ec_gridobject.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <includedby refid="ec__IGizmoObject_8h" local="no">ec_IGizmoObject.h</includedby>
+    <incdepgraph>
+      <node id="10">
+        <label>EditorCore/ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>EditorCore/ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="9">
+        <label>EditorCore/ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>EditorCore/ec_gridobject.h</label>
+        <link refid="ec__gridobject_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>EditorCore/ec_rect.h</label>
+        <link refid="ec__rect_8h"/>
+      </node>
+      <node id="24">
+        <label>EditorCore/ec_status_bar.h</label>
+        <link refid="ec__status__bar_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EditorCore/ec_viewportAxisId.h</label>
+        <link refid="ec__viewportAxisId_8h"/>
+      </node>
+      <node id="18">
+        <label>3d/dag_textureIDHolder.h</label>
+      </node>
+      <node id="17">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="31">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="21">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="27">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="15">
+        <label>generic/dag_initOnDemand.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="23">
+        <label>gui/dag_stdGuiRenderEx.h</label>
+      </node>
+      <node id="8">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="22">
+        <label>math/dag_Quat.h</label>
+      </node>
+      <node id="28">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="4">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="16">
+        <label>propPanel/c_common.h</label>
+      </node>
+      <node id="30">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="7">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="11">
+        <label>propPanel/messageQueue.h</label>
+      </node>
+      <node id="29">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="20">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="25">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classGizmoEventFilter" prot="public">GizmoEventFilter</innerclass>
+    <innerclass refid="structGizmoEventFilter_1_1GizmoParams" prot="protected">GizmoEventFilter::GizmoParams</innerclass>
+    <innerclass refid="structGizmoEventFilter_1_1VpInfo" prot="protected">GizmoEventFilter::VpInfo</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="ec__gizmofilter_8h_1a33695739ad9ccb0d11dd81e889688215" prot="public" static="no">
+        <name>GIZMO_PIXEL_WIDTH</name>
+        <initializer>_pxS(4)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="10" column="9" bodyfile="ec_gizmofilter.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="ec__gizmofilter_8h_1ab1f6015da6a4052d4bbc52f5940268f5" prot="public" static="no">
+        <name>AXIS_LEN_PIX</name>
+        <initializer>_pxS(100)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="11" column="9" bodyfile="ec_gizmofilter.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__interface_8h" kindref="compound">EditorCore/ec_interface.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__geneditordata_8h" kindref="compound">EditorCore/ec_geneditordata.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__gridobject_8h" kindref="compound">EditorCore/ec_gridobject.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGizmoRenderer;</highlight></codeline>
+<codeline lineno="10" refid="ec__gizmofilter_8h_1a33695739ad9ccb0d11dd81e889688215" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GIZMO_PIXEL_WIDTH<sp/>_pxS(4)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="ec__gizmofilter_8h_1ab1f6015da6a4052d4bbc52f5940268f5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AXIS_LEN_PIX<sp/><sp/><sp/><sp/><sp/><sp/>_pxS(100)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classGizmoEventFilter" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGizmoEventFilter" kindref="compound">GizmoEventFilter</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="21" refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903" kindref="member">SelectedAxes</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="23" refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903aa80ef59a2b213e8d3f2e0c61ffb77ab6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903aa80ef59a2b213e8d3f2e0c61ffb77ab6" kindref="member">AXIS_X</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="24" refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a98d7ec44f8c442b5f08023eaa583ce42" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a98d7ec44f8c442b5f08023eaa583ce42" kindref="member">AXIS_Y</ref><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a81cd7e2ca8cca72516fda79e5a8035f7" kindref="member">AXIS_Z</ref><sp/>=<sp/>4</highlight></codeline>
+<codeline lineno="26" refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a81cd7e2ca8cca72516fda79e5a8035f7" refkind="member"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" kindref="member">Style</ref><sp/>:<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186ad35b51b639528d580362ca7042de6a0e" kindref="member">Classic</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186a03c2e7e41ffc181a4e84080b4710e81e" kindref="member">New</ref><sp/>=<sp/>1</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classGizmoEventFilter_1abdb44810d813b10a94e17dd66235084f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGizmoEventFilter_1abdb44810d813b10a94e17dd66235084f" kindref="member">GizmoEventFilter</ref>(<ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref><sp/>&amp;<ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classGridObject" kindref="compound">GridObject</ref><sp/>&amp;<ref refid="classGizmoEventFilter_1aed0297b81971376cfa8cb8783a67f713" kindref="member">grid</ref>);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classGizmoEventFilter_1a9cbbb0c2be6573a826ef22faf0ef7688" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a9cbbb0c2be6573a826ef22faf0ef7688" kindref="member">endGizmo</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>apply);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Handle<sp/>mouse<sp/>move.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classGizmoEventFilter_1a559fedbc2351f47277cab52019f645fe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a559fedbc2351f47277cab52019f645fe" kindref="member">handleMouseMove</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Handle<sp/>left<sp/>mouse<sp/>button<sp/>press.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="classGizmoEventFilter_1a0cb830d610e098826c390b8872e00e3c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a0cb830d610e098826c390b8872e00e3c" kindref="member">handleMouseLBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Handle<sp/>left<sp/>mouse<sp/>button<sp/>release.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classGizmoEventFilter_1a471078422b09419371d9eca22b51a494" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a471078422b09419371d9eca22b51a494" kindref="member">handleMouseLBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Handle<sp/>right<sp/>mouse<sp/>button<sp/>press.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="classGizmoEventFilter_1a81c41a36a3c16b48af1ba6ab756ef160" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a81c41a36a3c16b48af1ba6ab756ef160" kindref="member">handleMouseRBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="classGizmoEventFilter_1a8d680f9ca5634e82520d547ccda32460" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a8d680f9ca5634e82520d547ccda32460" kindref="member">handleMouseRBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="58"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>-&gt;<ref refid="classIGenEventHandler_1a2e35e2b69f623dd8f9ea4289bad0f809" kindref="member">handleMouseRBRelease</ref>(wnd,<sp/>x,<sp/>y,<sp/>inside,<sp/>buttons,<sp/>key_modif);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="classGizmoEventFilter_1a0e0a1fdd9d64f63484ef9ea1f9b9f3e9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a0e0a1fdd9d64f63484ef9ea1f9b9f3e9" kindref="member">handleMouseCBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="68"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>)</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>-&gt;<ref refid="classIGenEventHandler_1a39911163de6ae644a30da1c40886cd56" kindref="member">handleMouseCBPress</ref>(wnd,<sp/>x,<sp/>y,<sp/>inside,<sp/>buttons,<sp/>key_modif);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="76" refid="classGizmoEventFilter_1a8f2096de452928c0e7bc7d4330a371e3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a8f2096de452928c0e7bc7d4330a371e3" kindref="member">handleMouseCBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="77"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>-&gt;<ref refid="classIGenEventHandler_1a611babe0c85315bb93ce54c4986ef80a" kindref="member">handleMouseCBRelease</ref>(wnd,<sp/>x,<sp/>y,<sp/>inside,<sp/>buttons,<sp/>key_modif);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85" refid="classGizmoEventFilter_1ab77d285d24c9377cd64789d0dc68dd19" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1ab77d285d24c9377cd64789d0dc68dd19" kindref="member">handleMouseWheel</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>wheel_d,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="86"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>)</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>-&gt;<ref refid="classIGenEventHandler_1ae8879b99e9cf470abb70e4320e38de8c" kindref="member">handleMouseWheel</ref>(wnd,<sp/>wheel_d,<sp/>x,<sp/>y,<sp/>key_modif);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="94" refid="classGizmoEventFilter_1a7b0d766b594add7b068c9933fc0fe611" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a7b0d766b594add7b068c9933fc0fe611" kindref="member">handleMouseDoubleClick</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="95"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>.<ref refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" kindref="member">curEH</ref>-&gt;<ref refid="classIGenEventHandler_1a320e9235759aacd382f71d66d8138b15" kindref="member">handleMouseDoubleClick</ref>(wnd,<sp/>x,<sp/>y,<sp/>key_modif);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103" refid="classGizmoEventFilter_1abce2dfcc5c82b41bd4ab7bda0497fc92" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1abce2dfcc5c82b41bd4ab7bda0497fc92" kindref="member">handleViewportPaint</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107" refid="classGizmoEventFilter_1a615e4678313f5499f3842d834f6a6873" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a615e4678313f5499f3842d834f6a6873" kindref="member">handleViewChange</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109" refid="classGizmoEventFilter_1a911ac09053fd292f0d2e71a43e0c2028" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a911ac09053fd292f0d2e71a43e0c2028" kindref="member">setGizmoStyle</ref>(<ref refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" kindref="member">Style</ref><sp/>style);</highlight></codeline>
+<codeline lineno="110" refid="classGizmoEventFilter_1a43dd2cd1183a4a5141f2fd9135bd41ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a43dd2cd1183a4a5141f2fd9135bd41ee" kindref="member">setGizmoType</ref>(<ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref><sp/>type)<sp/>{<sp/><ref refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" kindref="member">gizmo</ref>.<ref refid="structGizmoEventFilter_1_1GizmoParams_1ae363b7e6e42ccce6cd2b3906995091ee" kindref="member">type</ref><sp/>=<sp/>type;<sp/>}</highlight></codeline>
+<codeline lineno="111" refid="classGizmoEventFilter_1a590dc936484f6677c67d32958cb1fce9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a590dc936484f6677c67d32958cb1fce9" kindref="member">setGizmoClient</ref>(<ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref><sp/>*client)<sp/>{<sp/><ref refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" kindref="member">gizmo</ref>.<ref refid="structGizmoEventFilter_1_1GizmoParams_1a2e04573aae50731bfe49565196062678" kindref="member">client</ref><sp/>=<sp/>client;<sp/>}</highlight></codeline>
+<codeline lineno="112" refid="classGizmoEventFilter_1adbc3fe3180213afddc8c3cb1e12d1918" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1adbc3fe3180213afddc8c3cb1e12d1918" kindref="member">zeroOverAndSelected</ref>()<sp/>{<sp/><ref refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" kindref="member">gizmo</ref>.<ref refid="structGizmoEventFilter_1_1GizmoParams_1ac4ba58a2d1dc52c03fe5bf9d40796b6a" kindref="member">over</ref><sp/>=<sp/><ref refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" kindref="member">gizmo</ref>.<ref refid="structGizmoEventFilter_1_1GizmoParams_1a1e961c879b80e86414de98c651170f1a" kindref="member">selected</ref><sp/>=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114" refid="classGizmoEventFilter_1a6c60cb541237de194485e74156762703" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" kindref="member">Style</ref><sp/><ref refid="classGizmoEventFilter_1a6c60cb541237de194485e74156762703" kindref="member">getGizmoStyle</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="115" refid="classGizmoEventFilter_1a3967b86ef07c8d01fe25dcce885c0259" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref><sp/><ref refid="classGizmoEventFilter_1a3967b86ef07c8d01fe25dcce885c0259" kindref="member">getGizmoType</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" kindref="member">gizmo</ref>.<ref refid="structGizmoEventFilter_1_1GizmoParams_1ae363b7e6e42ccce6cd2b3906995091ee" kindref="member">type</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="116" refid="classGizmoEventFilter_1adffb194146f3ae74daa92a4a8a706d22" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref><sp/>*<ref refid="classGizmoEventFilter_1adffb194146f3ae74daa92a4a8a706d22" kindref="member">getGizmoClient</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" kindref="member">gizmo</ref>.<ref refid="structGizmoEventFilter_1_1GizmoParams_1a2e04573aae50731bfe49565196062678" kindref="member">client</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="117" refid="classGizmoEventFilter_1a3403f91294ab8acfe6dd0b6473a22f74" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>Point3<sp/><ref refid="classGizmoEventFilter_1a3403f91294ab8acfe6dd0b6473a22f74" kindref="member">getMoveDelta</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a5413046e16619fc4db9ae06ef3901f85" kindref="member">movedDelta</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119" refid="classGizmoEventFilter_1aee2f83e146540c46899e5972b86960d5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1aee2f83e146540c46899e5972b86960d5" kindref="member">correctCursorInSurfMove</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;delta);</highlight></codeline>
+<codeline lineno="120" refid="classGizmoEventFilter_1a3397e594c2347e54253ba7261981eb6c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a3397e594c2347e54253ba7261981eb6c" kindref="member">isStarted</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1ae6fab05a71669bdb7592881918ffcecd" kindref="member">moveStarted</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="123" refid="structGizmoEventFilter_1_1GizmoParams" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGizmoEventFilter_1_1GizmoParams" kindref="compound">GizmoParams</ref></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="125" refid="structGizmoEventFilter_1_1GizmoParams_1acd1dac4800222c035ede15e1c14ff7b6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref><sp/><ref refid="structGizmoEventFilter_1_1GizmoParams_1acd1dac4800222c035ede15e1c14ff7b6" kindref="member">prevMode</ref>;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="structGizmoEventFilter_1_1GizmoParams_1ac4ba58a2d1dc52c03fe5bf9d40796b6a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGizmoEventFilter_1_1GizmoParams_1ac4ba58a2d1dc52c03fe5bf9d40796b6a" kindref="member">over</ref>;</highlight></codeline>
+<codeline lineno="128" refid="structGizmoEventFilter_1_1GizmoParams_1a1e961c879b80e86414de98c651170f1a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structGizmoEventFilter_1_1GizmoParams_1a1e961c879b80e86414de98c651170f1a" kindref="member">selected</ref>;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="structGizmoEventFilter_1_1GizmoParams_1a2e04573aae50731bfe49565196062678" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref><sp/>*<ref refid="structGizmoEventFilter_1_1GizmoParams_1a2e04573aae50731bfe49565196062678" kindref="member">client</ref>;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="structGizmoEventFilter_1_1GizmoParams_1ae363b7e6e42ccce6cd2b3906995091ee" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref><sp/><ref refid="structGizmoEventFilter_1_1GizmoParams_1ae363b7e6e42ccce6cd2b3906995091ee" kindref="member">type</ref>;</highlight></codeline>
+<codeline lineno="133" refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" refkind="member"><highlight class="normal"><sp/><sp/>}<sp/><ref refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" kindref="member">gizmo</ref>;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135" refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref><sp/>&amp;<ref refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" kindref="member">ged</ref>;</highlight></codeline>
+<codeline lineno="136" refid="classGizmoEventFilter_1aed0297b81971376cfa8cb8783a67f713" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classGridObject" kindref="compound">GridObject</ref><sp/>&amp;<ref refid="classGizmoEventFilter_1aed0297b81971376cfa8cb8783a67f713" kindref="member">grid</ref>;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="structGizmoEventFilter_1_1VpInfo" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGizmoEventFilter_1_1VpInfo" kindref="compound">VpInfo</ref></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="140" refid="structGizmoEventFilter_1_1VpInfo_1a69b212e508bc95cc1a66a5becc35a332" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point2<sp/><ref refid="structGizmoEventFilter_1_1VpInfo_1a9fdc8a1e145d7f56714a5bfc4bf8b6e8" kindref="member">center</ref>,<sp/><ref refid="structGizmoEventFilter_1_1VpInfo_1a69b212e508bc95cc1a66a5becc35a332" kindref="member">ax</ref>,<sp/><ref refid="structGizmoEventFilter_1_1VpInfo_1a78ac9e698c55579e00191e2561b72f33" kindref="member">ay</ref>,<sp/><ref refid="structGizmoEventFilter_1_1VpInfo_1ae22fc35acb530a207a4c2ea1f896984e" kindref="member">az</ref>;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="142" refid="classGizmoEventFilter_1a2fb5bdb9c05fcb438c66432964137e55" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;VpInfo&gt;<sp/><ref refid="classGizmoEventFilter_1a38b10c82e277476e96faf0a3c6334d6f" kindref="member">vp</ref>,<sp/><ref refid="classGizmoEventFilter_1a2fb5bdb9c05fcb438c66432964137e55" kindref="member">s_vp</ref>;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144" refid="classGizmoEventFilter_1ae991e5dbe2cceeb40b8917f1f986b3fe" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classGizmoEventFilter_1ae991e5dbe2cceeb40b8917f1f986b3fe" kindref="member">scale</ref>;</highlight></codeline>
+<codeline lineno="145" refid="classGizmoEventFilter_1a6f7ec6065655e244ab27c6bef8817891" refkind="member"><highlight class="normal"><sp/><sp/>Point2<sp/><ref refid="classGizmoEventFilter_1a6f7ec6065655e244ab27c6bef8817891" kindref="member">gizmoDelta</ref>;</highlight></codeline>
+<codeline lineno="146" refid="classGizmoEventFilter_1ac31fcb42fdd8d1754988a6a7a9a641fd" refkind="member"><highlight class="normal"><sp/><sp/>Point2<sp/><ref refid="classGizmoEventFilter_1ac31fcb42fdd8d1754988a6a7a9a641fd" kindref="member">mousePos</ref>;</highlight></codeline>
+<codeline lineno="147" refid="classGizmoEventFilter_1aee42fa77b6035a96946c869a22b09f46" refkind="member"><highlight class="normal"><sp/><sp/>Point2<sp/><ref refid="classGizmoEventFilter_1aee42fa77b6035a96946c869a22b09f46" kindref="member">mouseCurrentPos</ref>;</highlight></codeline>
+<codeline lineno="148" refid="classGizmoEventFilter_1ae66dbc91cdc8d131edeff0739284182a" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classGizmoEventFilter_1ae66dbc91cdc8d131edeff0739284182a" kindref="member">startPos</ref>;</highlight></codeline>
+<codeline lineno="149" refid="classGizmoEventFilter_1a06c76758f06f9a0b5014a548a9aaf044" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;Point2&gt;<sp/><ref refid="classGizmoEventFilter_1a06c76758f06f9a0b5014a548a9aaf044" kindref="member">startPos2d</ref>;</highlight></codeline>
+<codeline lineno="150" refid="classGizmoEventFilter_1a66a8ef66ae4474a9f291ad97df51c9d7" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classGizmoEventFilter_1a66a8ef66ae4474a9f291ad97df51c9d7" kindref="member">rotAngle</ref>,<sp/><ref refid="classGizmoEventFilter_1ac74b8f7989ef3665d1da7a34b537d46a" kindref="member">startRotAngle</ref>;</highlight></codeline>
+<codeline lineno="151" refid="classGizmoEventFilter_1a2c463917924f3cbbb31a5e91b38d4367" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a2c463917924f3cbbb31a5e91b38d4367" kindref="member">deltaX</ref>,<sp/><ref refid="classGizmoEventFilter_1a3ff01921f7511fd5d769e6ede36fee63" kindref="member">deltaY</ref>;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="classGizmoEventFilter_1a5413046e16619fc4db9ae06ef3901f85" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classGizmoEventFilter_1a5413046e16619fc4db9ae06ef3901f85" kindref="member">movedDelta</ref>;</highlight></codeline>
+<codeline lineno="154" refid="classGizmoEventFilter_1acd986b424011b7c5624da2e38d36e945" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classGizmoEventFilter_1acd986b424011b7c5624da2e38d36e945" kindref="member">planeNormal</ref>;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156" refid="classGizmoEventFilter_1ae6fab05a71669bdb7592881918ffcecd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1ae6fab05a71669bdb7592881918ffcecd" kindref="member">moveStarted</ref>;</highlight></codeline>
+<codeline lineno="157" refid="classGizmoEventFilter_1aa5cd2677f5ae4ab9b9604a71b9d7c6b0" refkind="member"><highlight class="normal"><sp/><sp/>Point2<sp/><ref refid="classGizmoEventFilter_1aa5cd2677f5ae4ab9b9604a71b9d7c6b0" kindref="member">rotateDir</ref>;</highlight></codeline>
+<codeline lineno="158" refid="classGizmoEventFilter_1accf349f4f10c78a827cd982ccf9a55e5" refkind="member"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;IGizmoRenderer&gt;<sp/><ref refid="classGizmoEventFilter_1accf349f4f10c78a827cd982ccf9a55e5" kindref="member">renderer</ref>;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160" refid="classGizmoEventFilter_1aad35efcface430103dc6663271bc1fb4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1aad35efcface430103dc6663271bc1fb4" kindref="member">startGizmo</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162" refid="classGizmoEventFilter_1abb35b1e02ce46fb35a897adcad976600" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1abb35b1e02ce46fb35a897adcad976600" kindref="member">drawGizmo</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*w);</highlight></codeline>
+<codeline lineno="163" refid="classGizmoEventFilter_1a65c226b17b31173595bf747d46f399f6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a65c226b17b31173595bf747d46f399f6" kindref="member">recalcViewportGizmo</ref>();</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165" refid="classGizmoEventFilter_1a62e70ef1f643fe5d4b789fa077752078" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a62e70ef1f643fe5d4b789fa077752078" kindref="member">checkGizmo</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>repaint()</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIEditorCoreEngine_1adc400f9a84a3beed7559a5f90aef743d" kindref="member">IEditorCoreEngine::get</ref>()-&gt;<ref refid="classIEditorCoreEngine_1ae110d8087065188c243a4243785aaaa5" kindref="member">updateViewports</ref>();</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIEditorCoreEngine_1adc400f9a84a3beed7559a5f90aef743d" kindref="member">IEditorCoreEngine::get</ref>()-&gt;<ref refid="classIEditorCoreEngine_1a5a9884e591dc02ad40f29f4f9fa1b3d5" kindref="member">invalidateViewportCache</ref>();</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>surfaceMove(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vp_i,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;pos,<sp/>Point3<sp/>&amp;move_delta);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_gizmofilter.h"/>
+  </compounddef>
+</doxygen>

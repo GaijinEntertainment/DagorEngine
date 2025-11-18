@@ -1,0 +1,1232 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="variablesMerger_8cpp" kind="file" language="C++">
+    <compoundname>variablesMerger.cpp</compoundname>
+    <includes refid="variablesMerger_8h" local="yes">variablesMerger.h</includes>
+    <includes refid="assemblyShader_8h" local="yes">assemblyShader.h</includes>
+    <includes refid="variantSemantic_8h" local="yes">variantSemantic.h</includes>
+    <includes refid="variantAssembly_8h" local="yes">variantAssembly.h</includes>
+    <includes refid="shsem_8h" local="yes">shsem.h</includes>
+    <includes refid="shExprParser_8h" local="yes">shExprParser.h</includes>
+    <includes refid="mdArray_8h" local="yes">mdArray.h</includes>
+    <includes local="no">memory/dag_regionMemAlloc.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includes local="no">EASTL/set.h</includes>
+    <incdepgraph>
+      <node id="91">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>assemblyShader.h</label>
+        <link refid="assemblyShader_8h"/>
+      </node>
+      <node id="54">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="88">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="81">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="78">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="92">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="72">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+      </node>
+      <node id="90">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="92" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="77">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="68">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="109">
+        <label>mdArray.h</label>
+        <link refid="mdArray_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="110" relation="include">
+        </childnode>
+        <childnode refid="111" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="89">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="93" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="94">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+      </node>
+      <node id="85">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="107">
+        <label>shExpr.h</label>
+        <link refid="shExpr_8h"/>
+      </node>
+      <node id="108">
+        <label>shExprParser.h</label>
+        <link refid="shExprParser_8h"/>
+      </node>
+      <node id="104">
+        <label>shLocVar.h</label>
+        <link refid="shLocVar_8h"/>
+      </node>
+      <node id="40">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="71">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="102">
+        <label>shMessages.h</label>
+        <link refid="shMessages_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="103">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+      </node>
+      <node id="21">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="95" relation="include">
+        </childnode>
+        <childnode refid="94" relation="include">
+        </childnode>
+        <childnode refid="96" relation="include">
+        </childnode>
+        <childnode refid="100" relation="include">
+        </childnode>
+        <childnode refid="102" relation="include">
+        </childnode>
+        <childnode refid="98" relation="include">
+        </childnode>
+        <childnode refid="103" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="94" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="74">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="101">
+        <label>shVarBool.h</label>
+        <link refid="shVarBool_8h"/>
+      </node>
+      <node id="67">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="20">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="103" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="104" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+      </node>
+      <node id="76">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="98">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="95">
+        <label>shaderVariantSrc.h</label>
+        <link refid="shaderVariantSrc_8h"/>
+      </node>
+      <node id="96">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="97" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="98" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="99" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+      </node>
+      <node id="70">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="100">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+      </node>
+      <node id="84">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="66">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="1">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="106" relation="include">
+        </childnode>
+        <childnode refid="100" relation="include">
+        </childnode>
+        <childnode refid="108" relation="include">
+        </childnode>
+        <childnode refid="109" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="112" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="106">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="107" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="64">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="35">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="17">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="16">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="112">
+        <label>EASTL/set.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="73">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="79">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="49">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="13">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="87">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="93">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="43">
+        <label>cstdint</label>
+      </node>
+      <node id="38">
+        <label>cstring</label>
+      </node>
+      <node id="34">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="33">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="86">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="12">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="75">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="65">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="110">
+        <label>generic/dag_carray.h</label>
+      </node>
+      <node id="41">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="42">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="53">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="97">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="111">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="31">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="37">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="58">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="62">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="63">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="80">
+        <label>memory</label>
+      </node>
+      <node id="45">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="82">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="105">
+        <label>memory/dag_regionMemAlloc.h</label>
+      </node>
+      <node id="99">
+        <label>shaders/dag_shaderCommon.h</label>
+      </node>
+      <node id="48">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="56">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="46">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="47">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="51">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="44">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="3">
+        <label>shsyn.h</label>
+      </node>
+      <node id="50">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="32">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="83">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="60">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="55">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="5">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" prot="public" static="no">
+        <name>TMPMEM_CALLOC</name>
+        <param><defname>type_</defname></param>
+        <initializer>(tmpmemCalloc.operator()&lt;type_&gt;())</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.cpp" line="58" column="9"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="variablesMerger_8h" kindref="compound">variablesMerger.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="assemblyShader_8h" kindref="compound">assemblyShader.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="variantSemantic_8h" kindref="compound">variantSemantic.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="variantAssembly_8h" kindref="compound">variantAssembly.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shsem_8h" kindref="compound">shsem.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shExprParser_8h" kindref="compound">shExprParser.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="mdArray_8h" kindref="compound">mdArray.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory/dag_regionMemAlloc.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/set.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray&lt;semantic::VariableType, VariablesMerger::TYPE_COUNT, 5&gt;</ref><sp/>VEC_TYPES_TABLE{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>{<ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182a88183b946cc5f0e8c96b2e66e1c74a7e" kindref="member">semantic::VariableType::Unknown</ref>,<sp/>semantic::VariableType::f1,<sp/>semantic::VariableType::f2,<sp/>semantic::VariableType::f3,</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/>semantic::VariableType::f4},</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>{<ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182a88183b946cc5f0e8c96b2e66e1c74a7e" kindref="member">semantic::VariableType::Unknown</ref>,<sp/>semantic::VariableType::i1,<sp/>semantic::VariableType::i2,<sp/>semantic::VariableType::i3,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>semantic::VariableType::i4},</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>{<ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182a88183b946cc5f0e8c96b2e66e1c74a7e" kindref="member">semantic::VariableType::Unknown</ref>,<sp/>semantic::VariableType::u1,<sp/>semantic::VariableType::u2,<sp/>semantic::VariableType::u3,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>semantic::VariableType::u4}};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray&lt;const char *, VariablesMerger::TYPE_COUNT, 5&gt;</ref><sp/>VEC_TYPE_NAMES_TABLE{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;f1&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;f2&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;f3&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;f4&quot;</highlight><highlight class="normal">},</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;i1&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;i2&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;i3&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;i4&quot;</highlight><highlight class="normal">},</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;u1&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;u2&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;u3&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;u4&quot;</highlight><highlight class="normal">},</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a92a153d67693ab2a85fb236214497778" kindref="member">VariablesMerger::addBufferedStat</ref>(ShaderTerminal::state_block_stat<sp/>&amp;state_block,<sp/>ShaderStage<sp/>stage)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7ccd836270f2fb811d44fc091cdc1e4d" kindref="member">bufferedStatsNames</ref>.getNameId(state_block.var-&gt;var-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>==<sp/>-1)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7ccd836270f2fb811d44fc091cdc1e4d" kindref="member">bufferedStatsNames</ref>.addNameId(state_block.var-&gt;var-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>&gt;=<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" kindref="member">bufferedBlocks</ref>.size())</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" kindref="member">bufferedBlocks</ref>.resize(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" kindref="member">bufferedBlocks</ref>[id]<sp/>=<sp/>&amp;state_block;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;bits<sp/>=<sp/>stage<sp/>==<sp/>STAGE_VS<sp/>?<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aa68ebe4816e00de90bd62b65a4d38641" kindref="member">bufferedDeclaredInVs</ref><sp/>:<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a5472b091b57e039f8ad569eea39aad53" kindref="member">bufferedDeclaredInPsOrCs</ref>;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(bits.test(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Packed<sp/>const<sp/>&apos;%s&apos;<sp/>redeclaration<sp/>at<sp/>%s<sp/>stage&quot;</highlight><highlight class="normal">,<sp/>state_block.var-&gt;var-&gt;name-&gt;text,<sp/><ref refid="const3d_8h_1a3abdba8616b59c9af5d39fdc5fe46d6b" kindref="member">SHADER_STAGE_NAMES</ref>[stage]);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>bits.set(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a481f4a31bd3565c35942a7b6e3d52002" kindref="member">VariablesMerger::mergeVars</ref>(AssembleShaderEvalCB<sp/>*ascb,<sp/>MergeableStateBlocks<sp/>&amp;blocks,<sp/>MergedVarsMap<sp/>&amp;var_map,<sp/>ShaderStage<sp/>stage)</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>RegionMemAlloc<sp/>rm_alloc(4<sp/>&lt;&lt;<sp/>20,<sp/>4<sp/>&lt;&lt;<sp/>20);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>tmpmemCalloc<sp/>=<sp/>[&amp;rm_alloc]&lt;</highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">T&gt;()<sp/>{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>T<sp/>*ptr<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>(&amp;rm_alloc)<sp/>T;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>memset((</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*)ptr,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*ptr));</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ptr;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TMPMEM_CALLOC(type_)<sp/>(tmpmemCalloc.operator()&lt;type_&gt;())</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*profiles[]<sp/>=<sp/>{</highlight><highlight class="stringliteral">&quot;cs&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;ps&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;vs&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*comps[]<sp/>=<sp/>{</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;x&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;xy&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;xyz&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(blocks.empty())</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">VarData</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::fixed_vector&lt;MergedVarInfo<sp/>*,<sp/>4&gt;<sp/>origVars;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ShaderTerminal::state_block_stat<sp/>*stat;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Var</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>VarData<sp/>data;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>String<sp/>combinedName;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>String<sp/>lhsName;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>String<sp/>rhsName;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Var(VarData<sp/>&amp;&amp;vdata,<sp/>IMemAlloc<sp/>*alloc)<sp/>:<sp/>data{eastl::move(vdata)},<sp/>combinedName{alloc},<sp/>lhsName{alloc},<sp/>rhsName{alloc}<sp/>{}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Var(VarData<sp/>&amp;&amp;vdata,<sp/>String<sp/>&amp;&amp;combined_name,<sp/>String<sp/>&amp;&amp;lhs_name,<sp/>String<sp/>&amp;&amp;rhs_name)<sp/>:</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>data{eastl::move(vdata)},</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>combinedName{eastl::move(combined_name)},</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>lhsName{eastl::move(lhs_name)},</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>rhsName{eastl::move(rhs_name)}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>addMergedVarToMap<sp/>=<sp/>[&amp;](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Var<sp/>&amp;var)<sp/>{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::fixed_vector&lt;MergedVarInfo,<sp/>4&gt;<sp/>origVarInfos;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(MergedVarInfo<sp/>*info<sp/>:<sp/>var.data.origVars)</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>origVarInfos.push_back(*info);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>var_map.emplace(var.data.stat-&gt;var-&gt;var-&gt;name-&gt;text,<sp/>eastl::move(origVarInfos));</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>allVars<sp/>=<sp/>mdarray_make&lt;TYPE_COUNT,<sp/>4<sp/>+<sp/>1&gt;([&amp;]<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>Tab&lt;Var&gt;(&amp;rm_alloc);<sp/>});</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;MergedVarInfo&gt;<sp/>sourceVarInfos{&amp;rm_alloc};</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>sourceVarInfos.reserve(blocks.size());</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray&lt;int, TYPE_COUNT, 5&gt;</ref><sp/>statCountsByTypeBySize{};</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>nsToSizeType<sp/>=<sp/>[](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*ns)<sp/>{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>@NOTE:<sp/>ns<sp/>format<sp/>is<sp/>validated<sp/>on<sp/>inital<sp/>parsing<sp/>in<sp/>AssembleShaderEvalCB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::make_pair((</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)(ns[2]<sp/>-<sp/></highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">),<sp/>(ns[1]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;f&apos;</highlight><highlight class="normal"><sp/>?<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" kindref="member">TYPE_FLOAT</ref><sp/>:<sp/>(ns[1]<sp/>==<sp/></highlight><highlight class="stringliteral">&apos;u&apos;</highlight><highlight class="normal">)<sp/>?<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" kindref="member">TYPE_UINT</ref><sp/>:<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a590b802a1c05f6326ae2e1a25d30854d" kindref="member">TYPE_INT</ref>));</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;stat<sp/>:<sp/>blocks)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[size,<sp/>type]<sp/>=<sp/>nsToSizeType(stat-&gt;var-&gt;var-&gt;nameSpace-&gt;text);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>++statCountsByTypeBySize[type][size];</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;[type,<sp/>tcounts]<sp/>:<sp/>enumerate(statCountsByTypeBySize.rowView()))</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>for<sp/>(const<sp/>auto<sp/>[size,<sp/>count]<sp/>:<sp/>enumerate(tcounts))</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>allVars[type][size].reserve(count);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;stat<sp/>:<sp/>blocks)</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[size,<sp/>type]<sp/>=<sp/>nsToSizeType(stat-&gt;var-&gt;var-&gt;nameSpace-&gt;text);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>MergedVarInfo<sp/>varInfo{.name<sp/>=<sp/>stat-&gt;var-&gt;var-&gt;name-&gt;text,<sp/>.offset<sp/>=<sp/>0,<sp/>.size<sp/>=<sp/>size,<sp/>.type<sp/>=<sp/>type};</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>sourceVarInfos.push_back(varInfo);</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>allVars[varInfo.type][varInfo.size].emplace_back(Var{VarData{.origVars<sp/>=<sp/>{&amp;sourceVarInfos.back()},<sp/>.stat<sp/>=<sp/>stat},<sp/>&amp;rm_alloc});</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>merge<sp/>=<sp/>[&amp;,<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">](</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dim1,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dim2)<sp/>{</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;vars<sp/>=<sp/>allVars[type];</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>done<sp/>=<sp/>[&amp;]<sp/>{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dim1<sp/>!=<sp/>dim2)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>vars[dim1].empty()<sp/>||<sp/>vars[dim2].empty();</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>vars[dim1].size()<sp/>&lt;<sp/>2;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(!done())</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Var<sp/>varA<sp/>=<sp/>vars[dim1].back();</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>vars[dim1].pop_back();</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Var<sp/>varB<sp/>=<sp/>vars[dim2].back();</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>vars[dim2].pop_back();</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ShaderTerminal::external_variable<sp/>*var_a<sp/>=<sp/>varA.data.stat-&gt;var;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ShaderTerminal::external_variable<sp/>*var_b<sp/>=<sp/>varB.data.stat-&gt;var;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(var_a-&gt;val-&gt;expr<sp/>==<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal"><sp/>||<sp/>var_b-&gt;val-&gt;expr<sp/>==<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;shader<sp/>parser<sp/>failed<sp/>on<sp/>generated<sp/>code<sp/>in<sp/>variable<sp/>merger&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>String<sp/>merged_var_name_str{&amp;rm_alloc};</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_name_str.printf(8,<sp/></highlight><highlight class="stringliteral">&quot;%s__%s&quot;</highlight><highlight class="normal">,<sp/>var_a-&gt;var-&gt;name-&gt;text,<sp/>var_b-&gt;var-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>mergedTypeTokNum<sp/>=<sp/>(type<sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" kindref="member">TYPE_FLOAT</ref><sp/>?<sp/>SHADER_TOKENS::SHTOK_float4<sp/>:<sp/>SHADER_TOKENS::SHTOK_int4);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>String<sp/>lhsName{&amp;rm_alloc};</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>lhsName.printf(16,<sp/></highlight><highlight class="stringliteral">&quot;__%s%i&quot;</highlight><highlight class="normal">,<sp/>var_a-&gt;var-&gt;name-&gt;text,<sp/>stage);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_var_decl<sp/>local_a_decl<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_var_type<sp/>local_a_type<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SHTOK_ident<sp/>local_a_type_id<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SHTOK_ident<sp/>local_a_name_id<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_a_name_id.text<sp/>=<sp/>lhsName.c_str();</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_a_type_id.num<sp/>=<sp/>mergedTypeTokNum;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_a_type.type<sp/>=<sp/>&amp;local_a_type_id;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_a_decl.type<sp/>=<sp/>&amp;local_a_type;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_a_decl.name<sp/>=<sp/>&amp;local_a_name_id;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_a_decl.expr<sp/>=<sp/>var_a-&gt;val-&gt;expr;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[reg1_var,<sp/>reg1_expr]<sp/>=<sp/><ref refid="commonUtils_8h_1aed5248b94d444aeecb8630a6583bb5f8" kindref="member">unwrap</ref>(<ref refid="namespacesemantic_1aa7d8cdb06eb014e4ae6ba3205f29b555" kindref="member">semantic::parse_local_var_decl</ref>(local_a_decl,<sp/>ascb-&gt;ctx,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!reg1_var-&gt;isConst)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>assembly::assemble_local_var&lt;assembly::StcodeBuildFlagsBits::ALL&gt;(reg1_var,<sp/>reg1_expr.get(),<sp/>local_a_decl.name,<sp/>ascb-&gt;ctx);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reg1<sp/>=<sp/>reg1_var-&gt;reg;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>String<sp/>rhsName{&amp;rm_alloc};</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>rhsName.printf(16,<sp/></highlight><highlight class="stringliteral">&quot;__%s%i&quot;</highlight><highlight class="normal">,<sp/>var_b-&gt;var-&gt;name-&gt;text,<sp/>stage);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_var_decl<sp/>local_b_decl<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_var_type<sp/>local_b_type<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SHTOK_ident<sp/>local_b_type_id<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SHTOK_ident<sp/>local_b_name_id<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_b_name_id.text<sp/>=<sp/>rhsName.c_str();</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_b_type_id.num<sp/>=<sp/>mergedTypeTokNum;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_b_type.type<sp/>=<sp/>&amp;local_b_type_id;</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_b_decl.type<sp/>=<sp/>&amp;local_b_type;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_b_decl.name<sp/>=<sp/>&amp;local_b_name_id;</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>local_b_decl.expr<sp/>=<sp/>var_b-&gt;val-&gt;expr;</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[reg2_var,<sp/>reg2_expr]<sp/>=<sp/><ref refid="commonUtils_8h_1aed5248b94d444aeecb8630a6583bb5f8" kindref="member">unwrap</ref>(<ref refid="namespacesemantic_1aa7d8cdb06eb014e4ae6ba3205f29b555" kindref="member">semantic::parse_local_var_decl</ref>(local_b_decl,<sp/>ascb-&gt;ctx,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!reg2_var-&gt;isConst)</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>assembly::assemble_local_var&lt;assembly::StcodeBuildFlagsBits::ALL&gt;(reg2_var,<sp/>reg2_expr.get(),<sp/>local_b_decl.name,<sp/>ascb-&gt;ctx);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reg2<sp/>=<sp/>reg2_var-&gt;reg;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_stat<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(state_block_stat);</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_var<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(external_variable);</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_name<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(external_var_name);</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_name_id<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(SHTOK_ident);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_namespace<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(SHTOK_type_ident);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_name_id-&gt;text<sp/>=<sp/>merged_var_name_str.c_str();</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_namespace-&gt;text<sp/>=<sp/>VEC_TYPE_NAMES_TABLE[type][dim1<sp/>+<sp/>dim2];</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_name-&gt;name<sp/>=<sp/>merged_var_name_id;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_name-&gt;nameSpace<sp/>=<sp/>merged_var_namespace;</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_val<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(external_var_value_single);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_expr<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_expr);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_expr_md<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_expr_md);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_operand<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_operand);</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_color<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_color);</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_lhs<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_expr);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_lhs_md<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_expr_md);</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_lhs_operand<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_operand);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_lhs_cmask<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_color_mask);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_lhs_channel<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(SHTOK_ident);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_lhs_var<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(SHTOK_ident);</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_lhs_var-&gt;text<sp/>=<sp/>lhsName.c_str();</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_lhs_channel-&gt;text<sp/>=<sp/>comps[dim1];</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_lhs_cmask-&gt;channel<sp/>=<sp/>merged_var_lhs_channel;</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_lhs_operand-&gt;var_name<sp/>=<sp/>merged_var_lhs_var;</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_lhs_operand-&gt;cmask<sp/>=<sp/>merged_var_lhs_cmask;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_lhs_md-&gt;lhs<sp/>=<sp/>merged_var_lhs_operand;</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_lhs-&gt;lhs<sp/>=<sp/>merged_var_lhs_md;</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_rhs<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_expr);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_rhs_md<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_expr_md);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_rhs_operand<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_operand);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_rhs_cmask<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(arithmetic_color_mask);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_rhs_channel<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(SHTOK_ident);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*merged_var_rhs_var<sp/>=<sp/><ref refid="variablesMerger_8cpp_1a0b20357f85203a18b83344f68c3b139b" kindref="member">TMPMEM_CALLOC</ref>(SHTOK_ident);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_rhs_var-&gt;text<sp/>=<sp/>rhsName.c_str();</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_rhs_channel-&gt;text<sp/>=<sp/>comps[dim2];</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_rhs_cmask-&gt;channel<sp/>=<sp/>merged_var_rhs_channel;</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_rhs_operand-&gt;var_name<sp/>=<sp/>merged_var_rhs_var;</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_rhs_operand-&gt;cmask<sp/>=<sp/>merged_var_rhs_cmask;</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_rhs_md-&gt;lhs<sp/>=<sp/>merged_var_rhs_operand;</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_rhs-&gt;lhs<sp/>=<sp/>merged_var_rhs_md;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_color-&gt;expr0<sp/>=<sp/>merged_var_lhs;</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_color-&gt;expr1<sp/>=<sp/>merged_var_rhs;</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_operand-&gt;color_value<sp/>=<sp/>merged_var_color;</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_expr_md-&gt;lhs<sp/>=<sp/>merged_var_operand;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_expr-&gt;lhs<sp/>=<sp/>merged_var_expr_md;</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_val-&gt;expr<sp/>=<sp/>merged_var_expr;</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_var-&gt;var<sp/>=<sp/>merged_var_name;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_var-&gt;val<sp/>=<sp/>merged_var_val;</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_stat-&gt;var<sp/>=<sp/>merged_var_var;</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"></highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_stat-&gt;var-&gt;var-&gt;name-&gt;file_start<sp/>=<sp/>varA.data.stat-&gt;var-&gt;var-&gt;name-&gt;file_start;</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>merged_var_stat-&gt;var-&gt;var-&gt;name-&gt;line_start<sp/>=<sp/>varA.data.stat-&gt;var-&gt;var-&gt;name-&gt;line_start;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eastl::fixed_vector&lt;MergedVarInfo<sp/>*,<sp/>4&gt;<sp/>combinedSourceVars<sp/>=<sp/>eastl::move(varA.data.origVars);</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(MergedVarInfo<sp/>*appendedVar<sp/>:<sp/>eastl::move(varB.data.origVars))</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>appendedVar-&gt;offset<sp/>+=<sp/>dim1;</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>combinedSourceVars.push_back(appendedVar);</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Var<sp/>var{VarData{.origVars<sp/>=<sp/>eastl::move(combinedSourceVars),<sp/>.stat<sp/>=<sp/>merged_var_stat},<sp/>eastl::move(merged_var_name_str),</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eastl::move(lhsName),<sp/>eastl::move(rhsName)};</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"></highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dim1<sp/>+<sp/>dim2<sp/>==<sp/>4)</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>addMergedVarToMap(var);</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ascb-&gt;compile_external_block_stat({var.data.stat,<sp/>ShaderStage(stage),<sp/>VEC_TYPES_TABLE[type][4]});</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reg1<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ascb-&gt;ctx.stBytecode().regAllocator-&gt;manuallyReleaseRegister(reg1);</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reg2<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ascb-&gt;ctx.stBytecode().regAllocator-&gt;manuallyReleaseRegister(reg2);</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>vars[dim1<sp/>+<sp/>dim2].emplace_back(eastl::move(var));</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type<sp/>=<sp/>0;<sp/>type<sp/>&lt;<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a949110cdaf2cd3cfb33d526cc7208931" kindref="member">TYPE_COUNT</ref>;<sp/>++type)</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>merge(type,<sp/>3,<sp/>1);</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>merge(type,<sp/>2,<sp/>2);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>merge(type,<sp/>2,<sp/>1);</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>merge(type,<sp/>3,<sp/>1);</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>merge(type,<sp/>1,<sp/>1);</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>merge(type,<sp/>2,<sp/>2);</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>merge(type,<sp/>2,<sp/>1);</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"></highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dim<sp/>=<sp/>1;<sp/>dim<sp/>&lt;=<sp/>4;<sp/>dim++)</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(Var<sp/>&amp;var<sp/>:<sp/>allVars[type][dim])</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(var.data.origVars.size()<sp/>&gt;<sp/>1)</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>addMergedVarToMap(var);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ascb-&gt;compile_external_block_stat({var.data.stat,<sp/>ShaderStage(stage),<sp/>VEC_TYPES_TABLE[type][dim]});</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>TMPMEM_CALLOC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="305"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight></codeline>
+<codeline lineno="307"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderParser</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="variablesMerger.cpp"/>
+  </compounddef>
+</doxygen>

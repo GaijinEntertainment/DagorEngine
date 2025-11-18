@@ -1,0 +1,424 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Introduction to Assets</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="How to Test Assets on Maps" href="how-to-test-assets-on-maps/index.html" />
+    <link rel="prev" title="Assets" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Assets</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Introduction to Assets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#asset-formats-and-management">Asset Formats and Management</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#asset-types-and-their-rules">Asset Types and Their Rules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#texture-assets">Texture Assets</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dynamic-models-and-rendering-instances">Dynamic Models and Rendering Instances</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#composite-dynamic-models">Composite Dynamic Models</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="how-to-test-assets-on-maps/index.html">How to Test Assets on Maps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ladders/index.html">Ladders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="microdetails/index.html">Microdetails</a></li>
+<li class="toctree-l3"><a class="reference internal" href="occluder/index.html">Occluder Box</a></li>
+<li class="toctree-l3"><a class="reference internal" href="procedural-rendinst-painting/index.html">Procedural Rendinst Painting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Assets</a></li>
+      <li class="breadcrumb-item active">Introduction to Assets</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/about-assets/about_assets.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="introduction-to-assets">
+<h1>Introduction to Assets<a class="headerlink" href="#introduction-to-assets" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Assets refer to all types of resources used in the <em>Dagor Engine Tools</em>.</p>
+<p>You can find a list of supported asset types in your project in the
+<a class="reference internal" href="../all-about-blk/application_blk.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">application.blk</span></code></span></a> file. This file is a
+key resource for configuring how the tools interact with your project.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">assets</span><span class="ni">{</span>
+  <span class="se">types</span><span class="ni">{}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>Within <code class="docutils literal notranslate"><span class="pre">application.blk</span></code> file, the base path to the asset directory is specified
+as <code class="docutils literal notranslate"><span class="pre">base:t=</span></code>.</p>
+<p>Assets are classified into three main categories:</p>
+<ol class="arabic simple">
+<li><p><strong>Editor-only assets</strong>: These are resources used exclusively by the editor,
+such as for exporting levels. Examples include materials, prefabs, spline
+classes, and others.</p></li>
+<li><p><strong>Game-exported assets</strong>: These resources are exported into the game
+(indicated by the <code class="docutils literal notranslate"><span class="pre">export{}</span></code> block in <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>). They are stored in
+<code class="docutils literal notranslate"><span class="pre">.grp</span></code> files within the game. Typically, the level editor uses the exported
+game resources for performance reasons.</p></li>
+<li><p><strong>Textures</strong>: Although these are usually exported into the game, they are
+stored in <code class="docutils literal notranslate"><span class="pre">.dxp.bin</span></code> files. The editor uses a texture cache rather than the
+exported textures, allowing for real-time texture modifications.</p></li>
+</ol>
+</section>
+<section id="asset-formats-and-management">
+<h2>Asset Formats and Management<a class="headerlink" href="#asset-formats-and-management" title="Link to this heading"></a></h2>
+<p>Assets for both the game and tools are stored in <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files, which come in two
+formats:</p>
+<ul class="simple">
+<li><p><strong>Modern format</strong>: <code class="docutils literal notranslate"><span class="pre">&lt;asset_name&gt;.&lt;className&gt;.blk</span></code> (e.g.,
+<code class="docutils literal notranslate"><span class="pre">my_house.rendinst.blk</span></code>).</p></li>
+<li><p><strong>Legacy format</strong>: <code class="docutils literal notranslate"><span class="pre">&lt;asset_name&gt;.blk</span></code>, where the asset type must be specified
+within the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file.</p></li>
+</ul>
+<p>Each asset’s <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file contains all the parameters required by the exporter
+for that specific resource. Each type of resource has its own build tool plugin
+and dedicated code in the game.</p>
+<p>In some cases, the description within the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file is minimal. For example, a
+texture asset might only require the texture name (if it’s in <code class="docutils literal notranslate"><span class="pre">.dds</span></code> format). In
+other cases, like effects, the entire asset is defined within the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file,
+and the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a> acts as
+its editor.</p>
+<p>Most assets do not have dedicated editing tools. The primary method for creating
+these assets is through manual editing and hot-reloading using the tools.</p>
+<p>However, to avoid manually creating <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files for every simple asset type
+(e.g., textures, skeletons, dynamic models), <em>Dagor</em> supports a highly flexible
+system for creating virtual assets - through a
+<a class="reference internal" href="../all-about-blk/folder_blk.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code></span></a> file placed within the asset
+directory.</p>
+<p>In practice, simply placing textures and models into the appropriate directories
+is sufficient in 99.99% of cases. Numerous rules, such as LOD (Level of Detail)
+switching distances and texture conversion rules, will be generated
+automatically.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All resource names must be <strong>unique</strong>. While the system generally functions if
+resources are unique within their type, it is advisable to ensure globally
+unique names.</p>
+</div>
+</section>
+<section id="asset-types-and-their-rules">
+<h2>Asset Types and Their Rules<a class="headerlink" href="#asset-types-and-their-rules" title="Link to this heading"></a></h2>
+<section id="texture-assets">
+<h3>Texture Assets<a class="headerlink" href="#texture-assets" title="Link to this heading"></a></h3>
+<p>A brief overview of texture asset parameters (all are optional, and for standard
+diffuse <code class="docutils literal notranslate"><span class="pre">.dds</span></code> textures, nothing may need to be specified. For <code class="docutils literal notranslate"><span class="pre">.tga</span></code> files, two
+parameters are typically required: <code class="docutils literal notranslate"><span class="pre">convert:b=yes</span></code>, <code class="docutils literal notranslate"><span class="pre">fmt:=&quot;DXT1|DXT5&quot;</span></code>):</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">contents</span><span class="ni">{</span>
+  <span class="no">convert</span><span class="nt">:b=</span><span class="si">yes</span><span class="gp">;</span> <span class="no">fmt</span><span class="nt">:t=</span><span class="nf">&quot;DXT1|DXT5&quot;</span>
+  <span class="no">mipmapType</span><span class="nt">:t=</span><span class="no">mipmapGenerate</span>
+  <span class="no">mipFilter</span><span class="nt">:t=</span><span class="nf">&quot;filterKaiser&quot;</span><span class="gp">;</span> <span class="no">mipFilterAlpha</span><span class="nt">:r=</span><span class="m">40</span><span class="gp">;</span> <span class="no">mipFilterStretch</span><span class="nt">:r=</span><span class="m">2</span>
+  <span class="no">addrU</span><span class="nt">:t=</span><span class="nf">&quot;wrap&quot;</span><span class="gp">;</span> <span class="no">addrV</span><span class="nt">:t=</span><span class="nf">&quot;wrap&quot;</span><span class="gp">;</span>
+  <span class="no">swizzleARGB</span><span class="nt">:t=</span><span class="nf">&quot;RAG0&quot;</span>
+  <span class="no">hqMip</span><span class="nt">:i=</span><span class="m">3</span><span class="gp">;</span> <span class="no">mqMip</span><span class="nt">:i=</span><span class="m">3</span><span class="gp">;</span> <span class="no">lqMip</span><span class="nt">:i=</span><span class="m">4</span>
+  <span class="se">PC</span><span class="ni">{</span>
+    <span class="no">hqMip</span><span class="nt">:i=</span><span class="m">2</span><span class="gp">;</span> <span class="no">mqMip</span><span class="nt">:i=</span><span class="m">2</span><span class="gp">;</span> <span class="no">lqMip</span><span class="nt">:i=</span><span class="m">3</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="no">gamma</span><span class="nt">:r=</span><span class="m">1</span>
+  <span class="no">colorPadding</span><span class="nt">:b=</span><span class="si">no</span>
+  <span class="ge">// alphaCoverageThresMip9:i=200</span>
+  <span class="ge">// alphaCoverage:b=no</span>
+  <span class="ge">// rtMipGen:b=no</span>
+  <span class="ge">// aniFunc:t=&quot;abs&quot;;</span>
+  <span class="ge">// anisotropy:i=8</span>
+  <span class="no">addrU</span><span class="nt">:t=</span><span class="nf">&quot;wrap&quot;</span><span class="gp">;</span> <span class="no">addrV</span><span class="nt">:t=</span><span class="nf">&quot;wrap&quot;</span><span class="gp">;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">convert</span></code>: Converts the texture (mandatory for all <code class="docutils literal notranslate"><span class="pre">.tga</span></code> or <code class="docutils literal notranslate"><span class="pre">.psd</span></code> textures).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fmt:t</span></code>: Specifies the format to convert to (options include <code class="docutils literal notranslate"><span class="pre">DXT1</span></code>, <code class="docutils literal notranslate"><span class="pre">DXT5</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ARGB</span></code>, <code class="docutils literal notranslate"><span class="pre">L8</span></code>, <code class="docutils literal notranslate"><span class="pre">A8L8</span></code>, <code class="docutils literal notranslate"><span class="pre">L16</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mipmapType:t</span></code>: Method for generating mipmaps (<code class="docutils literal notranslate"><span class="pre">mipmapGenerate</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mipmapUseExisting</span></code>, <code class="docutils literal notranslate"><span class="pre">mipmapNone</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mipFilter</span></code>: Specifies the filter used to generate mipmaps (<code class="docutils literal notranslate"><span class="pre">filterKaiser</span></code>,
+<code class="docutils literal notranslate"><span class="pre">filterBox</span></code>, <code class="docutils literal notranslate"><span class="pre">filterCubic</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hqMip</span></code>, <code class="docutils literal notranslate"><span class="pre">mqMip</span></code>, <code class="docutils literal notranslate"><span class="pre">lqMip</span></code>: Specifies which mip level to use at high, medium,
+and low quality settings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swizzleARGB</span></code>: Specifies how to swizzle the texture channels. Typically not
+needed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gamma</span></code>: Gamma correction value (<code class="docutils literal notranslate"><span class="pre">1</span></code> for normal maps and masks, default is
+<code class="docutils literal notranslate"><span class="pre">2.2</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">addrU</span></code>, <code class="docutils literal notranslate"><span class="pre">addrV</span></code>: Texture addressing mode (<code class="docutils literal notranslate"><span class="pre">wrap</span></code>, <code class="docutils literal notranslate"><span class="pre">clamp</span></code>, <code class="docutils literal notranslate"><span class="pre">border</span></code>).</p></li>
+</ul>
+</section>
+<section id="dynamic-models-and-rendering-instances">
+<h3>Dynamic Models and Rendering Instances<a class="headerlink" href="#dynamic-models-and-rendering-instances" title="Link to this heading"></a></h3>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">lod</span><span class="ni">{</span>
+  <span class="no">range</span><span class="nt">:r=</span><span class="m">70</span><span class="gp">;</span> <span class="no">fname</span><span class="nt">:t=</span><span class="nf">&quot;$1.lod00.dag&quot;</span><span class="gp">;</span>
+<span class="ni">}</span>
+<span class="se">lod</span><span class="ni">{</span>
+  <span class="no">range</span><span class="nt">:r=</span><span class="m">200</span><span class="gp">;</span> <span class="no">fname</span><span class="nt">:t=</span><span class="nf">&quot;$1.lod01.dag&quot;</span><span class="gp">;</span>
+<span class="ni">}</span>
+<span class="se">lod</span><span class="ni">{</span>
+  <span class="no">range</span><span class="nt">:r=</span><span class="m">550</span><span class="gp">;</span> <span class="no">fname</span><span class="nt">:t=</span><span class="nf">&quot;$1.lod02.dag&quot;</span><span class="gp">;</span>
+<span class="ni">}</span>
+<span class="se">lod</span><span class="ni">{</span>
+  <span class="no">range</span><span class="nt">:r=</span><span class="m">4000</span><span class="gp">;</span> <span class="no">fname</span><span class="nt">:t=</span><span class="nf">&quot;$1.lod03.dag&quot;</span><span class="gp">;</span>
+<span class="ni">}</span>
+<span class="no">ref_skeleton</span><span class="nt">:t=</span><span class="nf">&quot;$1_skeleton&quot;</span>
+<span class="no">texref_prefix</span><span class="nt">:t=</span><span class="nf">&quot;low_&quot;</span>
+<span class="no">all_animated</span><span class="nt">:b=</span><span class="si">yes</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">lod</span></code>: LOD parameters.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">range:r</span></code>: LOD distance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fname:t</span></code>: Optional filename, defaults to <code class="docutils literal notranslate"><span class="pre">$1.lod&lt;lod_number&gt;.dag</span></code>.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">texref_prefix:t</span></code>: Prefix added to all texture references in the model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ref_skeleton:t</span></code>: Reference skeleton for dynamic models, necessary for correct
+preview in <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_animated:b</span></code>: Indicates that all objects in the model should be
+considered animated, i.e., having their own matrices.</p></li>
+</ul>
+</section>
+<section id="composite-dynamic-models">
+<h3>Composite Dynamic Models<a class="headerlink" href="#composite-dynamic-models" title="Link to this heading"></a></h3>
+<p>Composite dynamic models are structures composed of multiple dynamic models that
+share a common skeleton.</p>
+<p>Below are the rules for creating a
+<a class="reference internal" href="../all-about-blk/skeleton_blk.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">.skeleton.blk</span></code></span></a> file for a composite model,
+using a tank with several turret and gun options as an example:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;tank_body.lod00.dag&quot;</span>
+<span class="se">attachSubSkel</span><span class="ni">{</span>
+  <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_turret&quot;</span>
+  <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;turret_a.lod00.dag&quot;</span>
+  <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_turret&quot;</span>
+  <span class="se">attachSubSkel</span><span class="ni">{</span>
+    <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_gun_a&quot;</span>
+    <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;gun_a.lod00.dag&quot;</span>
+    <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_gun_a&quot;</span>
+  <span class="ni">}</span>
+  <span class="se">attachSubSkel</span><span class="ni">{</span>
+    <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_gun_b&quot;</span>
+    <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;gun_b.lod00.dag&quot;</span>
+    <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_gun_b&quot;</span>
+    <span class="no">add_prefix</span><span class="nt">:t=</span><span class="nf">&quot;G1:&quot;</span>
+  <span class="ni">}</span>
+  <span class="se">attachSubSkel</span><span class="ni">{</span>
+    <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_gun_c&quot;</span>
+    <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;gun_b.lod00.dag&quot;</span>
+    <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_gun_b&quot;</span>
+    <span class="no">add_prefix</span><span class="nt">:t=</span><span class="nf">&quot;G2:&quot;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+<span class="se">attachSubSkel</span><span class="ni">{</span>
+  <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_turret&quot;</span>
+  <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;turret_b.lod00.dag&quot;</span>
+  <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_turret&quot;</span>
+  <span class="no">add_prefix</span><span class="nt">:t=</span><span class="nf">&quot;T1:&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name:t</span></code>: Parent model name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">attachSubSkel{}</span></code>: Block for adding a dynamic model.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">attach_to:t</span></code>: Node in the parent skeleton to which the additional dynamic
+model is linked.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skel_file:t</span></code>: Child model file name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skel_node:t</span></code>: Node in the child model’s skeleton to link with the parent.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">add_prefix:t</span></code>: Prefix for all child model nodes.</p></li>
+</ul>
+</li>
+</ul>
+<p>In the <code class="docutils literal notranslate"><span class="pre">.skeleton.blk</span></code> file above, the skeleton generated from the <code class="docutils literal notranslate"><span class="pre">tank_body</span></code>
+model is extended with the turrets <code class="docutils literal notranslate"><span class="pre">turret_a</span></code> and <code class="docutils literal notranslate"><span class="pre">turret_b</span></code>, which are attached
+to the <code class="docutils literal notranslate"><span class="pre">bone_turret</span></code>. On <code class="docutils literal notranslate"><span class="pre">turret_a</span></code>, two unique guns, <code class="docutils literal notranslate"><span class="pre">gun_a</span></code> and <code class="docutils literal notranslate"><span class="pre">gun_b</span></code>, are
+attached to <code class="docutils literal notranslate"><span class="pre">bone_gun_a</span></code>, <code class="docutils literal notranslate"><span class="pre">bone_gun_b</span></code>, and <code class="docutils literal notranslate"><span class="pre">bone_gun_c</span></code>. However, <code class="docutils literal notranslate"><span class="pre">gun_b</span></code> is
+attached twice to different bones.</p>
+<p>Since we are creating a single shared skeleton, it is critical to avoid
+duplicate node names. To address this, a unique prefix is added to the nodes of
+each duplicate. The two copies of <code class="docutils literal notranslate"><span class="pre">bone_gun_b</span></code>, forming different branches in
+the hierarchy, received prefixes <code class="docutils literal notranslate"><span class="pre">G1</span></code> and <code class="docutils literal notranslate"><span class="pre">G2</span></code>. Similarly, the nodes in
+<code class="docutils literal notranslate"><span class="pre">turret_b</span></code> were prefixed with <code class="docutils literal notranslate"><span class="pre">T1</span></code>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p>When specifying the attachment node, do not include automatically added
+prefixes.</p></li>
+<li><p>If a child model is attached to a node with the same name as one of its
+bones, the previous node is removed from the hierarchy. There won’t be a
+duplicate – don’t worry.</p></li>
+</ul>
+</div>
+<p>While theoretically, you can create a very deep hierarchy of dependencies,
+simpler structures are easier to manage. Always evaluate the necessity of adding
+new levels before doing that.</p>
+<p>A multi-level hierarchy might look like this:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;papa.lod00.dag&quot;</span>
+<span class="se">attachSubSkel</span><span class="ni">{</span>
+  <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_papa&quot;</span>
+  <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;child.lod00.dag&quot;</span>
+  <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_child&quot;</span>
+  <span class="no">add_prefix</span><span class="nt">:t=</span><span class="nf">&quot;layer01:&quot;</span>
+  <span class="se">attachSubSkel</span><span class="ni">{</span>
+    <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_child&quot;</span>
+    <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;child.lod00.dag&quot;</span>
+    <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_child&quot;</span>
+    <span class="no">add_prefix</span><span class="nt">:t=</span><span class="nf">&quot;layer02:&quot;</span>
+    <span class="se">attachSubSkel</span><span class="ni">{</span>
+      <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_child&quot;</span>
+      <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;child.lod00.dag&quot;</span>
+      <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_child&quot;</span>
+      <span class="no">add_prefix</span><span class="nt">:t=</span><span class="nf">&quot;layer03:&quot;</span>
+      <span class="se">attachSubSkel</span><span class="ni">{</span>
+        <span class="no">attach_to</span><span class="nt">:t=</span><span class="nf">&quot;bone_child&quot;</span>
+        <span class="no">skel_file</span><span class="nt">:t=</span><span class="nf">&quot;child.lod00.dag&quot;</span>
+        <span class="no">skel_node</span><span class="nt">:t=</span><span class="nf">&quot;bone_child&quot;</span>
+        <span class="no">add_prefix</span><span class="nt">:t=</span><span class="nf">&quot;layer04:&quot;</span>
+      <span class="ni">}</span>
+    <span class="ni">}</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This hierarchy demonstrates a parent model (<code class="docutils literal notranslate"><span class="pre">papa.lod00.dag</span></code>) with multiple
+layers of child models attached, each with its own prefix to ensure uniqueness
+and proper hierarchy management.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Assets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="how-to-test-assets-on-maps/index.html" class="btn btn-neutral float-right" title="How to Test Assets on Maps" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

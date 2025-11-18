@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCodeSourceBlocks_1_1Fragment" kind="struct" language="C++" prot="public">
+    <compoundname>CodeSourceBlocks::Fragment</compoundname>
+    <includes refid="codeBlocks_8h" local="no">codeBlocks.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Fragment_1ab1d7388b309ffe031261bbd55e9a1349" prot="public" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="structCodeSourceBlocks_1_1Condition" kindref="compound">Condition</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;Condition&gt; CodeSourceBlocks::Fragment::cond</definition>
+        <argsstring></argsstring>
+        <name>cond</name>
+        <qualifiedname>CodeSourceBlocks::Fragment::cond</qualifiedname>
+        <briefdescription>
+<para>when cond!=NULL, fragment is condition block </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="74" column="23" bodyfile="codeBlocks.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Fragment_1a72413f0098608c3389d20f52c1ce7835" prot="public" static="no" mutable="no">
+        <type><ref refid="structCodeSourceBlocks_1_1Unconditional" kindref="compound">Unconditional</ref></type>
+        <definition>Unconditional CodeSourceBlocks::Fragment::uncond</definition>
+        <argsstring></argsstring>
+        <name>uncond</name>
+        <qualifiedname>CodeSourceBlocks::Fragment::uncond</qualifiedname>
+        <briefdescription>
+<para>when cond==NULL, fragment is code block with uncondCodeId referencing text fragment </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="77" column="19" bodyfile="codeBlocks.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1Fragment_1a6f2fd090dc211e4f877173602c7948ac" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CodeSourceBlocks::Fragment::isCond</definition>
+        <argsstring>() const</argsstring>
+        <name>isCond</name>
+        <qualifiedname>CodeSourceBlocks::Fragment::isCond</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="79" column="10" bodyfile="codeBlocks.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1Fragment_1a4d98b638086abb3e3f81bf9d69bd5246" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CodeSourceBlocks::Fragment::isDecl</definition>
+        <argsstring>() const</argsstring>
+        <name>isDecl</name>
+        <qualifiedname>CodeSourceBlocks::Fragment::isDecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="80" column="10" bodyfile="codeBlocks.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1Fragment_1a087768bf8f3e19e450e8957a18185e77" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CodeSourceBlocks::Fragment::isDeclBool</definition>
+        <argsstring>() const</argsstring>
+        <name>isDeclBool</name>
+        <qualifiedname>CodeSourceBlocks::Fragment::isDeclBool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="81" column="10" bodyfile="codeBlocks.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1Fragment_1a205381e03619e92708cb5cbc6affe3ac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structCodeSourceBlocks_1_1Unconditional_1_1Decl" kindref="compound">Unconditional::Decl</ref> &amp;</type>
+        <definition>Unconditional::Decl &amp; CodeSourceBlocks::Fragment::decl</definition>
+        <argsstring>()</argsstring>
+        <name>decl</name>
+        <qualifiedname>CodeSourceBlocks::Fragment::decl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="82" column="25" bodyfile="codeBlocks.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1Fragment_1ad36d13007ef6cbc779d2459fdbd7974c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structCodeSourceBlocks_1_1Unconditional_1_1DeclBool" kindref="compound">Unconditional::DeclBool</ref> &amp;</type>
+        <definition>Unconditional::DeclBool &amp; CodeSourceBlocks::Fragment::declBool</definition>
+        <argsstring>()</argsstring>
+        <name>declBool</name>
+        <qualifiedname>CodeSourceBlocks::Fragment::declBool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="83" column="29" bodyfile="codeBlocks.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>CodeSourceBlocks::Fragment</label>
+        <link refid="structCodeSourceBlocks_1_1Fragment"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>uncond</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>CodeSourceBlocks::Unconditional</label>
+        <link refid="structCodeSourceBlocks_1_1Unconditional"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>decl</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>declBool</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>CodeSourceBlocks::Unconditional::Decl</label>
+        <link refid="structCodeSourceBlocks_1_1Unconditional_1_1Decl"/>
+      </node>
+      <node id="4">
+        <label>CodeSourceBlocks::Unconditional::DeclBool</label>
+        <link refid="structCodeSourceBlocks_1_1Unconditional_1_1DeclBool"/>
+      </node>
+    </collaborationgraph>
+    <location file="codeBlocks.h" line="71" column="3" bodyfile="codeBlocks.h" bodystart="72" bodyend="84"/>
+    <listofallmembers>
+      <member refid="structCodeSourceBlocks_1_1Fragment_1ab1d7388b309ffe031261bbd55e9a1349" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Fragment</scope><name>cond</name></member>
+      <member refid="structCodeSourceBlocks_1_1Fragment_1a205381e03619e92708cb5cbc6affe3ac" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Fragment</scope><name>decl</name></member>
+      <member refid="structCodeSourceBlocks_1_1Fragment_1ad36d13007ef6cbc779d2459fdbd7974c" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Fragment</scope><name>declBool</name></member>
+      <member refid="structCodeSourceBlocks_1_1Fragment_1a6f2fd090dc211e4f877173602c7948ac" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Fragment</scope><name>isCond</name></member>
+      <member refid="structCodeSourceBlocks_1_1Fragment_1a4d98b638086abb3e3f81bf9d69bd5246" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Fragment</scope><name>isDecl</name></member>
+      <member refid="structCodeSourceBlocks_1_1Fragment_1a087768bf8f3e19e450e8957a18185e77" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Fragment</scope><name>isDeclBool</name></member>
+      <member refid="structCodeSourceBlocks_1_1Fragment_1a72413f0098608c3389d20f52c1ce7835" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Fragment</scope><name>uncond</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

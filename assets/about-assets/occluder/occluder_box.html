@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Occluder Box</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Procedural Rendinst Painting" href="../procedural-rendinst-painting/index.html" />
+    <link rel="prev" title="Occluder Box" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Assets</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../about_assets.html">Introduction to Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../how-to-test-assets-on-maps/index.html">How to Test Assets on Maps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ladders/index.html">Ladders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../microdetails/index.html">Microdetails</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Occluder Box</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Occluder Box</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#creating-an-occluder-box">Creating an Occluder Box</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#editing-the-occluder-box">Editing the Occluder Box</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#verifying-occluder-box-setup">Verifying Occluder Box Setup</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#examples-of-well-configured-occluder-boxes">Examples of Well-Configured Occluder Boxes</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#commands-for-displaying-occluders">Commands for Displaying Occluders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../procedural-rendinst-painting/index.html">Procedural Rendinst Painting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Occluder Box</a></li>
+      <li class="breadcrumb-item active">Occluder Box</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/about-assets/occluder/occluder_box.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="occluder-box">
+<h1>Occluder Box<a class="headerlink" href="#occluder-box" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>An <em>occluder box</em> is a specialized geometry used to improve performance. Every
+object that fully obscured by occluder box is excluded from rendering. Partially
+obscured objects stay intact.</p>
+<p>If any part of an object extends beyond the occluder box,
+it will reappear: see <a class="reference external" href="https://drive.google.com/file/d/1JOlqzVnGlJNNe9yyexRqOIjiz75PWi74/view?usp=sharing">video
+1</a>
+and <a class="reference external" href="https://drive.google.com/file/d/1B6ZvtDnbLyorXTSYhPW4ooVFcv0oTCC_/view?usp=sharing">video
+2</a>
+for reference.</p>
+</section>
+<section id="creating-an-occluder-box">
+<h2>Creating an Occluder Box<a class="headerlink" href="#creating-an-occluder-box" title="Link to this heading"></a></h2>
+<p>To create an occluder box for an object, follow these steps:</p>
+<ol class="arabic">
+<li><p>Create a Box object.</p></li>
+<li><p>Name the object <code class="docutils literal notranslate"><span class="pre">occluder_box</span></code>.</p></li>
+<li><p>Create a material using the <em>Dagor Dagorrat Material 2</em> shader.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_01.jpg"><img alt="../../../_images/occluder_box_01.jpg" class="bg-primary align-center" src="../../../_images/occluder_box_01.jpg" style="width: 40%;" />
+</a>
+<br>
+</li>
+<li><p>Set the shader class to <code class="docutils literal notranslate"><span class="pre">gi_black</span></code> (for better visibility, it’s
+recommended to choose a material color that contrasts with the object, like
+bright red).</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_02.jpg"><img alt="../../../_images/occluder_box_02.jpg" class="bg-primary" src="../../../_images/occluder_box_02.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_03.jpg"><img alt="../../../_images/occluder_box_03.jpg" class="bg-primary" src="../../../_images/occluder_box_03.jpg" style="width: 49%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p>Assign the material to the object named <code class="docutils literal notranslate"><span class="pre">occluder_box</span></code>.</p></li>
+<li><p>Open the object’s properties and uncheck the <strong>Renderable</strong> option (this will
+prevent potential issues later on).</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_04.jpg"><img alt="../../../_images/occluder_box_04.jpg" class="bg-primary" src="../../../_images/occluder_box_04.jpg" style="width: 61%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_05.jpg"><img alt="../../../_images/occluder_box_05.jpg" class="bg-primary" src="../../../_images/occluder_box_05.jpg" style="width: 29%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p>In the <strong>User Defined</strong> tab, input the following:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">renderable</span><span class="nt">:b=</span><span class="si">no</span>
+<span class="no">cast_shadows</span><span class="nt">:b=</span><span class="si">no</span>
+<span class="no">occluder</span><span class="nt">:b=</span><span class="si">yes</span>
+<span class="no">collidable</span><span class="nt">:b=</span><span class="si">no</span>
+</pre></div>
+</div>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_06.jpg"><img alt="../../../_images/occluder_box_06.jpg" class="bg-primary align-left" src="../../../_images/occluder_box_06.jpg" style="width: 30%;" />
+</a>
+<p><strong>User Defined Properties:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">renderable:b=no</span></code> – Disables the object from being rendered.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cast_shadows:b=no</span></code> – Prevents the object from casting shadows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">occluder:b=yes</span></code> – Designates the object as an occluder.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">collidable:b=no</span></code> – Disables collision generation.</p></li>
+</ul>
+<br clear="left">
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Unchecking the <strong>collidable</strong> option in the Dagor object properties does not
+achieve the same result!</p>
+<p>To verify this, check the asset in the <a class="reference internal" href="../../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a>. If
+the occluder box is visible in the collision data, the setup is incorrect.
+The collision should not include an <code class="docutils literal notranslate"><span class="pre">occluder_box</span></code> node.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_07.jpg"><img alt="../../../_images/occluder_box_07.jpg" class="bg-primary align-center" src="../../../_images/occluder_box_07.jpg" style="width: 80%;" />
+</a>
+</div>
+</li>
+<li><p>Convert the <code class="docutils literal notranslate"><span class="pre">occluder_box</span></code> object to <code class="docutils literal notranslate"><span class="pre">Editable</span> <span class="pre">Poly</span></code> or apply an <code class="docutils literal notranslate"><span class="pre">Edit</span> <span class="pre">Poly</span></code>
+modifier.</p></li>
+<li><p>Adjust the size to fit the object it should occlude. Specific size
+requirements are detailed below.</p></li>
+</ol>
+</section>
+<section id="editing-the-occluder-box">
+<h2>Editing the Occluder Box<a class="headerlink" href="#editing-the-occluder-box" title="Link to this heading"></a></h2>
+<p>The <em>occluder box</em> is aptly named because only its bounding box matters,
+regardless of its orientation. Therefore, the following rules apply when
+creating an occluder box:</p>
+<ol class="arabic">
+<li><p>The occluder box should never extend beyond the object’s geometry.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_08.jpg"><img alt="../../../_images/occluder_box_08.jpg" class="bg-primary" src="../../../_images/occluder_box_08.jpg" style="width: 39.5%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_09.jpg"><img alt="../../../_images/occluder_box_09.jpg" class="bg-primary" src="../../../_images/occluder_box_09.jpg" style="width: 58.5%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p>It should fill as much of the object’s internal space as possible, similar to
+UV mapping, without exceeding the object’s boundaries.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_10.jpg"><img alt="../../../_images/occluder_box_10.jpg" class="bg-primary align-center" src="../../../_images/occluder_box_10.jpg" style="width: 30%;" />
+</a>
+<br>
+</li>
+<li><p>Rotating the occluder box is highly discouraged.</p>
+<p>Here is an example of an unrotated occluder box:</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_11.jpg"><img alt="../../../_images/occluder_box_11.jpg" class="bg-primary" src="../../../_images/occluder_box_11.jpg" style="width: 68%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_12.jpg"><img alt="../../../_images/occluder_box_12.jpg" class="bg-primary" src="../../../_images/occluder_box_12.jpg" style="width: 30%;" />
+</a>
+<br>
+<p>And here’s how it looks when rotated:</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_13.jpg"><img alt="../../../_images/occluder_box_13.jpg" class="bg-primary" src="../../../_images/occluder_box_13.jpg" style="width: 44.5%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_14.jpg"><img alt="../../../_images/occluder_box_14.jpg" class="bg-primary" src="../../../_images/occluder_box_14.jpg" style="width: 53.5%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p><strong>Do not</strong> name the object anything other than <code class="docutils literal notranslate"><span class="pre">occluder_box</span></code>.</p></li>
+<li><p>The occluder box should be placed in the <code class="docutils literal notranslate"><span class="pre">LOD00</span></code> layer.</p></li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you need to remove an occluder box, delete its polygons while retaining the
+object and its properties as described.</p>
+</div>
+</section>
+<section id="verifying-occluder-box-setup">
+<h2>Verifying Occluder Box Setup<a class="headerlink" href="#verifying-occluder-box-setup" title="Link to this heading"></a></h2>
+<p>There are several ways to verify if the occluder box is set up correctly:</p>
+<ol class="arabic">
+<li><p>In <a class="reference internal" href="../../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a>, the
+occluder box is displayed as a white rectangle.</p>
+<p>If it’s not visible, ensure the proper setting is enabled. If the occluder
+box appears misaligned (as shown in the image), you will need to correct it
+in <em>3ds Max</em>.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_15.jpg"><img alt="../../../_images/occluder_box_15.jpg" class="bg-primary align-center" src="../../../_images/occluder_box_15.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+<li><p>During in-game testing, you can observe the occluder box in action by
+pressing <code class="docutils literal notranslate"><span class="pre">F3</span></code> to display the wireframe, see
+<a class="reference external" href="https://drive.google.com/file/d/1JOlqzVnGlJNNe9yyexRqOIjiz75PWi74/view?usp=sharing">video</a>
+for reference.</p>
+<p>If objects behind the occluder do not disappear, disappear too early, too
+late, or not at all, recheck the setup based on the guidelines above. If the
+occluder box is incorrectly configured, you will likely encounter issues
+similar to those shown in <a class="reference external" href="https://drive.google.com/file/d/11DACcju6HsO-XCd0W82-qG-AouQRvGN-/view?usp=sharing">video
+1</a>
+and <a class="reference external" href="https://drive.google.com/file/d/15J1qdlZV3IpcrAudYAyTK4kJU-DoYdTB/view?usp=sharing">video
+2</a>.</p>
+</li>
+</ol>
+</section>
+<section id="examples-of-well-configured-occluder-boxes">
+<h2>Examples of Well-Configured Occluder Boxes<a class="headerlink" href="#examples-of-well-configured-occluder-boxes" title="Link to this heading"></a></h2>
+<p>Here are several example images of correctly set up occluder boxes.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_16.jpg"><img alt="../../../_images/occluder_box_16.jpg" class="bg-primary" src="../../../_images/occluder_box_16.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_17.jpg"><img alt="../../../_images/occluder_box_17.jpg" class="bg-primary" src="../../../_images/occluder_box_17.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_18.jpg"><img alt="../../../_images/occluder_box_18.jpg" class="bg-primary" src="../../../_images/occluder_box_18.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_19.jpg"><img alt="../../../_images/occluder_box_19.jpg" class="bg-primary" src="../../../_images/occluder_box_19.jpg" style="width: 44%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/occluder_box_20.jpg"><img alt="../../../_images/occluder_box_20.jpg" class="bg-primary" src="../../../_images/occluder_box_20.jpg" style="width: 54%;" />
+</a>
+</section>
+<section id="commands-for-displaying-occluders">
+<h2>Commands for Displaying Occluders<a class="headerlink" href="#commands-for-displaying-occluders" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">render.debug</span> <span class="pre">occlusion</span></code> – Shows occluders and their statistics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">render.debug</span> <span class="pre">occlusion</span> <span class="pre">occluded</span></code> – Displays bounding boxes of occluded
+objects.</p></li>
+</ul>
+<p>Toggle commands:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">render.debug</span> <span class="pre">occlusion</span> <span class="pre">boxes</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">render.debug</span> <span class="pre">occlusion</span> <span class="pre">stats</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">render.debug</span> <span class="pre">occlusion</span> <span class="pre">occludedv</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">render.debug</span> <span class="pre">occlusion</span> <span class="pre">not_occluded</span></code></p></li>
+</ul>
+<p>Additionally, you can use:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">occlusion.enabled</span></code> – Enables or disables occlusion rendering entirely.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst.check_occlusion</span></code> – Enables or disables occlusion for render
+instances.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Occluder Box" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../procedural-rendinst-painting/index.html" class="btn btn-neutral float-right" title="Procedural Rendinst Painting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

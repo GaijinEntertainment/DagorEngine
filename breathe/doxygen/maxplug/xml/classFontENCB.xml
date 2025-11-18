@@ -1,0 +1,256 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFontENCB" kind="class" language="C++" prot="public">
+    <compoundname>FontENCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" prot="public" static="no" mutable="no">
+        <type>Tab&lt; float &gt;</type>
+        <definition>Tab&lt;float&gt; FontENCB::hdiv</definition>
+        <argsstring></argsstring>
+        <name>hdiv</name>
+        <qualifiedname>FontENCB::hdiv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="210" column="7" bodyfile="font.cpp" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontENCB_1a3990e48888c90c5e64815a782b2b5ed5" prot="public" static="no" mutable="no">
+        <type>Tab&lt; float &gt;</type>
+        <definition>Tab&lt;float&gt; FontENCB::base</definition>
+        <argsstring></argsstring>
+        <name>base</name>
+        <qualifiedname>FontENCB::base</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="211" column="7" bodyfile="font.cpp" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structVDiv" kindref="compound">VDiv</ref> &gt;</type>
+        <definition>Tab&lt;VDiv&gt; FontENCB::vdiv</definition>
+        <argsstring></argsstring>
+        <name>vdiv</name>
+        <qualifiedname>FontENCB::vdiv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="212" column="7" bodyfile="font.cpp" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontENCB_1a7838df52345c79d8bb6089779046ead1" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structChars" kindref="compound">Chars</ref> &gt;</type>
+        <definition>Tab&lt;Chars&gt; FontENCB::chars</definition>
+        <argsstring></argsstring>
+        <name>chars</name>
+        <qualifiedname>FontENCB::chars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="213" column="7" bodyfile="font.cpp" bodystart="213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontENCB_1a73f188f8fea81e44cdd2994d81458464" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 FontENCB::org</definition>
+        <argsstring></argsstring>
+        <name>org</name>
+        <qualifiedname>FontENCB::org</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="214" column="11" bodyfile="font.cpp" bodystart="214" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFontENCB_1a76eab5d511214edab6d3d03f1b5eefd0" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue FontENCB::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>FontENCB::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="215" column="13" bodyfile="font.cpp" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFontENCB_1a0df20e746824d61f152eab98476ac242" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FontENCB::FontENCB</definition>
+        <argsstring>(TimeValue t)</argsstring>
+        <name>FontENCB</name>
+        <qualifiedname>FontENCB::FontENCB</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="217" column="3" bodyfile="font.cpp" bodystart="217" bodyend="217"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontENCB_1ab3c355491cd3d4355f4635f4f555f7f1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FontENCB::~FontENCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~FontENCB</name>
+        <qualifiedname>FontENCB::~FontENCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="218" column="3" bodyfile="font.cpp" bodystart="218" bodyend="223"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontENCB_1a12294438fa05e9fafd2e1ef23291fc4f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FontENCB::getuv</definition>
+        <argsstring>(INode *n, float *u, float *v)</argsstring>
+        <name>getuv</name>
+        <qualifiedname>FontENCB::getuv</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>u</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="224" column="8" bodyfile="font.cpp" bodystart="224" bodyend="232"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontENCB_1ac12bf659c8a7253cfa4f74a41e9ae7ec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int FontENCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>FontENCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="233" column="7" bodyfile="font.cpp" bodystart="233" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontENCB_1a6c4259f03784bb8f2fec135f0d5761b4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int FontENCB::check</definition>
+        <argsstring>(Interface *ip)</argsstring>
+        <name>check</name>
+        <qualifiedname>FontENCB::check</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="272" column="7" bodyfile="font.cpp" bodystart="272" bodyend="326"/>
+      </memberdef>
+      <memberdef kind="function" id="classFontENCB_1aafa85ac05d2f229ccb125d488d24a518" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int FontENCB::save</definition>
+        <argsstring>(const TCHAR *fn, Interface *ip)</argsstring>
+        <name>save</name>
+        <qualifiedname>FontENCB::save</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="327" column="7" bodyfile="font.cpp" bodystart="327" bodyend="367"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>FontENCB</label>
+        <link refid="classFontENCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>FontENCB</label>
+        <link refid="classFontENCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="font.cpp" line="207" column="1" bodyfile="font.cpp" bodystart="208" bodyend="368"/>
+    <listofallmembers>
+      <member refid="classFontENCB_1a3990e48888c90c5e64815a782b2b5ed5" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>base</name></member>
+      <member refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>chars</name></member>
+      <member refid="classFontENCB_1a6c4259f03784bb8f2fec135f0d5761b4" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>check</name></member>
+      <member refid="classFontENCB_1a0df20e746824d61f152eab98476ac242" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>FontENCB</name></member>
+      <member refid="classFontENCB_1a12294438fa05e9fafd2e1ef23291fc4f" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>getuv</name></member>
+      <member refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>hdiv</name></member>
+      <member refid="classFontENCB_1a73f188f8fea81e44cdd2994d81458464" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>org</name></member>
+      <member refid="classFontENCB_1ac12bf659c8a7253cfa4f74a41e9ae7ec" prot="public" virt="virtual"><scope>FontENCB</scope><name>proc</name></member>
+      <member refid="classFontENCB_1aafa85ac05d2f229ccb125d488d24a518" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>save</name></member>
+      <member refid="classFontENCB_1a76eab5d511214edab6d3d03f1b5eefd0" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>time</name></member>
+      <member refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>vdiv</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>FontENCB</scope><name>~ENodeCB</name></member>
+      <member refid="classFontENCB_1ab3c355491cd3d4355f4635f4f555f7f1" prot="public" virt="non-virtual"><scope>FontENCB</scope><name>~FontENCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

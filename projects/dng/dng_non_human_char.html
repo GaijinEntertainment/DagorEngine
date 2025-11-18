@@ -1,0 +1,1079 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Non-Human Character</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="War Thunder" href="../wt/index.html" />
+    <link rel="prev" title="daNetGame-Based Projects" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Projects</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">daNetGame-Based Projects</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Non-Human Character</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#general-guidelines-for-creating-creatures-of-all-types">General Guidelines for Creating Creatures of All Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-scenes-in-3ds-max">Example Scenes in 3ds Max</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-in-dagor-engine">Examples in Dagor Engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#skeleton-bone-structure-features-and-scene-configuration">Skeleton Bone Structure: Features and Scene Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#adding-basic-physics">Adding Basic Physics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#working-with-the-skin-modifier">Working with the Skin Modifier</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#creating-lods-special-considerations-for-dynamic-models">Creating LODs: Special Considerations for Dynamic Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#materials-for-dynamic-models">Materials for Dynamic Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exporting-the-dynamic-model">Exporting the Dynamic Model</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#important-naming-conventions">Important Naming Conventions</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#exporting-animation">Exporting Animation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#principles-of-working-with-dynamic-models-in-dagor-and-resource-integration">Principles of Working with Dynamic Models in Dagor and Resource Integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#real-resources-vs-virtual-resources-and-objects-in-dagor">Real Resources vs. Virtual Resources and Objects in Dagor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuring-char-animchar-blk">Configuring <code class="docutils literal notranslate"><span class="pre">*_char.animchar.blk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuring-dynmodel-dynmodel-blk">Configuring <code class="docutils literal notranslate"><span class="pre">*_dynmodel.dynmodel.blk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuring-animbnl-animtree-blk">Configuring <code class="docutils literal notranslate"><span class="pre">*_animbnl.animtree.blk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#testing-the-character-in-asset-viewer">Testing the Character in Asset Viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#common-errors">Common Errors</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#error-bracket-mismatches">Error: Bracket Mismatches</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#error-incorrect-data-types">Error: Incorrect Data Types</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#debugging-tips">Debugging Tips</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../wt/index.html">War Thunder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Projects</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daNetGame-Based Projects</a></li>
+      <li class="breadcrumb-item active">Non-Human Character</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/projects/dng/dng_non_human_char.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="non-human-character">
+<h1>Non-Human Character<a class="headerlink" href="#non-human-character" title="Link to this heading"></a></h1>
+<section id="general-guidelines-for-creating-creatures-of-all-types">
+<h2>General Guidelines for Creating Creatures of All Types<a class="headerlink" href="#general-guidelines-for-creating-creatures-of-all-types" title="Link to this heading"></a></h2>
+<p>The Dagor Engine supports creating any bone-animated object (character).
+However, this guide focuses on simple examples that do not involve IK (Inverse
+Kinematics), upper or lower body animations, complex animation blending, or
+additive animations. After reading this guide, you will be able to create
+characters with any number of limbs. Additionally, we will set up animation
+states for smooth transitions between character animations.</p>
+</section>
+<section id="example-scenes-in-3ds-max">
+<h2>Example Scenes in 3ds Max<a class="headerlink" href="#example-scenes-in-3ds-max" title="Link to this heading"></a></h2>
+<p>You can download scenes with models properly prepared for export:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1ipgkTLOA5AhLe3tbCWG8PfuD7wD9RfW8/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">3dsMax2024Files.zip</span></code></a>.</p>
+</section>
+<section id="examples-in-dagor-engine">
+<h2>Examples in Dagor Engine<a class="headerlink" href="#examples-in-dagor-engine" title="Link to this heading"></a></h2>
+<p>These examples are designed for use in daNetGame-based projects. The files
+include ready-to-use game assets: a fish and a crow. Compatibility with War
+Thunder has not been tested due to shader-related issues.</p>
+<p>Download the archive:
+<a class="reference download external" download="" href="https://drive.google.com/file/d/1HqMoxCPhsEb7mBvXAGqd71WcWdXcTLnZ/view?usp=drive_link"><code class="xref download docutils literal notranslate"><span class="pre">creatures.zip</span></code></a>.</p>
+<p>Extract the files into the <code class="docutils literal notranslate"><span class="pre">dev</span></code> directory of your project (a testing directory
+not included in the game build). For example,
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/</span></code>. After extraction,
+the path should look like this:
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/creatures</span></code>.</p>
+<p>If everything is set up correctly, loading the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> and
+selecting the crow asset <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> will result in error-free loading.
+Click <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span> to review error logs. The highlighted section indicates
+successful loading.</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_01.jpg"><img alt="../../_images/dng_non_human_char_01.jpg" class="align-center" src="../../_images/dng_non_human_char_01.jpg" style="width: 60em;" />
+</a>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Scenes are compatible with 3ds Max 2024 or later.</p>
+</div>
+</section>
+<section id="skeleton-bone-structure-features-and-scene-configuration">
+<h2>Skeleton Bone Structure: Features and Scene Configuration<a class="headerlink" href="#skeleton-bone-structure-features-and-scene-configuration" title="Link to this heading"></a></h2>
+<p>Let’s analyze the crow scene. Open the file <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">0</span>
+<code class="docutils literal notranslate"><span class="pre">crow_detailed_tpose.max</span></code>.</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_02.jpg"><img alt="../../_images/dng_non_human_char_02.jpg" class="align-center" src="../../_images/dng_non_human_char_02.jpg" style="width: 60em;" />
+</a>
+<p>Make sure to specify in the file name that it is the character’s T-pose. The
+model must include a root bone <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>. The naming is flexible, but
+if you plan to use existing <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files as templates, it is better to name it
+<code class="docutils literal notranslate"><span class="pre">root</span></code>. This bone is used to move the entire scene. Additionally, a <code class="docutils literal notranslate"><span class="pre">Body</span></code> bone
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span> must be defined.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../dagor-tools/blk/blk.html"><span class="std std-doc">BLK File Format</span></a>.</p>
+</div>
+<p>For complex models with separate upper and lower animations, different
+animations may play simultaneously based on specific events. In such cases, bone
+names must clearly indicate their purpose for programmers. In this example, the
+same animation always applies to all bones, so <code class="docutils literal notranslate"><span class="pre">Body</span></code> directly follows <code class="docutils literal notranslate"><span class="pre">root</span></code>.
+This will become crucial when defining properties for generating animation
+dependencies.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For more complex characters, the structure may involve actions like running
+while rotating the torso and looking at the camera. Such setups require advanced
+configurations, which are beyond the scope of this guide. Here, we focus on a
+simpler and more straightforward task.</p>
+</div>
+<p>The 3ds Max scene must include the following mandatory features:</p>
+<ul>
+<li><p><strong>LODs</strong> (Level of Detail) <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span> must be named consistently,
+e.g., <code class="docutils literal notranslate"><span class="pre">LOD00</span></code> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>. Inconsistent names across LODs will cause
+errors during the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> resource
+loading. While 3ds Max discourages identical names for objects, Dagor Engine
+requires this convention. To distinguish objects, place them in layers named
+according to their LOD levels, as shown in the example above.</p></li>
+<li><p>For the <strong>Skin modifier</strong>, always disable <strong>Dual Quaternion</strong>
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">6</span> and set the number of points per bone <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span> to
+match the configuration specified in the project’s <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>. Refer to
+the <strong>Skin Parameters in Dagor</strong> section for more details: <a class="reference internal" href="#working-with-the-skin-modifier">Working with the
+Skin Modifier</a>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../assets/all-about-blk/application_blk.html"><span class="std std-doc">application.blk</span></a>.</p>
+</div>
+</li>
+<li><p>Store skinned objects as <strong>Editable Mesh</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">7</span> to ensure point
+weights accurately reflect in Dagor after export. These steps help replicate
+the Skin modifier’s behavior in Dagor precisely.</p></li>
+<li><p>Use <strong>Selection Sets</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">8</span> for easier object selection during
+export. For instance, to export <code class="docutils literal notranslate"><span class="pre">LOD00</span></code>, create a group named <code class="docutils literal notranslate"><span class="pre">lod00</span></code>
+containing all the scene bones and all objects from the <code class="docutils literal notranslate"><span class="pre">LOD00</span></code> layer.</p></li>
+</ul>
+<p>Each bone in the scene must include <strong>Custom Properties</strong> so that the Dagor
+identifies them as bones. Below is the minimum required configuration for the
+crow skeleton:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">animated_node</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Specifies the object is animated</span>
+<span class="no">collidable</span><span class="nt">:b=</span><span class="si">no</span>      <span class="ge">// Disables all collisions</span>
+<span class="no">massType</span><span class="nt">:t=</span><span class="nf">&quot;none&quot;</span>    <span class="ge">// No mass, but the object is physical</span>
+<span class="no">renderable</span><span class="nt">:b=</span><span class="si">no</span>      <span class="ge">// Excluded from rendering</span>
+<span class="no">cast_shadows</span><span class="nt">:b=</span><span class="si">no</span>    <span class="ge">// Excluded from shadow generation</span>
+</pre></div>
+</div>
+</section>
+<section id="adding-basic-physics">
+<h2>Adding Basic Physics<a class="headerlink" href="#adding-basic-physics" title="Link to this heading"></a></h2>
+<p>To initialize the scene properly in Dagor, assign physical properties to at
+least one bone using <strong>Custom Properties</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>.</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_03.jpg"><img alt="../../_images/dng_non_human_char_03.jpg" class="align-center" src="../../_images/dng_non_human_char_03.jpg" style="width: 60em;" />
+</a>
+<p>Without physics, the engine cannot generate a valid skeleton. Below is an
+example configuration for the <code class="docutils literal notranslate"><span class="pre">head</span></code> bone <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">animated_node</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Specifies the object is animated</span>
+<span class="no">collidable</span><span class="nt">:b=</span><span class="si">no</span>      <span class="ge">// Enables collision handling, though further settings are required</span>
+<span class="no">massType</span><span class="nt">:t=</span><span class="nf">&quot;box&quot;</span>     <span class="ge">// Specifies the mass calculation type</span>
+<span class="no">collision</span><span class="nt">:t=</span><span class="no">capsule</span>  <span class="ge">// Specifies the collision type; consult your mentor for alternatives</span>
+<span class="no">physObj</span><span class="nt">:b=</span><span class="si">yes</span>        <span class="ge">// Enables physics for the object</span>
+<span class="no">density</span><span class="nt">:r=</span><span class="m">2000</span>       <span class="ge">// Density for mass calculation</span>
+<span class="no">renderable</span><span class="nt">:b=</span><span class="si">no</span>      <span class="ge">// Excluded from rendering</span>
+<span class="no">cast_shadows</span><span class="nt">:b=</span><span class="si">no</span>    <span class="ge">// Excluded from shadow generation</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="#../dng-rig-skin-export-new-char.md/dng_rig_skin_export_new_char.md"><span class="xref myst">Rigging, Skinning, and Exporting New Character</span></a>.</p>
+<p>Download example files to review the custom properties of bones like <code class="docutils literal notranslate"><span class="pre">Bip*</span></code>.
+These properties dictate how the physical skeleton is generated.</p>
+</div>
+</section>
+<section id="working-with-the-skin-modifier">
+<h2>Working with the Skin Modifier<a class="headerlink" href="#working-with-the-skin-modifier" title="Link to this heading"></a></h2>
+<p>The most critical aspect of working with the <strong>Skin modifier</strong> is controlling
+the number of bones per vertex. By convention, this value is set to 4 bones per
+vertex. This parameter is defined in the project’s general configuration file,
+<code class="docutils literal notranslate"><span class="pre">application.blk</span></code>. Other required settings have already been covered earlier.</p>
+<p>Example configuration in <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">dynModel</span><span class="ni">{</span>
+  <span class="no">descListOutPath</span><span class="nt">:t=</span><span class="nf">&quot;dynModelDesc&quot;</span>
+  <span class="no">separateModelMatToDescBin</span><span class="nt">:b=</span><span class="si">yes</span>
+
+  <span class="no">ignoreMappingInPrepareBillboardMesh</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="no">enableMeshNodeCollapse</span><span class="nt">:b=</span><span class="si">no</span>
+  <span class="no">maxBonesCount</span><span class="nt">:i=</span><span class="m">318</span>   <span class="ge">/* This is ineffective! Shader limitations cap bone count at 200.</span>
+<span class="ge">                           Exceeding 200 will result in errors during daBuild. */</span>
+  <span class="no">setBonePerVertex</span><span class="nt">:i=</span><span class="m">4</span>  <span class="ge">// Number of bones per vertex</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="creating-lods-special-considerations-for-dynamic-models">
+<h2>Creating LODs: Special Considerations for Dynamic Models<a class="headerlink" href="#creating-lods-special-considerations-for-dynamic-models" title="Link to this heading"></a></h2>
+<p>The primary rule for creating LODs is ensuring consistent naming for all LOD
+levels. Using the crow as an example:</p>
+<img alt="../../_images/dng_non_human_char_04.jpg" class="align-center" src="../../_images/dng_non_human_char_04.jpg" />
+<p>As shown, LODs share the same base name but are placed in separate layers. Each
+LOD may contain multiple skinned objects. This approach is useful, especially
+when the total triangle count for a single object exceeds the limit of 65,000
+triangles. If your model exceeds this limit, divide it into multiple pieces.</p>
+<p>For each model with a <strong>Skin modifier</strong>, the following <strong>Custom Properties</strong>
+must be added:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">animated_node</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Specifies the object is animated</span>
+<span class="no">collidable</span><span class="nt">:b=</span><span class="si">no</span>      <span class="ge">// Disables all collisions</span>
+<span class="no">massType</span><span class="nt">:t=</span><span class="nf">&quot;none&quot;</span>    <span class="ge">// Indicates no physical mass for this object</span>
+</pre></div>
+</div>
+<p>Ensure all skinned objects <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> have the specified properties
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>:</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_05.jpg"><img alt="../../_images/dng_non_human_char_05.jpg" class="align-center" src="../../_images/dng_non_human_char_05.jpg" style="width: 60em;" />
+</a>
+<p>For efficient management of <strong>Custom Properties</strong>, use an editor or viewer tool.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fast_editor_user_properties.html"><span class="std std-doc">Dagor Fast Editor User Properties</span></a>.</p>
+</div>
+</section>
+<section id="materials-for-dynamic-models">
+<h2>Materials for Dynamic Models<a class="headerlink" href="#materials-for-dynamic-models" title="Link to this heading"></a></h2>
+<p>Let’s examine the materials assigned to the skinned models in the scene. In this
+case, the materials used are <code class="docutils literal notranslate"><span class="pre">crow_base</span></code> and <code class="docutils literal notranslate"><span class="pre">Dagor</span> <span class="pre">Dagorrat</span> <span class="pre">Material</span> <span class="pre">2</span></code>
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">0</span>. To view all available <strong>dynamic materials</strong>, open the
+dropdown menu and navigate to the relevant section <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>.</p>
+<p>While each material type requires dedicated documentation, we will focus on the
+simplest and most versatile option for
+<a class="reference external" href="https://en.wikipedia.org/wiki/Physically_based_rendering">PBR</a> lighting:
+<strong>dynamic_simple</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>. This material supports standard textures
+such as <strong>albedo</strong> (with optional transparency), <strong>normal</strong>, <strong>smoothness</strong>, and
+<strong>metalness</strong> maps. In this case, the textures are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crow_body_a_tex_d.tif</span></code> (albedo)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crow_body_a_tex_n.tif</span></code> (normal map)</p></li>
+</ul>
+<p>If the archive was unpacked correctly, these textures can be found at the
+following path:
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/enlisted/develop/assets/dev/gameRes/creatures/characters/crow</span></code>.</p>
+<p>Assign the textures to the appropriate slots <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>. To enable
+transparency, add the <strong>atest</strong> property <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span> and set its value
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span> to <code class="docutils literal notranslate"><span class="pre">127</span></code>. This controls the alpha test threshold, where
+mid-level brightness determines transparency. Also, enable two-sided rendering
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">6</span>, as crow feathers must be rendered on both sides.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../_images/dng_non_human_char_06.jpg"><img alt="../../_images/dng_non_human_char_06.jpg" class="image-gap" src="../../_images/dng_non_human_char_06.jpg" style="height: 35em;" />
+</a>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_07.jpg"><img alt="../../_images/dng_non_human_char_07.jpg" src="../../_images/dng_non_human_char_07.jpg" style="height: 30em;" />
+</a>
+</div>
+</div>
+</div>
+<p>Verify that this material is applied to all skinned objects before proceeding
+with export.</p>
+</section>
+<section id="exporting-the-dynamic-model">
+<h2>Exporting the Dynamic Model<a class="headerlink" href="#exporting-the-dynamic-model" title="Link to this heading"></a></h2>
+<p>If the <strong>selection sets</strong> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> were prepared correctly earlier,
+exporting is straightforward. In the crow scene, select the set named <code class="docutils literal notranslate"><span class="pre">lod00</span></code>
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>. This action highlights the <code class="docutils literal notranslate"><span class="pre">LOD00</span></code> layer and all associated
+bones.</p>
+<img alt="../../_images/dng_non_human_char_08.jpg" class="align-center" src="../../_images/dng_non_human_char_08.jpg" />
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_09.jpg"><img alt="../../_images/dng_non_human_char_09.jpg" class="align-center" src="../../_images/dng_non_human_char_09.jpg" style="width: 60em;" />
+</a>
+<p>Next, navigate to <strong>Utilities</strong>, and choose <strong>Dagor Scene Export</strong>. If this
+option is unavailable, add it using the <strong>Sets</strong> button. Within the <strong>Dagor
+Export</strong> settings, ensure the following options are enabled:</p>
+<ul class="simple">
+<li><p><strong>Export hidden objects</strong></p></li>
+<li><p><strong>Export selected objects only</strong></p></li>
+</ul>
+<p>These options are essential for every export. Finally, click <strong>Export DAG</strong>.</p>
+<section id="important-naming-conventions">
+<h3>Important Naming Conventions<a class="headerlink" href="#important-naming-conventions" title="Link to this heading"></a></h3>
+<p>The Dagor legacy constraints require specific naming conventions. The files
+extracted from the <code class="docutils literal notranslate"><span class="pre">creatures.zip</span></code> archive must follow this format to maintain
+compatibility with <code class="docutils literal notranslate"><span class="pre">.blk</span></code> scripts and project building pipelines.</p>
+<p>For dynamic models:</p>
+<ul class="simple">
+<li><p>Append the postfix <code class="docutils literal notranslate"><span class="pre">_dynmodel</span></code>.</p></li>
+<li><p>Specify the LOD using the <code class="docutils literal notranslate"><span class="pre">.lodXX</span></code> postfix, where <code class="docutils literal notranslate"><span class="pre">XX</span></code> is the LOD level.</p></li>
+</ul>
+<p>For example, the crow model’s most detailed LOD(00) should be named as <b><font
+color="MediumSeaGreen">crow_detailed_a</font><font
+color="red">_dynmodel.lod00.dag</font></b>.</p>
+<ul class="simple">
+<li><p><strong>Green text</strong>: Customizable according to your naming needs.</p></li>
+<li><p><strong>Red text</strong>: Fixed and mandatory to ensure correct processing during build
+and to define the LOD number.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Post-export, you may encounter errors like:
+<img alt="../../_images/dng_non_human_char_10.jpg" class="align-center" src="../../_images/dng_non_human_char_10.jpg" /></p>
+<p>These errors occur because bones lack assigned <strong>Dagor</strong> materials. Assigning
+materials does not resolve this issue; it can be safely ignored.</p>
+</div>
+<p>Repeat the export process for the other two LODs, naming them:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crow_detailed_a_dynmodel.lod01.dag</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crow_detailed_a_dynmodel.lod02.dag</span></code></p></li>
+</ul>
+<p>Once the export is complete, verify the model in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> by
+selecting <code class="docutils literal notranslate"><span class="pre">crow_lo_a_dynmodel</span></code> <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>:</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_11.jpg"><img alt="../../_images/dng_non_human_char_11.jpg" class="align-center" src="../../_images/dng_non_human_char_11.jpg" style="width: 60em;" />
+</a>
+<p>If everything was done correctly, the model should load without errors.</p>
+</section>
+</section>
+<section id="exporting-animation">
+<h2>Exporting Animation<a class="headerlink" href="#exporting-animation" title="Link to this heading"></a></h2>
+<p>In essence, animation is simply a record of the bone movements associated with a
+model.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p><strong>Bone Count, Naming, and Hierarchy:</strong> These must match exactly between the
+dynamic model and the animation file.</p></li>
+<li><p>Any mismatch can result in odd animation hierarchies or failure to display the
+animation altogether.</p></li>
+</ul>
+</div>
+<p>Open the file <code class="docutils literal notranslate"><span class="pre">crow_detailed_idle_b.max</span></code>, which contains the animation for idle
+movements. Select all bones in the scene; there should be <strong>195 selected
+objects</strong>, including all Helpers.</p>
+<p>In the <strong>Dagor Export</strong> panel, ensure the following:</p>
+<ol class="arabic simple">
+<li><p>Enable the <strong>Export selected objects only</strong> button <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>.</p></li>
+<li><p>Explicitly set the animation key range for export <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>, from
+<strong>frame 0 to 150</strong>.</p></li>
+</ol>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_12.jpg"><img alt="../../_images/dng_non_human_char_12.jpg" class="align-center" src="../../_images/dng_non_human_char_12.jpg" style="width: 60em;" />
+</a>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The animation range displayed on the timeline <strong>is irrelevant</strong> for export. You
+must manually specify the key range in the export settings.</p>
+</div>
+<p>Enabling the checkboxes <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span> significantly increases animation
+precision, which is essential in this case to prevent visual errors such as
+“sliding” feet.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Exporting the animation with high precision increases the file size by hundreds
+of times. Use this option only when it is really necessary.</p>
+</div>
+<p>Without these checkboxes, animations are compressed hierarchically, accumulating
+minor errors over time. This can cause noticeable visual discrepancies. Enabling
+high precision minimizes these errors, ensuring smoother playback.</p>
+<p>Leave the <strong>scaling checkbox</strong> unchecked if there is no scaling animation in the
+scene (as in this crow example).</p>
+<p>Click the <strong>Export Animation</strong> button <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>.</p>
+<p>Naming and location conventions for animation files are similar to those for
+dynamic models:</p>
+<ul class="simple">
+<li><p>Store animations in:
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/creatures/animation/crow</span></code></p></li>
+<li><p>Use the <code class="docutils literal notranslate"><span class="pre">.a2d</span></code> extension.</p></li>
+<li><p>Naming guidelines:</p>
+<ul>
+<li><p>Use the same base name as the dynamic model but omit LOD-related or
+dynamic-model-specific postfixes.</p></li>
+<li><p>Avoid key script processor keywords in the filename (e.g., dynamic-related
+terms).</p></li>
+</ul>
+</li>
+</ul>
+<p>In this example, save the animation as: <code class="docutils literal notranslate"><span class="pre">crow_detailed_idle_b.a2d</span></code>.</p>
+<p>Next to this file, there should also be a configuration file named:
+<code class="docutils literal notranslate"><span class="pre">crow_detailed_idle_b.a2d.blk</span></code>.</p>
+<p>This file contains individual properties and settings for the animation.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;crow_detailed_idle_b.a2d&quot;</span>  <span class="ge">// Name of the animation linked to this script</span>
+<span class="no">opt</span><span class="nt">:b=</span><span class="si">no</span>                           <span class="ge">// Conservative optimization disabled.</span>
+<span class="no">posEps</span><span class="nt">:r=</span><span class="m">0.001</span>                     <span class="ge">// Position compression accuracy during project build.</span>
+                                   <span class="ge">// Higher values (e.g., 0.1 &gt; 0.01) reduce file size but decrease accuracy.</span>
+<span class="no">rotEps</span><span class="nt">:r=</span><span class="m">0.001</span>                     <span class="ge">// Rotation compression accuracy. Higher values reduce accuracy.</span>
+<span class="no">sclEps</span><span class="nt">:r=</span><span class="m">0.1</span>                       <span class="ge">// Scaling compression accuracy (if applicable).</span>
+</pre></div>
+</div>
+<p>This is an example of a <code class="docutils literal notranslate"><span class="pre">.blk</span></code> script used for post-export processing. Carefully
+adjust compression values to balance file size and animation precision.</p>
+<p>After exporting, open the animation in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>. If you
+select the exported animation (<code class="docutils literal notranslate"><span class="pre">crow_detailed_idle_b</span></code>), you might initially see
+nothing:</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_13.jpg"><img alt="../../_images/dng_non_human_char_13.jpg" class="align-center" src="../../_images/dng_non_human_char_13.jpg" style="width: 60em;" />
+</a>
+<p><strong>Steps to Display the Animation:</strong></p>
+<ol class="arabic simple">
+<li><p>Assign the dynamic model <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> associated with the animation.</p></li>
+<li><p>Re-select the animation <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>.</p></li>
+</ol>
+<p>At this point, the crow <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span> should appear in the scene in the
+first frame of the animation instead of the default T-pose.</p>
+<p><strong>Playing the Animation:</strong></p>
+<ul class="simple">
+<li><p>To play the animation, click the play button <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">4</span>.</p></li>
+<li><p>By default, animations play very quickly. Use the speed slider
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">5</span> to reduce playback speed (e.g., set it to <code class="docutils literal notranslate"><span class="pre">0.5x</span></code> for
+smoother observation).</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_14.jpg"><img alt="../../_images/dng_non_human_char_14.jpg" class="align-center" src="../../_images/dng_non_human_char_14.jpg" style="width: 60em;" />
+</a>
+<p>At this stage, all necessary data has been exported from 3ds Max:</p>
+<ul class="simple">
+<li><p>Animation</p></li>
+<li><p>Bone structure</p></li>
+<li><p>Hierarchy</p></li>
+<li><p>Model and its LODs</p></li>
+</ul>
+<p>The final step is updating the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> scripts to define the roles of each
+component (e.g., bones, animations, models) for integration into Dagor Engine.</p>
+</section>
+<section id="principles-of-working-with-dynamic-models-in-dagor-and-resource-integration">
+<h2>Principles of Working with Dynamic Models in Dagor and Resource Integration<a class="headerlink" href="#principles-of-working-with-dynamic-models-in-dagor-and-resource-integration" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files found alongside models in <code class="docutils literal notranslate"><span class="pre">creatures.zip</span></code> are scripts that
+automate the preparation, conversion, and generation of resources for the game.
+These scripts, written in an internal language for Dagor, define specific
+processes for managing game entities and objects.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Reloading After Changes:</strong></p>
+<ul class="simple">
+<li><p>Some <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files (e.g., <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>) only update after reloading the
+<a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset Viewer</span></a>
+or the <a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>.</p></li>
+<li><p>In contrast, files related to animations can be edited dynamically, and
+changes take effect immediately.</p></li>
+</ul>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> file processes all contents of the directory it resides in,
+along with its subdirectories. This is particularly useful when working with a
+large number of resources.</p>
+<p><strong>Example: Processing Animations</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/creatures/animation/.folder.blk</span></code></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">export</span><span class="ni">{</span>
+  <span class="no">gameResPack</span><span class="nt">:t=</span><span class="nf">&quot;anims.grp&quot;</span> <span class="ge">// Export processed animation resources into the specified game resource package</span>
+  <span class="no">exported</span><span class="nt">:b=</span><span class="si">yes</span>            <span class="ge">// Perform the export</span>
+<span class="ni">}</span>
+
+<span class="se">virtual_res_blk</span><span class="ni">{</span>        <span class="ge">// Create virtual resource</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)\.a2d$&quot;</span>  <span class="ge">// Locate all *.a2d files in the directory tree</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;a2d&quot;</span>     <span class="ge">// Assign the &quot;a2d&quot; class, marking them as animation objects</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="no">opt</span><span class="nt">:b=</span><span class="si">yes</span>      <span class="ge">// Enable conservative optimization</span>
+    <span class="no">posEps</span><span class="nt">:r=</span><span class="m">0.01</span>  <span class="ge">// Compression accuracy for position</span>
+    <span class="no">rotEps</span><span class="nt">:r=</span><span class="m">0.2</span>   <span class="ge">// Compression accuracy for rotation</span>
+    <span class="no">sclEps</span><span class="nt">:r=</span><span class="m">0.1</span>   <span class="ge">// Compression accuracy for scaling</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This script:</p>
+<ol class="arabic simple">
+<li><p>Exports animations into the <code class="docutils literal notranslate"><span class="pre">anims.grp</span></code> game resource package.</p></li>
+<li><p>Finds all <code class="docutils literal notranslate"><span class="pre">.a2d</span></code> files, assigns them the “a2d” class, and processes them as
+animations.</p></li>
+<li><p>Applies compression with default thresholds to balance file size and
+animation quality.</p></li>
+</ol>
+<p><strong>Example: Processing Dynamic Models</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/creatures/.folder.blk</span></code></p>
+<p>This script is slightly more complex but follows the same structure.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">scan_assets</span><span class="nt">:b=</span><span class="si">yes</span>   <span class="ge">// Search for objects</span>
+<span class="no">scan_folders</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Search for directories</span>
+
+<span class="se">export</span><span class="ni">{</span>
+  <span class="no">ddsxTexPack</span><span class="nt">:t=</span><span class="nf">&quot;creatures.dxp.bin&quot;</span> <span class="ge">// Process textures and store them in this game resource</span>
+  <span class="no">gameResPack</span><span class="nt">:t=</span><span class="nf">&quot;creatures.grp&quot;</span>     <span class="ge">// Store processed models and virtual objects here</span>
+<span class="ni">}</span>
+
+<span class="se">virtual_res_blk</span><span class="ni">{</span>                         <span class="ge">// Create virtual resource</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^((.*)_dynmodel)\.lod00\.dag$&quot;</span> <span class="ge">// Locate dynamic model files</span>
+  <span class="no">stopProcessing</span><span class="nt">:b=</span><span class="si">false</span>                 <span class="ge">// Continue processing this object in other blocks</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;skeleton&quot;</span>                 <span class="ge">// Generate skeleton from dynamic models</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;$2_skeleton&quot;</span>                   <span class="ge">// Assign a skeleton name</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="no">addSkinNodes</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Attach skin nodes to the skeleton</span>
+    <span class="no">reduceNodes</span><span class="nt">:b=</span><span class="si">yes</span>   <span class="ge">// Remove bones without Skin vertices</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+
+<span class="se">virtual_res_blk</span><span class="ni">{</span>                          <span class="ge">// Create virtual resource</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^((.*)_dynmodel)\.lod00\.dag$&quot;</span>  <span class="ge">// Scan again for dynamic models</span>
+  <span class="no">stopProcessing</span><span class="nt">:b=</span><span class="si">false</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;DynModel&quot;</span>  <span class="ge">// Assign &quot;DynModel&quot; class to dynamic models</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;$2_dynmodel&quot;</span>    <span class="ge">// Assign a name to dynamic model objects</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="se">lod</span><span class="ni">{</span>
+      <span class="no">range</span><span class="nt">:r=</span><span class="m">3000</span><span class="gp">;</span> <span class="no">fname</span><span class="nt">:t=</span><span class="nf">&quot;$1.lod00.dag&quot;</span><span class="gp">;</span>  <span class="ge">// Set LOD00 rendering distance to 3000 meters</span>
+    <span class="ni">}</span>
+    <span class="no">ref_skeleton</span><span class="nt">:t=</span><span class="nf">&quot;$2_skeleton&quot;</span>             <span class="ge">// Assign the corresponding skeleton</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p><strong>Key Steps:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Search Directories:</strong></p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">scan_assets:b=yes</span></code> and <code class="docutils literal notranslate"><span class="pre">scan_folders:b=yes</span></code> to locate objects and
+directories.</p></li>
+</ul>
+</li>
+<li><p><strong>Export Textures and Models:</strong></p>
+<ul class="simple">
+<li><p>Textures are saved in <code class="docutils literal notranslate"><span class="pre">creatures.dxp.bin</span></code>.</p></li>
+<li><p>Models and virtual objects are saved in <code class="docutils literal notranslate"><span class="pre">creatures.grp</span></code>.</p></li>
+</ul>
+</li>
+<li><p><strong>Generate Skeletons:</strong></p>
+<ul class="simple">
+<li><p>Find models named as <code class="docutils literal notranslate"><span class="pre">*_dynmodel.lod00.dag</span></code>.</p></li>
+<li><p>Create skeletons for these models, removing unused bones and linking skins.</p></li>
+</ul>
+</li>
+<li><p><strong>Assign Properties to Models:</strong></p>
+<ul class="simple">
+<li><p>Assign a rendering distance of <code class="docutils literal notranslate"><span class="pre">3000</span></code> meters for LOD00.</p></li>
+<li><p>Link dynamic models to the generated skeletons.</p></li>
+</ul>
+</li>
+</ol>
+<p>After running the scripts, the resulting files (<code class="docutils literal notranslate"><span class="pre">creatures.grp</span></code> and
+<code class="docutils literal notranslate"><span class="pre">creatures.dxp.bin</span></code>) are ready for integration into the game. These resources:</p>
+<ul class="simple">
+<li><p>Contain properly configured skeletons, bones, and skin objects.</p></li>
+<li><p>Are optimized for gameplay with attributes such as rendering distance and
+compression settings.</p></li>
+</ul>
+<p>These configurations ensure all objects are processed as game entities with
+specific classes and properties.</p>
+</section>
+<section id="real-resources-vs-virtual-resources-and-objects-in-dagor">
+<h2>Real Resources vs. Virtual Resources and Objects in Dagor<a class="headerlink" href="#real-resources-vs-virtual-resources-and-objects-in-dagor" title="Link to this heading"></a></h2>
+<p><strong>Key Concepts:</strong></p>
+<p>Understanding the distinction between <strong>real resources</strong> (files on disk),
+<strong>virtual resources</strong> (engine-created entities), and <strong>virtual resources
+converted into game entities</strong> is critical when working with Dagor.</p>
+<p>The Dagor Engine processes exported files (e.g., <code class="docutils literal notranslate"><span class="pre">.a2d</span></code>, <code class="docutils literal notranslate"><span class="pre">.dag</span></code>) into optimized
+formats (<code class="docutils literal notranslate"><span class="pre">.dxp.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">.grp</span></code>) ready for game use. While physical files on disk
+represent raw data, virtual objects in the engine are entities assigned game
+properties. These virtual objects are subsequently written into binary game
+resources.</p>
+<p><strong>Real vs. Virtual Resources:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Exported Files:</strong> Files from tools like 3ds Max include animations (<code class="docutils literal notranslate"><span class="pre">.a2d</span></code>)
+and dynamic models (<code class="docutils literal notranslate"><span class="pre">.dag</span></code> with LOD levels). These raw files are intermediate
+resources.</p></li>
+<li><p><strong>Engine Optimization:</strong> The Dagor Engine transforms exported data,
+applying compression and processing to meet game engine requirements (e.g.,
+reducing file size, optimizing for performance).</p></li>
+<li><p><strong>Game Resource Files:</strong> Final outputs like <code class="docutils literal notranslate"><span class="pre">.dxp.bin</span></code> and <code class="docutils literal notranslate"><span class="pre">.grp</span></code> are the
+only formats recognized by the game executable. Scripts (<code class="docutils literal notranslate"><span class="pre">.blk</span></code>) process the
+exported data into game entities.</p></li>
+</ol>
+<p><strong>Example: Crow Dynamic Model Breakdown</strong></p>
+<p>From a single dynamic model file, the following game entities can be generated
+using <code class="docutils literal notranslate"><span class="pre">.blk</span></code> scripts:</p>
+<ul class="simple">
+<li><p>Skeleton (<code class="docutils literal notranslate"><span class="pre">crow_skeleton</span></code>)</p></li>
+<li><p>Model Shell</p></li>
+<li><p>Physics Model</p></li>
+<li><p>Collision Data</p></li>
+</ul>
+<p>Notably, physics <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> and collision <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span> data may
+remain empty if unnecessary for the object, as in the case of the crow model.
+For example:</p>
+<ul>
+<li><p><strong>Skeleton:</strong> Visible because it was explicitly processed in the script.</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_16.jpg"><img alt="../../_images/dng_non_human_char_16.jpg" class="align-center" src="../../_images/dng_non_human_char_16.jpg" style="width: 60em;" />
+</a>
+</li>
+<li><p><strong>Physics &amp; Collisions:</strong> Empty because the script did not define these
+components.</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_15.jpg"><img alt="../../_images/dng_non_human_char_15.jpg" class="align-center" src="../../_images/dng_non_human_char_15.jpg" style="width: 40em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="configuring-char-animchar-blk">
+<h2>Configuring <code class="docutils literal notranslate"><span class="pre">*_char.animchar.blk</span></code><a class="headerlink" href="#configuring-char-animchar-blk" title="Link to this heading"></a></h2>
+<p>This script assembles the virtual resources (e.g., skeleton, model, physics)
+into a character with complex structures that the game code can manage
+efficiently.</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/creatures/characters/crow/crow_detailed_a_char.animchar.blk</span></code></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="ge">//no_anim_dist:r=100    // Distance beyond which animations stop (commented out)</span>
+<span class="ge">//no_render_dist:r=200  // Distance beyond which the model stops rendering (commented out)</span>
+<span class="ge">//useCharDep:b=no       // Not used here; consult specific documentation if needed</span>
+<span class="no">rootNode</span><span class="nt">:t=</span><span class="nf">&quot;root&quot;</span>       <span class="ge">// Starting bone of the skeleton</span>
+<span class="no">dynModel</span><span class="nt">:t=</span><span class="nf">&quot;crow_detailed_a_dynmodel&quot;</span> <span class="ge">// Dynamic model name for the character</span>
+<span class="no">skeleton</span><span class="nt">:t=</span><span class="nf">&quot;crow_detailed_a_skeleton&quot;</span> <span class="ge">// Skeleton name for the character</span>
+<span class="no">animTree</span><span class="nt">:t=</span><span class="nf">&quot;crow_detailed_a_animbnl&quot;</span>  <span class="ge">// Animation description tree for blending and rules</span>
+<span class="no">physObj</span><span class="nt">:t=</span><span class="nf">&quot;crow_detailed_a_phobj&quot;</span>     <span class="ge">// Physical model for the character</span>
+
+<span class="ge">//ref_states{           // Optional reference states (commented out)</span>
+<span class="ge">//  state:t=&quot;stand_ground&quot;</span>
+<span class="ge">//}</span>
+</pre></div>
+</div>
+<p><strong>Key Points:</strong></p>
+<ol class="arabic simple">
+<li><p>Operates exclusively on <strong>virtual objects</strong> (e.g., skeletons, models).</p></li>
+<li><p>Does not search for or sort physical files; all objects must already exist as
+virtual entities.</p></li>
+<li><p>Assembles the higher-level character structure by linking components (dynamic
+model, skeleton, physics).</p></li>
+</ol>
+</section>
+<section id="configuring-dynmodel-dynmodel-blk">
+<h2>Configuring <code class="docutils literal notranslate"><span class="pre">*_dynmodel.dynmodel.blk</span></code><a class="headerlink" href="#configuring-dynmodel-dynmodel-blk" title="Link to this heading"></a></h2>
+<p>This script applies specific properties to an individual model. Unlike
+<code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>, which processes groups of files, <code class="docutils literal notranslate"><span class="pre">*_dynmodel.dynmodel.blk</span></code>
+targets a single resource.</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/creatures/characters/crow/crow_detailed_a_dynmodel.dynmodel.blk</span></code></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">ref_skeleton</span><span class="nt">:t=</span><span class="nf">&quot;crow_detailed_a_skeleton&quot;</span> <span class="ge">// Assign the corresponding skeleton</span>
+
+<span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">2</span><span class="gp">;</span><span class="ni">}</span>   <span class="ge">// LOD00 switches to LOD01 at 2 meters</span>
+<span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">7</span><span class="gp">;</span><span class="ni">}</span>   <span class="ge">// LOD01 switches to LOD02 at 7 meters</span>
+<span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">15</span><span class="gp">;</span><span class="ni">}</span>  <span class="ge">// LOD02 turns off rendering at 15 meters</span>
+</pre></div>
+</div>
+<p><strong>Key Points:</strong></p>
+<ol class="arabic simple">
+<li><p>The <strong>naming convention</strong> ensures precise targeting of a specific dynamic
+model (<code class="docutils literal notranslate"><span class="pre">crow_detailed_a_dynmodel</span></code>).</p></li>
+<li><p><strong>LOD Configuration:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">range:r=2</span></code>: Transitions from the highest detail (LOD00) to a lower detail
+(LOD01).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">range:r=15</span></code>: Stops rendering entirely beyond this distance.</p></li>
+</ul>
+</li>
+<li><p>Links the skeleton to the dynamic model (<code class="docutils literal notranslate"><span class="pre">ref_skeleton</span></code>), ensuring it uses
+the correct hierarchy.</p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Real vs. Virtual:</strong></p>
+<ul class="simple">
+<li><p>Real resources are raw files (e.g., <code class="docutils literal notranslate"><span class="pre">.a2d</span></code>, <code class="docutils literal notranslate"><span class="pre">.dag</span></code>), while virtual
+resources are entities created and optimized by the engine.</p></li>
+<li><p>Game resource files (<code class="docutils literal notranslate"><span class="pre">.dxp.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">.grp</span></code>) are the final, optimized outputs.</p></li>
+</ul>
+<p><strong>Script Layers:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>: Processes groups of resources.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*_char.animchar.blk</span></code>: Assembles characters from components like skeletons,
+models, and physics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*_dynmodel.dynmodel.blk</span></code>: Configures individual models with properties such
+as LOD ranges.</p></li>
+</ul>
+</div>
+</section>
+<section id="configuring-animbnl-animtree-blk">
+<h2>Configuring <code class="docutils literal notranslate"><span class="pre">*_animbnl.animtree.blk</span></code><a class="headerlink" href="#configuring-animbnl-animtree-blk" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">*_animbnl.animtree.blk</span></code> file defines the rules for animation states,
+blending, and other related configurations, such as additive animations for a
+character. This script is one of the most complex due to its detailed control
+over animation blending and state transitions.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="#../../assets/animation/daanimations.md"><span class="xref myst">daAnimations</span></a>.</p>
+</div>
+<p><strong>Key Points:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Sequential Execution Matters:</strong> Blocks and commands must be executed in the
+order they are defined. For instance, a blending controller must be declared
+before it is used.</p></li>
+<li><p><strong>Nodes as Units:</strong> A <strong>node</strong> can represent an object, model, or bone. Nodes
+are identified by names, which are used for configuration.</p></li>
+<li><p><strong>Critical Documentation:</strong> It is highly recommended to read related
+documentation thoroughly to understand controllers, states, and blending
+techniques.</p></li>
+</ol>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/assets/dev/gameRes/creatures/characters/crow/crow_detailed_a_animbnl.animtree.blk</span></code></p>
+<p><strong>Script Breakdown:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">export</span><span class="nt">:b=</span><span class="si">yes</span>              <span class="ge">// Process the script</span>
+<span class="no">root</span><span class="nt">:t=</span><span class="nf">&quot;fifo3&quot;</span>            <span class="ge">// Root node for animation blending</span>
+<span class="no">defaultForeignAnim</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Enables blending foreign animations</span>
+</pre></div>
+</div>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">nodeMask</span><span class="ni">{</span>         <span class="ge">// Defines masks for specific nodes (bones in this case).</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;body&quot;</span>   <span class="ge">// Bone name from 3ds Max</span>
+  <span class="no">node</span><span class="nt">:t=</span><span class="nf">&quot;Bip01&quot;</span>  <span class="ge">// Root bone name as recognized by Dagor</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Purpose:</strong> Aligns the bone naming conventions between 3ds Max and <em>Dagor</em>
+to ensure compatibility. For example, <code class="docutils literal notranslate"><span class="pre">Bip01</span></code> is historically used for root
+bones in 3ds Max.</p></li>
+</ul>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">stateDesc</span><span class="ni">{</span>             <span class="ge">// Specifies all possible animation states for the character.</span>
+                       <span class="ge">// In this example states represent conditions like &quot;flying&quot;</span>
+                       <span class="ge">// and &quot;turning right while flying&quot;.</span>
+  <span class="no">defMorphTime</span><span class="nt">:r=</span><span class="m">0.15</span>  <span class="ge">// Transition time between states (morphing)</span>
+  <span class="no">defNodeName</span><span class="nt">:t=</span><span class="nf">&quot;*&quot;</span>    <span class="ge">// Applies to all bones (nodes)</span>
+
+  <span class="se">chan</span><span class="ni">{</span>                <span class="ge">// Mixing channel for the &quot;body&quot; and nodes</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;body&quot;</span>
+    <span class="no">fifo3</span><span class="nt">:t=</span><span class="nf">&quot;fifo3&quot;</span>    <span class="ge">// Controller type</span>
+    <span class="no">nodeMask</span><span class="nt">:t=</span><span class="nf">&quot;&quot;</span>      <span class="ge">// Applies to all nodes</span>
+    <span class="no">cond_target</span><span class="nt">:i=</span><span class="m">1</span>
+  <span class="ni">}</span>
+
+  <span class="se">chan</span><span class="ni">{</span>                <span class="ge">// Mixing channel for the &quot;root&quot; and nodes</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;root&quot;</span>
+    <span class="no">fifo3</span><span class="nt">:t=</span><span class="nf">&quot;fifo3_root&quot;</span>
+    <span class="no">nodeMask</span><span class="nt">:t=</span><span class="nf">&quot;&quot;</span>
+    <span class="no">cond_target</span><span class="nt">:i=</span><span class="m">0</span>
+  <span class="ni">}</span>
+
+  <span class="se">state</span><span class="ni">{</span>               <span class="ge">// Example animation state</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;crow_a_fly_turn_right&quot;</span>           <span class="ge">// State name</span>
+    <span class="se">body</span><span class="ni">{</span> <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;crow_a_fly_turn_right&quot;</span><span class="gp">;</span> <span class="ni">}</span>  <span class="ge">// Links the state to an animation for the &quot;body&quot;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>States:</strong> Represent high-level conditions that can mix multiple animations
+or transitions.</p></li>
+<li><p><strong>Channels:</strong> Control how specific nodes or groups of bones are blended in
+animation.</p></li>
+</ul>
+<p>Each animation state is linked to an <code class="docutils literal notranslate"><span class="pre">AnimBlendNodeLeaf{}</span></code> block that specifies
+the actual animation file (<code class="docutils literal notranslate"><span class="pre">*.a2d</span></code>) and its properties.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">AnimBlendNodeLeaf</span><span class="ni">{</span>
+  <span class="no">a2d</span><span class="nt">:t=</span><span class="nf">&quot;crow_detailed_fly_turn_right&quot;</span> <span class="ge">// Animation file</span>
+
+  <span class="se">continuous</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;crow_a_fly_turn_right&quot;</span>      <span class="ge">// Internal name linked to the state</span>
+    <span class="no">key_start</span><span class="nt">:t=</span><span class="nf">&quot;fly_turn_right_start&quot;</span>  <span class="ge">// Start keyframe from 3ds Max</span>
+    <span class="no">key_end</span><span class="nt">:t=</span><span class="nf">&quot;fly_turn_right_end&quot;</span>      <span class="ge">// End keyframe from 3ds Max</span>
+    <span class="no">time</span><span class="nt">:r=</span><span class="m">2.0</span>                          <span class="ge">// Playback duration</span>
+    <span class="no">own_timer</span><span class="nt">:b=</span><span class="si">yes</span>                     <span class="ge">// Unique timer for this animation</span>
+    <span class="no">eoa_irq</span><span class="nt">:b=</span><span class="si">yes</span>                       <span class="ge">// End-of-animation interrupt marker</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Purpose:</strong> Prepares the raw animation file for use in the defined states.</p></li>
+<li><p><strong>Keys:</strong> Define specific animation segments exported from 3ds Max.</p></li>
+</ul>
+<p>Blend controllers manage the mixing of different animation states.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">AnimBlendCtrl</span><span class="ni">{</span>
+  <span class="se">fifo3</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;fifo3&quot;</span>         <span class="ge">// Name of the controller</span>
+    <span class="no">varname</span><span class="nt">:t=</span><span class="nf">&quot;fifo3_var&quot;</span>  <span class="ge">// Variable name for internal use</span>
+  <span class="ni">}</span>
+
+  <span class="se">fifo3</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;fifo3_root&quot;</span>
+    <span class="no">varname</span><span class="nt">:t=</span><span class="nf">&quot;root_ctrl&quot;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p><strong>Key Execution Steps:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Define Controllers:</strong> Controllers like <code class="docutils literal notranslate"><span class="pre">fifo3</span></code> and <code class="docutils literal notranslate"><span class="pre">fifo3_root</span></code> are
+declared first.</p></li>
+<li><p><strong>Specify States:</strong> States such as <code class="docutils literal notranslate"><span class="pre">crow_a_fly_turn_right</span></code> link animations to
+logical conditions.</p></li>
+<li><p><strong>Create Animation Nodes:</strong> For each state, an <code class="docutils literal notranslate"><span class="pre">AnimBlendNodeLeaf{}</span></code> is
+created to prepare the corresponding animation file.</p></li>
+<li><p><strong>Test the Configuration:</strong> Use the Dagor Engine visualization tools (e.g.,
+the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>) to
+verify the setup.</p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p><strong>Purpose:</strong> The <code class="docutils literal notranslate"><span class="pre">*_animbnl.animtree.blk</span></code> file establishes a framework for
+managing animation states and blending.</p></li>
+<li><p><strong>Components:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Node Masks:</strong> Define skeleton relationships.</p></li>
+<li><p><strong>State Descriptions:</strong> Link logical states to animations.</p></li>
+<li><p><strong>Animation Nodes:</strong> Prepare animations for state transitions.</p></li>
+<li><p><strong>Controllers:</strong> Manage blending logic.</p></li>
+</ol>
+</li>
+</ul>
+</div>
+<p>When viewed <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>, the
+following elements should appear based on this configuration:</p>
+<ol class="arabic simple">
+<li><p><strong>Skeleton Nodes:</strong> The root node (<code class="docutils literal notranslate"><span class="pre">Bip01</span></code>) and associated hierarchy
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>.</p></li>
+<li><p><strong>Blend Nodes:</strong> All defined <code class="docutils literal notranslate"><span class="pre">AnimBlendNodeLeaf</span></code> elements <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">3</span>,
+corresponding to animation states.</p></li>
+<li><p><strong>Controllers:</strong> All specified controllers (<code class="docutils literal notranslate"><span class="pre">fifo3</span></code>, <code class="docutils literal notranslate"><span class="pre">fifo3_root</span></code>).</p></li>
+<li><p><strong>States:</strong> List of all defined animation states, such as
+<code class="docutils literal notranslate"><span class="pre">crow_a_fly_turn_right</span></code>.</p></li>
+</ol>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_17.jpg"><img alt="../../_images/dng_non_human_char_17.jpg" class="align-center" src="../../_images/dng_non_human_char_17.jpg" style="width: 60em;" />
+</a>
+</section>
+<section id="testing-the-character-in-asset-viewer">
+<h2>Testing the Character in Asset Viewer<a class="headerlink" href="#testing-the-character-in-asset-viewer" title="Link to this heading"></a></h2>
+<p><strong>Step 1: Checking Files in Asset Viewer</strong></p>
+<ol class="arabic">
+<li><p>Open the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> and
+load all the files related to your character <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>.</p>
+<p><strong>Goal:</strong> Ensure no errors appear in the console <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>. A
+successful result looks like this:</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_18.jpg"><img alt="../../_images/dng_non_human_char_18.jpg" class="align-center" src="../../_images/dng_non_human_char_18.jpg" style="width: 60em;" />
+</a>
+</li>
+<li><p><strong>Common Checkpoints:</strong></p>
+<ul class="simple">
+<li><p>Inspect every file linked to the character (e.g., animations, blend
+controllers, state descriptions).</p></li>
+<li><p>Console errors indicate an issue with one or more configurations.</p></li>
+</ul>
+</li>
+</ol>
+<p><strong>Step 2: Local Resource Building</strong></p>
+<ol class="arabic">
+<li><p><strong>Initiate <code class="docutils literal notranslate"><span class="pre">daBuild</span></code>:</strong>
+To include the created character in <code class="docutils literal notranslate"><span class="pre">.grp</span></code> and <code class="docutils literal notranslate"><span class="pre">.dxp.bin</span></code> files:</p>
+<ul>
+<li><p>Navigate to the folder <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span> containing the character
+resources (e.g., <code class="docutils literal notranslate"><span class="pre">crow</span></code>).</p></li>
+<li><p>Right-click the folder and select the <strong>Export All (PC)</strong> option
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">2</span>.</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_19.jpg"><img alt="../../_images/dng_non_human_char_19.jpg" class="align-center" src="../../_images/dng_non_human_char_19.jpg" style="width: 40em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Monitor Build Progress:</strong></p>
+<ul>
+<li><p>The building process starts and may take a significant amount of time
+depending on your computer’s performance.</p></li>
+<li><p>Build progress is displayed in the console. A successful build ends with an
+output similar to this <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">1</span>:</p>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_20.jpg"><img alt="../../_images/dng_non_human_char_20.jpg" class="align-center" src="../../_images/dng_non_human_char_20.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Integration:</strong>
+Once built, the character is ready for inclusion in the game.</p></li>
+</ol>
+</section>
+<section id="common-errors">
+<h2>Common Errors<a class="headerlink" href="#common-errors" title="Link to this heading"></a></h2>
+<section id="error-bracket-mismatches">
+<h3>Error: Bracket Mismatches<a class="headerlink" href="#error-bracket-mismatches" title="Link to this heading"></a></h3>
+<p>Missing or extra brackets can cause critical errors during script parsing.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>BLK error &#39;D:/dagor2/enlisted/develop/assets/dev/gameRes/creatures/characters/crow/crow_detailed_a_animbnl.animtree.blk&#39;,228: unexpected EOF:
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Cause:</strong> Unmatched brackets result in an “unexpected end of file” (EOF)
+error.</p></li>
+<li><p><strong>Solution:</strong> Carefully check the script for bracket pairs, especially in
+deeply nested blocks.</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_21.jpg"><img alt="../../_images/dng_non_human_char_21.jpg" class="align-center" src="../../_images/dng_non_human_char_21.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="error-incorrect-data-types">
+<h3>Error: Incorrect Data Types<a class="headerlink" href="#error-incorrect-data-types" title="Link to this heading"></a></h3>
+<p><strong>Example:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>BLK invalid time (type real) value in line 209 of &#39;D:/dagor2/enlisted/develop/assets/dev/gameRes/creatures/characters/crow/crow_detailed_a_animbnl.animtree.blk&#39;: &#39;sdfsd&#39;
+DataBlockParser: invalid value &#39;sdfsd&#39; at line 209 of file &#39;.../crow_detailed_a_animbnl.animtree.blk&#39;
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Cause:</strong> A non-numeric value (e.g., string) is assigned to a numeric
+property like <code class="docutils literal notranslate"><span class="pre">time</span></code>.</p></li>
+<li><p><strong>Solution:</strong> Review and correct the value. Ensure all numeric parameters
+are defined as valid numbers (e.g., <code class="docutils literal notranslate"><span class="pre">time:r=2.0</span></code>).</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/dng_non_human_char_22.jpg"><img alt="../../_images/dng_non_human_char_22.jpg" class="align-center" src="../../_images/dng_non_human_char_22.jpg" style="width: 50em;" />
+</a>
+</section>
+<section id="debugging-tips">
+<h3>Debugging Tips<a class="headerlink" href="#debugging-tips" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>Error Line Numbers:</strong> While error messages indicate a line number, they may
+not always be accurate. Errors often occur earlier in the script but only
+show later.</p></li>
+<li><p><strong>Manual Validation:</strong></p>
+<ul class="simple">
+<li><p>Verify the syntax for critical properties such as <code class="docutils literal notranslate"><span class="pre">state</span></code>, <code class="docutils literal notranslate"><span class="pre">chan</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">AnimBlendNodeLeaf</span></code>.</p></li>
+<li><p>Cross-check with examples or templates to ensure consistency.</p></li>
+</ul>
+</li>
+<li><p><strong>Progressive Testing:</strong></p>
+<ul class="simple">
+<li><p>Test the script incrementally by adding elements in small chunks.</p></li>
+<li><p>This approach isolates errors more effectively.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="summary">
+<h3>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h3>
+<p><strong>Key Steps for Testing:</strong></p>
+<ol class="arabic simple">
+<li><p>Verify all character files in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>.</p></li>
+<li><p>Perform a local build using the the daBuild and monitor for successful
+output.</p></li>
+<li><p>Address any errors detected during the process.</p></li>
+</ol>
+<p><strong>Common Pitfalls:</strong></p>
+<ul class="simple">
+<li><p>Missing or extra brackets (<code class="docutils literal notranslate"><span class="pre">{</span></code>, <code class="docutils literal notranslate"><span class="pre">}</span></code>).</p></li>
+<li><p>Incorrect value types (e.g., string instead of number).</p></li>
+<li><p>Errors at incorrect line numbers due to delayed detection.</p></li>
+</ul>
+<p>By following these steps and debugging techniques, you can ensure your character
+is fully functional and ready for game integration.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you encounter any errors or have questions regarding this document, please
+reach out to the author directly at <svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-mail sd-text-info" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1.75 2A1.75 1.75 0 000 3.75v.736a.75.75 0 000 .027v7.737C0 13.216.784 14 1.75 14h12.5A1.75 1.75 0 0016 12.25v-8.5A1.75 1.75 0 0014.25 2H1.75zM14.5 4.07v-.32a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25v.32L8 7.88l6.5-3.81zm-13 1.74v6.441c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25V5.809L8.38 9.397a.75.75 0 01-.76 0L1.5 5.809z"></path></svg>
+<a class="reference external" href="mailto:a&#46;vlasov&#37;&#52;&#48;gaijin&#46;team">a<span>&#46;</span>vlasov<span>&#64;</span>gaijin<span>&#46;</span>team</a>.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="daNetGame-Based Projects" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../wt/index.html" class="btn btn-neutral float-right" title="War Thunder" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

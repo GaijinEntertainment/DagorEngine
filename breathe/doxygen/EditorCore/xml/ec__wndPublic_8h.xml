@@ -1,0 +1,199 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__wndPublic_8h" kind="file" language="C++">
+    <compoundname>ec_wndPublic.h</compoundname>
+    <includes local="no">libTools/util/hdpiUtil.h</includes>
+    <includedby refid="ec__ObjectEditor_8h" local="no">ec_ObjectEditor.h</includedby>
+    <includedby refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_wndPublic.h</label>
+        <link refid="ec__wndPublic_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>ec_ObjectEditor.h</label>
+        <link refid="ec__ObjectEditor_8h"/>
+      </node>
+      <node id="4">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="3">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_wndPublic.h</label>
+        <link refid="ec__wndPublic_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classIWndManagerEventHandler" prot="public">IWndManagerEventHandler</innerclass>
+    <innerclass refid="classIWndManagerWindowHandler" prot="public">IWndManagerWindowHandler</innerclass>
+    <innerclass refid="classIWndManager" prot="public">IWndManager</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ff" prot="public" static="no" strong="no">
+        <type></type>
+        <name>WindowSizeInit</name>
+        <enumvalue id="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffab754ea3cc393febd8f184f5d6bc9ca8b" prot="public">
+          <name>WSI_NORMAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffa8394958835b7c36a2f1e91fc7899e282" prot="public">
+          <name>WSI_MINIMIZED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffae8c128557a904a501ab00290a700166f" prot="public">
+          <name>WSI_MAXIMIZED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="11" column="1" bodyfile="ec_wndPublic.h" bodystart="12" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="ec__wndPublic_8h_1a1785c9b6f4e16406764a85f32582236f" prot="public" static="no">
+        <type>unsigned int</type>
+        <definition>typedef unsigned int ImGuiID</definition>
+        <argsstring></argsstring>
+        <name>ImGuiID</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="8" column="22" bodyfile="ec_wndPublic.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" prot="public" static="no">
+        <type>int</type>
+        <definition>typedef int ImGuiKeyChord</definition>
+        <argsstring></argsstring>
+        <name>ImGuiKeyChord</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="9" column="13" bodyfile="ec_wndPublic.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;libTools/util/hdpiUtil.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIWndManager" kindref="compound">IWndManager</ref>;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="8" refid="ec__wndPublic_8h_1a1785c9b6f4e16406764a85f32582236f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="ec__wndPublic_8h_1a1785c9b6f4e16406764a85f32582236f" kindref="member">ImGuiID</ref>;</highlight></codeline>
+<codeline lineno="9" refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ff" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ff" kindref="member">WindowSizeInit</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13" refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffab754ea3cc393febd8f184f5d6bc9ca8b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffab754ea3cc393febd8f184f5d6bc9ca8b" kindref="member">WSI_NORMAL</ref>,</highlight></codeline>
+<codeline lineno="14" refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffa8394958835b7c36a2f1e91fc7899e282" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffa8394958835b7c36a2f1e91fc7899e282" kindref="member">WSI_MINIMIZED</ref>,</highlight></codeline>
+<codeline lineno="15" refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffae8c128557a904a501ab00290a700166f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffae8c128557a904a501ab00290a700166f" kindref="member">WSI_MAXIMIZED</ref>,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classIWndManagerEventHandler" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="22" refid="classIWndManagerEventHandler_1aa3f42e7c4961c6ca0cc5f44553a95dd7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManagerEventHandler_1aa3f42e7c4961c6ca0cc5f44553a95dd7" kindref="member">onInit</ref>(<ref refid="classIWndManager" kindref="compound">IWndManager</ref><sp/>*manager)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="23" refid="classIWndManagerEventHandler_1a683c2713d7e95511c305f1dbf0d892c8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIWndManagerEventHandler_1a683c2713d7e95511c305f1dbf0d892c8" kindref="member">onClose</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="24" refid="classIWndManagerEventHandler_1aa9eb1749797c4a44486b96f872be7e12" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManagerEventHandler_1aa9eb1749797c4a44486b96f872be7e12" kindref="member">onDestroy</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classIWndManagerWindowHandler" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIWndManagerWindowHandler" kindref="compound">IWndManagerWindowHandler</ref></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="31" refid="classIWndManagerWindowHandler_1a865fba33d1ebff3cabfc2632dd7b0af5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classIWndManagerWindowHandler_1a865fba33d1ebff3cabfc2632dd7b0af5" kindref="member">onWmCreateWindow</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="32" refid="classIWndManagerWindowHandler_1a0544cf22f55b82be59fb0850d0dfdfde" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIWndManagerWindowHandler_1a0544cf22f55b82be59fb0850d0dfdfde" kindref="member">onWmDestroyWindow</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*window)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="classIWndManager" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIWndManager" kindref="compound">IWndManager</ref></highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="39" refid="classIWndManager_1a087937ed6ea8dfe0b1d64e07ca38154c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a087937ed6ea8dfe0b1d64e07ca38154c" kindref="member">~IWndManager</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>general</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classIWndManager_1a23dac27785b77efbae0a892030499e56" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a23dac27785b77efbae0a892030499e56" kindref="member">run</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*caption,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*icon<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">,<sp/><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ff" kindref="member">WindowSizeInit</ref><sp/>size<sp/>=<sp/><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffab754ea3cc393febd8f184f5d6bc9ca8b" kindref="member">WSI_NORMAL</ref>)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="43" refid="classIWndManager_1aad40d80a88e49ead53b1dc127c64a4a0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1aad40d80a88e49ead53b1dc127c64a4a0" kindref="member">close</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classIWndManager_1a14bc6ba57bf6b44912945cf4b27eb6ad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a14bc6ba57bf6b44912945cf4b27eb6ad" kindref="member">loadLayout</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename<sp/>=<sp/>NULL)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="46" refid="classIWndManager_1a2e66fe61644620f8ed3245765d9d681c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a2e66fe61644620f8ed3245765d9d681c" kindref="member">saveLayout</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename<sp/>=<sp/>NULL)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="classIWndManager_1a1566c09bb34cc4bb39c51f2aeb47ca8b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a1566c09bb34cc4bb39c51f2aeb47ca8b" kindref="member">setMainWindowCaption</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*caption)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="classIWndManager_1a0afcd519558f72dec6348b5365b8ef93" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a0afcd519558f72dec6348b5365b8ef93" kindref="member">registerWindowHandler</ref>(<ref refid="classIWndManagerWindowHandler" kindref="compound">IWndManagerWindowHandler</ref><sp/>*handler)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="51" refid="classIWndManager_1a3ff42ed4e82d4e88a94521abc6dadac7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a3ff42ed4e82d4e88a94521abc6dadac7" kindref="member">unregisterWindowHandler</ref>(<ref refid="classIWndManagerWindowHandler" kindref="compound">IWndManagerWindowHandler</ref><sp/>*handler)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classIWndManager_1ad881e96f686e5901409095721b1c77de" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1ad881e96f686e5901409095721b1c77de" kindref="member">reset</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="54" refid="classIWndManager_1a635da18d6bc738ee1947239f362d13b9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a635da18d6bc738ee1947239f362d13b9" kindref="member">show</ref>(<ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ff" kindref="member">WindowSizeInit</ref><sp/>size<sp/>=<sp/><ref refid="ec__wndPublic_8h_1ab9c14e3f077d3397c498f2ca00d5c3ffab754ea3cc393febd8f184f5d6bc9ca8b" kindref="member">WSI_NORMAL</ref>)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>windows</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="classIWndManager_1a96fc8e17ed55847a6f51efb4917c2642" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classIWndManager_1a96fc8e17ed55847a6f51efb4917c2642" kindref="member">getMainWindow</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="classIWndManager_1a1b47a1b424c30c438c0197c866667dee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a1b47a1b424c30c438c0197c866667dee" kindref="member">removeWindow</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*handle)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="classIWndManager_1a25bc169ee3fd94c25dcb79e82ada4743" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a25bc169ee3fd94c25dcb79e82ada4743" kindref="member">setWindowType</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*handle,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="classIWndManager_1a225b04b8a5cb4d327d6152b055159ef1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a225b04b8a5cb4d327d6152b055159ef1" kindref="member">getWindowClientSize</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*handle,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;width,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;height)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="64" refid="classIWndManager_1a68f508f0b64ccd56fd1cfaaf81defc10" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a68f508f0b64ccd56fd1cfaaf81defc10" kindref="member">getWindowPosSize</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*handle,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;y,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;width,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;height)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classIWndManager_1ae37d62bfb90e6449d776724e5bcdcb28" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1ae37d62bfb90e6449d776724e5bcdcb28" kindref="member">setMenuArea</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*handle,<sp/>hdpi::Px<sp/>width,<sp/>hdpi::Px<sp/>height)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>creator</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="classIWndManager_1a080e93be6f351b05e63d4e637ff0f0cb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classIWndManager" kindref="compound">IWndManager</ref><sp/>*<ref refid="classIWndManager_1a080e93be6f351b05e63d4e637ff0f0cb" kindref="member">createManager</ref>(<ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref><sp/>*event_handler);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="classIWndManager_1a621a900896a32ee56d513af2fade38a0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a621a900896a32ee56d513af2fade38a0" kindref="member">init3d</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*drv_name<sp/>=<sp/>NULL,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>*blkTexStreaming<sp/>=<sp/>NULL)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>accelerators</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="classIWndManager_1a8edf8b29d8a5ca86b927433ccd90753c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a8edf8b29d8a5ca86b927433ccd90753c" kindref="member">addAccelerator</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>cmd_id,<sp/><ref refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref><sp/>key_chord)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="75" refid="classIWndManager_1aefa595191f56bdd8b1513721cbdf6847" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1aefa595191f56bdd8b1513721cbdf6847" kindref="member">addAcceleratorUp</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>cmd_id,<sp/><ref refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref><sp/>key_chord)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="76" refid="classIWndManager_1a90c5279b72e2d7001da995acb87233b9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a90c5279b72e2d7001da995acb87233b9" kindref="member">addViewportAccelerator</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>cmd_id,<sp/><ref refid="ec__wndPublic_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref><sp/>key_chord,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow_repeat<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="77" refid="classIWndManager_1a26cf1373c8cac026b8e5202fdfe1a7f2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a26cf1373c8cac026b8e5202fdfe1a7f2" kindref="member">clearAccelerators</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="78" refid="classIWndManager_1a9ec5f6e5ebf6e130fb4c951fa29e119d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a9ec5f6e5ebf6e130fb4c951fa29e119d" kindref="member">processImguiAccelerator</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="79" refid="classIWndManager_1a99ec047592df1a4e4c8d3ad75054ab77" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a99ec047592df1a4e4c8d3ad75054ab77" kindref="member">processImguiViewportAccelerator</ref>(<ref refid="ec__wndPublic_8h_1a1785c9b6f4e16406764a85f32582236f" kindref="member">ImGuiID</ref><sp/>viewport_id)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classIWndManager_1ad45e9a41b3510b5a2086efc5e9f7d7f0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1ad45e9a41b3510b5a2086efc5e9f7d7f0" kindref="member">initCustomMouseCursors</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="82" refid="classIWndManager_1a650d02191d0635b9e9b477063900da30" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIWndManager_1a650d02191d0635b9e9b477063900da30" kindref="member">updateImguiMouseCursor</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_wndPublic.h"/>
+  </compounddef>
+</doxygen>

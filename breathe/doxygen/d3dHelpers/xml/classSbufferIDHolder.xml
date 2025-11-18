@@ -1,0 +1,218 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSbufferIDHolder" kind="class" language="C++" prot="public">
+    <compoundname>SbufferIDHolder</compoundname>
+    <basecompoundref refid="classSbufferIDPair" prot="public" virt="non-virtual">SbufferIDPair</basecompoundref>
+    <includes refid="dag__sbufferIDHolder_8h" local="no">dag_sbufferIDHolder.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSbufferIDHolder_1a47d9cb70802cc5d4815fa1dd0490c9fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SbufferIDHolder::SbufferIDHolder</definition>
+        <argsstring>()=default</argsstring>
+        <name>SbufferIDHolder</name>
+        <qualifiedname>SbufferIDHolder::SbufferIDHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="25" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDHolder_1acb8ec6fde6d9b0ecb682f0eb91498795" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SbufferIDHolder::SbufferIDHolder</definition>
+        <argsstring>(SbufferIDHolder &amp;&amp;rhs)</argsstring>
+        <name>SbufferIDHolder</name>
+        <qualifiedname>SbufferIDHolder::SbufferIDHolder</qualifiedname>
+        <param>
+          <type><ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="26" column="3" bodyfile="dag_sbufferIDHolder.h" bodystart="26" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDHolder_1a0c3b79ee70b799ffd2fc5da716129143" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SbufferIDHolder::~SbufferIDHolder</definition>
+        <argsstring>()</argsstring>
+        <name>~SbufferIDHolder</name>
+        <qualifiedname>SbufferIDHolder::~SbufferIDHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="33" column="3" bodyfile="dag_sbufferIDHolder.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDHolder_1a38e697b03d78708856d72787175b45e5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref> &amp;</type>
+        <definition>SbufferIDHolder &amp; SbufferIDHolder::operator=</definition>
+        <argsstring>(SbufferIDHolder &amp;&amp;rhs)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>SbufferIDHolder::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="35" column="19" bodyfile="dag_sbufferIDHolder.h" bodystart="35" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDHolder_1a0fc581ee72ed75518a9d3d1e4e924257" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SbufferIDHolder::setRaw</definition>
+        <argsstring>(Sbuffer *buf_, D3DRESID texId_)</argsstring>
+        <name>setRaw</name>
+        <qualifiedname>SbufferIDHolder::setRaw</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>buf_</declname>
+        </param>
+        <param>
+          <type>D3DRESID</type>
+          <declname>texId_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="45" column="8" bodyfile="dag_sbufferIDHolder.h" bodystart="45" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDHolder_1a55ca51156ae95fa8a7e108f4b54d65e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SbufferIDHolder::set</definition>
+        <argsstring>(Sbuffer *buf_, D3DRESID texId_)</argsstring>
+        <name>set</name>
+        <qualifiedname>SbufferIDHolder::set</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>buf_</declname>
+        </param>
+        <param>
+          <type>D3DRESID</type>
+          <declname>texId_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="50" column="8" bodyfile="dag_sbufferIDHolder.h" bodystart="50" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDHolder_1a9974d9534e39ad741e1d5ababb742435" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SbufferIDHolder::set</definition>
+        <argsstring>(Sbuffer *buf_, const char *name)</argsstring>
+        <name>set</name>
+        <qualifiedname>SbufferIDHolder::set</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>buf_</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="55" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDHolder_1a1bd9d260afaf3ea38916e195f5e2f422" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SbufferIDHolder::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>SbufferIDHolder::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="56" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classSbufferIDHolder_1a42938aae4d2b929a712aa91225d5b830" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SbufferIDHolder::SbufferIDHolder</definition>
+        <argsstring>(const SbufferIDHolder &amp;)=delete</argsstring>
+        <name>SbufferIDHolder</name>
+        <qualifiedname>SbufferIDHolder::SbufferIDHolder</qualifiedname>
+        <param>
+          <type>const <ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="59" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>SbufferIDHolder</label>
+        <link refid="classSbufferIDHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SbufferIDPair</label>
+        <link refid="classSbufferIDPair"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>SbufferIDHolder</label>
+        <link refid="classSbufferIDHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SbufferIDPair</label>
+        <link refid="classSbufferIDPair"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_sbufferIDHolder.h" line="22" column="1" bodyfile="dag_sbufferIDHolder.h" bodystart="23" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" prot="protected" virt="non-virtual"><scope>SbufferIDHolder</scope><name>buf</name></member>
+      <member refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" prot="protected" virt="non-virtual"><scope>SbufferIDHolder</scope><name>bufId</name></member>
+      <member refid="classSbufferIDHolder_1a1bd9d260afaf3ea38916e195f5e2f422" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>close</name></member>
+      <member refid="classSbufferIDPair_1a585441494f9b458cec8b3d378023f535" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>getBuf</name></member>
+      <member refid="classSbufferIDPair_1a51c95bf83d62c23d05071ec918c6d7d3" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>getId</name></member>
+      <member refid="classSbufferIDHolder_1a38e697b03d78708856d72787175b45e5" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>operator=</name></member>
+      <member refid="classSbufferIDHolder_1a47d9cb70802cc5d4815fa1dd0490c9fe" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>SbufferIDHolder</name></member>
+      <member refid="classSbufferIDHolder_1acb8ec6fde6d9b0ecb682f0eb91498795" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>SbufferIDHolder</name></member>
+      <member refid="classSbufferIDHolder_1a42938aae4d2b929a712aa91225d5b830" prot="private" virt="non-virtual"><scope>SbufferIDHolder</scope><name>SbufferIDHolder</name></member>
+      <member refid="classSbufferIDPair_1af2b2297b2893f48f7e57d41abf975154" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>SbufferIDPair</name></member>
+      <member refid="classSbufferIDHolder_1a55ca51156ae95fa8a7e108f4b54d65e9" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>set</name></member>
+      <member refid="classSbufferIDHolder_1a9974d9534e39ad741e1d5ababb742435" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>set</name></member>
+      <member refid="classSbufferIDHolder_1a0fc581ee72ed75518a9d3d1e4e924257" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>setRaw</name></member>
+      <member refid="classSbufferIDHolder_1a0c3b79ee70b799ffd2fc5da716129143" prot="public" virt="non-virtual"><scope>SbufferIDHolder</scope><name>~SbufferIDHolder</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

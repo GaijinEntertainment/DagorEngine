@@ -1,0 +1,377 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classImage2DView" kind="class" language="C++" prot="public">
+    <compoundname>Image2DView</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">eastl::conditional_t&lt; eastl::is_const_v&lt; ElementType &gt;, Image2DReadOnly, Image2D &gt;</basecompoundref>
+    <includes refid="dag__lockTexture_8h" local="no">dag_lockTexture.h</includes>
+    <innerclass refid="structImage2DView_1_1ForwardIterator" prot="public">Image2DView::ForwardIterator</innerclass>
+    <templateparamlist>
+      <param>
+        <type>typename ElementType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classImage2DView_1af75c9531508e02399e64a2d5eb088de9" prot="private" static="no">
+        <type>eastl::conditional_t&lt; eastl::is_const_v&lt; ElementType &gt;, <ref refid="classImage2DReadOnly" kindref="compound">Image2DReadOnly</ref>, <ref refid="classImage2D" kindref="compound">Image2D</ref> &gt;</type>
+        <definition>using Image2DView&lt; ElementType &gt;::BaseType =  eastl::conditional_t&lt;eastl::is_const_v&lt;ElementType&gt;, Image2DReadOnly, Image2D&gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>Image2DView::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="299" column="3" bodyfile="dag_lockTexture.h" bodystart="299" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-attrib">
+      <memberdef kind="variable" id="classImage2DView_1a1803631ceb5c63599f4187073f4d3b88" prot="protected" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool Image2DView&lt; ElementType &gt;::isReadOnly</definition>
+        <argsstring></argsstring>
+        <name>isReadOnly</name>
+        <qualifiedname>Image2DView::isReadOnly</qualifiedname>
+        <initializer>= eastl::is_const_v&lt;ElementType&gt;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="318" column="25" bodyfile="dag_lockTexture.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classImage2DView_1ae27a095a7f7a34481d2c261ae293eea0" prot="protected" static="no" mutable="no">
+        <type>friend</type>
+        <definition>friend Image2DView&lt; ElementType &gt;::Image2DReadOnly</definition>
+        <argsstring></argsstring>
+        <name>Image2DReadOnly</name>
+        <qualifiedname>Image2DView::Image2DReadOnly</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="321" column="10" bodyfile="dag_lockTexture.h" bodystart="321" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImage2DView_1afb84b9f627669de7c70f85cd357c302c" prot="protected" static="no" mutable="no">
+        <type>friend</type>
+        <definition>friend Image2DView&lt; ElementType &gt;::Image2D</definition>
+        <argsstring></argsstring>
+        <name>Image2D</name>
+        <qualifiedname>Image2DView::Image2D</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="322" column="10" bodyfile="dag_lockTexture.h" bodystart="322" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classImage2DView_1a65ba8b6d0bd9ad3664ea8237ed2eff2a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Image2DView&lt; ElementType &gt;::Image2DView</definition>
+        <argsstring>()=default</argsstring>
+        <name>Image2DView</name>
+        <qualifiedname>Image2DView::Image2DView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="200" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1af07cf7916dd2613194ab4f7d3cb0ea47" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Image2DView&lt; ElementType &gt;::Image2DView</definition>
+        <argsstring>(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt)</argsstring>
+        <name>Image2DView</name>
+        <qualifiedname>Image2DView::Image2DView</qualifiedname>
+        <param>
+          <type>uint8_t *</type>
+          <declname>pixels</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>byte_stride</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="202" column="3" bodyfile="dag_lockTexture.h" bodystart="202" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const ElementType &amp;</type>
+        <definition>const ElementType &amp; Image2DView&lt; ElementType &gt;::at</definition>
+        <argsstring>(uint32_t x, uint32_t y) const</argsstring>
+        <name>at</name>
+        <qualifiedname>Image2DView::at</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="209" column="21" bodyfile="dag_lockTexture.h" bodystart="209" bodyend="213"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1a97bebf8587e4255f3e0e1dd3aa3c536e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ElementType &amp;</type>
+        <definition>ElementType &amp; Image2DView&lt; ElementType &gt;::at</definition>
+        <argsstring>(uint32_t x, uint32_t y)</argsstring>
+        <name>at</name>
+        <qualifiedname>Image2DView::at</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="215" column="15" bodyfile="dag_lockTexture.h" bodystart="215" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1ac98c6e577190b675f6ac0db18ffb991d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const ElementType &amp;</type>
+        <definition>const ElementType &amp; Image2DView&lt; ElementType &gt;::at</definition>
+        <argsstring>(const IPoint2 p) const</argsstring>
+        <name>at</name>
+        <qualifiedname>Image2DView::at</qualifiedname>
+        <param>
+          <type>const IPoint2</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="221" column="21" bodyfile="dag_lockTexture.h" bodystart="221" bodyend="225"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1aa1d2f0de88c8f0f01bb2c58623a478e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ElementType &amp;</type>
+        <definition>ElementType &amp; Image2DView&lt; ElementType &gt;::at</definition>
+        <argsstring>(const IPoint2 p)</argsstring>
+        <name>at</name>
+        <qualifiedname>Image2DView::at</qualifiedname>
+        <param>
+          <type>const IPoint2</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="227" column="15" bodyfile="dag_lockTexture.h" bodystart="227" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1af88352aa0b72c5e3d31694af41b1e8d6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const ElementType &amp;</type>
+        <definition>const ElementType &amp; Image2DView&lt; ElementType &gt;::operator[]</definition>
+        <argsstring>(const IPoint2 p) const</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>Image2DView::operator[]</qualifiedname>
+        <param>
+          <type>const IPoint2</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="233" column="21" bodyfile="dag_lockTexture.h" bodystart="233" bodyend="233"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1a50ae5813f32594994b45180052fd2ad1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ElementType &amp;</type>
+        <definition>ElementType &amp; Image2DView&lt; ElementType &gt;::operator[]</definition>
+        <argsstring>(const IPoint2 p)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>Image2DView::operator[]</qualifiedname>
+        <param>
+          <type>const IPoint2</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="234" column="15" bodyfile="dag_lockTexture.h" bodystart="234" bodyend="234"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1a12d04e00ed3dac73aeffe7ee0b054384" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref></type>
+        <definition>ForwardIterator Image2DView&lt; ElementType &gt;::begin</definition>
+        <argsstring>() const</argsstring>
+        <name>begin</name>
+        <qualifiedname>Image2DView::begin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="285" column="19" bodyfile="dag_lockTexture.h" bodystart="285" bodyend="290"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1a8f2d6613fc5d5caf960c23278f2f4213" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structImage2DView_1_1ForwardIterator" kindref="compound">ForwardIterator</ref></type>
+        <definition>ForwardIterator Image2DView&lt; ElementType &gt;::end</definition>
+        <argsstring>() const</argsstring>
+        <name>end</name>
+        <qualifiedname>Image2DView::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="291" column="19" bodyfile="dag_lockTexture.h" bodystart="291" bodyend="296"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classImage2DView_1a85e6b919505b74dfe5acd7f4832bbb13" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ElementType *</type>
+        <definition>ElementType * Image2DView&lt; ElementType &gt;::row</definition>
+        <argsstring>(uint32_t y)</argsstring>
+        <name>row</name>
+        <qualifiedname>Image2DView::row</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="301" column="15" bodyfile="dag_lockTexture.h" bodystart="301" bodyend="301"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1a83304ba145f8b31322f14f7340fd0a19" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const ElementType *</type>
+        <definition>const ElementType * Image2DView&lt; ElementType &gt;::row</definition>
+        <argsstring>(uint32_t y) const</argsstring>
+        <name>row</name>
+        <qualifiedname>Image2DView::row</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="303" column="21" bodyfile="dag_lockTexture.h" bodystart="303" bodyend="306"/>
+      </memberdef>
+      <memberdef kind="function" id="classImage2DView_1a8f7fda4c88646f536d3927924cc77858" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Image2DView&lt; ElementType &gt;::checkAccess</definition>
+        <argsstring>(uint32_t x, uint32_t y) const</argsstring>
+        <name>checkAccess</name>
+        <qualifiedname>Image2DView::checkAccess</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="308" column="8" bodyfile="dag_lockTexture.h" bodystart="308" bodyend="315"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Image2DView&lt; ElementType &gt;</label>
+        <link refid="classImage2DView"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>eastl::conditional_t&lt; eastl::is_const_v&lt; ElementType &gt;, Image2DReadOnly, Image2D &gt;</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>Image2DView&lt; ElementType &gt;</label>
+        <link refid="classImage2DView"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>eastl::conditional_t&lt; eastl::is_const_v&lt; ElementType &gt;, Image2DReadOnly, Image2D &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="dag_lockTexture.h" line="197" column="1" bodyfile="dag_lockTexture.h" bodystart="198" bodyend="323"/>
+    <listofallmembers>
+      <member refid="classImage2DView_1aeed1ba492f9ba5d7ac8cf50d3daa6ed3" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>at</name></member>
+      <member refid="classImage2DView_1a97bebf8587e4255f3e0e1dd3aa3c536e" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>at</name></member>
+      <member refid="classImage2DView_1ac98c6e577190b675f6ac0db18ffb991d" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>at</name></member>
+      <member refid="classImage2DView_1aa1d2f0de88c8f0f01bb2c58623a478e3" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>at</name></member>
+      <member refid="classImage2DView_1af75c9531508e02399e64a2d5eb088de9" prot="private" virt="non-virtual"><scope>Image2DView</scope><name>BaseType</name></member>
+      <member refid="classImage2DView_1a12d04e00ed3dac73aeffe7ee0b054384" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>begin</name></member>
+      <member refid="classImage2DView_1a8f7fda4c88646f536d3927924cc77858" prot="private" virt="non-virtual"><scope>Image2DView</scope><name>checkAccess</name></member>
+      <member refid="classImage2DView_1a8f2d6613fc5d5caf960c23278f2f4213" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>end</name></member>
+      <member refid="classImage2DView_1afb84b9f627669de7c70f85cd357c302c" prot="protected" virt="non-virtual"><scope>Image2DView</scope><name>Image2D</name></member>
+      <member refid="classImage2DView_1ae27a095a7f7a34481d2c261ae293eea0" prot="protected" virt="non-virtual"><scope>Image2DView</scope><name>Image2DReadOnly</name></member>
+      <member refid="classImage2DView_1a65ba8b6d0bd9ad3664ea8237ed2eff2a" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>Image2DView</name></member>
+      <member refid="classImage2DView_1af07cf7916dd2613194ab4f7d3cb0ea47" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>Image2DView</name></member>
+      <member refid="classImage2DView_1a1803631ceb5c63599f4187073f4d3b88" prot="protected" virt="non-virtual"><scope>Image2DView</scope><name>isReadOnly</name></member>
+      <member refid="classImage2DView_1af88352aa0b72c5e3d31694af41b1e8d6" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>operator[]</name></member>
+      <member refid="classImage2DView_1a50ae5813f32594994b45180052fd2ad1" prot="public" virt="non-virtual"><scope>Image2DView</scope><name>operator[]</name></member>
+      <member refid="classImage2DView_1a85e6b919505b74dfe5acd7f4832bbb13" prot="private" virt="non-virtual"><scope>Image2DView</scope><name>row</name></member>
+      <member refid="classImage2DView_1a83304ba145f8b31322f14f7340fd0a19" prot="private" virt="non-virtual"><scope>Image2DView</scope><name>row</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

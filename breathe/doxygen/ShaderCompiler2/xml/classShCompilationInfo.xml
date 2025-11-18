@@ -1,0 +1,238 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShCompilationInfo" kind="class" language="C++" prot="public">
+    <compoundname>ShCompilationInfo</compoundname>
+    <includes refid="shCompilationInfo_8h" local="no">shCompilationInfo.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShCompilationInfo_1aedf66c8c44a445039115088aacef1e4b" prot="private" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; ShCompilationInfo::sourceFilesList</definition>
+        <argsstring></argsstring>
+        <name>sourceFilesList</name>
+        <qualifiedname>ShCompilationInfo::sourceFilesList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="58" column="7" bodyfile="shCompilationInfo.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShCompilationInfo_1a93a8cfcbee7781fb7e88b56815cd7fdb" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShCompilationInfo::intermediateDir</definition>
+        <argsstring></argsstring>
+        <name>intermediateDir</name>
+        <qualifiedname>ShCompilationInfo::intermediateDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="59" column="10" bodyfile="shCompilationInfo.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShCompilationInfo_1a5c80bb38bf19a986edc1b53079249f3a" prot="private" static="no" mutable="no">
+        <type><ref refid="blkHash_8h_1a592888f422a40aa9b9dad4c6e6dbed99" kindref="member">BlkHashBytes</ref></type>
+        <definition>BlkHashBytes ShCompilationInfo::blkHash</definition>
+        <argsstring></argsstring>
+        <name>blkHash</name>
+        <qualifiedname>ShCompilationInfo::blkHash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="60" column="16" bodyfile="shCompilationInfo.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShCompilationInfo_1a5682368d1e2bcbd75422de32d12ea2a9" prot="private" static="no" mutable="no">
+        <type><ref refid="structStcodeCompilationDirs" kindref="compound">StcodeCompilationDirs</ref></type>
+        <definition>StcodeCompilationDirs ShCompilationInfo::stcodeInfo</definition>
+        <argsstring></argsstring>
+        <name>stcodeInfo</name>
+        <qualifiedname>ShCompilationInfo::stcodeInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="61" column="25" bodyfile="shCompilationInfo.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShCompilationInfo_1a0de299e89597326b88fd0244afe0c21c" prot="private" static="no" mutable="no">
+        <type><ref refid="structShHardwareOptions" kindref="compound">ShHardwareOptions</ref></type>
+        <definition>ShHardwareOptions ShCompilationInfo::opt</definition>
+        <argsstring></argsstring>
+        <name>opt</name>
+        <qualifiedname>ShCompilationInfo::opt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="62" column="21" bodyfile="shCompilationInfo.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShCompilationInfo_1a5cf775168a04c5c86e73988421d61e61" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShCompilationInfo::destFname</definition>
+        <argsstring></argsstring>
+        <name>destFname</name>
+        <qualifiedname>ShCompilationInfo::destFname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="63" column="10" bodyfile="shCompilationInfo.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShCompilationInfo_1a11a43e9f854da007c36cd26175f49670" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShCompilationInfo::ShCompilationInfo</definition>
+        <argsstring>(const char *dest_base_filename, const char *intermediate_dir, Tab&lt; String &gt; &amp;&amp;source_list, const BlkHashBytes &amp;blk_hash, StcodeCompilationDirs &amp;&amp;stcode_dirs, const ShHardwareOptions &amp;a_opt=DEFAULT_HW_OPTS)</argsstring>
+        <name>ShCompilationInfo</name>
+        <qualifiedname>ShCompilationInfo::ShCompilationInfo</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>dest_base_filename</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>intermediate_dir</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;&amp;</type>
+          <declname>source_list</declname>
+        </param>
+        <param>
+          <type>const <ref refid="blkHash_8h_1a592888f422a40aa9b9dad4c6e6dbed99" kindref="member">BlkHashBytes</ref> &amp;</type>
+          <declname>blk_hash</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeCompilationDirs" kindref="compound">StcodeCompilationDirs</ref> &amp;&amp;</type>
+          <declname>stcode_dirs</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShHardwareOptions" kindref="compound">ShHardwareOptions</ref> &amp;</type>
+          <declname>a_opt</declname>
+          <defval><ref refid="shCompilationInfo_8h_1ad290bee00309bb9447b416912e3149f1" kindref="member">DEFAULT_HW_OPTS</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="35" column="3" bodyfile="shCompilationInfo.h" bodystart="35" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classShCompilationInfo_1a111f652f9ce42741d9a587b6cb41d464" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Tab&lt; String &gt; &amp;</type>
+        <definition>const Tab&lt; String &gt; &amp; ShCompilationInfo::sources</definition>
+        <argsstring>() const</argsstring>
+        <name>sources</name>
+        <qualifiedname>ShCompilationInfo::sources</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="50" column="13" bodyfile="shCompilationInfo.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classShCompilationInfo_1aece2b6bbe22081ab9ab1ecc97a2612b5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; ShCompilationInfo::intermDir</definition>
+        <argsstring>() const</argsstring>
+        <name>intermDir</name>
+        <qualifiedname>ShCompilationInfo::intermDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="51" column="16" bodyfile="shCompilationInfo.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classShCompilationInfo_1a51ba987b41b2c9fdbe000567104f2e26" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="blkHash_8h_1a592888f422a40aa9b9dad4c6e6dbed99" kindref="member">BlkHashBytes</ref> &amp;</type>
+        <definition>const BlkHashBytes &amp; ShCompilationInfo::targetBlkHash</definition>
+        <argsstring>() const</argsstring>
+        <name>targetBlkHash</name>
+        <qualifiedname>ShCompilationInfo::targetBlkHash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="52" column="22" bodyfile="shCompilationInfo.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classShCompilationInfo_1a168e26f2dbba8585a4617e838df9aeb8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structShHardwareOptions" kindref="compound">ShHardwareOptions</ref></type>
+        <definition>ShHardwareOptions ShCompilationInfo::hwopts</definition>
+        <argsstring>() const</argsstring>
+        <name>hwopts</name>
+        <qualifiedname>ShCompilationInfo::hwopts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="53" column="21" bodyfile="shCompilationInfo.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classShCompilationInfo_1a41e70a42b6835776ecae73c660dca82a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; ShCompilationInfo::dest</definition>
+        <argsstring>() const</argsstring>
+        <name>dest</name>
+        <qualifiedname>ShCompilationInfo::dest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="54" column="16" bodyfile="shCompilationInfo.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classShCompilationInfo_1aad42e5fa85eb8e1dce71a9b4d47f5ce7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structStcodeCompilationDirs" kindref="compound">StcodeCompilationDirs</ref> &amp;</type>
+        <definition>const StcodeCompilationDirs &amp; ShCompilationInfo::stcodeDirs</definition>
+        <argsstring>() const</argsstring>
+        <name>stcodeDirs</name>
+        <qualifiedname>ShCompilationInfo::stcodeDirs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="55" column="31" bodyfile="shCompilationInfo.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shCompilationInfo.h" line="32" column="1" bodyfile="shCompilationInfo.h" bodystart="33" bodyend="64"/>
+    <listofallmembers>
+      <member refid="classShCompilationInfo_1a5c80bb38bf19a986edc1b53079249f3a" prot="private" virt="non-virtual"><scope>ShCompilationInfo</scope><name>blkHash</name></member>
+      <member refid="classShCompilationInfo_1a41e70a42b6835776ecae73c660dca82a" prot="public" virt="non-virtual"><scope>ShCompilationInfo</scope><name>dest</name></member>
+      <member refid="classShCompilationInfo_1a5cf775168a04c5c86e73988421d61e61" prot="private" virt="non-virtual"><scope>ShCompilationInfo</scope><name>destFname</name></member>
+      <member refid="classShCompilationInfo_1a168e26f2dbba8585a4617e838df9aeb8" prot="public" virt="non-virtual"><scope>ShCompilationInfo</scope><name>hwopts</name></member>
+      <member refid="classShCompilationInfo_1aece2b6bbe22081ab9ab1ecc97a2612b5" prot="public" virt="non-virtual"><scope>ShCompilationInfo</scope><name>intermDir</name></member>
+      <member refid="classShCompilationInfo_1a93a8cfcbee7781fb7e88b56815cd7fdb" prot="private" virt="non-virtual"><scope>ShCompilationInfo</scope><name>intermediateDir</name></member>
+      <member refid="classShCompilationInfo_1a0de299e89597326b88fd0244afe0c21c" prot="private" virt="non-virtual"><scope>ShCompilationInfo</scope><name>opt</name></member>
+      <member refid="classShCompilationInfo_1a11a43e9f854da007c36cd26175f49670" prot="public" virt="non-virtual"><scope>ShCompilationInfo</scope><name>ShCompilationInfo</name></member>
+      <member refid="classShCompilationInfo_1aedf66c8c44a445039115088aacef1e4b" prot="private" virt="non-virtual"><scope>ShCompilationInfo</scope><name>sourceFilesList</name></member>
+      <member refid="classShCompilationInfo_1a111f652f9ce42741d9a587b6cb41d464" prot="public" virt="non-virtual"><scope>ShCompilationInfo</scope><name>sources</name></member>
+      <member refid="classShCompilationInfo_1aad42e5fa85eb8e1dce71a9b4d47f5ce7" prot="public" virt="non-virtual"><scope>ShCompilationInfo</scope><name>stcodeDirs</name></member>
+      <member refid="classShCompilationInfo_1a5682368d1e2bcbd75422de32d12ea2a9" prot="private" virt="non-virtual"><scope>ShCompilationInfo</scope><name>stcodeInfo</name></member>
+      <member refid="classShCompilationInfo_1a51ba987b41b2c9fdbe000567104f2e26" prot="public" virt="non-virtual"><scope>ShCompilationInfo</scope><name>targetBlkHash</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

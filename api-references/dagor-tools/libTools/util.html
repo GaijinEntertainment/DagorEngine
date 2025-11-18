@@ -1,0 +1,600 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Util</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="3ds Max Plugins" href="../maxplug/maxplug.html" />
+    <link rel="prev" title="renderUtil" href="renderUtil.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../EditorCore/EditorCore.html">EditorCore</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">libTools</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="renderUtil.html">renderUtil</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Util</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv418CtlReportLogWriter"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter18CtlReportLogWriterEv"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::CtlReportLogWriter()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::addMessageFmt()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK18CtlReportLogWriter9hasErrorsEv"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::hasErrors()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter8startLogEv"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::startLog()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter6endLogEv"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::endLog()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter13clearMessagesEv"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::clearMessages()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK18CtlReportLogWriter11hasWarningsEv"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::hasWarnings()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK18CtlReportLogWriter11hasMessagesEv"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::hasMessages()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter10showReportEPKcPKcPKc"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::showReport()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter4listE"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::list</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter6errorsE"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::errors</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N18CtlReportLogWriter8warningsE"><code class="docutils literal notranslate"><span class="pre">CtlReportLogWriter::warnings</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv47DagUUID"><code class="docutils literal notranslate"><span class="pre">DagUUID</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7DagUUID5clearEv"><code class="docutils literal notranslate"><span class="pre">DagUUID::clear()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7DagUUID5equalERK7DagUUID"><code class="docutils literal notranslate"><span class="pre">DagUUID::equal()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7DagUUID4uuidE"><code class="docutils literal notranslate"><span class="pre">DagUUID::uuid</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7DagUUID8generateER7DagUUID"><code class="docutils literal notranslate"><span class="pre">DagUUID::generate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv410ILogWriter"><code class="docutils literal notranslate"><span class="pre">ILogWriter</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10ILogWriter11MessageTypeE"><code class="docutils literal notranslate"><span class="pre">ILogWriter::MessageType</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N10ILogWriter11MessageType4NOTEE"><code class="docutils literal notranslate"><span class="pre">ILogWriter::MessageType::NOTE</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N10ILogWriter11MessageType7WARNINGE"><code class="docutils literal notranslate"><span class="pre">ILogWriter::MessageType::WARNING</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N10ILogWriter11MessageType5ERRORE"><code class="docutils literal notranslate"><span class="pre">ILogWriter::MessageType::ERROR</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N10ILogWriter11MessageType5FATALE"><code class="docutils literal notranslate"><span class="pre">ILogWriter::MessageType::FATAL</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N10ILogWriter11MessageType6REMARKE"><code class="docutils literal notranslate"><span class="pre">ILogWriter::MessageType::REMARK</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10ILogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"><code class="docutils literal notranslate"><span class="pre">ILogWriter::addMessageFmt()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK10ILogWriter9hasErrorsEv"><code class="docutils literal notranslate"><span class="pre">ILogWriter::hasErrors()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10ILogWriter8startLogEv"><code class="docutils literal notranslate"><span class="pre">ILogWriter::startLog()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10ILogWriter6endLogEv"><code class="docutils literal notranslate"><span class="pre">ILogWriter::endLog()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N10ILogWriter31DECLARE_DSA_OVERLOADS_FAMILY_LTEv13addMessageFmt"><code class="docutils literal notranslate"><span class="pre">ILogWriter::DECLARE_DSA_OVERLOADS_FAMILY_LT()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv415ReportLogWriter"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter15ReportLogWriterEv"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::ReportLogWriter()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::addMessageFmt()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK15ReportLogWriter9hasErrorsEv"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::hasErrors()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter8startLogEv"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::startLog()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter6endLogEv"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::endLog()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter13clearMessagesEv"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::clearMessages()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK15ReportLogWriter11hasWarningsEv"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::hasWarnings()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK15ReportLogWriter11hasMessagesEv"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::hasMessages()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter10showReportEPKcPKcPKc"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::showReport()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter4listE"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::list</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter6errorsE"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::errors</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15ReportLogWriter8warningsE"><code class="docutils literal notranslate"><span class="pre">ReportLogWriter::warnings</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../maxplug/maxplug.html">3ds Max Plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ShaderCompiler2/ShaderCompiler2.html">ShaderCompiler2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">libTools</a></li>
+      <li class="breadcrumb-item active">Util</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-tools/libTools/util.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="util">
+<h1>Util<a class="headerlink" href="#util" title="Link to this heading"></a></h1>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv418CtlReportLogWriter">
+<span id="_CPPv318CtlReportLogWriter"></span><span id="_CPPv218CtlReportLogWriter"></span><span id="CtlReportLogWriter"></span><span class="target" id="classCtlReportLogWriter"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CtlReportLogWriter</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv410ILogWriter" title="ILogWriter"><span class="n"><span class="pre">ILogWriter</span></span></a><a class="headerlink" href="#_CPPv418CtlReportLogWriter" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;ctlReportLogWriter.h&gt;</em></div>
+<p>Used to output log messages in special dialog window. A color of text messages depends on their types. At the end of window summary info is represented with number of errors and warnings. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter18CtlReportLogWriterEv">
+<span id="_CPPv3N18CtlReportLogWriter18CtlReportLogWriterEv"></span><span id="_CPPv2N18CtlReportLogWriter18CtlReportLogWriterEv"></span><span id="CtlReportLogWriter::CtlReportLogWriter"></span><span class="target" id="classCtlReportLogWriter_1a9160cbe44cc6eeba8b7a0b9d565e750b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CtlReportLogWriter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter18CtlReportLogWriterEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi">
+<span id="_CPPv3N18CtlReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"></span><span id="_CPPv2N18CtlReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"></span><span id="CtlReportLogWriter::addMessageFmt__MessageType.cCP.DagorSafeArgCP.i"></span><span class="target" id="classCtlReportLogWriter_1a7d4e1fbcd1372200914d5dd54ac9f36c"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addMessageFmt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MessageType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">fmt</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">DagorSafeArg</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">arg</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">anum</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi" title="Link to this definition"></a><br /></dt>
+<dd><p>Add formatted message. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK18CtlReportLogWriter9hasErrorsEv">
+<span id="_CPPv3NK18CtlReportLogWriter9hasErrorsEv"></span><span id="_CPPv2NK18CtlReportLogWriter9hasErrorsEv"></span><span id="CtlReportLogWriter::hasErrorsC"></span><span class="target" id="classCtlReportLogWriter_1aa6f0bc7fe2883e40ae47e5b7b6346a77"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasErrors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK18CtlReportLogWriter9hasErrorsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Test whether messages list has error messages. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>true</strong> if messages list has error messages, <strong>false</strong> in other case </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter8startLogEv">
+<span id="_CPPv3N18CtlReportLogWriter8startLogEv"></span><span id="_CPPv2N18CtlReportLogWriter8startLogEv"></span><span id="CtlReportLogWriter::startLog"></span><span class="target" id="classCtlReportLogWriter_1acc9c558dbc7fa1a296c2a8f4f312cd8b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">startLog</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter8startLogEv" title="Link to this definition"></a><br /></dt>
+<dd><p>starts log messages counting </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter6endLogEv">
+<span id="_CPPv3N18CtlReportLogWriter6endLogEv"></span><span id="_CPPv2N18CtlReportLogWriter6endLogEv"></span><span id="CtlReportLogWriter::endLog"></span><span class="target" id="classCtlReportLogWriter_1ac0b27d9d598c16b5df0e93e864577eed"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endLog</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter6endLogEv" title="Link to this definition"></a><br /></dt>
+<dd><p>finishes log messages counting </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter13clearMessagesEv">
+<span id="_CPPv3N18CtlReportLogWriter13clearMessagesEv"></span><span id="_CPPv2N18CtlReportLogWriter13clearMessagesEv"></span><span id="CtlReportLogWriter::clearMessages"></span><span class="target" id="classCtlReportLogWriter_1a82acda73c9e1b92a45588d5352f3f5a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clearMessages</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter13clearMessagesEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear messages list. (for reusing one log writer object for several operations) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK18CtlReportLogWriter11hasWarningsEv">
+<span id="_CPPv3NK18CtlReportLogWriter11hasWarningsEv"></span><span id="_CPPv2NK18CtlReportLogWriter11hasWarningsEv"></span><span id="CtlReportLogWriter::hasWarningsC"></span><span class="target" id="classCtlReportLogWriter_1ae7461c1d717ec743d8c3793b718748fd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasWarnings</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK18CtlReportLogWriter11hasWarningsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Test whether messages list has warning messages. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>true</strong> if messages list has warning messages, <strong>false</strong> in other case </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK18CtlReportLogWriter11hasMessagesEv">
+<span id="_CPPv3NK18CtlReportLogWriter11hasMessagesEv"></span><span id="_CPPv2NK18CtlReportLogWriter11hasMessagesEv"></span><span id="CtlReportLogWriter::hasMessagesC"></span><span class="target" id="classCtlReportLogWriter_1a1c78d3895f57f23b2e6f14891f9b72e2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasMessages</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK18CtlReportLogWriter11hasMessagesEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Test whether messages list has messages. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>true</strong> if messages list is not empty, <strong>false</strong> in other case </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter10showReportEPKcPKcPKc">
+<span id="_CPPv3N18CtlReportLogWriter10showReportEPKcPKcPKc"></span><span id="_CPPv2N18CtlReportLogWriter10showReportEPKcPKcPKc"></span><span id="CtlReportLogWriter::showReport__cCP.cCP.cCP"></span><span class="target" id="classCtlReportLogWriter_1ae9c4d7a668c939996979a0932005feac"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">showReport</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">title</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">error_msg</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ok_msg</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter10showReportEPKcPKcPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Show dialog window with messages list. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>title</strong> – <strong>[in]</strong> - window title </p></li>
+<li><p><strong>error_msg</strong> – <strong>[in]</strong> - message displayed at the end of window if there are error messages in messages list </p></li>
+<li><p><strong>ok_msg</strong> – <strong>[in]</strong> - message displayed at the end of window if there are no error messages in messages list </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>true</strong> if user pressed ‘OK’ button, <strong>false</strong> if user pressed ‘Cancel’ button </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-attributes">Protected Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter4listE">
+<span id="_CPPv3N18CtlReportLogWriter4listE"></span><span id="_CPPv2N18CtlReportLogWriter4listE"></span><span id="CtlReportLogWriter::list__Tab:SimpleString:"></span><span class="target" id="classCtlReportLogWriter_1aabf0ea00c3c73b2e8964978154a19815"></span><span class="n"><span class="pre">Tab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">SimpleString</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list</span></span></span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter4listE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter6errorsE">
+<span id="_CPPv3N18CtlReportLogWriter6errorsE"></span><span id="_CPPv2N18CtlReportLogWriter6errorsE"></span><span id="CtlReportLogWriter::errors__b"></span><span class="target" id="classCtlReportLogWriter_1aa46fead97787e143d920e3ef54a40386"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">errors</span></span></span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter6errorsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N18CtlReportLogWriter8warningsE">
+<span id="_CPPv3N18CtlReportLogWriter8warningsE"></span><span id="_CPPv2N18CtlReportLogWriter8warningsE"></span><span id="CtlReportLogWriter::warnings__b"></span><span class="target" id="classCtlReportLogWriter_1a6586f15b232d272255be46aa0e0094e8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warnings</span></span></span><a class="headerlink" href="#_CPPv4N18CtlReportLogWriter8warningsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv47DagUUID">
+<span id="_CPPv37DagUUID"></span><span id="_CPPv27DagUUID"></span><span id="DagUUID"></span><span class="target" id="structDagUUID"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DagUUID</span></span></span><a class="headerlink" href="#_CPPv47DagUUID" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dagUuid.h&gt;</em></div>
+<p>128-bit Universally unique ID. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7DagUUID5clearEv">
+<span id="_CPPv3N7DagUUID5clearEv"></span><span id="_CPPv2N7DagUUID5clearEv"></span><span id="DagUUID::clear"></span><span class="target" id="structDagUUID_1a8cf8847712128b149e908186a86fa386"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7DagUUID5clearEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear UUID (set all bitts to 0). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7DagUUID5equalERK7DagUUID">
+<span id="_CPPv3N7DagUUID5equalERK7DagUUID"></span><span id="_CPPv2N7DagUUID5equalERK7DagUUID"></span><span id="DagUUID::equal__DagUUIDCR"></span><span class="target" id="structDagUUID_1a6eb3342a3534307c3b81ce926f1bb3dc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">equal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47DagUUID" title="DagUUID"><span class="n"><span class="pre">DagUUID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7DagUUID5equalERK7DagUUID" title="Link to this definition"></a><br /></dt>
+<dd><p>Test for equality with specified UUID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – <strong>[in]</strong> - reference to UUID to test </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>true</strong> if UUID equals specified UUID, <strong>false</strong> in other case </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7DagUUID4uuidE">
+<span id="_CPPv3N7DagUUID4uuidE"></span><span id="_CPPv2N7DagUUID4uuidE"></span><span id="DagUUID::uuid__unsignedA"></span><span class="target" id="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uuid</span></span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#_CPPv4N7DagUUID4uuidE" title="Link to this definition"></a><br /></dt>
+<dd><p>Array for storing UUID data. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7DagUUID8generateER7DagUUID">
+<span id="_CPPv3N7DagUUID8generateER7DagUUID"></span><span id="_CPPv2N7DagUUID8generateER7DagUUID"></span><span id="DagUUID::generate__DagUUIDR"></span><span class="target" id="structDagUUID_1a9fdf89c88f7304232c685d1b6b0d129d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">generate</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv47DagUUID" title="DagUUID"><span class="n"><span class="pre">DagUUID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7DagUUID8generateER7DagUUID" title="Link to this definition"></a><br /></dt>
+<dd><p>Generate UUID. The function uses Windows SDK’s UuidCreate(). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out</strong> – <strong>[out]</strong> - created UUID </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-defines">Defines</p>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.DSA_OVERLOADS_PARAM_DECL">
+<span class="target" id="iLogWriter_8h_1ad5c6e896348b92a48387418a812c2187"></span><span class="sig-name descname"><span class="n"><span class="pre">DSA_OVERLOADS_PARAM_DECL</span></span></span><br /></dt>
+<dd><p>void addMessage(MessageType type, const char *fmt, typesafe-var-args…) </p>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.DSA_OVERLOADS_PARAM_PASS">
+<span class="target" id="iLogWriter_8h_1a5efd92b66f81e72a2c053181a96518a9"></span><span class="sig-name descname"><span class="n"><span class="pre">DSA_OVERLOADS_PARAM_PASS</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv410ILogWriter">
+<span id="_CPPv310ILogWriter"></span><span id="_CPPv210ILogWriter"></span><span id="ILogWriter"></span><span class="target" id="classILogWriter"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ILogWriter</span></span></span><a class="headerlink" href="#_CPPv410ILogWriter" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;iLogWriter.h&gt;</em></div>
+<p>Interface class for message logging management. </p>
+<p>Subclassed by ConsoleLogWriter, <a class="reference internal" href="#classCtlReportLogWriter"><span class="std std-ref">CtlReportLogWriter</span></a>, <a class="reference internal" href="#classReportLogWriter"><span class="std std-ref">ReportLogWriter</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter11MessageTypeE">
+<span id="_CPPv3N10ILogWriter11MessageTypeE"></span><span id="_CPPv2N10ILogWriter11MessageTypeE"></span><span class="target" id="classILogWriter_1af08a99b5da099d82614e4ae67032a40c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MessageType</span></span></span><a class="headerlink" href="#_CPPv4N10ILogWriter11MessageTypeE" title="Link to this definition"></a><br /></dt>
+<dd><p>Messages types. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter11MessageType4NOTEE">
+<span id="_CPPv3N10ILogWriter11MessageType4NOTEE"></span><span id="_CPPv2N10ILogWriter11MessageType4NOTEE"></span><span class="target" id="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NOTE</span></span></span><a class="headerlink" href="#_CPPv4N10ILogWriter11MessageType4NOTEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Note message. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter11MessageType7WARNINGE">
+<span id="_CPPv3N10ILogWriter11MessageType7WARNINGE"></span><span id="_CPPv2N10ILogWriter11MessageType7WARNINGE"></span><span class="target" id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca4bd38cd4423708118f22a18366767cb0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WARNING</span></span></span><a class="headerlink" href="#_CPPv4N10ILogWriter11MessageType7WARNINGE" title="Link to this definition"></a><br /></dt>
+<dd><p>Warning message. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter11MessageType5ERRORE">
+<span id="_CPPv3N10ILogWriter11MessageType5ERRORE"></span><span id="_CPPv2N10ILogWriter11MessageType5ERRORE"></span><span class="target" id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERROR</span></span></span><a class="headerlink" href="#_CPPv4N10ILogWriter11MessageType5ERRORE" title="Link to this definition"></a><br /></dt>
+<dd><p>Error message. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter11MessageType5FATALE">
+<span id="_CPPv3N10ILogWriter11MessageType5FATALE"></span><span id="_CPPv2N10ILogWriter11MessageType5FATALE"></span><span class="target" id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca8dfca79f44e456b8d8a29daf286f21fb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FATAL</span></span></span><a class="headerlink" href="#_CPPv4N10ILogWriter11MessageType5FATALE" title="Link to this definition"></a><br /></dt>
+<dd><p>Fatal error message. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter11MessageType6REMARKE">
+<span id="_CPPv3N10ILogWriter11MessageType6REMARKE"></span><span id="_CPPv2N10ILogWriter11MessageType6REMARKE"></span><span class="target" id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca15621ed2c8316c8cebdb5c9ef93cb8f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REMARK</span></span></span><a class="headerlink" href="#_CPPv4N10ILogWriter11MessageType6REMARKE" title="Link to this definition"></a><br /></dt>
+<dd><p>Remark (low priority) message. </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi">
+<span id="_CPPv3N10ILogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"></span><span id="_CPPv2N10ILogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"></span><span id="ILogWriter::addMessageFmt__MessageType.cCP.DagorSafeArgCP.i"></span><span class="target" id="classILogWriter_1a80768c18cfed7409e639f2167e78f799"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addMessageFmt</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N10ILogWriter11MessageTypeE" title="ILogWriter::MessageType"><span class="n"><span class="pre">MessageType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">fmt</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">DagorSafeArg</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">arg</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">anum</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N10ILogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi" title="Link to this definition"></a><br /></dt>
+<dd><p>Add formatted message to log. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fmt</strong> – <strong>[in]</strong> - printf-like format string (dagor format extension) </p></li>
+<li><p><strong>type</strong> – <strong>[in]</strong> - message type (see enum MessageType) </p></li>
+<li><p><strong>arg, anum</strong> – <strong>[in]</strong> - type-safe parameters to be used by format </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK10ILogWriter9hasErrorsEv">
+<span id="_CPPv3NK10ILogWriter9hasErrorsEv"></span><span id="_CPPv2NK10ILogWriter9hasErrorsEv"></span><span id="ILogWriter::hasErrorsC"></span><span class="target" id="classILogWriter_1a7741a6fa40073605a2e147c3d6343463"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasErrors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK10ILogWriter9hasErrorsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>returns true when log contains ERROR/FATAL messages </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter8startLogEv">
+<span id="_CPPv3N10ILogWriter8startLogEv"></span><span id="_CPPv2N10ILogWriter8startLogEv"></span><span id="ILogWriter::startLog"></span><span class="target" id="classILogWriter_1aa6fe6e79751839ef761bdb6bef385be9"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">startLog</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N10ILogWriter8startLogEv" title="Link to this definition"></a><br /></dt>
+<dd><p>starts log messages counting </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter6endLogEv">
+<span id="_CPPv3N10ILogWriter6endLogEv"></span><span id="_CPPv2N10ILogWriter6endLogEv"></span><span id="ILogWriter::endLog"></span><span class="target" id="classILogWriter_1a2775a6fcde87e5cb6ed3baa3f87b1062"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endLog</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N10ILogWriter6endLogEv" title="Link to this definition"></a><br /></dt>
+<dd><p>finishes log messages counting </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N10ILogWriter31DECLARE_DSA_OVERLOADS_FAMILY_LTEv13addMessageFmt">
+<span id="_CPPv3N10ILogWriter31DECLARE_DSA_OVERLOADS_FAMILY_LTEv13addMessageFmt"></span><span id="_CPPv2N10ILogWriter31DECLARE_DSA_OVERLOADS_FAMILY_LTEv13addMessageFmt"></span><span id="ILogWriter::DECLARE_DSA_OVERLOADS_FAMILY_LT__void.addMessageFmt"></span><span class="target" id="classILogWriter_1a6f376edfaedd194fa2ce0c81e675ac43"></span><span class="sig-name descname"><span class="n"><span class="pre">DECLARE_DSA_OVERLOADS_FAMILY_LT</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">addMessage</span></span>, <a class="reference internal" href="#_CPPv4N10ILogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi" title="ILogWriter::addMessageFmt"><span class="n"><span class="pre">addMessageFmt</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N10ILogWriter31DECLARE_DSA_OVERLOADS_FAMILY_LTEv13addMessageFmt" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv415ReportLogWriter">
+<span id="_CPPv315ReportLogWriter"></span><span id="_CPPv215ReportLogWriter"></span><span id="ReportLogWriter"></span><span class="target" id="classReportLogWriter"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ReportLogWriter</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv410ILogWriter" title="ILogWriter"><span class="n"><span class="pre">ILogWriter</span></span></a><a class="headerlink" href="#_CPPv415ReportLogWriter" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;reportLogWriter.h&gt;</em></div>
+<p>Used to output log messages in special dialog window. A color of text messages depends on their types. At the end of window summary info is represented with number of errors and warnings. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter15ReportLogWriterEv">
+<span id="_CPPv3N15ReportLogWriter15ReportLogWriterEv"></span><span id="_CPPv2N15ReportLogWriter15ReportLogWriterEv"></span><span id="ReportLogWriter::ReportLogWriter"></span><span class="target" id="classReportLogWriter_1aa6057ed11a63f994681a73e73d8297c3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ReportLogWriter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15ReportLogWriter15ReportLogWriterEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi">
+<span id="_CPPv3N15ReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"></span><span id="_CPPv2N15ReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi"></span><span id="ReportLogWriter::addMessageFmt__MessageType.cCP.DagorSafeArgCP.i"></span><span class="target" id="classReportLogWriter_1adf8b347787969034700f7fa630c903c1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addMessageFmt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MessageType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">fmt</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">DagorSafeArg</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">arg</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">anum</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N15ReportLogWriter13addMessageFmtE11MessageTypePKcPK12DagorSafeArgi" title="Link to this definition"></a><br /></dt>
+<dd><p>Add formatted message. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK15ReportLogWriter9hasErrorsEv">
+<span id="_CPPv3NK15ReportLogWriter9hasErrorsEv"></span><span id="_CPPv2NK15ReportLogWriter9hasErrorsEv"></span><span id="ReportLogWriter::hasErrorsC"></span><span class="target" id="classReportLogWriter_1ad29eb134710cb550d5508b65517f92bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasErrors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4NK15ReportLogWriter9hasErrorsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Test whether messages list has error messages. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>true</strong> if messages list has error messages, <strong>false</strong> in other case </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter8startLogEv">
+<span id="_CPPv3N15ReportLogWriter8startLogEv"></span><span id="_CPPv2N15ReportLogWriter8startLogEv"></span><span id="ReportLogWriter::startLog"></span><span class="target" id="classReportLogWriter_1aad5449a8344a901d8189383234c3efe3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">startLog</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N15ReportLogWriter8startLogEv" title="Link to this definition"></a><br /></dt>
+<dd><p>starts log messages counting </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter6endLogEv">
+<span id="_CPPv3N15ReportLogWriter6endLogEv"></span><span id="_CPPv2N15ReportLogWriter6endLogEv"></span><span id="ReportLogWriter::endLog"></span><span class="target" id="classReportLogWriter_1a93d1188aa2b0386ac060c53cead3a0b0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endLog</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N15ReportLogWriter6endLogEv" title="Link to this definition"></a><br /></dt>
+<dd><p>finishes log messages counting </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter13clearMessagesEv">
+<span id="_CPPv3N15ReportLogWriter13clearMessagesEv"></span><span id="_CPPv2N15ReportLogWriter13clearMessagesEv"></span><span id="ReportLogWriter::clearMessages"></span><span class="target" id="classReportLogWriter_1a1e07bef92c5f9720f3daa84210c53a9c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clearMessages</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15ReportLogWriter13clearMessagesEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear messages list. (for reusing one log writer object for several operations) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK15ReportLogWriter11hasWarningsEv">
+<span id="_CPPv3NK15ReportLogWriter11hasWarningsEv"></span><span id="_CPPv2NK15ReportLogWriter11hasWarningsEv"></span><span id="ReportLogWriter::hasWarningsC"></span><span class="target" id="classReportLogWriter_1a81d43b8e1733a31c7c8f3bd7b57d0277"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasWarnings</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK15ReportLogWriter11hasWarningsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Test whether messages list has warning messages. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>true</strong> if messages list has warning messages, <strong>false</strong> in other case </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK15ReportLogWriter11hasMessagesEv">
+<span id="_CPPv3NK15ReportLogWriter11hasMessagesEv"></span><span id="_CPPv2NK15ReportLogWriter11hasMessagesEv"></span><span id="ReportLogWriter::hasMessagesC"></span><span class="target" id="classReportLogWriter_1a9cdf8213e15d04c87f628805ab7642d1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasMessages</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK15ReportLogWriter11hasMessagesEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Test whether messages list has messages. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>true</strong> if messages list is not empty, <strong>false</strong> in other case </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter10showReportEPKcPKcPKc">
+<span id="_CPPv3N15ReportLogWriter10showReportEPKcPKcPKc"></span><span id="_CPPv2N15ReportLogWriter10showReportEPKcPKcPKc"></span><span id="ReportLogWriter::showReport__cCP.cCP.cCP"></span><span class="target" id="classReportLogWriter_1a183449224584316dfdae25f5ac33b172"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">showReport</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">title</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">error_msg</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ok_msg</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15ReportLogWriter10showReportEPKcPKcPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Show dialog window with messages list. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>title</strong> – <strong>[in]</strong> - window title </p></li>
+<li><p><strong>error_msg</strong> – <strong>[in]</strong> - message displayed at the end of window if there are error messages in messages list </p></li>
+<li><p><strong>ok_msg</strong> – <strong>[in]</strong> - message displayed at the end of window if there are no error messages in messages list </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>true</strong> if user pressed ‘OK’ button, <strong>false</strong> if user pressed ‘Cancel’ button </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-attributes">Protected Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter4listE">
+<span id="_CPPv3N15ReportLogWriter4listE"></span><span id="_CPPv2N15ReportLogWriter4listE"></span><span id="ReportLogWriter::list__Tab:SimpleString:"></span><span class="target" id="classReportLogWriter_1af0bc33a7ef8f35427fae1b75bf0494ab"></span><span class="n"><span class="pre">Tab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">SimpleString</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list</span></span></span><a class="headerlink" href="#_CPPv4N15ReportLogWriter4listE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter6errorsE">
+<span id="_CPPv3N15ReportLogWriter6errorsE"></span><span id="_CPPv2N15ReportLogWriter6errorsE"></span><span id="ReportLogWriter::errors__b"></span><span class="target" id="classReportLogWriter_1a541b077d56a9f66226f0aa5af697ffad"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">errors</span></span></span><a class="headerlink" href="#_CPPv4N15ReportLogWriter6errorsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15ReportLogWriter8warningsE">
+<span id="_CPPv3N15ReportLogWriter8warningsE"></span><span id="_CPPv2N15ReportLogWriter8warningsE"></span><span id="ReportLogWriter::warnings__b"></span><span class="target" id="classReportLogWriter_1a32d7f3dd9e0352f41dfb94ea4cd0982b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warnings</span></span></span><a class="headerlink" href="#_CPPv4N15ReportLogWriter8warningsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="renderUtil.html" class="btn btn-neutral float-left" title="renderUtil" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../maxplug/maxplug.html" class="btn btn-neutral float-right" title="3ds Max Plugins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

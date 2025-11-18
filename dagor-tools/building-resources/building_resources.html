@@ -1,0 +1,632 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building Resources</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Packages" href="packages.html" />
+    <link rel="prev" title="Building Resources" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Building Resources</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Building Resources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#parameters-in-folder-blk-affecting-the-building-process">Parameters in <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> Affecting the Building Process</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#global-export-parameters">Global Export Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#about-packs-and-packages">About Packs and Packages</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#what-is-package">What Is Package?</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#what-is-pack">What Is Pack?</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#local-build">Local Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#local-full-dabuild">Local Full daBuild</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#building-and-errors">Building and Errors</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#local-pack-build">Local Pack Build</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#local-package-build">Local Package Build</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#option-1-building-a-specific-package">Option 1: Building a Specific Package</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#option-2-building-a-specific-package-and-its-dependencies">Option 2: Building a Specific Package and Its Dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#toggling-packages-in-settings-blk">Toggling Packages in settings.blk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#local-build-of-a-specific-asset">Local Build of a Specific Asset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#local-resource-build-in-asset-viewer">Local Resource Build in Asset Viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#local-vromfs-build">Local Vromfs Build</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#methods-to-build-vromfs">Methods to Build Vromfs</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#local-build-of-resources-and-vromfs-in-the-open-daeditor-and-client">Local Build of Resources and Vromfs in the Open daEditor and Client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#local-level-export">Local Level Export</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="packages.html">Packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vromfs.html">Vromfs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Building Resources</a></li>
+      <li class="breadcrumb-item active">Building Resources</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/building-resources/building_resources.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="building-resources">
+<h1>Building Resources<a class="headerlink" href="#building-resources" title="Link to this heading"></a></h1>
+<p><em>Resource build process</em> refers to the process of packaging all game assets –
+including models, textures, levels, and their associated settings and game logic
+– into binary files. This approach helps reduce the number of files that need to
+be downloaded, speeding up the download process while keeping the data volume
+constant. It also protects our assets from being exploited by players for
+unintended purposes.</p>
+<p>The game itself does not interact directly with the raw assets like models,
+textures, or level settings that we create. Instead, it only interacts with the
+compiled binary files. When a level is loaded, the necessary packages are
+fetched, decompressed, and the required information is extracted from them.</p>
+<p>This article provides an overview of how to build assets, levels, and settings.</p>
+<section id="parameters-in-folder-blk-affecting-the-building-process">
+<h2>Parameters in <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> Affecting the Building Process<a class="headerlink" href="#parameters-in-folder-blk-affecting-the-building-process" title="Link to this heading"></a></h2>
+<p>Resource build process is governed by the rules defined in <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> files.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../assets/all-about-blk/folder_blk.html"><span class="std std-doc">.folder.blk</span></a>.</p>
+</div>
+<p>For example, the following block specifies compression parameters for <code class="docutils literal notranslate"><span class="pre">.tiff</span></code>
+textures.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">virtual_res_blk</span><span class="ni">{</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)\.tiff$&quot;</span>  <span class="ge">// search for any .tiff files</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;tex&quot;</span>      <span class="ge">// assign the &quot;texture&quot; class</span>
+  <span class="se">contents</span><span class="ni">{</span>              <span class="ge">// processing details</span>
+    <span class="no">convert</span><span class="nt">:b=</span><span class="si">yes</span><span class="gp">;</span><span class="no">fmt</span><span class="nt">:t=</span><span class="nf">&quot;DXT1|DXT5&quot;</span>  <span class="ge">// convert; use DXT1 or DXT5 format (if alpha is present)</span>
+    <span class="no">mipFilter</span><span class="nt">:t=</span><span class="nf">&quot;filterKaiser&quot;</span><span class="gp">;</span><span class="no">mipFilterAlpha</span><span class="nt">:r=</span><span class="m">40</span><span class="gp">;</span><span class="no">mipFilterStretch</span><span class="nt">:r=</span><span class="m">2</span> <span class="ge">/* mipmap compression using the Kaiser filter</span>
+<span class="ge">                                                                          (sharpens); with two parameters */</span>
+    <span class="no">addrU</span><span class="nt">:t=</span><span class="nf">&quot;wrap&quot;</span><span class="gp">;</span><span class="no">addrV</span><span class="nt">:t=</span><span class="nf">&quot;wrap&quot;</span>    <span class="ge">// define texture tiling behavior, wrap = repeat for repeating textures.</span>
+    <span class="no">hqMip</span><span class="nt">:i=</span><span class="m">0</span><span class="gp">;</span><span class="no">mqMip</span><span class="nt">:i=</span><span class="m">1</span><span class="gp">;</span><span class="no">lqMip</span><span class="nt">:i=</span><span class="m">2</span>    <span class="ge">/* define the displayed mip level based on graphics quality;</span>
+<span class="ge">                                        hq (high quality) uses the original texture,</span>
+<span class="ge">                                        mq uses mip level 1 (50% compression), lq uses mip level 2 (75% compression). */</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>There are numerous such processing blocks. Below, we’ll examine the key ones.</p>
+</section>
+<section id="global-export-parameters">
+<h2>Global Export Parameters<a class="headerlink" href="#global-export-parameters" title="Link to this heading"></a></h2>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">export</span><span class="ni">{</span>
+  <span class="no">package</span><span class="nt">:t=</span><span class="nf">&quot;*&quot;</span>       <span class="ge">/* Specify the package to which the asset will be built</span>
+<span class="ge">                         (a package is the highest level of asset grouping) */</span>
+  <span class="no">forcePackage</span><span class="nt">:t=</span><span class="nf">&quot;*&quot;</span>  <span class="ge">/* Some packages might be automatically renamed by hardcoded logic.</span>
+<span class="ge">                         This parameter enforces a specific name. Use this if you want to</span>
+<span class="ge">                         ensure that certain assets are built into only one location. */</span>
+  <span class="no">ddsxTexPackPrefix</span><span class="nt">:t=</span><span class="nf">&quot;tanks/&quot;</span>  <span class="ge">/* Specify the directory in the built resources where texture packs will be stored</span>
+<span class="ge">                                   (a pack is the next level of grouping within a package).</span>
+<span class="ge">                                   In this example, texture packs for tanks will be built</span>
+<span class="ge">                                   into the &quot;tanks&quot; directory rather than the general directory. */</span>
+  <span class="no">ddsxTexPack</span><span class="nt">:t=</span><span class="nf">&quot;*name_src&quot;</span>     <span class="ge">/* Specify the name of the texture pack. If &quot;*name_src&quot; is used,</span>
+<span class="ge">                                   the name will be derived from the directory containing the textures.*/</span>
+  <span class="no">gameResPack</span><span class="nt">:t=</span><span class="nf">&quot;aces.grp&quot;</span>      <span class="ge">/* Specify the name of the resource pack. If &quot;*name_src&quot; is used,</span>
+<span class="ge">                                   the name will be derived from the folder containing the textures. */</span>
+  <span class="no">splitNotSeparate</span><span class="nt">:b=</span><span class="si">true</span>  <span class="ge">/* Indicate that textures should not be split between the base client and the full client.</span>
+<span class="ge">                              In the base client, textures are downscaled to 512px so players can download a smaller</span>
+<span class="ge">                              amount of data and start playing sooner. To maintain visual quality, some textures, like</span>
+<span class="ge">                              those for tanks or hangars, are not downscaled but kept at normal quality. This flag is</span>
+<span class="ge">                              set to true to prevent downscaling. The default is false, and it can be omitted. */</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>These are just a few examples. Let’s delve into the primary parameters.</p>
+</section>
+<section id="about-packs-and-packages">
+<h2>About Packs and Packages<a class="headerlink" href="#about-packs-and-packages" title="Link to this heading"></a></h2>
+<p>The hierarchy of resources can be illustrated as follows:</p>
+<a class="reference internal image-reference" href="../../_images/building_resources_01.jpg"><img alt="Hierarchy of resources" class="align-center" src="../../_images/building_resources_01.jpg" style="width: 40em;" />
+</a>
+<p>In essence, a project can contain several packages, and each package can include
+multiple packs.</p>
+<section id="what-is-package">
+<h3>What Is Package?<a class="headerlink" href="#what-is-package" title="Link to this heading"></a></h3>
+<p>A <em>package</em> typically serves as a container for resources that we want to
+distribute to or remove from the player’s environment. For example, we might
+bundle a specific location and its assets into a package for a particular event.
+Players download it, enjoy the event for a week, and once the event concludes,
+the package is removed from their resources.</p>
+<p>Packages can also be used to release or sell add-ons. Instead of requiring
+players to download 20 GB of resources upfront, they can start with a
+minimal setup and quickly get into the game. Later, they can purchase additional
+content and download the necessary data from the relevant package.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="packages.html"><span class="std std-doc">Packages</span></a>.</p>
+</div>
+</section>
+<section id="what-is-pack">
+<h3>What Is Pack?<a class="headerlink" href="#what-is-pack" title="Link to this heading"></a></h3>
+<p>A <em>pack</em> is a component of a package where the assets are actually built. The
+logic for dividing assets into packs is straightforward:</p>
+<ul class="simple">
+<li><p>When a location is loaded, the minimum possible number of packs should be
+fetched to optimize loading times.</p></li>
+<li><p>Each pack should ideally be between 10 MB to 100 MB (with
+100 MB being the absolute maximum) to ensure efficient unpacking.</p></li>
+</ul>
+<p>Generally, we group similar assets together; for example, all vehicle props
+might go into a pack named <code class="docutils literal notranslate"><span class="pre">vehicles</span></code>. Defensive structures like pillboxes,
+trenches, bunkers, and barricades might be grouped into a pack called
+<code class="docutils literal notranslate"><span class="pre">fortifications</span></code>.</p>
+<p>If a pack becomes too large, we break it down into smaller groups. For example,
+vehicles could be further divided into packs such as <code class="docutils literal notranslate"><span class="pre">buses</span></code>, <code class="docutils literal notranslate"><span class="pre">trucks</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">cars</span></code>.</p>
+</section>
+</section>
+<section id="local-build">
+<h2>Local Build<a class="headerlink" href="#local-build" title="Link to this heading"></a></h2>
+<p>When you create a new asset, it needs to be tested locally in the game. The
+local client, like the player’s client, only understands built resources, so
+they need to be built before testing.</p>
+<p>There are three types of builds:</p>
+<ol class="arabic simple">
+<li><p><strong>Full Build</strong>: builds all resources.</p></li>
+<li><p><strong>Partial Pack Build</strong>: builds the specific pack containing the resource you
+need. This method is used when only a few assets have been modified – quick
+and efficient.</p></li>
+<li><p><strong>Partial Package Build</strong>: builds an entire package (a set of packs).
+Although this is a longer process, it can be more convenient in some cases,
+such as in daNetGame-based games, where packaging the resources this way
+might be preferable to building individual packs.</p></li>
+</ol>
+</section>
+<section id="local-full-dabuild">
+<h2>Local Full daBuild<a class="headerlink" href="#local-full-dabuild" title="Link to this heading"></a></h2>
+<p>The daBuild is a program executed via the <code class="docutils literal notranslate"><span class="pre">dabuild.cmd</span></code> batch file.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Running <code class="docutils literal notranslate"><span class="pre">dabuild.cmd</span></code> will build all resources – this process can take hours. If
+you only need to build a single resource for quick testing, use
+<code class="docutils literal notranslate"><span class="pre">dabuild_test.bat</span></code> instead.</p>
+</div>
+<section id="building-and-errors">
+<h3>Building and Errors<a class="headerlink" href="#building-and-errors" title="Link to this heading"></a></h3>
+<p>In theory, all assets should be error-free. However, asset management initially
+relied heavily on manual checks, leading to human error and allowing issues to
+slip through. Over time, more automated checks were added to daBuild, which
+means that older assets that previously built without problems might now trigger
+errors. If an error occurs while building a pack, the build process for that
+pack is halted, and subsequent assets are not built. Errors are only detected
+during the build process, but they also interrupt it, making it time-consuming
+to identify and fix issues across all assets within a pack.</p>
+<p>To address this, the <code class="docutils literal notranslate"><span class="pre">-keep_building_after_error</span></code> flag was introduced. If the
+previous build resulted in errors, you can add this flag at the end of the batch
+file command to allow daBuild to continue building all resources while logging
+the errors.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">-keep_building_after_error</span></code> flag should not be used to ignore errors. The
+build process for specific assets will still be interrupted, but it will move on
+to the next asset in the pack rather than stopping at the first error. Once
+you’ve collected error data, fix the assets and run the build without this flag
+to ensure that daBuild completes successfully without issues.</p>
+</div>
+</section>
+<section id="local-pack-build">
+<h3>Local Pack Build<a class="headerlink" href="#local-pack-build" title="Link to this heading"></a></h3>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Building packs with daBuild will compile all packs matching a specified pattern.
+For example, if you have a <code class="docutils literal notranslate"><span class="pre">vehicles</span></code> pack and a <code class="docutils literal notranslate"><span class="pre">vehicles_modern</span></code> pack,
+building <code class="docutils literal notranslate"><span class="pre">vehicles</span></code> will compile both packs unless you specify the exact pack
+extension (e.g., <code class="docutils literal notranslate"><span class="pre">vehicles.grp</span></code> to target only that pack).</p>
+<p>Also, note that daBuild will build packs based on the package name. For example,
+if you have several packs within the <code class="docutils literal notranslate"><span class="pre">main</span></code> package and you run a build using
+the <code class="docutils literal notranslate"><span class="pre">main</span></code> pattern, it will build all packs within the <code class="docutils literal notranslate"><span class="pre">main</span></code> package. <strong>This
+builds all packs within the <code class="docutils literal notranslate"><span class="pre">main</span></code> package, not the <code class="docutils literal notranslate"><span class="pre">main</span></code> package itself.</strong></p>
+<p>This happens because the final pack names always include the package name as a
+prefix. For example, the <code class="docutils literal notranslate"><span class="pre">vehicles</span></code> pack in the <code class="docutils literal notranslate"><span class="pre">main</span></code> package will ultimately
+be named <code class="docutils literal notranslate"><span class="pre">main_vehicles</span></code>.</p>
+</div>
+<p>To build a specific pack, open <code class="docutils literal notranslate"><span class="pre">dabuild_test.bat</span></code> in any text editor, and you
+will see a line like this:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>..\..\tools\dagor3_cdk\bin64\dabuild-dev.exe -target:PC ..\application.blk -packs_re:usa_gm -Q
+</pre></div>
+</div>
+<p>Replace <code class="docutils literal notranslate"><span class="pre">usa_gm</span></code> with the name of the pack you need to build. The pack is
+determined by the nearest <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> file to the asset, containing lines
+like:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">export</span><span class="ni">{</span>
+  <span class="no">ddsxTexPack</span><span class="nt">:t=</span><span class="nf">&quot;gm_lvl_assets.dxp.bin&quot;</span>
+  <span class="no">gameResPack</span><span class="nt">:t=</span><span class="nf">&quot;gm_lvl_assets.grp&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">gm_lvl_assets</span></code> is an example of the pack name into which the resources will
+be built. It may vary – refer to your specific setup.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Notice that there are two types of packs:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ddsxTexPack</span></code>: exports textures</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gameResPack</span></code>: exports models</p></li>
+</ul>
+<p>It’s possible for textures to be exported to one pack and models to another.
+For example:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">export</span><span class="ni">{</span>
+  <span class="no">ddsxTexPack</span><span class="nt">:t=</span><span class="nf">&quot;gm_lvl_assets.dxp.bin&quot;</span>
+  <span class="no">gameResPack</span><span class="nt">:t=</span><span class="nf">&quot;locations.grp&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>You need to build the packs corresponding to the resources you’ve modified.
+If you’ve changed textures, build the texture pack. If you’ve changed models,
+build the model pack. If both were changed, build both packs.</p>
+</div>
+</section>
+</section>
+<section id="local-package-build">
+<h2>Local Package Build<a class="headerlink" href="#local-package-build" title="Link to this heading"></a></h2>
+<p>Unlike packs, packages are more comprehensive and refer to self-contained
+volumes of resources that can be enabled or disabled with a “toggle”.</p>
+<p>For example, in War Thunder:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pkg_main</span></code> (or simply <code class="docutils literal notranslate"><span class="pre">*</span></code>): the default package where all assets are exported.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pkg_dev</span></code>: contains assets that should be built but not distributed to
+players.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tomoe</span></code>: a package for modifying certain symbols in countries where their
+original form is prohibited.</p></li>
+<li><p>Event packages are also occasionally used.</p></li>
+</ul>
+<p>In daNetGame-based games, each location is its own package, which can be
+distributed to players independently.</p>
+<p>In a <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> file, the package entry looks like this:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">export</span><span class="ni">{</span>
+  <span class="no">package</span><span class="nt">:t=</span><span class="nf">&quot;tomoe&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>In War Thunder, local package builds are not common, as there are few packages,
+and packs are usually built instead. However, in daNetGame-based games, this is
+an extremely useful feature. There are two options for such builds.</p>
+<section id="option-1-building-a-specific-package">
+<h3>Option 1: Building a Specific Package<a class="headerlink" href="#option-1-building-a-specific-package" title="Link to this heading"></a></h3>
+<p>In the <code class="docutils literal notranslate"><span class="pre">daBuild</span></code> batch file, write:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>..\..\tools\dagor3_cdk\bin64\dabuild-dev.exe -target:PC ..\application.blk -package:package_name -Q
+</pre></div>
+</div>
+<p>Replace <code class="docutils literal notranslate"><span class="pre">package_name</span></code> with the name of the package you need to build. This will
+build the entire package with validation and checks.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Package builds target specific packages, unlike packs, which work based on
+patterns. This isn’t usually an issue unless you’re trying to build textures.</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">package_name</span></code> and <code class="docutils literal notranslate"><span class="pre">package_name_hq</span></code> (high-quality textures used
+for close-up views) are different packages. Building the package with
+<code class="docutils literal notranslate"><span class="pre">-package:package_name</span></code> will only compile standard textures, not high-quality
+ones. This could result in your changes appearing in low-quality textures but
+reverting when viewed up close, as the high-quality textures haven’t been
+updated.</p>
+<p>To avoid this, you should either:</p>
+<ul class="simple">
+<li><p>sequentially build both packages using one batch file:
+<code class="docutils literal notranslate"><span class="pre">-package:package_name</span> <span class="pre">-package:package_name_hq</span></code></p></li>
+</ul>
+<p>or</p>
+<ul class="simple">
+<li><p>create two separate batch files: one for the main resource package (non-HQ
+textures) and another specifically for HQ textures.</p></li>
+</ul>
+</div>
+</section>
+<section id="option-2-building-a-specific-package-and-its-dependencies">
+<h3>Option 2: Building a Specific Package and Its Dependencies<a class="headerlink" href="#option-2-building-a-specific-package-and-its-dependencies" title="Link to this heading"></a></h3>
+<p>In daNetGame-based games, packages often have cross-references. When something
+changes in a “common” package, you need to ensure that everything works
+correctly in all other packages that reference it. Instead of doing a full build
+(which is very time-consuming), you can build the “common” package along with
+its dependent packages, which is much faster.</p>
+<p>To do this, write the following in the <code class="docutils literal notranslate"><span class="pre">daBuild</span></code> batch file:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>..\..\tools\dagor3_cdk\bin64\dabuild-dev.exe -target:PC ..\application.blk -package_and_deps:package_name -Q
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">package_and_deps</span></code> refers to the package and its dependencies.</p>
+</section>
+</section>
+<section id="toggling-packages-in-settings-blk">
+<h2>Toggling Packages in settings.blk<a class="headerlink" href="#toggling-packages-in-settings-blk" title="Link to this heading"></a></h2>
+<p>Occasionally, you may need to enable or disable packages to test specific
+scenarios (for example, disabling a package to verify that the game runs without
+it). This is configured in the <code class="docutils literal notranslate"><span class="pre">settings.blk</span></code> file.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../assets/all-about-blk/config_and_settings_blk.html"><span class="doc std std-doc">settings.blk</span></a>.</p>
+</div>
+<p>For all projects, after modifying the package list, you must rebuild the
+<code class="docutils literal notranslate"><span class="pre">.vromfs.bin</span></code> files.</p>
+<p>In War Thunder, packages are enabled or disabled in the file located at
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/gameBase/_pc/settings.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">addons</span><span class="ni">{</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/hq_tex&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/pkg_cockpits&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_china&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/pkg_china_hq&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_dev&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/pkg_dev_hq&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/hc_pacific&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_user&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_local&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/tomoe&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/tomoe_hq&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/uhq_vehicles&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/uhq_aircraft&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/uhq_environment&quot;</span>
+<span class="ni">}</span>
+<span class="se">addons_no_check</span><span class="ni">{</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/hq_tex&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/pkg_cockpits&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_china&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/pkg_china_hq&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_dev&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/pkg_dev_hq&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/hc_pacific&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_user&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/pkg_local&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content/tomoe&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/tomoe_hq&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/uhq_vehicles&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/uhq_aircraft&quot;</span>
+  <span class="no">folder</span><span class="nt">:t=</span><span class="nf">&quot;content.hq/uhq_environment&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>To disable a package, simply comment out the relevant lines in both blocks and
+rebuild <code class="docutils literal notranslate"><span class="pre">.vromfs.bin</span></code> files.</p>
+<p>It’s important to note that this file is responsible only for enabling or
+disabling packages within the game; it does not handle the creation of packages.
+The requirement for a package to be built by daBuild is defined in the
+<code class="docutils literal notranslate"><span class="pre">application.blk</span></code> file within the <code class="docutils literal notranslate"><span class="pre">packages{}</span></code> block.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../assets/all-about-blk/application_blk.html"><span class="std std-doc">application.blk</span></a>.</p>
+</div>
+</section>
+<section id="local-build-of-a-specific-asset">
+<h2>Local Build of a Specific Asset<a class="headerlink" href="#local-build-of-a-specific-asset" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">daBuild</span></code> command with the <code class="docutils literal notranslate"><span class="pre">-build:&lt;asset&gt;[:&lt;out_file&gt;]</span></code> parameter allows
+you to build a single asset into the specified file. This command does not
+update packages, meaning the updated asset will not be added to any package.</p>
+</section>
+<section id="local-resource-build-in-asset-viewer">
+<h2>Local Resource Build in Asset Viewer<a class="headerlink" href="#local-resource-build-in-asset-viewer" title="Link to this heading"></a></h2>
+<p>Resources can also be built using the <a class="reference internal" href="../asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>, which often speeds up
+the process since <code class="docutils literal notranslate"><span class="pre">daBuild</span></code> via batch files can sometimes lag unpredictably.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information on how to build using Asset Viewer, see
+<a class="reference internal" href="../asset-viewer/asset-viewer/asset_viewer.html#building-assets"><span class="std std-ref">Asset Viewer: Building Assets</span></a>.</p>
+</div>
+</section>
+<section id="local-vromfs-build">
+<h2>Local Vromfs Build<a class="headerlink" href="#local-vromfs-build" title="Link to this heading"></a></h2>
+<p><em>VROMFS</em> stands for “Virtual Read-Only Memory File System”. Essentially,
+<a class="reference internal" href="vromfs.html"><span class="std std-doc">vromfs</span></a> files are the “virtual configuration disk” for our game.
+They contain all the game’s operational settings that aren’t hard-coded.</p>
+<p>When creating assets, you need to build vromfs primarily when you’re configuring
+asset destruction or fine-tuning the behavior of in-game vehicles. In other
+scenarios, vromfs building is typically unnecessary.</p>
+<p>It’s crucial to remember that, by default, vromfs are delivered over the network
+at the start of each mission, allowing for different settings per mission. If
+you want to test something locally, ensure that your <code class="docutils literal notranslate"><span class="pre">config.blk</span></code> file has the
+following line in the <code class="docutils literal notranslate"><span class="pre">debug{}</span></code> block: <code class="docutils literal notranslate"><span class="pre">offlineBinaries:b=yes</span></code>. Alternatively,
+you can use <code class="docutils literal notranslate"><span class="pre">disableNetwork:b=yes</span></code> if network features are irrelevant to you.
+For added security, you might want to include both.</p>
+<section id="methods-to-build-vromfs">
+<h3>Methods to Build Vromfs<a class="headerlink" href="#methods-to-build-vromfs" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>Using <code class="docutils literal notranslate"><span class="pre">create_vrsroms.bat</span></code></strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">create_vrsroms.bat</span></code> file located in the
+<code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/&lt;project_name&gt;/develop/gameBase</span></code> directory.</p>
+<p>This method is useful because it immediately indicates if there’s an issue
+with the settings by throwing an error.</p>
+<p>Additionally, it provides a local log (<code class="docutils literal notranslate"><span class="pre">log_vrom</span></code>) in the same directory,
+which helps you identify and resolve any problems.</p>
+</li>
+<li><p><strong>Using <code class="docutils literal notranslate"><span class="pre">aces_dev.exe</span></code></strong></p>
+<p>Technically, this tool does not build vromfs. However, if you have
+<code class="docutils literal notranslate"><span class="pre">vromfsPriority:b=no</span></code> set in the <code class="docutils literal notranslate"><span class="pre">debug{}</span></code> block of your <code class="docutils literal notranslate"><span class="pre">config.blk</span></code>, all
+configuration files will be read directly from <code class="docutils literal notranslate"><span class="pre">develop/gameBase</span></code> instead of
+from vromfs.</p>
+<p>This approach offers several advantages: there’s no need to wait for vromfs
+building after each change, and errors are logged in a more readable format.</p>
+<p>Additionally, this method allows you to add the powerful
+<code class="docutils literal notranslate"><span class="pre">trackEnvChanges:b=yes</span></code> line to your <code class="docutils literal notranslate"><span class="pre">config.blk</span></code>, enabling you to tweak
+settings directly in-game. Although this doesn’t work for all settings, it’s
+particularly helpful for adjusting weather or visual elements, as you can see
+the changes in real-time without restarting the client.</p>
+</li>
+</ol>
+<p>Choose the method based on your experience. The in-game approach might be less
+convenient, but sometimes it’s essential to ensure everything behaves exactly as
+it would in production.</p>
+</section>
+</section>
+<section id="local-build-of-resources-and-vromfs-in-the-open-daeditor-and-client">
+<h2>Local Build of Resources and Vromfs in the Open daEditor and Client<a class="headerlink" href="#local-build-of-resources-and-vromfs-in-the-open-daeditor-and-client" title="Link to this heading"></a></h2>
+<p>You can build resources and <a class="reference internal" href="vromfs.html"><span class="std std-doc">vromfs</span></a> while the
+<a class="reference internal" href="../daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a> is open (though resource building
+might cause the <a class="reference internal" href="../daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a> to crash).</p>
+<p>However, resources and vromfs cannot be built while the client is open.</p>
+<p>If you find that resources aren’t building after you’ve closed the client – or
+they seem to build, but the changes aren’t reflected in-game – open the Task
+Manager and terminate any lingering <code class="docutils literal notranslate"><span class="pre">aces_dev.exe</span></code> processes.</p>
+</section>
+<section id="local-level-export">
+<h2>Local Level Export<a class="headerlink" href="#local-level-export" title="Link to this heading"></a></h2>
+<p>If you’re developing in-game vehicles that are loaded via missions, you can skip
+this section.</p>
+<p>However, if you’re creating objects for maps, you’ll need to place them on the
+map and export the level to test them in-game. This process is done via the
+<a class="reference internal" href="../daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>.</p>
+<p>Level export is necessary when:</p>
+<ul class="simple">
+<li><p>You’re working with prefabs. Prefabs are only included in the game during
+level re-export.</p></li>
+<li><p>You’ve added a new asset that wasn’t previously on the level or removed
+something from the location.</p></li>
+<li><p>Something has changed in object generation, and their placement needs to be
+updated.</p></li>
+</ul>
+<p>If you’re only modifying render instances or textures, there’s no need to
+re-export the level – doing so would just waste time.</p>
+<p>Once you have placed all your objects, save the level and follow these steps:</p>
+<ol class="arabic simple">
+<li><p>Open the <strong>Project</strong> menu.</p></li>
+<li><p>Select <strong>Export to Game (PC format)</strong> (if needed).</p></li>
+<li><p>Click <strong>OK</strong> on all subsequent dialog boxes.</p></li>
+<li><p>Save the level binary file.</p></li>
+<li><p>After the level build is complete, launch the game and verify the objects.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Building Resources" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="packages.html" class="btn btn-neutral float-right" title="Packages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

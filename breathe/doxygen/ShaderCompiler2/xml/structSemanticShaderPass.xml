@@ -1,0 +1,1197 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSemanticShaderPass" kind="struct" language="C++" prot="public">
+    <compoundname>SemanticShaderPass</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+    <innerclass refid="structSemanticShaderPass_1_1EnableFp16State" prot="public">SemanticShaderPass::EnableFp16State</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" prot="public" static="no">
+        <type>eastl::array&lt; int8_t, shaders::RenderState::NumIndependentBlendParameters &gt;</type>
+        <definition>using SemanticShaderPass::BlendValues =  eastl::array&lt;int8_t, shaders::RenderState::NumIndependentBlendParameters&gt;</definition>
+        <argsstring></argsstring>
+        <name>BlendValues</name>
+        <qualifiedname>SemanticShaderPass::BlendValues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="34" column="3" bodyfile="shSemCode.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSemanticShaderPass_1af4b76eca2c9bc848cbd1377214a92ebd" prot="public" static="no" mutable="no">
+        <type>FSHTYPE</type>
+        <definition>FSHTYPE SemanticShaderPass::fshver</definition>
+        <argsstring></argsstring>
+        <name>fshver</name>
+        <qualifiedname>SemanticShaderPass::fshver</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="45" column="11" bodyfile="shSemCode.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt;unsigned&gt; SemanticShaderPass::fsh</definition>
+        <argsstring></argsstring>
+        <name>fsh</name>
+        <qualifiedname>SemanticShaderPass::fsh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="46" column="18" bodyfile="shSemCode.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt;unsigned&gt; SemanticShaderPass::vpr</definition>
+        <argsstring></argsstring>
+        <name>vpr</name>
+        <qualifiedname>SemanticShaderPass::vpr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="47" column="18" bodyfile="shSemCode.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt;unsigned&gt; SemanticShaderPass::hs</definition>
+        <argsstring></argsstring>
+        <name>hs</name>
+        <qualifiedname>SemanticShaderPass::hs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="48" column="18" bodyfile="shSemCode.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt;unsigned&gt; SemanticShaderPass::ds</definition>
+        <argsstring></argsstring>
+        <name>ds</name>
+        <qualifiedname>SemanticShaderPass::ds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="48" column="21" bodyfile="shSemCode.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt;unsigned&gt; SemanticShaderPass::gs</definition>
+        <argsstring></argsstring>
+        <name>gs</name>
+        <qualifiedname>SemanticShaderPass::gs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="48" column="24" bodyfile="shSemCode.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt;unsigned&gt; SemanticShaderPass::cs</definition>
+        <argsstring></argsstring>
+        <name>cs</name>
+        <qualifiedname>SemanticShaderPass::cs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="49" column="18" bodyfile="shSemCode.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a3be6b5c08d771a3e5e57d89b08f9315d" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt;int&gt; SemanticShaderPass::stcode</definition>
+        <argsstring></argsstring>
+        <name>stcode</name>
+        <qualifiedname>SemanticShaderPass::stcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="50" column="18" bodyfile="shSemCode.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a95cfbada8dc84fc6b43cc084c21ec41c" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt;int&gt; SemanticShaderPass::stblkcode</definition>
+        <argsstring></argsstring>
+        <name>stblkcode</name>
+        <qualifiedname>SemanticShaderPass::stblkcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="50" column="25" bodyfile="shSemCode.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodePass" kindref="compound">StcodePass</ref></type>
+        <definition>StcodePass SemanticShaderPass::cppstcode</definition>
+        <argsstring></argsstring>
+        <name>cppstcode</name>
+        <qualifiedname>SemanticShaderPass::cppstcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="52" column="14" bodyfile="shSemCode.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a0a93717959f273d97c583d31f37d93f4" prot="public" static="no" mutable="no">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange SemanticShaderPass::psOrCsConstRange</definition>
+        <argsstring></argsstring>
+        <name>psOrCsConstRange</name>
+        <qualifiedname>SemanticShaderPass::psOrCsConstRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="53" column="16" bodyfile="shSemCode.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a70495e6029e8dae0d7e1c59dcb31a17b" prot="public" static="no" mutable="no">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange SemanticShaderPass::vsConstRange</definition>
+        <argsstring></argsstring>
+        <name>vsConstRange</name>
+        <qualifiedname>SemanticShaderPass::vsConstRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="53" column="33" bodyfile="shSemCode.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a30d5ae5be555e0ca2f008666c081bb00" prot="public" static="no" mutable="no">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange SemanticShaderPass::bufferedConstRange</definition>
+        <argsstring></argsstring>
+        <name>bufferedConstRange</name>
+        <qualifiedname>SemanticShaderPass::bufferedConstRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="54" column="16" bodyfile="shSemCode.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1adbd7751cbda4b402f3cf48ad98cfee85" prot="public" static="no" mutable="no">
+        <type>SlotTexturesRangeInfo</type>
+        <definition>SlotTexturesRangeInfo SemanticShaderPass::psTexSmpRange</definition>
+        <argsstring></argsstring>
+        <name>psTexSmpRange</name>
+        <qualifiedname>SemanticShaderPass::psTexSmpRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="55" column="25" bodyfile="shSemCode.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a1e2a4969a9c01d5d8ec9a2732f297c7a" prot="public" static="no" mutable="no">
+        <type>SlotTexturesRangeInfo</type>
+        <definition>SlotTexturesRangeInfo SemanticShaderPass::vsTexSmpRange</definition>
+        <argsstring></argsstring>
+        <name>vsTexSmpRange</name>
+        <qualifiedname>SemanticShaderPass::vsTexSmpRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="55" column="39" bodyfile="shSemCode.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a7d7d388fa23d82e6986e5400093c4a17" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" kindref="member">ShaderParser::VariablesMerger::MergedVarsMapsPerStage</ref></type>
+        <definition>ShaderParser::VariablesMerger::MergedVarsMapsPerStage SemanticShaderPass::constPackedVarsMaps</definition>
+        <argsstring></argsstring>
+        <name>constPackedVarsMaps</name>
+        <qualifiedname>SemanticShaderPass::constPackedVarsMaps</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="56" column="57" bodyfile="shSemCode.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a5225fbd044d643fbea249c74b7acc8d3" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">ShaderParser::VariablesMerger::MergedVarsMap</ref></type>
+        <definition>ShaderParser::VariablesMerger::MergedVarsMap SemanticShaderPass::bufferedPackedVarsMap</definition>
+        <argsstring></argsstring>
+        <name>bufferedPackedVarsMap</name>
+        <qualifiedname>SemanticShaderPass::bufferedPackedVarsMap</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="57" column="48" bodyfile="shSemCode.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ab03570130a7945edd74b4fca3b26c6cc" prot="public" static="no" mutable="no">
+        <type>Tab&lt; uintptr_t &gt;</type>
+        <definition>Tab&lt;uintptr_t&gt; SemanticShaderPass::usedConstStatAstNodes</definition>
+        <argsstring></argsstring>
+        <name>usedConstStatAstNodes</name>
+        <qualifiedname>SemanticShaderPass::usedConstStatAstNodes</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="58" column="7" bodyfile="shSemCode.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1af8339973cd8d164abb08d2e783f80a77" prot="public" static="no" mutable="no">
+        <type>Tab&lt; eastl::pair&lt; uintptr_t, <ref refid="classShVarBool" kindref="compound">ShVarBool</ref> &gt; &gt;</type>
+        <definition>Tab&lt;eastl::pair&lt;uintptr_t, ShVarBool&gt; &gt; SemanticShaderPass::boolAstNodesEvaluationResults</definition>
+        <argsstring></argsstring>
+        <name>boolAstNodesEvaluationResults</name>
+        <qualifiedname>SemanticShaderPass::boolAstNodesEvaluationResults</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="59" column="7" bodyfile="shSemCode.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1aabb5def7ca52dba676348f941a66b179" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::scarlettWave32</definition>
+        <argsstring></argsstring>
+        <name>scarlettWave32</name>
+        <qualifiedname>SemanticShaderPass::scarlettWave32</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="61" column="8" bodyfile="shSemCode.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a9bf7beb92808cc36ccdefe438f102444" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1_1EnableFp16State" kindref="compound">EnableFp16State</ref></type>
+        <definition>EnableFp16State SemanticShaderPass::enableFp16</definition>
+        <argsstring></argsstring>
+        <name>enableFp16</name>
+        <qualifiedname>SemanticShaderPass::enableFp16</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="63" column="19" bodyfile="shSemCode.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; uint16_t, 3 &gt;</type>
+        <definition>eastl::array&lt;uint16_t, 3&gt; SemanticShaderPass::threadGroupSizes</definition>
+        <argsstring></argsstring>
+        <name>threadGroupSizes</name>
+        <qualifiedname>SemanticShaderPass::threadGroupSizes</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="64" column="16" bodyfile="shSemCode.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a7ddc29244ba230d69eb7475799d62090" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref></type>
+        <definition>BlendValues SemanticShaderPass::blend_src</definition>
+        <argsstring></argsstring>
+        <name>blend_src</name>
+        <qualifiedname>SemanticShaderPass::blend_src</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="66" column="15" bodyfile="shSemCode.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a675a659d17bd94d8f8303752deddc5b2" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref></type>
+        <definition>BlendValues SemanticShaderPass::blend_dst</definition>
+        <argsstring></argsstring>
+        <name>blend_dst</name>
+        <qualifiedname>SemanticShaderPass::blend_dst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="66" column="25" bodyfile="shSemCode.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a69bc37ba9af5f2f50eb3202c11d9da5b" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref></type>
+        <definition>BlendValues SemanticShaderPass::blend_asrc</definition>
+        <argsstring></argsstring>
+        <name>blend_asrc</name>
+        <qualifiedname>SemanticShaderPass::blend_asrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="66" column="35" bodyfile="shSemCode.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ab4e5c742d3d758b998dc8d58646ac019" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref></type>
+        <definition>BlendValues SemanticShaderPass::blend_adst</definition>
+        <argsstring></argsstring>
+        <name>blend_adst</name>
+        <qualifiedname>SemanticShaderPass::blend_adst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="66" column="46" bodyfile="shSemCode.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a6c40dba0ddca2a26f062ae6ccefe32d7" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref></type>
+        <definition>BlendValues SemanticShaderPass::blend_op</definition>
+        <argsstring></argsstring>
+        <name>blend_op</name>
+        <qualifiedname>SemanticShaderPass::blend_op</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="66" column="57" bodyfile="shSemCode.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a98b534cca73cdf01921cd2a4bc1261b6" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" kindref="member">BlendValues</ref></type>
+        <definition>BlendValues SemanticShaderPass::blend_aop</definition>
+        <argsstring></argsstring>
+        <name>blend_aop</name>
+        <qualifiedname>SemanticShaderPass::blend_aop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="66" column="66" bodyfile="shSemCode.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1aaaf05343f2a887f2de92a33a329c03af" prot="public" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR SemanticShaderPass::blend_factor</definition>
+        <argsstring></argsstring>
+        <name>blend_factor</name>
+        <qualifiedname>SemanticShaderPass::blend_factor</qualifiedname>
+        <initializer>= E3DCOLOR{0xFFFFFFFF}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="67" column="12" bodyfile="shSemCode.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a96edda45ee81cf38bb81baeec422e2b9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::blend_factor_specified</definition>
+        <argsstring></argsstring>
+        <name>blend_factor_specified</name>
+        <qualifiedname>SemanticShaderPass::blend_factor_specified</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="68" column="8" bodyfile="shSemCode.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1aa7e5cf7b15d913c7dd5d0297df99bc8f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::cull_mode</definition>
+        <argsstring></argsstring>
+        <name>cull_mode</name>
+        <qualifiedname>SemanticShaderPass::cull_mode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="70" column="7" bodyfile="shSemCode.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a3dcbc5389573f47fcccad6dcce354c42" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::alpha_to_coverage</definition>
+        <argsstring></argsstring>
+        <name>alpha_to_coverage</name>
+        <qualifiedname>SemanticShaderPass::alpha_to_coverage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="70" column="17" bodyfile="shSemCode.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a3fcdfe39fe1ec4994be0ccd1b7018e6a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::view_instances</definition>
+        <argsstring></argsstring>
+        <name>view_instances</name>
+        <qualifiedname>SemanticShaderPass::view_instances</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="70" column="35" bodyfile="shSemCode.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1adc658424eab012dc9714430d63be6a1f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::z_write</definition>
+        <argsstring></argsstring>
+        <name>z_write</name>
+        <qualifiedname>SemanticShaderPass::z_write</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="70" column="50" bodyfile="shSemCode.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a8d0deaac5133973cdd3f198a184c4ae2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::atest_val</definition>
+        <argsstring></argsstring>
+        <name>atest_val</name>
+        <qualifiedname>SemanticShaderPass::atest_val</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="70" column="58" bodyfile="shSemCode.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a6f0804b714fb61b19395eef264d55a81" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::fog_color</definition>
+        <argsstring></argsstring>
+        <name>fog_color</name>
+        <qualifiedname>SemanticShaderPass::fog_color</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="70" column="68" bodyfile="shSemCode.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ac0d4c616a51fc2af2ca90c2f16715d96" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::color_write</definition>
+        <argsstring></argsstring>
+        <name>color_write</name>
+        <qualifiedname>SemanticShaderPass::color_write</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="71" column="7" bodyfile="shSemCode.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ab0bf024e5d47d170324896dce4762b99" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::z_test</definition>
+        <argsstring></argsstring>
+        <name>z_test</name>
+        <qualifiedname>SemanticShaderPass::z_test</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="71" column="19" bodyfile="shSemCode.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a173e9299fe86de021056dcc04d3dcfce" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::atest_func</definition>
+        <argsstring></argsstring>
+        <name>atest_func</name>
+        <qualifiedname>SemanticShaderPass::atest_func</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="71" column="26" bodyfile="shSemCode.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a7f68cf1f427cdeefc9d6f379379f9f10" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::stencil</definition>
+        <argsstring></argsstring>
+        <name>stencil</name>
+        <qualifiedname>SemanticShaderPass::stencil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="72" column="7" bodyfile="shSemCode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1aade5d357409294c748420181a8804bdd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::stencil_func</definition>
+        <argsstring></argsstring>
+        <name>stencil_func</name>
+        <qualifiedname>SemanticShaderPass::stencil_func</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="72" column="15" bodyfile="shSemCode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1afd0a12e229c1ec543d65c9646e0e680c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::stencil_ref</definition>
+        <argsstring></argsstring>
+        <name>stencil_ref</name>
+        <qualifiedname>SemanticShaderPass::stencil_ref</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="72" column="28" bodyfile="shSemCode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a98c200dcef0d75d4551506eb1d5d48b7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::stencil_pass</definition>
+        <argsstring></argsstring>
+        <name>stencil_pass</name>
+        <qualifiedname>SemanticShaderPass::stencil_pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="72" column="40" bodyfile="shSemCode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ace43b6711eb9fe520f0f02f0b6c421a2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::stencil_fail</definition>
+        <argsstring></argsstring>
+        <name>stencil_fail</name>
+        <qualifiedname>SemanticShaderPass::stencil_fail</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="72" column="53" bodyfile="shSemCode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a0be11a73500cb0f4f5a8be6fb39076bc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::stencil_zfail</definition>
+        <argsstring></argsstring>
+        <name>stencil_zfail</name>
+        <qualifiedname>SemanticShaderPass::stencil_zfail</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="72" column="66" bodyfile="shSemCode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a583438567acd98d925687a9c95e330d8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::stencil_mask</definition>
+        <argsstring></argsstring>
+        <name>stencil_mask</name>
+        <qualifiedname>SemanticShaderPass::stencil_mask</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="72" column="80" bodyfile="shSemCode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ad261baacf1cbe7bbced475127b318768" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::z_func</definition>
+        <argsstring></argsstring>
+        <name>z_func</name>
+        <qualifiedname>SemanticShaderPass::z_func</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="73" column="7" bodyfile="shSemCode.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a5d310334b7b8ec2fcbb426867ebefb34" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::fog_mode</definition>
+        <argsstring></argsstring>
+        <name>fog_mode</name>
+        <qualifiedname>SemanticShaderPass::fog_mode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="75" column="7" bodyfile="shSemCode.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a0e671e3a6d48ca27e51affd8de3e0a9c" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real SemanticShaderPass::fog_density</definition>
+        <argsstring></argsstring>
+        <name>fog_density</name>
+        <qualifiedname>SemanticShaderPass::fog_density</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="76" column="8" bodyfile="shSemCode.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a22e0377ab73defcfc71d7258a617c1f5" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float SemanticShaderPass::z_bias_val</definition>
+        <argsstring></argsstring>
+        <name>z_bias_val</name>
+        <qualifiedname>SemanticShaderPass::z_bias_val</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="77" column="9" bodyfile="shSemCode.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ab92d35f5c57fd9cd96f83b7004ae1744" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float SemanticShaderPass::slope_z_bias_val</definition>
+        <argsstring></argsstring>
+        <name>slope_z_bias_val</name>
+        <qualifiedname>SemanticShaderPass::slope_z_bias_val</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="77" column="21" bodyfile="shSemCode.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a9ab702fa03a317c3124275ecda1289a9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::z_bias</definition>
+        <argsstring></argsstring>
+        <name>z_bias</name>
+        <qualifiedname>SemanticShaderPass::z_bias</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="78" column="8" bodyfile="shSemCode.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ad6663916487140d0dba2b427eef126cf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::slope_z_bias</definition>
+        <argsstring></argsstring>
+        <name>slope_z_bias</name>
+        <qualifiedname>SemanticShaderPass::slope_z_bias</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="79" column="8" bodyfile="shSemCode.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1afe3a630185f7c1448f9f50ac3a9108f5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::force_noablend</definition>
+        <argsstring></argsstring>
+        <name>force_noablend</name>
+        <qualifiedname>SemanticShaderPass::force_noablend</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="80" column="8" bodyfile="shSemCode.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1ad4ff83ab835a58805addbcca7492ebfe" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::independent_blending</definition>
+        <argsstring></argsstring>
+        <name>independent_blending</name>
+        <qualifiedname>SemanticShaderPass::independent_blending</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="81" column="8" bodyfile="shSemCode.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1aba89d35638c7caa0e1c5967554c36304" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::dual_source_blending</definition>
+        <argsstring></argsstring>
+        <name>dual_source_blending</name>
+        <qualifiedname>SemanticShaderPass::dual_source_blending</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="82" column="8" bodyfile="shSemCode.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a04ae58c79551385255c790150847373e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::vs30</definition>
+        <argsstring></argsstring>
+        <name>vs30</name>
+        <qualifiedname>SemanticShaderPass::vs30</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="83" column="8" bodyfile="shSemCode.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a1a76224b7f7f66632a9ac54cdbde7f46" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::ps30</definition>
+        <argsstring></argsstring>
+        <name>ps30</name>
+        <qualifiedname>SemanticShaderPass::ps30</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="84" column="8" bodyfile="shSemCode.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1a3b65d4ff793ed7b4967a3104ccb37bc1" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderCode_1_1Pass" kindref="compound">ShaderCode::Pass</ref> *</type>
+        <definition>ShaderCode::Pass* SemanticShaderPass::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>SemanticShaderPass::target</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="86" column="20" bodyfile="shSemCode.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structSemanticShaderPass_1a17c7116451986505d22a418e914257b1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr eastl::array&lt; dag::ConstSpan&lt; unsigned &gt; SemanticShaderPass::*, <ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82aeb49af7a231e731ab3151b388ac59618" kindref="member">HLSL_COUNT</ref> &gt;</type>
+        <definition>constexpr eastl::array&lt;dag::ConstSpan&lt;unsigned&gt; SemanticShaderPass::*, HLSL_COUNT&gt; SemanticShaderPass::BYTECODE_MEMBERS_MAPPING</definition>
+        <argsstring></argsstring>
+        <name>BYTECODE_MEMBERS_MAPPING</name>
+        <qualifiedname>SemanticShaderPass::BYTECODE_MEMBERS_MAPPING</qualifiedname>
+        <initializer>= {
+    &amp;<ref refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" kindref="member">SemanticShaderPass::fsh</ref>, 
+    &amp;<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">SemanticShaderPass::vpr</ref>, 
+    &amp;<ref refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" kindref="member">SemanticShaderPass::cs</ref>,  
+    &amp;<ref refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" kindref="member">SemanticShaderPass::ds</ref>,  
+    &amp;<ref refid="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" kindref="member">SemanticShaderPass::hs</ref>,  
+    &amp;<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">SemanticShaderPass::gs</ref>,  
+    &amp;<ref refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" kindref="member">SemanticShaderPass::vpr</ref>, 
+    &amp;<ref refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" kindref="member">SemanticShaderPass::gs</ref>,  
+  }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="88" column="33" bodyfile="shSemCode.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structSemanticShaderPass_1a02696ec1fd2f03674d6715054d496fa7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SemanticShaderPass::SemanticShaderPass</definition>
+        <argsstring>()</argsstring>
+        <name>SemanticShaderPass</name>
+        <qualifiedname>SemanticShaderPass::SemanticShaderPass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="99" column="3" bodyfile="shSemCode.h" bodystart="99" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="structSemanticShaderPass_1a0e420bd269f317e789737e865b4f1632" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto &amp;</type>
+        <definition>auto &amp; SemanticShaderPass::bytecodeForStage</definition>
+        <argsstring>(HlslCompilationStage stage)</argsstring>
+        <name>bytecodeForStage</name>
+        <qualifiedname>SemanticShaderPass::bytecodeForStage</qualifiedname>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="135" column="8" bodyfile="shSemCode.h" bodystart="135" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="structSemanticShaderPass_1a5642a085317e99c954789a93e4969aab" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const auto &amp;</type>
+        <definition>const auto &amp; SemanticShaderPass::bytecodeForStage</definition>
+        <argsstring>(HlslCompilationStage stage) const</argsstring>
+        <name>bytecodeForStage</name>
+        <qualifiedname>SemanticShaderPass::bytecodeForStage</qualifiedname>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="136" column="14" bodyfile="shSemCode.h" bodystart="136" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="structSemanticShaderPass_1aa25a041dc6f1fb543eac3e5dbc3e21ee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SemanticShaderPass::setCidx</definition>
+        <argsstring>(HlslCompilationStage stage, ShaderCacheLevelIds entryIds)</argsstring>
+        <name>setCidx</name>
+        <qualifiedname>SemanticShaderPass::setCidx</qualifiedname>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></type>
+          <declname>entryIds</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="138" column="8" bodyfile="shSemCode.h" bodystart="138" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="structSemanticShaderPass_1a11a21009c7377aa3365da273c097c24d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref> &gt;</type>
+        <definition>eastl::optional&lt; ShaderCacheLevelIds &gt; SemanticShaderPass::getCidx</definition>
+        <argsstring>(HlslCompilationStage stage, bool verify=false) const</argsstring>
+        <name>getCidx</name>
+        <qualifiedname>SemanticShaderPass::getCidx</qualifiedname>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>verify</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="145" column="19" bodyfile="shSemCode.h" bodystart="145" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="structSemanticShaderPass_1aa79e2a0883559cc16724cd876bda852d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::equal</definition>
+        <argsstring>(SemanticShaderPass &amp;p)</argsstring>
+        <name>equal</name>
+        <qualifiedname>SemanticShaderPass::equal</qualifiedname>
+        <param>
+          <type><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="165" column="8" bodyfile="shsem.cpp" bodystart="120" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="structSemanticShaderPass_1a97feaed74846d0d34fb15d4a4f721752" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SemanticShaderPass::dump</definition>
+        <argsstring>(ShaderSemCode &amp;c)</argsstring>
+        <name>dump</name>
+        <qualifiedname>SemanticShaderPass::dump</qualifiedname>
+        <param>
+          <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="166" column="8" bodyfile="shsem.cpp" bodystart="98" bodyend="106"/>
+      </memberdef>
+      <memberdef kind="function" id="structSemanticShaderPass_1a60a4cf0869252cee430568e1c4d196c1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SemanticShaderPass::clearCppStcodeData</definition>
+        <argsstring>()</argsstring>
+        <name>clearCppStcodeData</name>
+        <qualifiedname>SemanticShaderPass::clearCppStcodeData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="168" column="8" bodyfile="shSemCode.h" bodystart="168" bodyend="176"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>HlslRegRange</label>
+        <link refid="structHlslRegRange"/>
+      </node>
+      <node id="1">
+        <label>SemanticShaderPass</label>
+        <link refid="structSemanticShaderPass"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cppstcode</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>bufferedConstRange</edgelabel>
+          <edgelabel>psOrCsConstRange</edgelabel>
+          <edgelabel>vsConstRange</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>enableFp16</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>target</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>SemanticShaderPass::EnableFp16State</label>
+        <link refid="structSemanticShaderPass_1_1EnableFp16State"/>
+      </node>
+      <node id="10">
+        <label>ShaderCode::Pass</label>
+        <link refid="structShaderCode_1_1Pass"/>
+      </node>
+      <node id="7">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="2">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="4">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shSemCode.h" line="32" column="1" bodyfile="shSemCode.h" bodystart="33" bodyend="177"/>
+    <listofallmembers>
+      <member refid="structSemanticShaderPass_1a3dcbc5389573f47fcccad6dcce354c42" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>alpha_to_coverage</name></member>
+      <member refid="structSemanticShaderPass_1a173e9299fe86de021056dcc04d3dcfce" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>atest_func</name></member>
+      <member refid="structSemanticShaderPass_1a8d0deaac5133973cdd3f198a184c4ae2" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>atest_val</name></member>
+      <member refid="structSemanticShaderPass_1ab4e5c742d3d758b998dc8d58646ac019" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_adst</name></member>
+      <member refid="structSemanticShaderPass_1a98b534cca73cdf01921cd2a4bc1261b6" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_aop</name></member>
+      <member refid="structSemanticShaderPass_1a69bc37ba9af5f2f50eb3202c11d9da5b" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_asrc</name></member>
+      <member refid="structSemanticShaderPass_1a675a659d17bd94d8f8303752deddc5b2" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_dst</name></member>
+      <member refid="structSemanticShaderPass_1aaaf05343f2a887f2de92a33a329c03af" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_factor</name></member>
+      <member refid="structSemanticShaderPass_1a96edda45ee81cf38bb81baeec422e2b9" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_factor_specified</name></member>
+      <member refid="structSemanticShaderPass_1a6c40dba0ddca2a26f062ae6ccefe32d7" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_op</name></member>
+      <member refid="structSemanticShaderPass_1a7ddc29244ba230d69eb7475799d62090" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>blend_src</name></member>
+      <member refid="structSemanticShaderPass_1a8c92d0de5ee5a7daefe489906978b789" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>BlendValues</name></member>
+      <member refid="structSemanticShaderPass_1af8339973cd8d164abb08d2e783f80a77" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>boolAstNodesEvaluationResults</name></member>
+      <member refid="structSemanticShaderPass_1a30d5ae5be555e0ca2f008666c081bb00" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>bufferedConstRange</name></member>
+      <member refid="structSemanticShaderPass_1a5225fbd044d643fbea249c74b7acc8d3" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>bufferedPackedVarsMap</name></member>
+      <member refid="structSemanticShaderPass_1a17c7116451986505d22a418e914257b1" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>BYTECODE_MEMBERS_MAPPING</name></member>
+      <member refid="structSemanticShaderPass_1a0e420bd269f317e789737e865b4f1632" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>bytecodeForStage</name></member>
+      <member refid="structSemanticShaderPass_1a5642a085317e99c954789a93e4969aab" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>bytecodeForStage</name></member>
+      <member refid="structSemanticShaderPass_1a60a4cf0869252cee430568e1c4d196c1" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>clearCppStcodeData</name></member>
+      <member refid="structSemanticShaderPass_1ac0d4c616a51fc2af2ca90c2f16715d96" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>color_write</name></member>
+      <member refid="structSemanticShaderPass_1a7d7d388fa23d82e6986e5400093c4a17" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>constPackedVarsMaps</name></member>
+      <member refid="structSemanticShaderPass_1aa6d1866ac1ab96035a152f7cde16925e" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>cppstcode</name></member>
+      <member refid="structSemanticShaderPass_1adc596db5f77346bf950c04b5f6b3e704" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>cs</name></member>
+      <member refid="structSemanticShaderPass_1aa7e5cf7b15d913c7dd5d0297df99bc8f" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>cull_mode</name></member>
+      <member refid="structSemanticShaderPass_1a74ecb081529f9074425089932ef50a56" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>ds</name></member>
+      <member refid="structSemanticShaderPass_1aba89d35638c7caa0e1c5967554c36304" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>dual_source_blending</name></member>
+      <member refid="structSemanticShaderPass_1a97feaed74846d0d34fb15d4a4f721752" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>dump</name></member>
+      <member refid="structSemanticShaderPass_1a9bf7beb92808cc36ccdefe438f102444" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>enableFp16</name></member>
+      <member refid="structSemanticShaderPass_1aa79e2a0883559cc16724cd876bda852d" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>equal</name></member>
+      <member refid="structSemanticShaderPass_1a6f0804b714fb61b19395eef264d55a81" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>fog_color</name></member>
+      <member refid="structSemanticShaderPass_1a0e671e3a6d48ca27e51affd8de3e0a9c" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>fog_density</name></member>
+      <member refid="structSemanticShaderPass_1a5d310334b7b8ec2fcbb426867ebefb34" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>fog_mode</name></member>
+      <member refid="structSemanticShaderPass_1afe3a630185f7c1448f9f50ac3a9108f5" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>force_noablend</name></member>
+      <member refid="structSemanticShaderPass_1acb62a27643b4702f2a0a4ae7b96b6b8b" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>fsh</name></member>
+      <member refid="structSemanticShaderPass_1af4b76eca2c9bc848cbd1377214a92ebd" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>fshver</name></member>
+      <member refid="structSemanticShaderPass_1a11a21009c7377aa3365da273c097c24d" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>getCidx</name></member>
+      <member refid="structSemanticShaderPass_1aee5dbc396c3fc054f2f1349a28b22207" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>gs</name></member>
+      <member refid="structSemanticShaderPass_1a905cef4efa7c6eaf2d82a8fa149a3632" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>hs</name></member>
+      <member refid="structSemanticShaderPass_1ad4ff83ab835a58805addbcca7492ebfe" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>independent_blending</name></member>
+      <member refid="structSemanticShaderPass_1a1a76224b7f7f66632a9ac54cdbde7f46" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>ps30</name></member>
+      <member refid="structSemanticShaderPass_1a0a93717959f273d97c583d31f37d93f4" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>psOrCsConstRange</name></member>
+      <member refid="structSemanticShaderPass_1adbd7751cbda4b402f3cf48ad98cfee85" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>psTexSmpRange</name></member>
+      <member refid="structSemanticShaderPass_1aabb5def7ca52dba676348f941a66b179" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>scarlettWave32</name></member>
+      <member refid="structSemanticShaderPass_1a02696ec1fd2f03674d6715054d496fa7" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>SemanticShaderPass</name></member>
+      <member refid="structSemanticShaderPass_1aa25a041dc6f1fb543eac3e5dbc3e21ee" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>setCidx</name></member>
+      <member refid="structSemanticShaderPass_1ad6663916487140d0dba2b427eef126cf" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>slope_z_bias</name></member>
+      <member refid="structSemanticShaderPass_1ab92d35f5c57fd9cd96f83b7004ae1744" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>slope_z_bias_val</name></member>
+      <member refid="structSemanticShaderPass_1a95cfbada8dc84fc6b43cc084c21ec41c" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stblkcode</name></member>
+      <member refid="structSemanticShaderPass_1a3be6b5c08d771a3e5e57d89b08f9315d" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stcode</name></member>
+      <member refid="structSemanticShaderPass_1a7f68cf1f427cdeefc9d6f379379f9f10" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stencil</name></member>
+      <member refid="structSemanticShaderPass_1ace43b6711eb9fe520f0f02f0b6c421a2" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stencil_fail</name></member>
+      <member refid="structSemanticShaderPass_1aade5d357409294c748420181a8804bdd" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stencil_func</name></member>
+      <member refid="structSemanticShaderPass_1a583438567acd98d925687a9c95e330d8" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stencil_mask</name></member>
+      <member refid="structSemanticShaderPass_1a98c200dcef0d75d4551506eb1d5d48b7" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stencil_pass</name></member>
+      <member refid="structSemanticShaderPass_1afd0a12e229c1ec543d65c9646e0e680c" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stencil_ref</name></member>
+      <member refid="structSemanticShaderPass_1a0be11a73500cb0f4f5a8be6fb39076bc" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>stencil_zfail</name></member>
+      <member refid="structSemanticShaderPass_1a3b65d4ff793ed7b4967a3104ccb37bc1" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>target</name></member>
+      <member refid="structSemanticShaderPass_1a33f805db0c4f813b2a09b5c0e2586f7c" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>threadGroupSizes</name></member>
+      <member refid="structSemanticShaderPass_1ab03570130a7945edd74b4fca3b26c6cc" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>usedConstStatAstNodes</name></member>
+      <member refid="structSemanticShaderPass_1a3fcdfe39fe1ec4994be0ccd1b7018e6a" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>view_instances</name></member>
+      <member refid="structSemanticShaderPass_1a4bd46214be93642551ae341082d9c150" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>vpr</name></member>
+      <member refid="structSemanticShaderPass_1a04ae58c79551385255c790150847373e" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>vs30</name></member>
+      <member refid="structSemanticShaderPass_1a70495e6029e8dae0d7e1c59dcb31a17b" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>vsConstRange</name></member>
+      <member refid="structSemanticShaderPass_1a1e2a4969a9c01d5d8ec9a2732f297c7a" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>vsTexSmpRange</name></member>
+      <member refid="structSemanticShaderPass_1a9ab702fa03a317c3124275ecda1289a9" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>z_bias</name></member>
+      <member refid="structSemanticShaderPass_1a22e0377ab73defcfc71d7258a617c1f5" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>z_bias_val</name></member>
+      <member refid="structSemanticShaderPass_1ad261baacf1cbe7bbced475127b318768" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>z_func</name></member>
+      <member refid="structSemanticShaderPass_1ab0bf024e5d47d170324896dce4762b99" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>z_test</name></member>
+      <member refid="structSemanticShaderPass_1adc658424eab012dc9714430d63be6a1f" prot="public" virt="non-virtual"><scope>SemanticShaderPass</scope><name>z_write</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

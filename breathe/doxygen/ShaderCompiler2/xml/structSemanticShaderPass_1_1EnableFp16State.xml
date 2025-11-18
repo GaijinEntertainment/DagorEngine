@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSemanticShaderPass_1_1EnableFp16State" kind="struct" language="C++" prot="public">
+    <compoundname>SemanticShaderPass::EnableFp16State</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1EnableFp16State_1ad591dd4b977e7e7a832c8a6ef9e3b6bf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::EnableFp16State::vsOrMs</definition>
+        <argsstring></argsstring>
+        <name>vsOrMs</name>
+        <qualifiedname>SemanticShaderPass::EnableFp16State::vsOrMs</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="38" column="10" bodyfile="shSemCode.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1EnableFp16State_1a7ce49d8670320a52b4713a0eccd344e9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::EnableFp16State::hs</definition>
+        <argsstring></argsstring>
+        <name>hs</name>
+        <qualifiedname>SemanticShaderPass::EnableFp16State::hs</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="39" column="10" bodyfile="shSemCode.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1EnableFp16State_1af03ad92139661849917571bc27bd483b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::EnableFp16State::ds</definition>
+        <argsstring></argsstring>
+        <name>ds</name>
+        <qualifiedname>SemanticShaderPass::EnableFp16State::ds</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="40" column="10" bodyfile="shSemCode.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1EnableFp16State_1a896e356f854a95da3e6dcd9231e9ba18" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::EnableFp16State::gsOrAs</definition>
+        <argsstring></argsstring>
+        <name>gsOrAs</name>
+        <qualifiedname>SemanticShaderPass::EnableFp16State::gsOrAs</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="41" column="10" bodyfile="shSemCode.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1EnableFp16State_1a31cd4803eafd7de81f1d3b0d87b2a7ca" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::EnableFp16State::psOrCs</definition>
+        <argsstring></argsstring>
+        <name>psOrCs</name>
+        <qualifiedname>SemanticShaderPass::EnableFp16State::psOrCs</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="42" column="10" bodyfile="shSemCode.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shSemCode.h" line="36" column="3" bodyfile="shSemCode.h" bodystart="37" bodyend="43"/>
+    <listofallmembers>
+      <member refid="structSemanticShaderPass_1_1EnableFp16State_1af03ad92139661849917571bc27bd483b" prot="public" virt="non-virtual"><scope>SemanticShaderPass::EnableFp16State</scope><name>ds</name></member>
+      <member refid="structSemanticShaderPass_1_1EnableFp16State_1a896e356f854a95da3e6dcd9231e9ba18" prot="public" virt="non-virtual"><scope>SemanticShaderPass::EnableFp16State</scope><name>gsOrAs</name></member>
+      <member refid="structSemanticShaderPass_1_1EnableFp16State_1a7ce49d8670320a52b4713a0eccd344e9" prot="public" virt="non-virtual"><scope>SemanticShaderPass::EnableFp16State</scope><name>hs</name></member>
+      <member refid="structSemanticShaderPass_1_1EnableFp16State_1a31cd4803eafd7de81f1d3b0d87b2a7ca" prot="public" virt="non-virtual"><scope>SemanticShaderPass::EnableFp16State</scope><name>psOrCs</name></member>
+      <member refid="structSemanticShaderPass_1_1EnableFp16State_1ad591dd4b977e7e7a832c8a6ef9e3b6bf" prot="public" virt="non-virtual"><scope>SemanticShaderPass::EnableFp16State</scope><name>vsOrMs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

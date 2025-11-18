@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGizmoSettingsDialog" kind="class" language="C++" prot="public">
+    <compoundname>GizmoSettingsDialog</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <includes refid="ec__GizmoSettingsDialog_8h" local="no">ec_GizmoSettingsDialog.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGizmoSettingsDialog_1a1e4d55df8391bde034e126ea9d3bb3f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GizmoSettingsDialog::GizmoSettingsDialog</definition>
+        <argsstring>()</argsstring>
+        <name>GizmoSettingsDialog</name>
+        <qualifiedname>GizmoSettingsDialog::GizmoSettingsDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_GizmoSettingsDialog.h" line="9" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classGizmoSettingsDialog_1a1d109a6b8638da4784e4db68d9ee02e8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoSettingsDialog::fillPanel</definition>
+        <argsstring>()</argsstring>
+        <name>fillPanel</name>
+        <qualifiedname>GizmoSettingsDialog::fillPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_GizmoSettingsDialog.h" line="12" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoSettingsDialog_1a82ab28e6d2eb01198bedeb3525f00cf9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoSettingsDialog::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>GizmoSettingsDialog::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_GizmoSettingsDialog.h" line="13" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>GizmoSettingsDialog</label>
+        <link refid="classGizmoSettingsDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>GizmoSettingsDialog</label>
+        <link refid="classGizmoSettingsDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_GizmoSettingsDialog.h" line="6" column="1" bodyfile="ec_GizmoSettingsDialog.h" bodystart="7" bodyend="14"/>
+    <listofallmembers>
+      <member refid="classGizmoSettingsDialog_1a1d109a6b8638da4784e4db68d9ee02e8" prot="private" virt="non-virtual"><scope>GizmoSettingsDialog</scope><name>fillPanel</name></member>
+      <member refid="classGizmoSettingsDialog_1a1e4d55df8391bde034e126ea9d3bb3f0" prot="public" virt="non-virtual"><scope>GizmoSettingsDialog</scope><name>GizmoSettingsDialog</name></member>
+      <member refid="classGizmoSettingsDialog_1a82ab28e6d2eb01198bedeb3525f00cf9" prot="private" virt="non-virtual"><scope>GizmoSettingsDialog</scope><name>onChange</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

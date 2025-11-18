@@ -1,0 +1,258 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__imguiInitialization_8h" kind="file" language="C++">
+    <compoundname>ec_imguiInitialization.h</compoundname>
+    <includes local="no">imgui/imgui.h</includes>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_imguiInitialization.h</label>
+        <link refid="ec__imguiInitialization_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>imgui/imgui.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ec__imguiInitialization_8h_1a8bafd552ca6b4b11710a93c803416698" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int EDITOR_CORE_CURSOR_ADDITIONAL_CLICK</definition>
+        <argsstring></argsstring>
+        <name>EDITOR_CORE_CURSOR_ADDITIONAL_CLICK</name>
+        <initializer>= ImGuiMouseCursor_COUNT + 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="50" column="22" bodyfile="ec_imguiInitialization.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1a73dfed11f55bb6bec3533e70226b5d88" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_initialize_input_handler</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_initialize_input_handler</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="12" column="6" declfile="ec_imguiInitialization.h" declline="12" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1aa382310c6e774ec0cc328fb70ded4ac1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_initialize_imgui</definition>
+        <argsstring>(const char *imgui_ini_path, int *dock_settings_version=nullptr)</argsstring>
+        <name>editor_core_initialize_imgui</name>
+        <param>
+          <type>const char *</type>
+          <declname>imgui_ini_path</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>dock_settings_version</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="18" column="6" declfile="ec_imguiInitialization.h" declline="18" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1a094c52ba4936deb9e83459f152cf443d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_save_imgui_settings</definition>
+        <argsstring>(int dock_settings_version=0)</argsstring>
+        <name>editor_core_save_imgui_settings</name>
+        <param>
+          <type>int</type>
+          <declname>dock_settings_version</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="22" column="6" declfile="ec_imguiInitialization.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1a5f6e908204e2ad68d678df67ee2a3085" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_save_dag_imgui_blk_settings</definition>
+        <argsstring>(DataBlock &amp;dst_blk)</argsstring>
+        <name>editor_core_save_dag_imgui_blk_settings</name>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>dst_blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="27" column="6" declfile="ec_imguiInitialization.h" declline="27" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1a0868e100fee1dac121f0c5fd541e72de" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_load_dag_imgui_blk_settings</definition>
+        <argsstring>(const DataBlock &amp;src_blk)</argsstring>
+        <name>editor_core_load_dag_imgui_blk_settings</name>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>src_blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="30" column="6" declfile="ec_imguiInitialization.h" declline="30" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1ad4d904c4421b9acb8e4f6a4317798d98" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_load_imgui_theme</definition>
+        <argsstring>(const char *fname)</argsstring>
+        <name>editor_core_load_imgui_theme</name>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="32" column="6" declfile="ec_imguiInitialization.h" declline="32" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1a5c732eb1b3f3111f6cc850fbd79d06a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR editor_core_load_window_background_color</definition>
+        <argsstring>(const char *theme_filename)</argsstring>
+        <name>editor_core_load_window_background_color</name>
+        <param>
+          <type>const char *</type>
+          <declname>theme_filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="37" column="10" declfile="ec_imguiInitialization.h" declline="37" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1afa2d02ae90754d614f9d031b7db558d9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_update_imgui_style_editor</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_update_imgui_style_editor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="40" column="6" declfile="ec_imguiInitialization.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__imguiInitialization_8h_1a406ab34f98c79b8d87fefce2e061b8bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool editor_core_imgui_begin</definition>
+        <argsstring>(const char *name, bool *open, unsigned window_flags)</argsstring>
+        <name>editor_core_imgui_begin</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>open</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>window_flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_imguiInitialization.h" line="46" column="6" declfile="ec_imguiInitialization.h" declline="46" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;imgui/imgui.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Initialize<sp/>the<sp/>HumanInput-based<sp/>input<sp/>handling.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Currently<sp/>only<sp/>used<sp/>on<sp/>Linux.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>It<sp/>must<sp/>be<sp/>called<sp/>after<sp/>dagor_init_keyboard_win()<sp/>and<sp/>dagor_init_mouse_win().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="ec__imguiInitialization_8h_1a73dfed11f55bb6bec3533e70226b5d88" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1a73dfed11f55bb6bec3533e70226b5d88" kindref="member">editor_core_initialize_input_handler</ref>();</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>path<sp/>of<sp/>the<sp/>ini<sp/>file<sp/>that<sp/>ImGui<sp/>will<sp/>use<sp/>to<sp/>store<sp/>window<sp/>state.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/>It<sp/>is<sp/>recommended<sp/>to<sp/>pass<sp/>a<sp/>full<sp/>path.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">//<sp/>dock_settings_version:<sp/>optional<sp/>output<sp/>parameter.<sp/>Contains<sp/>the<sp/>[CustomDock][Data]DockVersion&apos;s<sp/>value<sp/>from<sp/>the<sp/>ini.<sp/>It</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>can<sp/>be<sp/>used<sp/>to<sp/>check<sp/>whether<sp/>the<sp/>loaded<sp/>dock<sp/>settings<sp/>are<sp/>the<sp/>latest.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="ec__imguiInitialization_8h_1aa382310c6e774ec0cc328fb70ded4ac1" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1aa382310c6e774ec0cc328fb70ded4ac1" kindref="member">editor_core_initialize_imgui</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*imgui_ini_path,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*dock_settings_version<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/>dock_settings_version:<sp/>optional<sp/>parameter.<sp/>The<sp/>specified<sp/>value<sp/>will<sp/>be<sp/>written<sp/>to<sp/>[CustomDock][Data]DockVersion<sp/>in</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>the<sp/>ini<sp/>if<sp/>it<sp/>is<sp/>larger<sp/>than<sp/>0.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="ec__imguiInitialization_8h_1a094c52ba4936deb9e83459f152cf443d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1a094c52ba4936deb9e83459f152cf443d" kindref="member">editor_core_save_imgui_settings</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dock_settings_version<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>tools<sp/>don&apos;t<sp/>use<sp/>dag<sp/>imgui&apos;s<sp/>imgui.blk,<sp/>instead<sp/>they<sp/>store<sp/>hand-picked<sp/>settings<sp/>from<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>function<sp/>saves<sp/>these<sp/>hand-picked<sp/>settings<sp/>from<sp/>the<sp/>DataBlock<sp/>returned<sp/>by<sp/>imgui_get_blk()<sp/>and<sp/>stores<sp/>them<sp/>into</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>dst_blk.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="ec__imguiInitialization_8h_1a5f6e908204e2ad68d678df67ee2a3085" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1a5f6e908204e2ad68d678df67ee2a3085" kindref="member">editor_core_save_dag_imgui_blk_settings</ref>(DataBlock<sp/>&amp;dst_blk);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Load<sp/>the<sp/>hand-picked<sp/>settings<sp/>from<sp/>src_blk,<sp/>and<sp/>apply<sp/>them<sp/>to<sp/>the<sp/>DataBlock<sp/>returned<sp/>by<sp/>imgui_get_blk().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="ec__imguiInitialization_8h_1a0868e100fee1dac121f0c5fd541e72de" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1a0868e100fee1dac121f0c5fd541e72de" kindref="member">editor_core_load_dag_imgui_blk_settings</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;src_blk);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="ec__imguiInitialization_8h_1ad4d904c4421b9acb8e4f6a4317798d98" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1ad4d904c4421b9acb8e4f6a4317798d98" kindref="member">editor_core_load_imgui_theme</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>color<sp/>can<sp/>be<sp/>used<sp/>as<sp/>the<sp/>window&apos;s<sp/>background<sp/>color<sp/>(the<sp/>bg_color<sp/>parameter<sp/>in<sp/>EditorMainWindow::run)<sp/>before<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">//<sp/>takes<sp/>over<sp/>the<sp/>rendering.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">//<sp/>theme_filename:<sp/>name<sp/>of<sp/>the<sp/>theme<sp/>file<sp/>(e.g.:<sp/>light.blk)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="ec__imguiInitialization_8h_1a5c732eb1b3f3111f6cc850fbd79d06a9" refkind="member"><highlight class="normal">E3DCOLOR<sp/><ref refid="ec__imguiInitialization_8h_1a5c732eb1b3f3111f6cc850fbd79d06a9" kindref="member">editor_core_load_window_background_color</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*theme_filename);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Displays<sp/>ImGui&apos;s<sp/>built-in<sp/>style<sp/>editor<sp/>window.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="ec__imguiInitialization_8h_1afa2d02ae90754d614f9d031b7db558d9" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1afa2d02ae90754d614f9d031b7db558d9" kindref="member">editor_core_update_imgui_style_editor</ref>();</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Corresponds<sp/>to<sp/>ImGui::Begin()<sp/>but<sp/>it<sp/>in<sp/>addition:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="comment">//<sp/>-<sp/>auto<sp/>focuses<sp/>the<sp/>window<sp/>on<sp/>hover</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="comment">//<sp/>-<sp/>limits<sp/>the<sp/>maximum<sp/>size<sp/>of<sp/>the<sp/>window</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="comment">//<sp/>-<sp/>it<sp/>sets<sp/>tab<sp/>title<sp/>color<sp/>for<sp/>the<sp/>daEditorX<sp/>Classic<sp/>style</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="ec__imguiInitialization_8h_1a406ab34f98c79b8d87fefce2e061b8bc" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__imguiInitialization_8h_1a406ab34f98c79b8d87fefce2e061b8bc" kindref="member">editor_core_imgui_begin</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*open,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>window_flags);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>is<sp/>the<sp/>cursor<sp/>that<sp/>is<sp/>shown<sp/>when<sp/>clicking<sp/>on<sp/>the<sp/>viewport<sp/>will<sp/>just<sp/>activate<sp/>the<sp/>viewport,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="comment">//<sp/>and<sp/>the<sp/>next<sp/>click<sp/>will<sp/>be<sp/>the<sp/>first<sp/>one<sp/>that<sp/>actually<sp/>&quot;counts&quot;.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>EDITOR_CORE_CURSOR_ADDITIONAL_CLICK<sp/>=<sp/>ImGuiMouseCursor_COUNT<sp/>+<sp/>1;</highlight></codeline>
+    </programlisting>
+    <location file="ec_imguiInitialization.h"/>
+  </compounddef>
+</doxygen>

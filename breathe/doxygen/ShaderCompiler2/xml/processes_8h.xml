@@ -1,0 +1,592 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="processes_8h" kind="file" language="C++">
+    <compoundname>processes.h</compoundname>
+    <includes local="no">generic/dag_fixedMoveOnlyFunction.h</includes>
+    <includes local="no">dag/dag_vector.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includedby refid="cppStcode_8h" local="yes">cppStcode.h</includedby>
+    <includedby refid="processes_8cpp" local="yes">processes.cpp</includedby>
+    <includedby refid="processes__impl_8h" local="yes">processes_impl.h</includedby>
+    <includedby refid="shLog_8cpp" local="yes">shLog.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="3">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="2">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="19">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="18">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="20">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="53">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="3">
+        <label>cppStcode.cpp</label>
+        <link refid="cppStcode_8cpp"/>
+      </node>
+      <node id="2">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="42">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="41">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="29">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>globalConfig.cpp</label>
+        <link refid="globalConfig_8cpp"/>
+      </node>
+      <node id="9">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>hlslRegisters.cpp</label>
+        <link refid="hlslRegisters_8cpp"/>
+      </node>
+      <node id="12">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="13">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="57">
+        <label>hwSemantic.h</label>
+        <link refid="hwSemantic_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="34">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="33">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="37">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="5">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="6">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="15">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>processes.cpp</label>
+        <link refid="processes_8cpp"/>
+      </node>
+      <node id="1">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+      </node>
+      <node id="60">
+        <label>processes_impl.h</label>
+        <link refid="processes__impl_8h"/>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>processes_unix.cpp</label>
+        <link refid="processes__unix_8cpp"/>
+      </node>
+      <node id="62">
+        <label>processes_win.cpp</label>
+        <link refid="processes__win_8cpp"/>
+      </node>
+      <node id="7">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="56">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+      </node>
+      <node id="58">
+        <label>shCompilationInfo.cpp</label>
+        <link refid="shCompilationInfo_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="50">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="24">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="63">
+        <label>shLog.cpp</label>
+        <link refid="shLog_8cpp"/>
+      </node>
+      <node id="35">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="40">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="55">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+      </node>
+      <node id="32">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="25">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="23">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="47">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="49">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="26">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="52">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="28">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="43">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="45">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structproc_1_1ProcessTask" prot="public">proc::ProcessTask</innerclass>
+    <innernamespace refid="namespaceproc">proc</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_fixedMoveOnlyFunction.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceproc" kindref="compound">proc</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="structproc_1_1ProcessTask" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14" refid="structproc_1_1ProcessTask_1acbe9fe90c6d9563016fad4950af861d7" refkind="member"><highlight class="normal"><sp/><sp/>dag::Vector&lt;eastl::string&gt;<sp/><ref refid="structproc_1_1ProcessTask_1acbe9fe90c6d9563016fad4950af861d7" kindref="member">argv</ref>;</highlight></codeline>
+<codeline lineno="15" refid="structproc_1_1ProcessTask_1a68edf74be209442c9431f335ce890af2" refkind="member"><highlight class="normal"><sp/><sp/>eastl::optional&lt;eastl::string&gt;<sp/><ref refid="structproc_1_1ProcessTask_1a68edf74be209442c9431f335ce890af2" kindref="member">cwd</ref>;</highlight></codeline>
+<codeline lineno="16" refid="structproc_1_1ProcessTask_1abe9ccf6c140771e73fd2ef7e0bf4c877" refkind="member"><highlight class="normal"><sp/><sp/>dag::FixedMoveOnlyFunction&lt;64,<sp/>void(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">)&gt;<sp/><ref refid="structproc_1_1ProcessTask_1ae66706a89be2e8d3d6c2c8e3fd96ba2a" kindref="member">onSuccess</ref><sp/>=<sp/>[]<sp/>{},<sp/><ref refid="structproc_1_1ProcessTask_1abe9ccf6c140771e73fd2ef7e0bf4c877" kindref="member">onFail</ref><sp/>=<sp/>[]<sp/>{};</highlight></codeline>
+<codeline lineno="17" refid="structproc_1_1ProcessTask_1a54d7e4664a9712deb15a202d14e60f97" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structproc_1_1ProcessTask_1a54d7e4664a9712deb15a202d14e60f97" kindref="member">isExternal</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="namespaceproc_1a2d59f96d30d2d59f859f636daeeb9948" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1a2d59f96d30d2d59f859f636daeeb9948" kindref="member">MANAGED_MESSAGE_SEPARATOR</ref><sp/>=<sp/></highlight><highlight class="stringliteral">&apos;\x1E&apos;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Can<sp/>only<sp/>be<sp/>called<sp/>from<sp/>the<sp/>main<sp/>thread<sp/>and<sp/>must<sp/>happen-before<sp/>all<sp/>other<sp/>calls</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1a70ea938c5ccbe95687c57066da668fc2" kindref="member">init</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ada719119b9731fd4759e71bbfe10bc52" kindref="member">max_proc_count</ref>,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>should_cancel_on_fail);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>&apos;init&apos;<sp/>and<sp/>all<sp/>calls<sp/>to<sp/>&apos;enqueue&apos;<sp/>and<sp/>&apos;execute&apos;<sp/>mush<sp/>happen-before<sp/>&apos;deinit&apos;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ad83d474bf228f85aa5d829213c75a161" kindref="member">deinit</ref>();</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1a660c2f1d2aa0933c48ff9123c87d0211" kindref="member">is_multiproc</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ada719119b9731fd4759e71bbfe10bc52" kindref="member">max_proc_count</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1ad5f5c1701a3bca364551263b0995445a" kindref="member">enqueue</ref>(<ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref><sp/>&amp;&amp;task);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Executes<sp/>enqueued<sp/>tasks<sp/>with<sp/>separate<sp/>processes<sp/>until<sp/>all<sp/>done<sp/>or<sp/>at<sp/>least<sp/>one<sp/>erred<sp/>or<sp/>cancel<sp/>was<sp/>requested</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Is<sp/>synchronous.<sp/>Must<sp/>happen-before<sp/>with<sp/>all<sp/>calls<sp/>to<sp/>&apos;enqueue&apos;<sp/>and<sp/>&apos;execute&apos;.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aad37db27edb90a297ccc8ae4716e7905" kindref="member">execute</ref>();</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Sends<sp/>cancellation<sp/>signal<sp/>to<sp/>current<sp/>&apos;execute&apos;<sp/>loop.<sp/>Can<sp/>be<sp/>called<sp/>asynchronously<sp/>with<sp/>all<sp/>other<sp/>functions.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceproc_1aa7d4dc4c33e76202716174b7c90559ed" kindref="member">cancel</ref>();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>proc</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="processes.h"/>
+  </compounddef>
+</doxygen>

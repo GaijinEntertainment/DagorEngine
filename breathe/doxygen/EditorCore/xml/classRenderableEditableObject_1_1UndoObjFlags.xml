@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderableEditableObject_1_1UndoObjFlags" kind="class" language="C++" prot="protected">
+    <compoundname>RenderableEditableObject::UndoObjFlags</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UndoRedoObject</basecompoundref>
+    <includes refid="ec__rendEdObject_8h" local="no">ec_rendEdObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" prot="public" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &gt;</type>
+        <definition>Ptr&lt;RenderableEditableObject&gt; RenderableEditableObject::UndoObjFlags::obj</definition>
+        <argsstring></argsstring>
+        <name>obj</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="346" column="9" bodyfile="ec_rendEdObject.h" bodystart="346" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoObjFlags_1a4954b181d64f14868332a76657b8af89" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderableEditableObject::UndoObjFlags::prevFlags</definition>
+        <argsstring></argsstring>
+        <name>prevFlags</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::prevFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="347" column="9" bodyfile="ec_rendEdObject.h" bodystart="347" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderableEditableObject_1_1UndoObjFlags_1a0331bd34440d358f833f10a28a1ac509" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderableEditableObject::UndoObjFlags::redoFlags</definition>
+        <argsstring></argsstring>
+        <name>redoFlags</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::redoFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="347" column="19" bodyfile="ec_rendEdObject.h" bodystart="347" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoObjFlags_1a93e131a7f089e214efeba6dee4c958fa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderableEditableObject::UndoObjFlags::UndoObjFlags</definition>
+        <argsstring>(RenderableEditableObject *o)</argsstring>
+        <name>UndoObjFlags</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::UndoObjFlags</qualifiedname>
+        <param>
+          <type><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> *</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="350" column="5" bodyfile="ec_rendEdObject.h" bodystart="350" bodyend="350"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoObjFlags_1a92a9af5cb11f66efb443e86e1591b499" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoObjFlags::restore</definition>
+        <argsstring>(bool save_redo) override</argsstring>
+        <name>restore</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::restore</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>save_redo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="352" column="10" bodyfile="ec_rendEdObject.h" bodystart="352" bodyend="357"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoObjFlags_1a91e01d10dbeb2c8c7e3a4cfb6dc83ff1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoObjFlags::redo</definition>
+        <argsstring>() override</argsstring>
+        <name>redo</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="359" column="10" bodyfile="ec_rendEdObject.h" bodystart="359" bodyend="359"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoObjFlags_1a209f155ef17cde345d3699b89dbe56b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t RenderableEditableObject::UndoObjFlags::size</definition>
+        <argsstring>() override</argsstring>
+        <name>size</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="361" column="12" bodyfile="ec_rendEdObject.h" bodystart="361" bodyend="361"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoObjFlags_1a5f109c17fe7fd13c134952bacdb11ac1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoObjFlags::accepted</definition>
+        <argsstring>() override</argsstring>
+        <name>accepted</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::accepted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="362" column="10" bodyfile="ec_rendEdObject.h" bodystart="362" bodyend="362"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderableEditableObject_1_1UndoObjFlags_1a95184004344c9140e857e283ceae275f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderableEditableObject::UndoObjFlags::get_description</definition>
+        <argsstring>(String &amp;s) override</argsstring>
+        <name>get_description</name>
+        <qualifiedname>RenderableEditableObject::UndoObjFlags::get_description</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="363" column="10" bodyfile="ec_rendEdObject.h" bodystart="363" bodyend="363"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>RenderableEditableObject::UndoObjFlags</label>
+        <link refid="classRenderableEditableObject_1_1UndoObjFlags"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>RenderableEditableObject::UndoObjFlags</label>
+        <link refid="classRenderableEditableObject_1_1UndoObjFlags"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UndoRedoObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_rendEdObject.h" line="343" column="3" bodyfile="ec_rendEdObject.h" bodystart="344" bodyend="364"/>
+    <listofallmembers>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a5f109c17fe7fd13c134952bacdb11ac1" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>accepted</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a95184004344c9140e857e283ceae275f" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>get_description</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>obj</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a4954b181d64f14868332a76657b8af89" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>prevFlags</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a91e01d10dbeb2c8c7e3a4cfb6dc83ff1" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>redo</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a0331bd34440d358f833f10a28a1ac509" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>redoFlags</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a92a9af5cb11f66efb443e86e1591b499" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>restore</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a209f155ef17cde345d3699b89dbe56b3" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>size</name></member>
+      <member refid="classRenderableEditableObject_1_1UndoObjFlags_1a93e131a7f089e214efeba6dee4c958fa" prot="public" virt="non-virtual"><scope>RenderableEditableObject::UndoObjFlags</scope><name>UndoObjFlags</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

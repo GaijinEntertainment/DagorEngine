@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderBytecodeCache_1_1LookupResult" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderBytecodeCache::LookupResult</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="no">shaderBytecodeCache.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderBytecodeCache_1_1LookupResult_1a633aa98a618e5d297a94b57533302c63" prot="public" static="no" mutable="no">
+        <type><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref></type>
+        <definition>ShaderCacheIndex ShaderBytecodeCache::LookupResult::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>ShaderBytecodeCache::LookupResult::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="108" column="22" bodyfile="shaderBytecodeCache.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderBytecodeCache_1_1LookupResult_1a6cf871ba4e4ebf0b746274eaf53909ae" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderCacheLevelIds" kindref="compound">ShaderCacheLevelIds</ref></type>
+        <definition>ShaderCacheLevelIds ShaderBytecodeCache::LookupResult::c</definition>
+        <argsstring></argsstring>
+        <name>c</name>
+        <qualifiedname>ShaderBytecodeCache::LookupResult::c</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="109" column="25" bodyfile="shaderBytecodeCache.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderBytecodeCache::LookupResult</label>
+        <link refid="structShaderBytecodeCache_1_1LookupResult"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>c</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderCacheLevelIds</label>
+        <link refid="structShaderCacheLevelIds"/>
+      </node>
+    </collaborationgraph>
+    <location file="shaderBytecodeCache.h" line="106" column="3" bodyfile="shaderBytecodeCache.h" bodystart="107" bodyend="110"/>
+    <listofallmembers>
+      <member refid="structShaderBytecodeCache_1_1LookupResult_1a6cf871ba4e4ebf0b746274eaf53909ae" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache::LookupResult</scope><name>c</name></member>
+      <member refid="structShaderBytecodeCache_1_1LookupResult_1a633aa98a618e5d297a94b57533302c63" prot="public" virt="non-virtual"><scope>ShaderBytecodeCache::LookupResult</scope><name>id</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

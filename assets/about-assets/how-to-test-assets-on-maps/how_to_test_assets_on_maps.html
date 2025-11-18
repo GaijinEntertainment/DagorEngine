@@ -1,0 +1,365 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How to Test Assets on Maps (Basic Workflow)</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Ladders" href="../ladders/index.html" />
+    <link rel="prev" title="How to Test Assets on Maps" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Assets</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../about_assets.html">Introduction to Assets</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">How to Test Assets on Maps</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">How to Test Assets on Maps (Basic Workflow)</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#build-changes-in-assets">Build Changes in Assets</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#export-the-map-with-the-asset">Export the Map with the Asset</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#launching-the-level">Launching the Level</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#danetgame-based-projects">daNetGame-based projects</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#enlisted-cdk">Enlisted CDK</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#war-thunder">War Thunder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../ladders/index.html">Ladders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../microdetails/index.html">Microdetails</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../occluder/index.html">Occluder Box</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../procedural-rendinst-painting/index.html">Procedural Rendinst Painting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets</a></li>
+          <li class="breadcrumb-item"><a href="index.html">How to Test Assets on Maps</a></li>
+      <li class="breadcrumb-item active">How to Test Assets on Maps (Basic Workflow)</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/about-assets/how-to-test-assets-on-maps/how_to_test_assets_on_maps.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="how-to-test-assets-on-maps-basic-workflow">
+<h1>How to Test Assets on Maps (Basic Workflow)<a class="headerlink" href="#how-to-test-assets-on-maps-basic-workflow" title="Link to this heading"></a></h1>
+<p>This guide provides essential steps for testing assets on maps. Note that there
+are differences between <em>War Thunder</em> and <em>daNetGame</em>-based projects.</p>
+<section id="build-changes-in-assets">
+<h2>Build Changes in Assets<a class="headerlink" href="#build-changes-in-assets" title="Link to this heading"></a></h2>
+<p>If you’ve made changes to an asset, open it in <a class="reference internal" href="../../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a> and
+build the corresponding components:</p>
+<ul>
+<li><p><strong>Material changes:</strong> Build the asset group (grp)</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_01.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_01.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_01.jpg" style="width: 50%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Collision changes:</strong> Build the collision group (grp)</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_02.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_02.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_02.jpg" style="width: 50%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Texture changes:</strong> Build the texture bin</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_03.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_03.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_03.jpg" style="width: 50%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Multiple changes or uncertainty:</strong> Build the entire folder (this may take
+longer depending on the number of assets and packs in the folder/subfolders)</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_04.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_04.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_04.jpg" style="width: 50%;" />
+</a>
+<br>
+</li>
+</ul>
+</section>
+<section id="export-the-map-with-the-asset">
+<h2>Export the Map with the Asset<a class="headerlink" href="#export-the-map-with-the-asset" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p><strong>Launch <a class="reference internal" href="../../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a></strong>
+and open the map you want to modify. In the <strong>Landscape</strong> tab, place the
+asset using the <strong>Create entity</strong> tool.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_05.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_05.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_05.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Export the map</strong> via <strong>Project &gt; Export to game (PC format)</strong>.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_06.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_06.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_06.jpg" style="width: 40%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Confirm all dialog boxes</strong> and choose the place to export level. A
+successful export will replace the current map file.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_07.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_07.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_07.jpg" style="width: 40%;" />
+</a>
+<br>
+</li>
+</ol>
+</section>
+<section id="launching-the-level">
+<h2>Launching the Level<a class="headerlink" href="#launching-the-level" title="Link to this heading"></a></h2>
+<p>The method for launching the level varies by project.</p>
+<section id="danetgame-based-projects">
+<h3>daNetGame-based projects<a class="headerlink" href="#danetgame-based-projects" title="Link to this heading"></a></h3>
+<p>The following steps related to <em>daNetGame</em>-based projects are described using
+the <em>Enlisted</em> project as an example.</p>
+<p>To see your map in the game, you should launch the scene that includes your map,
+which is a <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file. There are two main approaches:</p>
+<p><strong>Using the Launcher:</strong></p>
+<ol class="arabic simple">
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">/enlisted/game/z_enlisted_launcher.bat</span></code></p></li>
+<li><p>Select the correct mission from the dropdown (the one with your exported
+map). Customize mode, graphics settings, etc., if needed.</p></li>
+<li><p>Click <strong>Play</strong> to launch the game.</p></li>
+</ol>
+<p><strong>Manually:</strong></p>
+<ol class="arabic">
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">.bat</span></code> file in the <code class="docutils literal notranslate"><span class="pre">/enlisted/game/</span></code> directory.</p></li>
+<li><p>Open it with a text editor (e.g., <em>Notepad</em>, <em>Notepad++</em>, <em>VSCode</em>).</p></li>
+<li><p>Add the following line:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>@start win64\\enlisted-dev.exe -scene:gamedata/scenes/&lt;your_scene_path&gt;.blk -config:disableMenu:b=yes
+</pre></div>
+</div>
+</li>
+<li><p>Save and run the <code class="docutils literal notranslate"><span class="pre">.bat</span></code> file to launch your scene.</p></li>
+</ol>
+<p>While the launcher is the preferred method, manual execution is useful for
+testing new scenes that haven’t been added to the launcher yet.</p>
+</section>
+<section id="enlisted-cdk">
+<h3>Enlisted CDK<a class="headerlink" href="#enlisted-cdk" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Launch <code class="docutils literal notranslate"><span class="pre">/Enlisted/modsEditor.bat</span></code></p></li>
+<li><p>Select your scene. Choose the team, mode, and other settings using the
+wrench icon.</p></li>
+<li><p>Click <strong>Load</strong> or double-click the scene name to open it.</p></li>
+</ol>
+</section>
+<section id="war-thunder">
+<h3>War Thunder<a class="headerlink" href="#war-thunder" title="Link to this heading"></a></h3>
+<p>In <em>War Thunder</em>, you will use the <em>Mission Editor</em>, which <em>daNetGame</em>-projects
+do not have. You will have to create your mission using the following steps:</p>
+<ol class="arabic">
+<li><p><strong>Select Vehicle Type</strong> from the dropdown:</p>
+<ul class="simple">
+<li><p><strong>armada:</strong> Aircraft</p></li>
+<li><p><strong>tankModels:</strong> Tanks</p></li>
+<li><p><strong>ships:</strong> Ships
+(Others are non-playable.)</p></li>
+</ul>
+<p>Place the unit on the map using the <strong>Create Unit</strong> button, then click the
+map to position it.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_08.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_08.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_08.jpg" style="width: 98%;" />
+</a>
+<br>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Aircraft will appear in the air, while tanks and ships will be placed on
+land.</p>
+</div>
+</li>
+<li><p><strong>Change Vehicle Properties:</strong> If the wrong vehicle type is selected, modify
+it in the <strong>Properties</strong> panel (press <code class="docutils literal notranslate"><span class="pre">P</span></code> after selecting the unit).</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_09.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_09.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_09.jpg" style="width: 98%;" />
+</a>
+<br>
+<p>After that you will have to choose:</p>
+<ul class="simple">
+<li><p>Vehicle model</p></li>
+<li><p>Weapon type (you may set to <code class="docutils literal notranslate"><span class="pre">default</span></code>)</p></li>
+<li><p>Bullets (usually <code class="docutils literal notranslate"><span class="pre">HE</span></code> or <code class="docutils literal notranslate"><span class="pre">default</span></code>)</p></li>
+<li><p>Bullets count</p></li>
+</ul>
+<p>It can be done in the same unit’s <strong>Properties</strong> panel:</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_10.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_10.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_10.jpg" style="width: 32%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Configure Mission Properties:</strong></p>
+<ul>
+<li><p>Find your unit’s army number (different parties - different armies in pvp)
+in unit’s <strong>Properties</strong> panel.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_11.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_11.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_11.jpg" style="width: 32%;" />
+</a>
+<br>
+</li>
+<li><p>Assign the unit’s army number to <strong>Team A</strong> in <strong>Mission Settings</strong>
+panel (deselect unit and press <code class="docutils literal notranslate"><span class="pre">P</span></code> button).</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_12.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_12.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_12.jpg" style="width: 32%;" />
+</a>
+<br>
+</li>
+<li><p>Specify your unit in <strong>wing</strong> inset.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_13.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_13.jpg" class="bg-primary" src="../../../_images/how_to_test_assets_on_maps_13.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_14.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_14.jpg" class="bg-primary" src="../../../_images/how_to_test_assets_on_maps_14.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_15.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_15.jpg" class="bg-primary" src="../../../_images/how_to_test_assets_on_maps_15.jpg" style="width: 32%;" />
+</a>
+<br>
+</li>
+</ul>
+<p>In the same <strong>Mission Settings</strong> panel:</p>
+<ul>
+<li><p><strong>name:</strong> give the name to your mission;</p></li>
+<li><p><strong>type:</strong> select <strong>singleMission</strong>;</p></li>
+<li><p><strong>level:</strong> choose the location where the mission will start (otherwise, your vehicle
+will spawn on default water location by default).</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_16.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_16.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_16.jpg" style="width: 32%;" />
+</a>
+<br>
+</li>
+</ul>
+</li>
+<li><p><strong>Save the Mission:</strong> Save your mission in
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/gameBase/gameData/missions</span></code>.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_17.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_17.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_17.jpg" style="width: 98%;" />
+</a>
+<br>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Be sure to save after every change – there is no autosave.</p>
+</div>
+</li>
+<li><p><strong>Play the Mission:</strong> Once ready, click the <strong>Play</strong> button.</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/how_to_test_assets_on_maps_18.jpg"><img alt="../../../_images/how_to_test_assets_on_maps_18.jpg" class="bg-primary align-center" src="../../../_images/how_to_test_assets_on_maps_18.jpg" style="width: 98%;" />
+</a>
+</li>
+</ol>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="How to Test Assets on Maps" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../ladders/index.html" class="btn btn-neutral float-right" title="Ladders" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

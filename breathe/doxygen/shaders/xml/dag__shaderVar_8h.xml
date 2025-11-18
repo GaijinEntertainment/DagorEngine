@@ -1,0 +1,448 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderVar_8h" kind="file" language="C++">
+    <compoundname>dag_shaderVar.h</compoundname>
+    <includes local="no">3d/dag_texMgr.h</includes>
+    <includes local="no">drv/3d/dag_samplerHandle.h</includes>
+    <includes refid="dag__shaderVariableInfo_8h" local="no">shaders/dag_shaderVariableInfo.h</includes>
+    <includes local="no">math/integer/dag_IPoint4.h</includes>
+    <includes local="no">math/dag_Point2.h</includes>
+    <includes local="no">math/dag_dxmath_forward.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includedby refid="dag__shaders_8h" local="no">dag_shaders.h</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="4">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="11">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="8">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="12">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="10">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="7">
+        <label>stdint.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="9">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>dag_DebugPrimitivesVbuffer.h</label>
+        <link refid="dag__DebugPrimitivesVbuffer_8h_source"/>
+      </node>
+      <node id="4">
+        <label>dag_DynamicShaderHelper.h</label>
+        <link refid="dag__DynamicShaderHelper_8h_source"/>
+      </node>
+      <node id="5">
+        <label>dag_DynamicShadersBuffer.h</label>
+        <link refid="dag__DynamicShadersBuffer_8h_source"/>
+      </node>
+      <node id="11">
+        <label>dag_dynSceneRes.h</label>
+        <link refid="dag__dynSceneRes_8h_source"/>
+      </node>
+      <node id="6">
+        <label>dag_dynShaderBuf.h</label>
+        <link refid="dag__dynShaderBuf_8h_source"/>
+      </node>
+      <node id="14">
+        <label>dag_instShaderMeshRes.h</label>
+        <link refid="dag__instShaderMeshRes_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>dag_linkedListOfShadervars.h</label>
+        <link refid="dag__linkedListOfShadervars_8h_source"/>
+      </node>
+      <node id="12">
+        <label>dag_rendInstRes.h</label>
+        <link refid="dag__rendInstRes_8h_source"/>
+      </node>
+      <node id="8">
+        <label>dag_renderScene.h</label>
+        <link refid="dag__renderScene_8h_source"/>
+      </node>
+      <node id="9">
+        <label>dag_shSkinMesh.h</label>
+        <link refid="dag__shSkinMesh_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>dag_shaderResUnitedData.h</label>
+        <link refid="dag__shaderResUnitedData_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>dag_shadersRes.h</label>
+        <link refid="dag__shadersRes_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShaderGlobal_1_1detail_1_1StringToHash" prot="public">ShaderGlobal::detail::StringToHash</innerclass>
+    <innernamespace refid="namespaceresptr__detail">resptr_detail</innernamespace>
+    <innernamespace refid="namespaceVariableMap">VariableMap</innernamespace>
+    <innernamespace refid="namespaceShaderGlobal">ShaderGlobal</innernamespace>
+    <innernamespace refid="namespaceShaderGlobal_1_1detail">ShaderGlobal::detail</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shaderVar_8h_1a092e5c46ad65df9b65d09d0f1a8fa928" prot="public" static="no">
+        <type><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">resptr_detail::ManagedRes</ref>&lt; BaseTexture &gt;</type>
+        <definition>using ManagedTex =  resptr_detail::ManagedRes&lt;BaseTexture&gt;</definition>
+        <argsstring></argsstring>
+        <name>ManagedTex</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="27" column="1" bodyfile="dag_shaderVar.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__shaderVar_8h_1a7300c8cf858eb62d713410d184df5a02" prot="public" static="no">
+        <type><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">resptr_detail::ManagedRes</ref>&lt; Sbuffer &gt;</type>
+        <definition>using ManagedBuf =  resptr_detail::ManagedRes&lt;Sbuffer&gt;</definition>
+        <argsstring></argsstring>
+        <name>ManagedBuf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="28" column="1" bodyfile="dag_shaderVar.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_texMgr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_samplerHandle.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderVariableInfo.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint4.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_dxmath_forward.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Color4;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RoDataBlock;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref>;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RaytraceTopAccelerationStructure;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">resptr_detail</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>ResType&gt;</highlight></codeline>
+<codeline lineno="24" refid="classresptr__detail_1_1ManagedRes" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedRes</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedTex</ref><sp/>=<sp/><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">resptr_detail::ManagedRes&lt;BaseTexture&gt;</ref>;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedBuf</ref><sp/>=<sp/><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">resptr_detail::ManagedRes&lt;Sbuffer&gt;</ref>;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">VariableMap</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>BAD_ID<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getVariableName(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getVariableId(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*variable_name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getVariableArraySize(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getVariablesCount(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sec_dump_for_exp<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getGlobalVariablesCount();</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getGlobalVariableName(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>globvar_idx);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isVariablePresent(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id);</highlight></codeline>
+<codeline lineno="57"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isVariablePresent(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;var_id);</highlight></codeline>
+<codeline lineno="59"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isGlobVariablePresent(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id);</highlight></codeline>
+<codeline lineno="61"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isGlobVariablePresent(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;var_id);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal">dag::Vector&lt;String&gt;<sp/>getPresentedGlobalVariableNames();</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal">uint32_t<sp/>generation();</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>VariableMap</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">ShaderGlobal</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">detail</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">erval&gt;</highlight></codeline>
+<codeline lineno="79" refid="structShaderGlobal_1_1detail_1_1StringToHash" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">StringToHash</ref></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>uint32_t<sp/>hash;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">StringToHash</ref>(uint32_t<sp/>h)<sp/>:<sp/>hash(h)<sp/>{}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">StringToHash</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator==(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">StringToHash</ref><sp/>&amp;rhs)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hash<sp/>==<sp/>rhs.hash;<sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator!=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">StringToHash</ref><sp/>&amp;rhs)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hash<sp/>!=<sp/>rhs.hash;<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>detail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref><sp/>=<sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">detail::StringToHash&lt;true&gt;</ref>;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref><sp/>=<sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">detail::StringToHash&lt;false&gt;</ref>;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">Variant<sp/>=<sp/>eastl::pair&lt;Interval,<sp/>Subinterval&gt;;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">32_t<sp/>h&gt;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref><sp/>interval<sp/>=<sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref>(h);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">32_t<sp/>h&gt;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref><sp/>subinterval<sp/>=<sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref>(h);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">32_t<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">erv_h,<sp/>u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">32_t<sp/>sub</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">erv_h&gt;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>Variant<sp/>variant<sp/>=<sp/>Variant(interval&lt;interv_h&gt;,<sp/>subinterval&lt;subinterv_h&gt;);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_variant(<ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Interval</ref><sp/>interv,<sp/><ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">Subinterval</ref><sp/>subinterv);</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_variant(Variant<sp/>var)<sp/>{<sp/>set_variant(var.first,<sp/>var.second);<sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">Subinterval<sp/>get_variant(Interval<sp/>interv);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_glob_interval_presented(Interval<sp/>interv);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal">dag::Vector&lt;String&gt;<sp/>get_subinterval_names(Interval<sp/>interv);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_var_type(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_var_assumed(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_interval_assumed_value(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_interval_current_value(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>has_associated_interval(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">dag::ConstSpan&lt;float&gt;<sp/>get_interval_ranges(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">dag::ConstSpan&lt;float&gt;<sp/>get_interval_ranges(Interval<sp/>interv);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="comment">//<sp/>set<sp/>global<sp/>shader<sp/>variables<sp/>using<sp/>variable_id;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_int(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_real(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;rg,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;ba<sp/>=<sp/>Point2(0,<sp/>0));</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;rgb,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>0.f);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point4<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Color4<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Color3<sp/>&amp;rgb,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>0.f);</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>r,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>g,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>b<sp/>=<sp/>0.f,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>0.f);</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4_array(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Color4<sp/>*data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count);</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4_array(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point4<sp/>*data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>E3DCOLOR<sp/>c);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>XMFLOAT2<sp/>&amp;rg,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>XMFLOAT2<sp/>&amp;ba);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>XMFLOAT3<sp/>&amp;rgb,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>0.f);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>XMFLOAT4<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>FXMVECTOR<sp/>v);</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_float4x4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix4<sp/>&amp;mat);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_float4x4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>XMFLOAT4X4<sp/>&amp;mat);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_float4x4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>FXMMATRIX<sp/>mat);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_int4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>IPoint4<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_int4_array(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>IPoint4<sp/>*data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_texture(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>TEXTUREID<sp/>texture_id);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_texture(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedTex</ref><sp/>&amp;texture);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_sampler(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>d3d::SamplerHandle<sp/>handle);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_buffer(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>D3DRESID<sp/>buffer_id);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_buffer(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedBuf</ref><sp/>&amp;buffer);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_texture(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedTex</ref><sp/>&amp;texture);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_buffer(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedBuf</ref><sp/>&amp;buffer);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_tlas(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>RaytraceTopAccelerationStructure<sp/>*ptr);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_textures(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>removed_tex_only<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="150"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_stale_vars();</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_from_vars(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="155"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_from_vars_and_release_managed_tex(TEXTUREID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="156"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>==<sp/>BAD_TEXTUREID)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>reset_from_vars(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>release_managed_tex(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>BAD_TEXTUREID;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_from_vars_and_release_managed_tex_verified(TEXTUREID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>T<sp/>&amp;check_tex)</highlight></codeline>
+<codeline lineno="165"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>==<sp/>BAD_TEXTUREID)</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>reset_from_vars(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>release_managed_tex_verified&lt;T&gt;(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>check_tex);</highlight></codeline>
+<codeline lineno="170"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_int_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>get_real_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal">Color4<sp/>get_color4_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="179"><highlight class="normal">TEXTUREID<sp/>get_tex_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal">D3DRESID<sp/>get_buf_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">d3d::SamplerHandle<sp/>get_sampler(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id);</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>get_int_by_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;val)</highlight></codeline>
+<codeline lineno="184"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>VariableMap::getVariableId(name);</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!VariableMap::isVariablePresent(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">))<sp/></highlight><highlight class="comment">//<sp/>we<sp/>check<sp/>only<sp/>var<sp/>validity<sp/>here<sp/>(not<sp/>checking<sp/>that<sp/>var<sp/>is<sp/>global)<sp/>to<sp/>allow<sp/>asserts<sp/>on</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>wrong<sp/>calls</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!VariableMap::isGlobVariablePresent(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>val<sp/>=<sp/>get_int_fast(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>get_real_by_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>&amp;val)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>VariableMap::getVariableId(name);</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!VariableMap::isVariablePresent(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">))<sp/></highlight><highlight class="comment">//<sp/>we<sp/>check<sp/>only<sp/>var<sp/>validity<sp/>here<sp/>(not<sp/>checking<sp/>that<sp/>var<sp/>is<sp/>global)<sp/>to<sp/>allow<sp/>asserts<sp/>on</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>wrong<sp/>calls</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!VariableMap::isGlobVariablePresent(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>val<sp/>=<sp/>get_real_fast(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>get_color4_by_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>Color4<sp/>&amp;val);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_vars_from_blk(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>loadTexures<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allowAddTextures<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_vars_from_blk(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RoDataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_vars_from_blk();</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Obsolete<sp/>functions<sp/>(compatibility)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_glob_var_id(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>var_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>var_id;<sp/>}</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_int_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v)<sp/>{<sp/>set_int(glob_var_id,<sp/>v);<sp/>}</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_real_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v)<sp/>{<sp/>set_real(glob_var_id,<sp/>v);<sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_color4_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Color4<sp/>&amp;v)<sp/>{<sp/>set_color4(glob_var_id,<sp/>v);<sp/>}</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_color4_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>r,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>g,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>b,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a)<sp/>{<sp/>set_color4(glob_var_id,<sp/>r,<sp/>g,<sp/>b,<sp/>a);<sp/>}</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_texture_fast(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id,<sp/>TEXTUREID<sp/>tex_id)<sp/>{<sp/>set_texture(glob_var_id,<sp/>tex_id);<sp/>}</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_int(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>get_int_fast(glob_var_id);<sp/>}</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>get_real(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>get_real_fast(glob_var_id);<sp/>}</highlight></codeline>
+<codeline lineno="232"><highlight class="normal">Color4<sp/>get_color4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal">TMatrix4<sp/>get_float4x4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal">IPoint4<sp/>get_int4(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id);</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TEXTUREID<sp/>get_tex(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>get_tex_fast(glob_var_id);<sp/>}</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>D3DRESID<sp/>get_buf(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>glob_var_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>get_buf_fast(glob_var_id);<sp/>}</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_var_assumed(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>is_var_assumed(v.get_var_id());<sp/>}</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_interval_assumed_value(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>get_interval_assumed_value(v.get_var_id());<sp/>}</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_interval_current_value(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>get_interval_current_value(v.get_var_id());<sp/>}</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>has_associated_interval(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref><sp/>&amp;v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>has_associated_interval(v.get_var_id());<sp/>}</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_slot_by_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="244"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>result<sp/>=<sp/>get_int_by_name(name,<sp/>i);</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/>G_ASSERTF(result,<sp/></highlight><highlight class="stringliteral">&quot;slot<sp/>%s<sp/>is<sp/>undefined&quot;</highlight><highlight class="normal">,<sp/>name);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/>G_UNUSED(result);</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"></highlight></codeline>
+<codeline lineno="252"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderGlobal</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderVar.h"/>
+  </compounddef>
+</doxygen>

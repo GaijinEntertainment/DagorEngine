@@ -1,0 +1,244 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classUserPropToBlkCB" kind="class" language="C++" prot="public">
+    <compoundname>UserPropToBlkCB</compoundname>
+    <basecompoundref refid="classEDataBlockCB" prot="public" virt="non-virtual">EDataBlockCB</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classUserPropToBlkCB_1a42007823c49eefc40b82dd685fb15086" prot="private" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* UserPropToBlkCB::n</definition>
+        <argsstring></argsstring>
+        <name>n</name>
+        <qualifiedname>UserPropToBlkCB::n</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="488" column="9" bodyfile="rolluppanel.cpp" bodystart="488" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classUserPropToBlkCB_1a76a6897ebd81609e4d0950a4b0ad95fa" prot="private" static="no" mutable="no">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock* UserPropToBlkCB::nodeBlk</definition>
+        <argsstring></argsstring>
+        <name>nodeBlk</name>
+        <qualifiedname>UserPropToBlkCB::nodeBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="489" column="13" bodyfile="rolluppanel.cpp" bodystart="489" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classUserPropToBlkCB_1a71611337244cab0356792c49df54a30a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>UserPropToBlkCB::UserPropToBlkCB</definition>
+        <argsstring>(INode *n_, DataBlock *node_blk)</argsstring>
+        <name>UserPropToBlkCB</name>
+        <qualifiedname>UserPropToBlkCB::UserPropToBlkCB</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n_</declname>
+        </param>
+        <param>
+          <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>node_blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="396" column="3" bodyfile="rolluppanel.cpp" bodystart="396" bodyend="396"/>
+      </memberdef>
+      <memberdef kind="function" id="classUserPropToBlkCB_1adb1060d08cc67c3bee06accc05b5d0be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UserPropToBlkCB::procCheck</definition>
+        <argsstring>(bool val) override</argsstring>
+        <name>procCheck</name>
+        <qualifiedname>UserPropToBlkCB::procCheck</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a927c63983a13b001d14af1710d178b00">procCheck</reimplements>
+        <param>
+          <type>bool</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="397" column="7" bodyfile="rolluppanel.cpp" bodystart="397" bodyend="407"/>
+      </memberdef>
+      <memberdef kind="function" id="classUserPropToBlkCB_1adf6441d2a7cd1531f402646315a42335" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UserPropToBlkCB::procInt</definition>
+        <argsstring>(int val) override</argsstring>
+        <name>procInt</name>
+        <qualifiedname>UserPropToBlkCB::procInt</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1af332c55d0b8afbc0e43bf346ccb69d34">procInt</reimplements>
+        <param>
+          <type>int</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="408" column="7" bodyfile="rolluppanel.cpp" bodystart="408" bodyend="418"/>
+      </memberdef>
+      <memberdef kind="function" id="classUserPropToBlkCB_1a363f9bcb28a685e2735fd1f616dd3c92" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UserPropToBlkCB::procCombo</definition>
+        <argsstring>(const char *val, Tab&lt; String &gt; &amp;items) override</argsstring>
+        <name>procCombo</name>
+        <qualifiedname>UserPropToBlkCB::procCombo</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a9ce4638755e2f1afdfb4a288a77ad102">procCombo</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>items</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="419" column="7" bodyfile="rolluppanel.cpp" bodystart="419" bodyend="431"/>
+      </memberdef>
+      <memberdef kind="function" id="classUserPropToBlkCB_1af0ff27630197d52ea192263ecce793d3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UserPropToBlkCB::procReal</definition>
+        <argsstring>(real val) override</argsstring>
+        <name>procReal</name>
+        <qualifiedname>UserPropToBlkCB::procReal</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a8111e2ebca5d5f1b175eeef1458898b2">procReal</reimplements>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="432" column="7" bodyfile="rolluppanel.cpp" bodystart="432" bodyend="442"/>
+      </memberdef>
+      <memberdef kind="function" id="classUserPropToBlkCB_1af24c804d85727d5e9ae290879205deac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UserPropToBlkCB::procStr</definition>
+        <argsstring>(const char *val) override</argsstring>
+        <name>procStr</name>
+        <qualifiedname>UserPropToBlkCB::procStr</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a8c0209058acca0617fc5642480051a2c">procStr</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="443" column="7" bodyfile="rolluppanel.cpp" bodystart="443" bodyend="456"/>
+      </memberdef>
+      <memberdef kind="function" id="classUserPropToBlkCB_1a2829b002e356b1ee9ce6d3847ccdcc97" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int UserPropToBlkCB::procPoint3</definition>
+        <argsstring>(const Point3 &amp;val) override</argsstring>
+        <name>procPoint3</name>
+        <qualifiedname>UserPropToBlkCB::procPoint3</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a1e77fd0eb49a978014986488c1bdaed5">procPoint3</reimplements>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="457" column="7" bodyfile="rolluppanel.cpp" bodystart="457" bodyend="474"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classUserPropToBlkCB_1a598f2422c47541f82fac344b5080d85b" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING UserPropToBlkCB::getName</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>getName</name>
+        <qualifiedname>UserPropToBlkCB::getName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="482" column="16" bodyfile="rolluppanel.cpp" bodystart="482" bodyend="486"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>EDataBlockCB</label>
+        <link refid="classEDataBlockCB"/>
+      </node>
+      <node id="1">
+        <label>UserPropToBlkCB</label>
+        <link refid="classUserPropToBlkCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>EDataBlockCB</label>
+        <link refid="classEDataBlockCB"/>
+      </node>
+      <node id="1">
+        <label>UserPropToBlkCB</label>
+        <link refid="classUserPropToBlkCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rolluppanel.cpp" line="393" column="1" bodyfile="rolluppanel.cpp" bodystart="394" bodyend="490"/>
+    <listofallmembers>
+      <member refid="classUserPropToBlkCB_1a598f2422c47541f82fac344b5080d85b" prot="private" virt="non-virtual"><scope>UserPropToBlkCB</scope><name>getName</name></member>
+      <member refid="classEDataBlockCB_1a6193af9cabfe7ec2d10317ff4d63d930" prot="public" virt="non-virtual"><scope>UserPropToBlkCB</scope><name>groupId</name></member>
+      <member refid="classUserPropToBlkCB_1a42007823c49eefc40b82dd685fb15086" prot="private" virt="non-virtual"><scope>UserPropToBlkCB</scope><name>n</name></member>
+      <member refid="classEDataBlockCB_1ae04e35149b085a3203b2b0374bf841f1" prot="public" virt="non-virtual"><scope>UserPropToBlkCB</scope><name>name</name></member>
+      <member refid="classUserPropToBlkCB_1a76a6897ebd81609e4d0950a4b0ad95fa" prot="private" virt="non-virtual"><scope>UserPropToBlkCB</scope><name>nodeBlk</name></member>
+      <member refid="classEDataBlockCB_1ae0d7b4125e1df4192ea4e1e78314faa1" prot="public" virt="non-virtual"><scope>UserPropToBlkCB</scope><name>paramId</name></member>
+      <member refid="classUserPropToBlkCB_1adb1060d08cc67c3bee06accc05b5d0be" prot="public" virt="virtual"><scope>UserPropToBlkCB</scope><name>procCheck</name></member>
+      <member refid="classUserPropToBlkCB_1a363f9bcb28a685e2735fd1f616dd3c92" prot="public" virt="virtual"><scope>UserPropToBlkCB</scope><name>procCombo</name></member>
+      <member refid="classUserPropToBlkCB_1adf6441d2a7cd1531f402646315a42335" prot="public" virt="virtual"><scope>UserPropToBlkCB</scope><name>procInt</name></member>
+      <member refid="classUserPropToBlkCB_1a2829b002e356b1ee9ce6d3847ccdcc97" prot="public" virt="virtual"><scope>UserPropToBlkCB</scope><name>procPoint3</name></member>
+      <member refid="classUserPropToBlkCB_1af0ff27630197d52ea192263ecce793d3" prot="public" virt="virtual"><scope>UserPropToBlkCB</scope><name>procReal</name></member>
+      <member refid="classUserPropToBlkCB_1af24c804d85727d5e9ae290879205deac" prot="public" virt="virtual"><scope>UserPropToBlkCB</scope><name>procStr</name></member>
+      <member refid="classUserPropToBlkCB_1a71611337244cab0356792c49df54a30a" prot="public" virt="non-virtual"><scope>UserPropToBlkCB</scope><name>UserPropToBlkCB</name></member>
+      <member refid="classEDataBlockCB_1a89b47c88e410957d8ba4aad62c4ad2e2" prot="public" virt="virtual"><scope>UserPropToBlkCB</scope><name>~EDataBlockCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

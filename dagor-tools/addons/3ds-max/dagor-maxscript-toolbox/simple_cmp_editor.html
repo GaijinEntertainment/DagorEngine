@@ -1,0 +1,468 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Simple CMP Editor</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor Transfer Vertex Position to Vertex Color Tool" href="transfer_vertex_position_to_vertex_color_tool.html" />
+    <link rel="prev" title="Dagor Pivot Painter Vegetation Tool" href="pivot_painter_vegetation_tool.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor MaxScript Toolbox</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor Ambient Occlusion Baker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor Simple CMP Editor</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-simple-cmp-editor">Accessing Simple CMP Editor</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-simple-cmp-editor">Using Simple CMP Editor</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#supported-properties">Supported Properties</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#cmp-editor-interface">CMP Editor Interface</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor Transfer Vertex Position to Vertex Color Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor MaxScript Toolbox</a></li>
+      <li class="breadcrumb-item active">Dagor Simple CMP Editor</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/simple_cmp_editor.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-simple-cmp-editor">
+<h1>Dagor Simple CMP Editor<a class="headerlink" href="#dagor-simple-cmp-editor" title="Link to this heading"></a></h1>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This tool is currently under development.</p>
+</div>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="warning admonition">
+<p class="admonition-title">Requirements</p>
+<p>This script requires:</p>
+<ul class="simple">
+<li><p><strong>3ds Max 2021 or later</strong>.</p></li>
+<li><p>Plugin version <strong>1.8 or higher</strong>.</p></li>
+<li><p>The <a class="reference internal" href="fast_editor_user_properties.html"><span class="std std-doc">Dagor Fast Editor User Properties</span></a>,
+included in the toolbox.</p></li>
+</ul>
+</div>
+</section>
+<section id="accessing-simple-cmp-editor">
+<h2>Accessing Simple CMP Editor<a class="headerlink" href="#accessing-simple-cmp-editor" title="Link to this heading"></a></h2>
+<p>To get started, ensure that your toolbox is up to date.</p>
+<p>Then, drag and drop <code class="docutils literal notranslate"><span class="pre">dagor_CMP_GeneratorSimple.ms</span></code> into the Viewport.</p>
+<ul>
+<li><p>Press <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code>+<code class="docutils literal notranslate"><span class="pre">Shift</span></code> to open the floating panel:</p>
+<a class="reference internal image-reference" href="../../../../_images/fast_properties_01.png"><img alt="Fast Editor User Properties" class="align-center" src="../../../../_images/fast_properties_01.png" style="width: 17em;" />
+</a>
+</li>
+<li><p>Closing the panel by pressing <strong>X</strong> disables this editor completely. To return
+the toggle behavior, reopen the editor from the <strong>Gaijin Tools &gt; Dagor Fast
+Properties…</strong></p>
+<a class="reference internal image-reference" href="../../../../_images/fast_properties_02.png"><img alt="Fast Editor User Properties" class="align-center" src="../../../../_images/fast_properties_02.png" style="width: 20em;" />
+</a>
+</li>
+<li><p>To open the main window of the Dagor CMP Exporter, navigate to <strong>Gaijin
+Tools &gt; Dagor CMP Exporter…</strong> <span class="cnum">1</span>.</p></li>
+<li><p>To verify the version <span class="cnum">2</span> of the script, go to <strong>Gaijin Tools &gt; About</strong>.
+The <strong>About</strong> window will display the current version. It’s important to
+check this regularly to ensure your script is up to date.</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_01.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_01.png" style="width: 60em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="using-simple-cmp-editor">
+<h2>Using Simple CMP Editor<a class="headerlink" href="#using-simple-cmp-editor" title="Link to this heading"></a></h2>
+<p>All node properties are stored in <strong>Object Properties</strong>. The script
+automatically updates these properties when the position, rotation, or scale of
+an object changes. Below is an example:</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_02.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_02.png" style="width: 30em;" />
+</a>
+<p>Always use the CMP Exporter to edit properties. The following is a list of
+currently supported properties:</p>
+<section id="supported-properties">
+<h3>Supported Properties<a class="headerlink" href="#supported-properties" title="Link to this heading"></a></h3>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Example</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>place_type:i</p></td>
+<td><p>place_type:i = 1</p></td>
+<td><p>“No Collision Type”=0</p>
+<p>“Place Pivot”=1</p>
+<p>“Place Pivot and use Normal”=2</p>
+<p>“Place 3-point (bbox)”=3</p>
+<p>“Place Foundation (bbox)”=4</p>
+<p>“Place on Water (flootable)”=5</p>
+<p>“Place Pivot with Rendinst Collision”=6</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>rot_x:p2</p></td>
+<td><p>rot_x:p2=90, 2</p></td>
+<td><p>Rotates the node 90° on the chosen axis,</p>
+<p>then applies a random angle between -2° and 2°</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>rot_y:p2</p></td>
+<td><p>rot_y:p2=0, 30</p></td>
+<td><p>Rotates the node randomly on the chosen axis</p>
+<p>between -30° and 30°</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>rot_z:p2</p></td>
+<td><p>rot_z:p2=90, 2</p></td>
+<td><p>Rotates the node 90° on the chosen axis,</p>
+<p>then applies a random angle between -2° and 2°</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>offset_x:p2</p></td>
+<td><p>offset_x:p2=1, 2</p></td>
+<td><p>Moves the node 1 unit along the x-axis,</p>
+<p>then randomly between +/-2 units</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>offset_y:p2</p></td>
+<td><p>offset_y:p2=1, 2</p></td>
+<td><p>Moves the node 1 unit along the y-axis,</p>
+<p>then randomly between +/-2 units</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>offset_z:p2</p></td>
+<td><p>offset_z:p2=1, 2</p></td>
+<td><p>Moves the node 1 unit along the z-axis,</p>
+<p>then randomly between +/-2 units</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>scale:p2</p></td>
+<td><p>scale:p2=1.5, 0.1</p></td>
+<td><p>Uniformly scales the node to 1.5,</p>
+<p>with variation in the range [-0.1 .. 0.1]</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>yScale:p2</p></td>
+<td><p>yScale:p2=1, 0.1</p></td>
+<td><p>Alters the node height by a value</p>
+<p>in the range [-0.1 .. 0.1]</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>tm:m</p></td>
+<td><p>tm:m=[[1.0, 0.0, 0.0]</p>
+<p>[0.0, 1.0, 0.0]</p>
+<p>[0.0, 0.0, 1.0]</p>
+<p>[0.0, 0.0, 0.0]]</p>
+</td>
+<td><p>Non-randomized location, rotation, and scale</p></td>
+</tr>
+<tr class="row-even"><td><p>aboveHt:r</p></td>
+<td><p>aboveHt:r=0.0</p></td>
+<td><p>Specifies a fixed height above the surface</p></td>
+</tr>
+</tbody>
+</table>
+<p>The script does not affect manually entered properties not listed above. The
+animation below shows that when you change the parameters, unsupported
+properties of the collision object remain untouched, example:</p>
+<video controls="True" preload="auto" width="90%"><source src="../../../../_images/simple_cmp_preserving_unsup_prop.webm" type="video/webm"></video><div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Only one selected object can be edited at a time. If you select more than one
+object, the CMP Exporter interface will be greyed out and unavailable for
+parameter editing. This is intentional to prevent damaging or erasing properties
+of different objects.</p>
+</div>
+<p>However, objects can be moved, rotated, or scaled in selected groups. When the
+script runs, it automatically updates all parameters inside user custom
+properties for all selected objects. If the script is not run during editing,
+parameters will automatically update when you press the <strong>Export CMP</strong> button.
+Alternatively, run the script and select an object to update its parameters
+automatically.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If an object does not already have any CMP properties, default properties such
+as <code class="docutils literal notranslate"><span class="pre">Matrix3</span></code> and <code class="docutils literal notranslate"><span class="pre">Place</span> <span class="pre">type</span></code> will be automatically assigned. Note that only
+Editable Mesh or Editable Poly objects can have CMP settings. For non-editable
+objects, the interface will be greyed out and unavailable for editing.</p>
+</div>
+<p>For example, create a box and select it when the script window is open. The
+whole interface will be grey because it is not an Editable Mesh or Editable
+Poly.</p>
+<p>It will look like this (only node name and Matrix3):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>node{
+  name:t=&quot;ancient_statue_c_dmg_056_dmg:rendInst&quot;
+  tm:m=[[0.606621, 0.0, 0.0105886] [0.000184797, 0.606621, -0.010587] [-0.010587, 0.0105886, 0.606528] [-0.211369, 3.01566, 0.255796]]
+}
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All objects in the scene must have the same scale on all axes.</p>
+</div>
+<p>If an object is not uniformly scaled along all axes, a warning will appear,
+suggesting correction:</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_03.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_03.png" style="width: 20em;" />
+</a>
+<p>The script will not correct this error; it leaves the decision to your
+discretion. However, every time such an object is selected while the script is
+running, a warning will appear.</p>
+</section>
+<section id="cmp-editor-interface">
+<h3>CMP Editor Interface<a class="headerlink" href="#cmp-editor-interface" title="Link to this heading"></a></h3>
+<p>Let’s consider the functionality of the script interface:</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_04.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_04.png" style="width: 50em;" />
+</a>
+<ul>
+<li><p><strong>Output Path</strong> <span class="cnum">1</span>: specify the path where the <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code> file
+will be saved after export. Button <span class="cnum">2</span> allows you to select a custom
+path. On first use, this will default to the 3ds Max export path.</p></li>
+<li><p><strong>Default Node Type</strong> <span class="cnum">3</span>: set the default node type. If the name
+contains some gross errors like invalid characters, the script will indicate
+an error of the form:</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_05.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_05.png" style="width: 30em;" />
+</a>
+</li>
+<li><p><strong>Remove numeric suffixes if exist</strong> <span class="cnum">4</span>: if enabled, removes the last
+three digits from object names during export. For example,
+<code class="docutils literal notranslate"><span class="pre">ancient_statue_c_dmg_087</span></code> will be exported as <code class="docutils literal notranslate"><span class="pre">ancient_statue_c_dmg_</span></code>. This
+is useful since objects in 3ds Max often include numbers that are unnecessary
+in the final composite file.</p></li>
+<li><p><strong>Export CMP</strong> <span class="cnum">5</span>: exports objects to the specified directory. All
+objects in the current active layer will be exported. Recall that the active
+layer is the layer highlighted by the blue folder</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_06.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_06.png" style="width: 30em;" />
+</a>
+<p>For example, a layer</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_07.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_07.png" style="width: 20em;" />
+</a>
+<p>is exported to <code class="docutils literal notranslate"><span class="pre">ancient_statue_c_dmg_cmp.composit.blk</span></code> at the specified path.</p>
+<p>Ensure the active layer is named correctly; otherwise, a warning will appear:</p>
+<a class="reference internal image-reference" href="../../../../_images/simple_cmp_08.png"><img alt="Simple CMP Editor" class="align-center" src="../../../../_images/simple_cmp_08.png" style="width: 40em;" />
+</a>
+</li>
+</ul>
+<p>Next are parameters to export from 3ds Max to Dagor:</p>
+<ul>
+<li><p><strong>Transform Matrix3 Enabled</strong> <span class="cnum">6</span>: exports the transformation matrix
+(position, rotation, scale) to Dagor’s format.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference external" href="https://en.wikipedia.org/wiki/Transformation_matrix#Examples_in_3D_computer_graphics">Transformation matrices</a>.</p>
+</div>
+</li>
+<li><p><strong>place_type Enabled</strong> <span class="cnum">7</span>: enables object placement type in Dagor.
+There are seven different placement methods, which your mentor can explain in
+detail.</p></li>
+<li><p><strong>Parameter block</strong> <span class="cnum">8</span>: responsible for randomizing node rotations
+along the x, y, z axes.</p>
+<p><strong>Example:</strong></p>
+<video controls="True" preload="auto" width="90%"><source src="../../../../_images/simple_cmp_ed_prop_edit_rot_02.webm" type="video/webm"></video><div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p>If any checkbox for <code class="docutils literal notranslate"><span class="pre">rot_x</span></code>, <code class="docutils literal notranslate"><span class="pre">rot_y</span></code>, <code class="docutils literal notranslate"><span class="pre">rot_z</span></code>, <code class="docutils literal notranslate"><span class="pre">offset_x</span></code>, <code class="docutils literal notranslate"><span class="pre">offset_y</span></code>,
+<code class="docutils literal notranslate"><span class="pre">offset_z</span></code>, <code class="docutils literal notranslate"><span class="pre">scale</span></code>, or <code class="docutils literal notranslate"><span class="pre">yScale</span></code> is enabled, the <code class="docutils literal notranslate"><span class="pre">Matrix3</span></code> parameter will be
+unavailable.</p></li>
+<li><p>This limitation is intentional and adheres to Dagor Engine requirements.</p></li>
+</ul>
+</div>
+</li>
+<li><p><strong>Parameter block</strong> <span class="cnum">9</span>: responsible for randomizing node offsets along
+the x, y, z axes relative to the current position.</p></li>
+<li><p><strong>Scale Enabled</strong> <span class="cnum">10</span>: enables randomization of node scaling from the
+base scale value within the specified range.</p></li>
+<li><p><strong>yScale Enabled</strong> <span class="cnum">11</span>: enables randomization of scaling along the
+Y-axis (Z-axis in 3ds Max, which is up in Dagor).</p></li>
+<li><p><strong>aboveHit Enabled</strong> <span class="cnum">12</span>: enables fixed node positioning above the
+surface by the specified value in the <code class="docutils literal notranslate"><span class="pre">aboveHt</span></code> parameter.</p></li>
+</ul>
+<p>As the Dagor Engine evolves, new parameters may be added or existing ones
+modified. Always refer to the updated table of parameters.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This script is complex, functioning as an editor within the 3ds Max editor. It
+may contain bugs or errors. If you encounter any strange behavior or issues, do
+not try to resolve them yourself. Report them to the developer immediately to
+save time and facilitate quick fixes.</p>
+</div>
+<ul class="simple">
+<li><p><strong>Open Local Documentation</strong> <span class="cnum">13</span>: links to this documentation.</p></li>
+<li><p><strong>Contact with Developer</strong> <span class="cnum">14</span>: provides contact information for the
+developer if assistance is needed.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pivot_painter_vegetation_tool.html" class="btn btn-neutral float-left" title="Dagor Pivot Painter Vegetation Tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="transfer_vertex_position_to_vertex_color_tool.html" class="btn btn-neutral float-right" title="Dagor Transfer Vertex Position to Vertex Color Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

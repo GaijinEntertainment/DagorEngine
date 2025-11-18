@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1BufferGetter" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::BufferGetter</compoundname>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename DerivedType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1BufferGetter_1aecbbdb4d94bbc8e14e7e29dd8493a2e4" prot="public" static="no">
+        <type>DerivedType</type>
+        <definition>using resptr_detail::BufferGetter&lt; DerivedType &gt;::derived_t =  DerivedType</definition>
+        <argsstring></argsstring>
+        <name>derived_t</name>
+        <qualifiedname>resptr_detail::BufferGetter::derived_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="215" column="3" bodyfile="dag_resPtr.h" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1BufferGetter_1a1abf511e210234922beddbc39cf6a1cc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * resptr_detail::BufferGetter&lt; DerivedType &gt;::getBuf</definition>
+        <argsstring>() const</argsstring>
+        <name>getBuf</name>
+        <qualifiedname>resptr_detail::BufferGetter::getBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="217" column="11" bodyfile="dag_resPtr.h" bodystart="217" bodyend="221"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1BufferGetter_1af1aaeb0c8854fa5fc2e922eca2fd0a59" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID resptr_detail::BufferGetter&lt; DerivedType &gt;::getBufId</definition>
+        <argsstring>() const</argsstring>
+        <name>getBufId</name>
+        <qualifiedname>resptr_detail::BufferGetter::getBufId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="222" column="12" bodyfile="dag_resPtr.h" bodystart="222" bodyend="222"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resPtr.h" line="212" column="1" bodyfile="dag_resPtr.h" bodystart="213" bodyend="223"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1BufferGetter_1aecbbdb4d94bbc8e14e7e29dd8493a2e4" prot="public" virt="non-virtual"><scope>resptr_detail::BufferGetter</scope><name>derived_t</name></member>
+      <member refid="classresptr__detail_1_1BufferGetter_1a1abf511e210234922beddbc39cf6a1cc" prot="public" virt="non-virtual"><scope>resptr_detail::BufferGetter</scope><name>getBuf</name></member>
+      <member refid="classresptr__detail_1_1BufferGetter_1af1aaeb0c8854fa5fc2e922eca2fd0a59" prot="public" virt="non-virtual"><scope>resptr_detail::BufferGetter</scope><name>getBufId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

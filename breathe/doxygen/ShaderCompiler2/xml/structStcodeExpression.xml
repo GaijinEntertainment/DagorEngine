@@ -1,0 +1,305 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeExpression" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeExpression</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ElementType</name>
+        <qualifiedname>StcodeExpression::ElementType</qualifiedname>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59ab7230d8c2a8a24512f1433490edc73fd" prot="public">
+          <name>COMPLEX_SINGLE_OP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59ad692dff7ebc54a9feb3145854afc4b2e" prot="public">
+          <name>COMPLEX_MULTIPLE_OPS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59ab25f998178cd8c758b196d11f2684c86" prot="public">
+          <name>COLORVAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59a3e76310ec68ca96f5a593b5ca640b304" prot="public">
+          <name>GLOBVAR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59a39c2c52380c55eebeef3660ad99c19e8" prot="public">
+          <name>LOCVAR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59a4bedf2a9395e6be97ed06ff72a388859" prot="public">
+          <name>SHVAR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59afd3c4b3f69f8d37b82044b0c07d7f4dd" prot="public">
+          <name>REAL_CONST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59a4c6783e0d3b3d7c183a6b0eca466f0ab" prot="public">
+          <name>INT_CONST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59ac94814fe3bae87cddef85c5e9ae4b63c" prot="public">
+          <name>COLOR_CONST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59a39b30de9c4f3bd4b6594d3a83be14928" prot="public">
+          <name>SINGLE_CHANNEL_MASK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59affa369d68551d973da92416b3b9159a9" prot="public">
+          <name>MULTIPLE_CHANNEL_MASK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59a1e49c8ad07b69571bfcafaf18ac9fa5b" prot="public">
+          <name>FUNC</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="57" column="3" bodyfile="cppStcodeAssembly.h" bodystart="58" bodyend="71"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeExpression_1a0a933497c253764e2ba3260b2b8dc320" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeExpression::content</definition>
+        <argsstring></argsstring>
+        <name>content</name>
+        <qualifiedname>StcodeExpression::content</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="47" column="17" bodyfile="cppStcodeAssembly.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structStcodeExpression_1a79279ff102576c512783b8af33d787b0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr char</type>
+        <definition>constexpr char StcodeExpression::EXPR_ELEMENT_PLACEHOLDER</definition>
+        <argsstring></argsstring>
+        <name>EXPR_ELEMENT_PLACEHOLDER</name>
+        <qualifiedname>StcodeExpression::EXPR_ELEMENT_PLACEHOLDER</qualifiedname>
+        <initializer>= &apos;?&apos;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="49" column="25" bodyfile="cppStcodeAssembly.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeExpression_1aa7457777ae06838c04d70ce7c0095fb3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr char</type>
+        <definition>constexpr char StcodeExpression::EXPR_UNARY_OP_PLACEHOLDER</definition>
+        <argsstring></argsstring>
+        <name>EXPR_UNARY_OP_PLACEHOLDER</name>
+        <qualifiedname>StcodeExpression::EXPR_UNARY_OP_PLACEHOLDER</qualifiedname>
+        <initializer>= &apos;#&apos;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="50" column="25" bodyfile="cppStcodeAssembly.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeExpression_1a66415b17d801d69b4653cefaa52a69f8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr char</type>
+        <definition>constexpr char StcodeExpression::DEFAULT_TEMPLATE[]</definition>
+        <argsstring>[]</argsstring>
+        <name>DEFAULT_TEMPLATE</name>
+        <qualifiedname>StcodeExpression::DEFAULT_TEMPLATE</qualifiedname>
+        <initializer>= {<ref refid="structStcodeExpression_1a79279ff102576c512783b8af33d787b0" kindref="member">EXPR_ELEMENT_PLACEHOLDER</ref>, &apos;\0&apos;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="52" column="25" bodyfile="cppStcodeAssembly.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeExpression_1adc48bcffa78311bd660081bf6704b442" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StcodeExpression::StcodeExpression</definition>
+        <argsstring>(const char *template_content=DEFAULT_TEMPLATE)</argsstring>
+        <name>StcodeExpression</name>
+        <qualifiedname>StcodeExpression::StcodeExpression</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>template_content</declname>
+          <defval><ref refid="structStcodeExpression_1a66415b17d801d69b4653cefaa52a69f8" kindref="member">DEFAULT_TEMPLATE</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="55" column="3" bodyfile="cppStcodeAssembly.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeExpression_1a8b51ba11b686a94c48b82ece54692900" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeExpression::specifyNextExprElement</definition>
+        <argsstring>(ElementType elem_type, const void *arg1=nullptr, const void *arg2=nullptr, const void *arg3=nullptr, const void *arg4=nullptr)</argsstring>
+        <name>specifyNextExprElement</name>
+        <qualifiedname>StcodeExpression::specifyNextExprElement</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59" kindref="member">ElementType</ref></type>
+          <declname>elem_type</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>arg1</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>arg2</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>arg3</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>arg4</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> ///. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="73" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="56" bodyend="181"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeExpression_1af33ad75172183c87461bdade64cbdaf2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeExpression::specifyNextExprUnaryOp</definition>
+        <argsstring>(shexpr::UnaryOperator op)</argsstring>
+        <name>specifyNextExprUnaryOp</name>
+        <qualifiedname>StcodeExpression::specifyNextExprUnaryOp</qualifiedname>
+        <param>
+          <type>shexpr::UnaryOperator</type>
+          <declname>op</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="75" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="183" bodyend="190"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeExpression_1a37c7fd3237bc1d47dde0b62b9daf1486" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeExpression::releaseAssembledCode</definition>
+        <argsstring>()</argsstring>
+        <name>releaseAssembledCode</name>
+        <qualifiedname>StcodeExpression::releaseAssembledCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="77" column="17" bodyfile="cppStcodeAssembly.cpp" bodystart="192" bodyend="198"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structStcodeExpression_1a3e9c68af48104649b72114b1b8dd4e6c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeExpression::getFunctionCallTemplate</definition>
+        <argsstring>(functional::FunctionId func_id, const char *name, int arg_cnt)</argsstring>
+        <name>getFunctionCallTemplate</name>
+        <qualifiedname>StcodeExpression::getFunctionCallTemplate</qualifiedname>
+        <param>
+          <type>functional::FunctionId</type>
+          <declname>func_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>arg_cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="79" column="24" bodyfile="cppStcodeAssembly.cpp" bodystart="200" bodyend="235"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="45" column="1" bodyfile="cppStcodeAssembly.h" bodystart="46" bodyend="80"/>
+    <listofallmembers>
+      <member refid="structStcodeExpression_1a0a933497c253764e2ba3260b2b8dc320" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>content</name></member>
+      <member refid="structStcodeExpression_1a66415b17d801d69b4653cefaa52a69f8" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>DEFAULT_TEMPLATE</name></member>
+      <member refid="structStcodeExpression_1aaccadc8df002bf4a50f3700badd92c59" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>ElementType</name></member>
+      <member refid="structStcodeExpression_1a79279ff102576c512783b8af33d787b0" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>EXPR_ELEMENT_PLACEHOLDER</name></member>
+      <member refid="structStcodeExpression_1aa7457777ae06838c04d70ce7c0095fb3" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>EXPR_UNARY_OP_PLACEHOLDER</name></member>
+      <member refid="structStcodeExpression_1a3e9c68af48104649b72114b1b8dd4e6c" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>getFunctionCallTemplate</name></member>
+      <member refid="structStcodeExpression_1a37c7fd3237bc1d47dde0b62b9daf1486" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>releaseAssembledCode</name></member>
+      <member refid="structStcodeExpression_1a8b51ba11b686a94c48b82ece54692900" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>specifyNextExprElement</name></member>
+      <member refid="structStcodeExpression_1af33ad75172183c87461bdade64cbdaf2" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>specifyNextExprUnaryOp</name></member>
+      <member refid="structStcodeExpression_1adc48bcffa78311bd660081bf6704b442" prot="public" virt="non-virtual"><scope>StcodeExpression</scope><name>StcodeExpression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

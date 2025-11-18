@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagPosKey" kind="struct" language="C++" prot="public">
+    <compoundname>DagPosKey</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagPosKey_1a9e253baa3d10dc693dcf43664aedf2e7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagPosKey::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>DagPosKey::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="151" column="7" bodyfile="dagfmt.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagPosKey_1ac2af4871b6af345f146444dc8adc04d3" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 DagPosKey::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <qualifiedname>DagPosKey::p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="152" column="10" bodyfile="dagfmt.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagPosKey_1abbe789defa2d895419c259a58099629a" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 DagPosKey::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>DagPosKey::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="152" column="12" bodyfile="dagfmt.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagPosKey_1a7af49d7332a09e5f74a8da06b7f6efe0" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 DagPosKey::o</definition>
+        <argsstring></argsstring>
+        <name>o</name>
+        <qualifiedname>DagPosKey::o</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="152" column="14" bodyfile="dagfmt.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagPosKey_1a880b53678a3a26358e400431a7325c9c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagPosKey::DagPosKey</definition>
+        <argsstring>()</argsstring>
+        <name>DagPosKey</name>
+        <qualifiedname>DagPosKey::DagPosKey</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="153" column="3" bodyfile="dagfmt.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="149" column="1" bodyfile="dagfmt.h" bodystart="150" bodyend="154"/>
+    <listofallmembers>
+      <member refid="structDagPosKey_1a880b53678a3a26358e400431a7325c9c" prot="public" virt="non-virtual"><scope>DagPosKey</scope><name>DagPosKey</name></member>
+      <member refid="structDagPosKey_1abbe789defa2d895419c259a58099629a" prot="public" virt="non-virtual"><scope>DagPosKey</scope><name>i</name></member>
+      <member refid="structDagPosKey_1a7af49d7332a09e5f74a8da06b7f6efe0" prot="public" virt="non-virtual"><scope>DagPosKey</scope><name>o</name></member>
+      <member refid="structDagPosKey_1ac2af4871b6af345f146444dc8adc04d3" prot="public" virt="non-virtual"><scope>DagPosKey</scope><name>p</name></member>
+      <member refid="structDagPosKey_1a9e253baa3d10dc693dcf43664aedf2e7" prot="public" virt="non-virtual"><scope>DagPosKey</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,616 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lighting Catalog</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Materials" href="../materials/index.html" />
+    <link rel="prev" title="Placeable In-Game Light with Render Instance and Dynamic Model Support" href="in_game_placeable_light_source.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Lighting</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lights_creation_guide.html">Lights Creation Guide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lights.html">Lights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flickering_lights.html">Flickering Lights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="photometric_lights.html">Photometric Lights (IES)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adding_light_fixtures_to_building_composites.html">Adding Light Fixtures to Building Composites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="replacing_or_modifying_lights.html">Replacing or Modifying Lights in Props</a></li>
+<li class="toctree-l3"><a class="reference internal" href="in_game_placeable_light_source.html">Placeable In-Game Light with Render Instance and Dynamic Model Support</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Lighting Catalog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Lighting</a></li>
+      <li class="breadcrumb-item active">Lighting Catalog</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/lighting/lighting_catalog.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="lighting-catalog">
+<h1>Lighting Catalog<a class="headerlink" href="#lighting-catalog" title="Link to this heading"></a></h1>
+<p>This catalog is continuously updated.</p>
+<ul class="simple">
+<li><p>bunker_lamp_ceiling_b_on</p></li>
+</ul>
+<p><img alt="bunker_lamp_ceiling_b_on" src="../../_images/light_cat_bunker_lamp_ceiling_b_on.jpg" /></p>
+<ul class="simple">
+<li><p>is_chandelier_m_onoff_cmp</p></li>
+</ul>
+<p><img alt="is_chandelier_m_onoff_cmp" src="../../_images/light_cat_is_chandelier_m_onoff_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_chandelier_m_damaged_onoff_cmp</p></li>
+</ul>
+<p><img alt="is_chandelier_m_damaged_onoff_cmp" src="../../_images/light_cat_is_chandelier_m_damaged_onoff_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_chandelier_m_damaged_on_cmp</p></li>
+</ul>
+<p><img alt="is_chandelier_m_damaged_on_cmp" src="../../_images/light_cat_is_chandelier_m_damaged_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>town_lamp_a_on</p></li>
+</ul>
+<p><img alt="town_lamp_a_on" src="../../_images/light_cat_town_lamp_a_on.jpg" /></p>
+<ul class="simple">
+<li><p>is_african_lamp_a_glass_on</p></li>
+</ul>
+<p><img alt="is_african_lamp_a_glass_on" src="../../_images/light_cat_is_african_lamp_a_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_ceiling_a_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_ceiling_a_on_cmp" src="../../_images/light_cat_is_lamp_ceiling_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_ceiling_b_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_ceiling_b_on_cmp" src="../../_images/light_cat_is_lamp_ceiling_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>normandy_railway_bunker_a_projector_a_on_cmp</p></li>
+</ul>
+<p><img alt="normandy_railway_bunker_a_projector_a_on_cmp" src="../../_images/light_cat_normandy_railway_bunker_a_projector_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_c_d_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_c_d_on_cmp" src="../../_images/light_cat_factory_lamp_c_d_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>garage_floor_lamp_b_on</p></li>
+</ul>
+<p><img alt="garage_floor_lamp_b_on" src="../../_images/light_cat_garage_floor_lamp_b_on.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_a_d_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_a_d_on_cmp" src="../../_images/light_cat_factory_lamp_a_d_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_a_e_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_a_e_on_cmp" src="../../_images/light_cat_factory_lamp_a_e_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_warning_lamp_a_on_cmp</p></li>
+</ul>
+<p><img alt="factory_warning_lamp_a_on_cmp" src="../../_images/light_cat_factory_warning_lamp_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>hangar_projector_a_on_cmp</p></li>
+</ul>
+<p><img alt="hangar_projector_a_on_cmp" src="../../_images/light_cat_hangar_projector_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>us_ammunition_bunker_lamp_ceiling_a_on</p></li>
+</ul>
+<p><img alt="us_ammunition_bunker_lamp_ceiling_a_on" src="../../_images/light_cat_us_ammunition_bunker_lamp_ceiling_a_on.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_b_a_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_b_a_on_cmp" src="../../_images/light_cat_factory_lamp_b_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_b_b_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_b_b_on_cmp" src="../../_images/light_cat_factory_lamp_b_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_b_c_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_b_c_on_cmp" src="../../_images/light_cat_factory_lamp_b_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_b_d_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_b_d_on_cmp" src="../../_images/light_cat_factory_lamp_b_d_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_c_a_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_c_a_on_cmp" src="../../_images/light_cat_factory_lamp_c_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_c_b_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_c_b_on_cmp" src="../../_images/light_cat_factory_lamp_c_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_c_c_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_c_c_on_cmp" src="../../_images/light_cat_factory_lamp_c_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_troglodyte_lamp_a_on_cmp</p></li>
+</ul>
+<p><img alt="is_troglodyte_lamp_a_on_cmp" src="../../_images/light_cat_is_troglodyte_lamp_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_troglodyte_lamp_b_on_cmp</p></li>
+</ul>
+<p><img alt="is_troglodyte_lamp_b_on_cmp" src="../../_images/light_cat_is_troglodyte_lamp_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_troglodyte_lamp_c_on_cmp</p></li>
+</ul>
+<p><img alt="is_troglodyte_lamp_c_on_cmp" src="../../_images/light_cat_is_troglodyte_lamp_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_troglodyte_lamp_d_on_cmp</p></li>
+</ul>
+<p><img alt="is_troglodyte_lamp_d_on_cmp" src="../../_images/light_cat_is_troglodyte_lamp_d_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_troglodyte_lamp_e_on_cmp</p></li>
+</ul>
+<p><img alt="is_troglodyte_lamp_e_on_cmp" src="../../_images/light_cat_is_troglodyte_lamp_e_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_troglodyte_lamp_f_on_cmp</p></li>
+</ul>
+<p><img alt="is_troglodyte_lamp_f_on_cmp" src="../../_images/light_cat_is_troglodyte_lamp_f_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_troglodyte_lamp_g_on_cmp</p></li>
+</ul>
+<p><img alt="is_troglodyte_lamp_g_on_cmp" src="../../_images/light_cat_is_troglodyte_lamp_g_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_c_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_c_on_cmp" src="../../_images/light_cat_factory_lamp_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_e_a_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_e_a_on_cmp" src="../../_images/light_cat_factory_lamp_e_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_d_a_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_d_a_on_cmp" src="../../_images/light_cat_factory_lamp_d_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_d_b_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_d_b_on_cmp" src="../../_images/light_cat_factory_lamp_d_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_d_c_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_d_c_on_cmp" src="../../_images/light_cat_factory_lamp_d_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_e_b_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_e_b_on_cmp" src="../../_images/light_cat_factory_lamp_e_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_f_c_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_f_c_on_cmp" src="../../_images/light_cat_actory_lamp_f_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_e_c_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_e_c_on_cmp" src="../../_images/light_cat_factory_lamp_e_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_f_a_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_f_a_on_cmp" src="../../_images/light_cat_factory_lamp_f_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_f_b_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_f_b_on_cmp" src="../../_images/light_cat_factory_lamp_f_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>industrial_lamp_steel_floor_a_far_on_cmp</p></li>
+</ul>
+<p><img alt="industrial_lamp_steel_floor_a_far_on_cmp" src="../../_images/light_cat_industrial_lamp_steel_floor_a_far_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>industrial_lamp_steel_wall_a_far_on_cmp</p></li>
+</ul>
+<p><img alt="industrial_lamp_steel_wall_a_far_on_cmp" src="../../_images/light_cat_industrial_lamp_steel_wall_a_far_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>factory_lamp_g_on_cmp</p></li>
+</ul>
+<p><img alt="factory_lamp_g_on_cmp" src="../../_images/light_cat_factory_lamp_g_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_q_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_q_on_cmp" src="../../_images/light_cat_lamppost_q_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_wall_f_on</p></li>
+</ul>
+<p><img alt="is_lamp_wall_f_on" src="../../_images/light_cat_is_lamp_wall_f_on.jpg" /></p>
+<ul class="simple">
+<li><p>wall_lamp_a_onoff_b_cmp</p></li>
+</ul>
+<p><img alt="wall_lamp_a_onoff_b_cmp" src="../../_images/light_cat_wall_lamp_a_onoff_b_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>berlin_lamp_c_on_cmp</p></li>
+</ul>
+<p><img alt="berlin_lamp_c_on_cmp" src="../../_images/light_cat_berlin_lamp_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamp_wall_e_a_on_cmp</p></li>
+</ul>
+<p><img alt="lamp_wall_e_a_on_cmp" src="../../_images/light_cat_lamp_wall_e_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_wall_e_sh_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_wall_e_sh_on_cmp" src="../../_images/light_cat_is_lamp_wall_e_sh_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>bunker_lamp_wall_a_on</p></li>
+</ul>
+<p><img alt="bunker_lamp_wall_a_on" src="../../_images/light_cat_bunker_lamp_wall_a_on.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_wall_g_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_wall_g_on_cmp" src="../../_images/light_cat_is_lamp_wall_g_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>150cm_flak_sw_37_on_cmp</p></li>
+</ul>
+<p><img alt="150cm_flak_sw_37_on_cmp" src="../../_images/light_cat_150cm_flak_sw_37_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>garage_floor_lamp_a_b_on</p></li>
+</ul>
+<p><img alt="garage_floor_lamp_a_b_on" src="../../_images/light_cat_garage_floor_lamp_a_b_on.jpg" /></p>
+<ul class="simple">
+<li><p>cdk_lamp_a_on_cmp</p></li>
+</ul>
+<p><img alt="cdk_lamp_a_on_cmp" src="../../_images/light_cat_cdk_lamp_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>150cm_flak_sw_37_statick_on_cmp</p></li>
+</ul>
+<p><img alt="150cm_flak_sw_37_statick_on_cmp" src="../../_images/light_cat_150cm_flak_sw_37_statick_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>bunker_lamp_oil_a_on_hook_cmp</p></li>
+</ul>
+<p><img alt="bunker_lamp_oil_a_on_hook_cmp" src="../../_images/light_cat_bunker_lamp_oil_a_on_hook_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_celling_a_b_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_celling_a_b_on_cmp" src="../../_images/light_cat_is_lamp_celling_a_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_celling_a_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_celling_a_on_cmp" src="../../_images/light_cat_is_lamp_celling_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_celling_c_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_celling_c_on_cmp" src="../../_images/light_cat_is_lamp_celling_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_chandelier_h_tall_on_cmp</p></li>
+</ul>
+<p><img alt="is_chandelier_h_tall_on_cmp" src="../../_images/light_cat_is_chandelier_h_tall_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_celling_b_a_dmg_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_celling_b_a_dmg_on_cmp" src="../../_images/light_cat_is_lamp_celling_b_a_dmg_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_chandelier_a_on_cmp</p></li>
+</ul>
+<p><img alt="is_chandelier_a_on_cmp" src="../../_images/light_cat_is_chandelier_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_celling_b_b_dmg_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_celling_b_b_dmg_on_cmp" src="../../_images/light_cat_is_lamp_celling_b_b_dmg_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_chandelier_b_on_cmp</p></li>
+</ul>
+<p><img alt="is_chandelier_b_on_cmp" src="../../_images/light_cat_is_chandelier_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lantern_hanging_a_on</p></li>
+</ul>
+<p><img alt="is_lantern_hanging_a_on" src="../../_images/light_cat_is_lantern_hanging_a_on.jpg" /></p>
+<ul class="simple">
+<li><p>is_lantern_hanging_ceiling_a_on</p></li>
+</ul>
+<p><img alt="is_lantern_hanging_ceiling_a_on" src="../../_images/light_cat_is_lantern_hanging_ceiling_a_on.jpg" /></p>
+<ul class="simple">
+<li><p>is_lantern_hanging_wall_a_on</p></li>
+</ul>
+<p><img alt="is_lantern_hanging_wall_a_on" src="../../_images/light_cat_is_lantern_hanging_wall_a_on.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_wall_a_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_wall_a_on_cmp" src="../../_images/light_cat_is_lamp_wall_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_celling_b_on_cmp</p></li>
+</ul>
+<p><img alt="is_lamp_celling_b_on_cmp" src="../../_images/light_cat_is_lamp_celling_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_chandelier_h_on_cmp</p></li>
+</ul>
+<p><img alt="is_chandelier_h_on_cmp" src="../../_images/light_cat_is_chandelier_h_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>wooden_power_pole_d_on_cmp</p></li>
+</ul>
+<p><img alt="wooden_power_pole_d_on_cmp" src="../../_images/light_cat_wooden_power_pole_d_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>wooden_power_pole_f_on_cmp</p></li>
+</ul>
+<p><img alt="wooden_power_pole_f_on_cmp" src="../../_images/light_cat_wooden_power_pole_f_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>wooden_power_pole_d_glass_on</p></li>
+</ul>
+<p><img alt="wooden_power_pole_d_glass_on" src="../../_images/light_cat_wooden_power_pole_d_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_a_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_a_on_cmp" src="../../_images/light_cat_lamppost_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_b_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_b_on_cmp" src="../../_images/light_cat_lamppost_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_c_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_c_on_cmp" src="../../_images/light_cat_lamppost_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_d_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_d_on_cmp" src="../../_images/light_cat_lamppost_d_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_e_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_e_on_cmp" src="../../_images/light_cat_lamppost_e_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_f_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_f_on_cmp" src="../../_images/light_cat_lamppost_f_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_g_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_g_on_cmp" src="../../_images/light_cat_lamppost_g_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_h_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_h_on_cmp" src="../../_images/light_cat_lamppost_h_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_i_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_i_on_cmp" src="../../_images/light_cat_lamppost_i_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_j_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_j_on_cmp" src="../../_images/light_cat_lamppost_j_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_k_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_k_on_cmp" src="../../_images/light_cat_lamppost_k_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_l_on_always_cmp</p></li>
+</ul>
+<p><img alt="lamppost_l_on_always_cmp" src="../../_images/light_cat_lamppost_l_on_always_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_m_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_m_on_cmp" src="../../_images/light_cat_lamppost_m_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>wall_lamp_a_on_cmp</p></li>
+</ul>
+<p><img alt="wall_lamp_a_on_cmp" src="../../_images/light_cat_wall_lamp_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_huge_a_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_huge_a_on_cmp" src="../../_images/light_cat_lamppost_huge_a_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_huge_b_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_huge_b_on_cmp" src="../../_images/light_cat_lamppost_huge_b_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_huge_c_on_cmp</p></li>
+</ul>
+<p><img alt="lamppost_huge_c_on_cmp" src="../../_images/light_cat_lamppost_huge_c_on_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_huge_a_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_huge_a_glass_on" src="../../_images/light_cat_lamppost_huge_a_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_a_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_a_glass_on" src="../../_images/light_cat_lamppost_a_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_b_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_b_glass_on" src="../../_images/light_cat_lamppost_b_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_c_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_c_glass_on" src="../../_images/light_cat_lamppost_c_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_d_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_d_glass_on" src="../../_images/light_cat_lamppost_d_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_f_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_f_glass_on" src="../../_images/light_cat_lamppost_f_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_g_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_g_glass_on" src="../../_images/light_cat_lamppost_g_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_i_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_i_glass_on" src="../../_images/light_cat_lamppost_i_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_j_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_j_glass_on" src="../../_images/light_cat_lamppost_j_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_k_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_k_glass_on" src="../../_images/light_cat_lamppost_k_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_l_glass_always_on</p></li>
+</ul>
+<p><img alt="lamppost_l_glass_always_on" src="../../_images/light_cat_lamppost_l_glass_always_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_l_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_l_glass_on" src="../../_images/light_cat_lamppost_l_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>lamppost_m_glass_on</p></li>
+</ul>
+<p><img alt="lamppost_m_glass_on" src="../../_images/light_cat_lamppost_m_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>wall_lamp_a_glass_on</p></li>
+</ul>
+<p><img alt="wall_lamp_a_glass_on" src="../../_images/light_cat_wall_lamp_a_glass_on.jpg" /></p>
+<ul class="simple">
+<li><p>bonfire_a_vfx_cmp</p></li>
+</ul>
+<p><img alt="bonfire_a_vfx_cmp" src="../../_images/light_cat_bonfire_a_vfx_cmp.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_table_a</p></li>
+</ul>
+<p><img alt="is_lamp_table_a" src="../../_images/light_cat_is_lamp_table_a.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_floor_a</p></li>
+</ul>
+<p><img alt="is_lamp_floor_a" src="../../_images/light_cat_is_lamp_floor_a.jpg" /></p>
+<ul class="simple">
+<li><p>is_table_lamp_b</p></li>
+</ul>
+<p><img alt="is_table_lamp_b" src="../../_images/light_cat_is_table_lamp_b.jpg" /></p>
+<ul class="simple">
+<li><p>is_table_lamp_a</p></li>
+</ul>
+<p><img alt="is_table_lamp_a" src="../../_images/light_cat_is_table_lamp_a.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_wall_b</p></li>
+</ul>
+<p><img alt="is_lamp_wall_b" src="../../_images/light_cat_is_lamp_wall_b.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_wall_c</p></li>
+</ul>
+<p><img alt="is_lamp_wall_c" src="../../_images/light_cat_is_lamp_wall_c.jpg" /></p>
+<ul class="simple">
+<li><p>is_lamp_wall_d</p></li>
+</ul>
+<p><img alt="is_lamp_wall_d" src="../../_images/light_cat_is_lamp_wall_d.jpg" /></p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="in_game_placeable_light_source.html" class="btn btn-neutral float-left" title="Placeable In-Game Light with Render Instance and Dynamic Model Support" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../materials/index.html" class="btn btn-neutral float-right" title="Materials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,713 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshaders_1_1OverrideState" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::OverrideState</compoundname>
+    <includes refid="dag__overrideStates_8h" local="no">dag_overrideStates.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fe" prot="public" static="no" strong="no">
+        <type></type>
+        <name>StateBits</name>
+        <qualifiedname>shaders::OverrideState::StateBits</qualifiedname>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea90f531014929e4ca7a6c32375d315fd4" prot="public">
+          <name>Z_TEST_DISABLE</name>
+          <initializer>= 1 &lt;&lt; 0</initializer>
+          <briefdescription>
+<para>Disable depth test. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea7aad14961f0f4ee5028e2f877c9d41df" prot="public">
+          <name>Z_WRITE_DISABLE</name>
+          <initializer>= 1 &lt;&lt; 1</initializer>
+          <briefdescription>
+<para>Disable depth write. Can&apos;t be used with <ref refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea3942691bc325d761233b774f497ab8f0" kindref="member">Z_WRITE_ENABLE</ref>. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea5d20909c837d653b7a2e3097e7e2450e" prot="public">
+          <name>Z_BOUNDS_ENABLED</name>
+          <initializer>= 1 &lt;&lt; 2</initializer>
+          <briefdescription>
+<para>Enable depth bounds test. Check <computeroutput>hasDepthBoundsTest</computeroutput> driver cap to see if it is supported. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feafe3b6f95fe905a24bf6e82f3cb56f1d0" prot="public">
+          <name>Z_CLAMP_ENABLED</name>
+          <initializer>= 1 &lt;&lt; 3</initializer>
+          <briefdescription>
+<para>Enable depth clamp. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feaa85e27e56de967295bf3c7300af95073" prot="public">
+          <name>Z_FUNC</name>
+          <initializer>= 1 &lt;&lt; 4</initializer>
+          <briefdescription>
+<para>Override depth comparison function. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea150c98dbf8903a2a5950d1a71e440861" prot="public">
+          <name>Z_BIAS</name>
+          <initializer>= 1 &lt;&lt; 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Override depth bias or/and slope depth bias. See <ref refid="structshaders_1_1OverrideState_1a4b10250cb91f33f00dcc05e3ac90c535" kindref="member">zBias</ref> and <ref refid="structshaders_1_1OverrideState_1aa9b9c5abf925125c738a74fe5aea1197" kindref="member">slopeZBias</ref>. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea5ecb798cc19d1af06c734e466b41d9ff" prot="public">
+          <name>STENCIL</name>
+          <initializer>= 1 &lt;&lt; 6</initializer>
+          <briefdescription>
+<para>Override the whole stencil state. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea46a02b487105ad17bd5998f23e47a413" prot="public">
+          <name>BLEND_OP</name>
+          <initializer>= 1 &lt;&lt; 7</initializer>
+          <briefdescription>
+<para>Override blend operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea09b4b7727d7ce39b3c9f8df0f7538788" prot="public">
+          <name>BLEND_OP_A</name>
+          <initializer>= 1 &lt;&lt; 8</initializer>
+          <briefdescription>
+<para>Override alpha blend operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea5d3b9720316db2c9ce4f2a19feb77305" prot="public">
+          <name>BLEND_SRC_DEST</name>
+          <initializer>= 1 &lt;&lt; 9</initializer>
+          <briefdescription>
+<para>Override source and destination blend factors. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feacb55c6dbc21ae585e05a9c81dc7d0fcf" prot="public">
+          <name>BLEND_SRC_DEST_A</name>
+          <initializer>= 1 &lt;&lt; 10</initializer>
+          <briefdescription>
+<para>Override source and destination alpha blend factors. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea2bbe148cb85b2d054c1ca912b27c8f63" prot="public">
+          <name>CULL_NONE</name>
+          <initializer>= 1 &lt;&lt; 11</initializer>
+          <briefdescription>
+<para>Disables any face culling even if <ref refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea7c4a9fc94ee7a79653679c7311583bc3" kindref="member">FLIP_CULL</ref> is used. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea7c4a9fc94ee7a79653679c7311583bc3" prot="public">
+          <name>FLIP_CULL</name>
+          <initializer>= 1 &lt;&lt; 12</initializer>
+          <briefdescription>
+<para>Flip culling mode. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feae7eb30c3be3348ce0c43192c3a366606" prot="public">
+          <name>FORCED_SAMPLE_COUNT</name>
+          <initializer>= 1 &lt;&lt; 13</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Override forced sample count. Check <computeroutput>hasForcedSamplerCount</computeroutput> and <computeroutput>hasUAVOnlyForcedSampleCount</computeroutput> driver caps to see if it is supported. Doesn&apos;t have any effect if <ref refid="structshaders_1_1OverrideState_1a80635cdb29f9794fe2e281f5cae05103" kindref="member">forcedSampleCount</ref> is 0. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea9e4071864e58c265d7902e85fa47d2ab" prot="public">
+          <name>CONSERVATIVE</name>
+          <initializer>= 1 &lt;&lt; 14</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Enable conservative rasterization. Check <computeroutput>hasConservativeRassterization</computeroutput> driver cap to see if it is supported. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea747e6eae9288efc1109d70c12904e937" prot="public">
+          <name>SCISSOR_ENABLED</name>
+          <initializer>= 1 &lt;&lt; 15</initializer>
+          <briefdescription>
+<para>Enable scissor test. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea9f761f2655fb534541cdeb471ccd86b1" prot="public">
+          <name>ALPHA_TO_COVERAGE</name>
+          <initializer>= 1 &lt;&lt; 16</initializer>
+          <briefdescription>
+<para>Enable alpha-to-coverage. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea3942691bc325d761233b774f497ab8f0" prot="public">
+          <name>Z_WRITE_ENABLE</name>
+          <initializer>= 1 &lt;&lt; 17</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Enable depth write. Can&apos;t be used with <ref refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea7aad14961f0f4ee5028e2f877c9d41df" kindref="member">Z_WRITE_DISABLE</ref>. It doesn&apos;t have any effect if <ref refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feae7eb30c3be3348ce0c43192c3a366606" kindref="member">FORCED_SAMPLE_COUNT</ref> is enabled. </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Bit flags that describe which parameters are overridden. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="85" column="3" bodyfile="dag_overrideStates.h" bodystart="86" bodyend="110"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1a05b3e97a8f33f238d2c49ed1739a359f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::OverrideState::bits</definition>
+        <argsstring></argsstring>
+        <name>bits</name>
+        <qualifiedname>shaders::OverrideState::bits</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Bit flags that describe which parameters are overridden. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="111" column="12" bodyfile="dag_overrideStates.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1ae11167fdcd329e7afaee4c5f3583cbc8" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::zFunc</definition>
+        <argsstring></argsstring>
+        <name>zFunc</name>
+        <qualifiedname>shaders::OverrideState::zFunc</qualifiedname>
+        <briefdescription>
+<para>Overridden depth function value. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><xrefsect id="todo_1_todo000002"><xreftitle>Todo</xreftitle><xrefdescription><para>zFunc can be 3 bits </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="112" column="11" bodyfile="dag_overrideStates.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1a80635cdb29f9794fe2e281f5cae05103" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::forcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>forcedSampleCount</name>
+        <qualifiedname>shaders::OverrideState::forcedSampleCount</qualifiedname>
+        <briefdescription>
+<para>Overridden forced sample count. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="113" column="11" bodyfile="dag_overrideStates.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1a28e77a49feff138c39d75e1b65e87c65" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::blendOp</definition>
+        <argsstring></argsstring>
+        <name>blendOp</name>
+        <qualifiedname>shaders::OverrideState::blendOp</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden blend operation. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><xrefsect id="todo_1_todo000003"><xreftitle>Todo</xreftitle><xrefdescription><para>blendOp can be 3 bits </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="114" column="11" bodyfile="dag_overrideStates.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1a68e7eb67c4effe05e05626d905455f79" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::blendOpA</definition>
+        <argsstring></argsstring>
+        <name>blendOpA</name>
+        <qualifiedname>shaders::OverrideState::blendOpA</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden alpha blend operation. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><xrefsect id="todo_1_todo000004"><xreftitle>Todo</xreftitle><xrefdescription><para>blendOpA can be 3 bits </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="115" column="11" bodyfile="dag_overrideStates.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1a2db1b8bc2bdb5625b7daf8d5b4e4206a" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::sblend</definition>
+        <argsstring></argsstring>
+        <name>sblend</name>
+        <qualifiedname>shaders::OverrideState::sblend</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden source blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="116" column="11" bodyfile="dag_overrideStates.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1acd381ad863922ee27be5cfe5cb018afc" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::dblend</definition>
+        <argsstring></argsstring>
+        <name>dblend</name>
+        <qualifiedname>shaders::OverrideState::dblend</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden destination blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="117" column="11" bodyfile="dag_overrideStates.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1af6a6fe4a7a93b787a9f28447fc1b59b8" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::sblenda</definition>
+        <argsstring></argsstring>
+        <name>sblenda</name>
+        <qualifiedname>shaders::OverrideState::sblenda</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden source alpha blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="118" column="11" bodyfile="dag_overrideStates.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1ac82347a3f446e7652d38bc8f94c3b946" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::OverrideState::dblenda</definition>
+        <argsstring></argsstring>
+        <name>dblenda</name>
+        <qualifiedname>shaders::OverrideState::dblenda</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden destination alpha blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="119" column="11" bodyfile="dag_overrideStates.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1afde29fa92dc98f71dff6a089b130e6f4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::OverrideState::colorWr</definition>
+        <argsstring></argsstring>
+        <name>colorWr</name>
+        <qualifiedname>shaders::OverrideState::colorWr</qualifiedname>
+        <initializer>= 0xFFFFFFFF</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Overridden color write mask. It is always <computeroutput>&amp;=</computeroutput> with the color write mask of the current render state. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="120" column="12" bodyfile="dag_overrideStates.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1a0ec08ec8c5f3003fc3171f65865da355" prot="public" static="no" mutable="no">
+        <type><ref refid="structshaders_1_1StencilState" kindref="compound">StencilState</ref></type>
+        <definition>StencilState shaders::OverrideState::stencil</definition>
+        <argsstring></argsstring>
+        <name>stencil</name>
+        <qualifiedname>shaders::OverrideState::stencil</qualifiedname>
+        <briefdescription>
+<para>Overridden stencil state. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="122" column="16" bodyfile="dag_overrideStates.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1a4b10250cb91f33f00dcc05e3ac90c535" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shaders::OverrideState::zBias</definition>
+        <argsstring></argsstring>
+        <name>zBias</name>
+        <qualifiedname>shaders::OverrideState::zBias</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden depth bias value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="124" column="9" bodyfile="dag_overrideStates.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1OverrideState_1aa9b9c5abf925125c738a74fe5aea1197" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shaders::OverrideState::slopeZBias</definition>
+        <argsstring></argsstring>
+        <name>slopeZBias</name>
+        <qualifiedname>shaders::OverrideState::slopeZBias</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Overridden slope depth bias value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="125" column="9" bodyfile="dag_overrideStates.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1aa577034d696647a65fe7093b740187f9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::OverrideState::isOn</definition>
+        <argsstring>(uint32_t mask) const</argsstring>
+        <name>isOn</name>
+        <qualifiedname>shaders::OverrideState::isOn</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>mask</declname>
+        </param>
+        <briefdescription>
+<para>Check if any of the given features (bitset) is set. Use it to check only a single feature. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bitset to check.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if any of the given features is set. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="134" column="8" bodyfile="dag_overrideStates.h" bodystart="134" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1a703db64997f399b676a465e1af543e11" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::OverrideState::set</definition>
+        <argsstring>(uint32_t mask)</argsstring>
+        <name>set</name>
+        <qualifiedname>shaders::OverrideState::set</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>mask</declname>
+        </param>
+        <briefdescription>
+<para>Set the given features (bitset). </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bitset to set. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="140" column="8" bodyfile="dag_overrideStates.h" bodystart="140" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1a81d156a38ec54388ec1356cfabbd729f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::OverrideState::reset</definition>
+        <argsstring>(uint32_t mask)</argsstring>
+        <name>reset</name>
+        <qualifiedname>shaders::OverrideState::reset</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>mask</declname>
+        </param>
+        <briefdescription>
+<para>Reset the given features (bitset). </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bitset to reset. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="146" column="8" bodyfile="dag_overrideStates.h" bodystart="146" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1a82ea2459531282089e62a3c762ca1bfa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::OverrideState::OverrideState</definition>
+        <argsstring>()</argsstring>
+        <name>OverrideState</name>
+        <qualifiedname>shaders::OverrideState::OverrideState</qualifiedname>
+        <briefdescription>
+<para>Default constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>None of the features are set. Color write mask is set to 0xFFFFFFFF, so it doesn&apos;t have any effect. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="153" column="3" bodyfile="dag_overrideStates.h" bodystart="153" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1a56e72e01f09158e388c840ae849ddf53" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::OverrideState::OverrideState</definition>
+        <argsstring>(const OverrideState &amp;a)</argsstring>
+        <name>OverrideState</name>
+        <qualifiedname>shaders::OverrideState::OverrideState</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+<para>Copy constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Since it&apos;s a POD class, it&apos;s safe to use memcpy.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>a</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The object to copy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="165" column="3" bodyfile="dag_overrideStates.h" bodystart="165" bodyend="165"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1a372bea118a04ca0a0d7f7a68ca1ed5ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref> &amp;</type>
+        <definition>OverrideState &amp; shaders::OverrideState::operator=</definition>
+        <argsstring>(const OverrideState &amp;a)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>shaders::OverrideState::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+<para>Assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Since it&apos;s a POD class, it&apos;s safe to use memcpy.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>a</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The object to copy.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Reference to this object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="176" column="17" bodyfile="dag_overrideStates.h" bodystart="176" bodyend="181"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1a4329966c9311fd18c9e74b47c5d9fb91" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::OverrideState::operator==</definition>
+        <argsstring>(const OverrideState &amp;s) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>shaders::OverrideState::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+<para>Compare two objects. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para><ref refid="structshaders_1_1OverrideState_1a4b10250cb91f33f00dcc05e3ac90c535" kindref="member">zBias</ref> and <ref refid="structshaders_1_1OverrideState_1aa9b9c5abf925125c738a74fe5aea1197" kindref="member">slopeZBias</ref> are float values, so be careful with the operator because it compares override states bitwise.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>s</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The object to compare.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the objects are equal. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="193" column="8" bodyfile="dag_overrideStates.h" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1a768f62549da13447606449a15f5b9da2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::OverrideState::operator!=</definition>
+        <argsstring>(const OverrideState &amp;s) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>shaders::OverrideState::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+<para>Compare two objects. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para><ref refid="structshaders_1_1OverrideState_1a4b10250cb91f33f00dcc05e3ac90c535" kindref="member">zBias</ref> and <ref refid="structshaders_1_1OverrideState_1aa9b9c5abf925125c738a74fe5aea1197" kindref="member">slopeZBias</ref> are float values, so be careful with the operator because it compares override states bitwise.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>s</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The object to compare.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the objects are not equal. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="204" column="8" bodyfile="dag_overrideStates.h" bodystart="204" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1OverrideState_1af811a6999780626ea145099966045f19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::OverrideState::validate</definition>
+        <argsstring>()</argsstring>
+        <name>validate</name>
+        <qualifiedname>shaders::OverrideState::validate</qualifiedname>
+        <briefdescription>
+<para>Validate the object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If some features are not set, it sets the corresponding values to 0. Overrides for <ref refid="structshaders_1_1OverrideState_1a4b10250cb91f33f00dcc05e3ac90c535" kindref="member">zBias</ref>, <ref refid="structshaders_1_1OverrideState_1aa9b9c5abf925125c738a74fe5aea1197" kindref="member">slopeZBias</ref>, <ref refid="structshaders_1_1OverrideState_1a80635cdb29f9794fe2e281f5cae05103" kindref="member">forcedSampleCount</ref>, <ref refid="structshaders_1_1OverrideState_1ae11167fdcd329e7afaee4c5f3583cbc8" kindref="member">zFunc</ref>, <ref refid="structshaders_1_1OverrideState_1a28e77a49feff138c39d75e1b65e87c65" kindref="member">blendOp</ref>, and <ref refid="structshaders_1_1OverrideState_1a0ec08ec8c5f3003fc3171f65865da355" kindref="member">stencil</ref> are set to 0 if corresponding bits are not set.</para>
+<para><xrefsect id="todo_1_todo000005"><xreftitle>Todo</xreftitle><xrefdescription><para>Rename the method since it doesn&apos;t validate the object, but moves the object to a valid state. </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStates.h" line="216" column="8" bodyfile="dag_overrideStates.h" bodystart="216" bodyend="228"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A structure that describes current override for a render state. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>It is used to override some render state parameters. </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>shaders::OverrideState</label>
+        <link refid="structshaders_1_1OverrideState"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>stencil</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders::StencilState</label>
+        <link refid="structshaders_1_1StencilState"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_overrideStates.h" line="80" column="1" bodyfile="dag_overrideStates.h" bodystart="81" bodyend="229"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea9f761f2655fb534541cdeb471ccd86b1" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>ALPHA_TO_COVERAGE</name></member>
+      <member refid="structshaders_1_1OverrideState_1a05b3e97a8f33f238d2c49ed1739a359f" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>bits</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea46a02b487105ad17bd5998f23e47a413" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>BLEND_OP</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea09b4b7727d7ce39b3c9f8df0f7538788" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>BLEND_OP_A</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea5d3b9720316db2c9ce4f2a19feb77305" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>BLEND_SRC_DEST</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feacb55c6dbc21ae585e05a9c81dc7d0fcf" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>BLEND_SRC_DEST_A</name></member>
+      <member refid="structshaders_1_1OverrideState_1a28e77a49feff138c39d75e1b65e87c65" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>blendOp</name></member>
+      <member refid="structshaders_1_1OverrideState_1a68e7eb67c4effe05e05626d905455f79" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>blendOpA</name></member>
+      <member refid="structshaders_1_1OverrideState_1afde29fa92dc98f71dff6a089b130e6f4" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>colorWr</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea9e4071864e58c265d7902e85fa47d2ab" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>CONSERVATIVE</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea2bbe148cb85b2d054c1ca912b27c8f63" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>CULL_NONE</name></member>
+      <member refid="structshaders_1_1OverrideState_1acd381ad863922ee27be5cfe5cb018afc" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>dblend</name></member>
+      <member refid="structshaders_1_1OverrideState_1ac82347a3f446e7652d38bc8f94c3b946" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>dblenda</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea7c4a9fc94ee7a79653679c7311583bc3" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>FLIP_CULL</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feae7eb30c3be3348ce0c43192c3a366606" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>FORCED_SAMPLE_COUNT</name></member>
+      <member refid="structshaders_1_1OverrideState_1a80635cdb29f9794fe2e281f5cae05103" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>forcedSampleCount</name></member>
+      <member refid="structshaders_1_1OverrideState_1aa577034d696647a65fe7093b740187f9" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>isOn</name></member>
+      <member refid="structshaders_1_1OverrideState_1a768f62549da13447606449a15f5b9da2" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>operator!=</name></member>
+      <member refid="structshaders_1_1OverrideState_1a372bea118a04ca0a0d7f7a68ca1ed5ae" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>operator=</name></member>
+      <member refid="structshaders_1_1OverrideState_1a4329966c9311fd18c9e74b47c5d9fb91" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>operator==</name></member>
+      <member refid="structshaders_1_1OverrideState_1a82ea2459531282089e62a3c762ca1bfa" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>OverrideState</name></member>
+      <member refid="structshaders_1_1OverrideState_1a56e72e01f09158e388c840ae849ddf53" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>OverrideState</name></member>
+      <member refid="structshaders_1_1OverrideState_1a81d156a38ec54388ec1356cfabbd729f" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>reset</name></member>
+      <member refid="structshaders_1_1OverrideState_1a2db1b8bc2bdb5625b7daf8d5b4e4206a" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>sblend</name></member>
+      <member refid="structshaders_1_1OverrideState_1af6a6fe4a7a93b787a9f28447fc1b59b8" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>sblenda</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea747e6eae9288efc1109d70c12904e937" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>SCISSOR_ENABLED</name></member>
+      <member refid="structshaders_1_1OverrideState_1a703db64997f399b676a465e1af543e11" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>set</name></member>
+      <member refid="structshaders_1_1OverrideState_1aa9b9c5abf925125c738a74fe5aea1197" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>slopeZBias</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fe" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>StateBits</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea5ecb798cc19d1af06c734e466b41d9ff" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>STENCIL</name></member>
+      <member refid="structshaders_1_1OverrideState_1a0ec08ec8c5f3003fc3171f65865da355" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>stencil</name></member>
+      <member refid="structshaders_1_1OverrideState_1af811a6999780626ea145099966045f19" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>validate</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea150c98dbf8903a2a5950d1a71e440861" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>Z_BIAS</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea5d20909c837d653b7a2e3097e7e2450e" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>Z_BOUNDS_ENABLED</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feafe3b6f95fe905a24bf6e82f3cb56f1d0" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>Z_CLAMP_ENABLED</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3feaa85e27e56de967295bf3c7300af95073" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>Z_FUNC</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea90f531014929e4ca7a6c32375d315fd4" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>Z_TEST_DISABLE</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea7aad14961f0f4ee5028e2f877c9d41df" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>Z_WRITE_DISABLE</name></member>
+      <member refid="structshaders_1_1OverrideState_1a424ed03658d39bbdbe0e3e87dba2d3fea3942691bc325d761233b774f497ab8f0" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>Z_WRITE_ENABLE</name></member>
+      <member refid="structshaders_1_1OverrideState_1a4b10250cb91f33f00dcc05e3ac90c535" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>zBias</name></member>
+      <member refid="structshaders_1_1OverrideState_1ae11167fdcd329e7afaee4c5f3583cbc8" prot="public" virt="non-virtual"><scope>shaders::OverrideState</scope><name>zFunc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

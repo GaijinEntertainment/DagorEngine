@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1Streamline" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>nv::Streamline</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structnv_1_1Streamline_1a3921f85a4f7178c16561068cf5729f1e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65" kindref="member">nv::SupportState</ref></type>
+        <definition>virtual nv::SupportState nv::Streamline::isDlssSupported</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isDlssSupported</name>
+        <qualifiedname>nv::Streamline::isDlssSupported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="232" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1a1c66f0b8c28ecc7c3a20e5e4c0a01065" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65" kindref="member">nv::SupportState</ref></type>
+        <definition>virtual nv::SupportState nv::Streamline::isDlssGSupported</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isDlssGSupported</name>
+        <qualifiedname>nv::Streamline::isDlssGSupported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="233" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1a88af2d8db27bfc158e6e676b4bcd260e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65" kindref="member">nv::SupportState</ref></type>
+        <definition>virtual nv::SupportState nv::Streamline::isDlssRRSupported</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isDlssRRSupported</name>
+        <qualifiedname>nv::Streamline::isDlssRRSupported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="234" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1a7a8318890ef9e0c80497c376469259a5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65" kindref="member">nv::SupportState</ref></type>
+        <definition>virtual nv::SupportState nv::Streamline::isReflexSupported</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isReflexSupported</name>
+        <qualifiedname>nv::Streamline::isReflexSupported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="235" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1ab4ef30a3273171ac6254b59c81e6c0e7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>dag::Expected&lt; eastl::string, <ref refid="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65" kindref="member">nv::SupportState</ref> &gt;</type>
+        <definition>virtual dag::Expected&lt; eastl::string, nv::SupportState &gt; nv::Streamline::getDlssVersion</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getDlssVersion</name>
+        <qualifiedname>nv::Streamline::getDlssVersion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="237" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1a990f8bf7a171be05cf9872eec5124f1b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="structnv_1_1Reflex" kindref="compound">Reflex</ref> *</type>
+        <definition>virtual Reflex * nv::Streamline::createReflexFeature</definition>
+        <argsstring>()=0</argsstring>
+        <name>createReflexFeature</name>
+        <qualifiedname>nv::Streamline::createReflexFeature</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="239" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1afe7125b2f54880548c692d3dd0745121" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void nv::Streamline::releaseReflexFeature</definition>
+        <argsstring>()=0</argsstring>
+        <name>releaseReflexFeature</name>
+        <qualifiedname>nv::Streamline::releaseReflexFeature</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="240" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1ad0f76106ba7b8c5223ecfe1de400dc7f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="structnv_1_1DLSS" kindref="compound">DLSS</ref> *</type>
+        <definition>virtual DLSS * nv::Streamline::getDlssFeature</definition>
+        <argsstring>(int viewport_id)=0</argsstring>
+        <name>getDlssFeature</name>
+        <qualifiedname>nv::Streamline::getDlssFeature</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>viewport_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="242" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1a194ecb4cd29d5fce375a50fb9cde6957" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="structnv_1_1DLSSFrameGeneration" kindref="compound">DLSSFrameGeneration</ref> *</type>
+        <definition>virtual DLSSFrameGeneration * nv::Streamline::getDlssGFeature</definition>
+        <argsstring>(int viewport_id)=0</argsstring>
+        <name>getDlssGFeature</name>
+        <qualifiedname>nv::Streamline::getDlssGFeature</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>viewport_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="243" column="31"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1ab822e8b54ffbd0c1b3fcba428a4390c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="structnv_1_1Reflex" kindref="compound">Reflex</ref> *</type>
+        <definition>virtual Reflex * nv::Streamline::getReflexFeature</definition>
+        <argsstring>()=0</argsstring>
+        <name>getReflexFeature</name>
+        <qualifiedname>nv::Streamline::getReflexFeature</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="244" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1afb61e577a3fcc0d32ca12b803c281039" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int nv::Streamline::getMaximumNumberOfGeneratedFrames</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getMaximumNumberOfGeneratedFrames</name>
+        <qualifiedname>nv::Streamline::getMaximumNumberOfGeneratedFrames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="246" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1a08b496171beef0734259f8acaa815a36" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool nv::Streamline::isDlssModeAvailableAtResolution</definition>
+        <argsstring>(nv::DLSS::Mode mode, const IPoint2 &amp;resolution) const =0</argsstring>
+        <name>isDlssModeAvailableAtResolution</name>
+        <qualifiedname>nv::Streamline::isDlssModeAvailableAtResolution</qualifiedname>
+        <param>
+          <type><ref refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245f" kindref="member">nv::DLSS::Mode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>resolution</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="247" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1Streamline_1a30bb7f8d81b62b923ed3b4bd07db6400" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structnv_1_1DLSS_1a49121e1021cca1b878c332c1661ab95a" kindref="member">DLSS::State</ref></type>
+        <definition>DLSS::State nv::Streamline::getDlssState</definition>
+        <argsstring>()</argsstring>
+        <name>getDlssState</name>
+        <qualifiedname>nv::Streamline::getDlssState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="250" column="15" bodyfile="dag_nvFeatures.h" bodystart="250" bodyend="262"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="230" column="1" bodyfile="dag_nvFeatures.h" bodystart="231" bodyend="263"/>
+    <listofallmembers>
+      <member refid="structnv_1_1Streamline_1a990f8bf7a171be05cf9872eec5124f1b" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>createReflexFeature</name></member>
+      <member refid="structnv_1_1Streamline_1ad0f76106ba7b8c5223ecfe1de400dc7f" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>getDlssFeature</name></member>
+      <member refid="structnv_1_1Streamline_1a194ecb4cd29d5fce375a50fb9cde6957" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>getDlssGFeature</name></member>
+      <member refid="structnv_1_1Streamline_1a30bb7f8d81b62b923ed3b4bd07db6400" prot="public" virt="non-virtual"><scope>nv::Streamline</scope><name>getDlssState</name></member>
+      <member refid="structnv_1_1Streamline_1ab4ef30a3273171ac6254b59c81e6c0e7" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>getDlssVersion</name></member>
+      <member refid="structnv_1_1Streamline_1afb61e577a3fcc0d32ca12b803c281039" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>getMaximumNumberOfGeneratedFrames</name></member>
+      <member refid="structnv_1_1Streamline_1ab822e8b54ffbd0c1b3fcba428a4390c2" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>getReflexFeature</name></member>
+      <member refid="structnv_1_1Streamline_1a1c66f0b8c28ecc7c3a20e5e4c0a01065" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>isDlssGSupported</name></member>
+      <member refid="structnv_1_1Streamline_1a08b496171beef0734259f8acaa815a36" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>isDlssModeAvailableAtResolution</name></member>
+      <member refid="structnv_1_1Streamline_1a88af2d8db27bfc158e6e676b4bcd260e" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>isDlssRRSupported</name></member>
+      <member refid="structnv_1_1Streamline_1a3921f85a4f7178c16561068cf5729f1e" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>isDlssSupported</name></member>
+      <member refid="structnv_1_1Streamline_1a7a8318890ef9e0c80497c376469259a5" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>isReflexSupported</name></member>
+      <member refid="structnv_1_1Streamline_1afe7125b2f54880548c692d3dd0745121" prot="public" virt="pure-virtual"><scope>nv::Streamline</scope><name>releaseReflexFeature</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

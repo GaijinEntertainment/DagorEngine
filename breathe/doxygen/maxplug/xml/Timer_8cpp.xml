@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="Timer_8cpp" kind="file" language="C++">
+    <compoundname>Timer.cpp</compoundname>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>(__cplusplus<sp/>&gt;=<sp/>201100L)<sp/>||<sp/>(defined(_MSVC_LANG)<sp/>&amp;&amp;<sp/>_MSVC_LANG<sp/>&gt;=<sp/>201100L)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="Timer_8hpp" kindref="compound">Timer.hpp</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"><ref refid="classTimer_1a5f16e8da27d2a5a5242dead46de05d97" kindref="member">Timer::Timer</ref>()<sp/>:<sp/>_current(std::chrono::high_resolution_clock::now()),<sp/>_prev(_current),<sp/>_start(_current)<sp/>{}</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="Timer.cpp"/>
+  </compounddef>
+</doxygen>

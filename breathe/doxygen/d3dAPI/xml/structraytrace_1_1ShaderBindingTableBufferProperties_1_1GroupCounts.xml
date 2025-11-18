@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderBindingTableBufferProperties::GroupCounts</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a91f299ba3f2c722315606e8a837e7be2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::GroupCounts::rayGenGroupCount</definition>
+        <argsstring></argsstring>
+        <name>rayGenGroupCount</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::GroupCounts::rayGenGroupCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of ray gen shader groups. Usually 1. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="773" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="773" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a4702935ee1950c024ed4cd865915cf42" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::GroupCounts::missGroupCount</definition>
+        <argsstring></argsstring>
+        <name>missGroupCount</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::GroupCounts::missGroupCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of miss shader groups. Usually 1. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="775" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="775" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a266984fe243695edbbad1d297cc5317b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::GroupCounts::hitGroupCount</definition>
+        <argsstring></argsstring>
+        <name>hitGroupCount</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::GroupCounts::hitGroupCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of hit shader groups. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="777" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="777" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a557320bf1fbadc81bebf784d3d5acba5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableBufferProperties::GroupCounts::callableGroupCount</definition>
+        <argsstring></argsstring>
+        <name>callableGroupCount</name>
+        <qualifiedname>raytrace::ShaderBindingTableBufferProperties::GroupCounts::callableGroupCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of callable groups. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="779" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="779" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Counts of shader groups to calculate the size of a buffer used as a shader binding table. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="770" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="771" bodyend="780"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a557320bf1fbadc81bebf784d3d5acba5" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties::GroupCounts</scope><name>callableGroupCount</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a266984fe243695edbbad1d297cc5317b" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties::GroupCounts</scope><name>hitGroupCount</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a4702935ee1950c024ed4cd865915cf42" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties::GroupCounts</scope><name>missGroupCount</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableBufferProperties_1_1GroupCounts_1a91f299ba3f2c722315606e8a837e7be2" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableBufferProperties::GroupCounts</scope><name>rayGenGroupCount</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

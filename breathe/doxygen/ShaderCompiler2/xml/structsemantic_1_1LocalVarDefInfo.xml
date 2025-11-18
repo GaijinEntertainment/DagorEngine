@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1LocalVarDefInfo" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::LocalVarDefInfo</compoundname>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1LocalVarDefInfo_1a527e63663e14d98ae38f1e26e04390de" prot="public" static="no" mutable="no">
+        <type><ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+        <definition>LocalVar* semantic::LocalVarDefInfo::var</definition>
+        <argsstring></argsstring>
+        <name>var</name>
+        <qualifiedname>semantic::LocalVarDefInfo::var</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="303" column="12" bodyfile="variantSemantic.h" bodystart="303" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1LocalVarDefInfo_1a66a7b5d17b2d262945565f782a573950" prot="public" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ShaderParser::ComplexExpression</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;ShaderParser::ComplexExpression&gt; semantic::LocalVarDefInfo::expr</definition>
+        <argsstring></argsstring>
+        <name>expr</name>
+        <qualifiedname>semantic::LocalVarDefInfo::expr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="304" column="21" bodyfile="variantSemantic.h" bodystart="304" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>LocalVar</label>
+        <link refid="structLocalVar"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cv</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>LocalVar::ConstValue</label>
+        <link refid="unionLocalVar_1_1ConstValue"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>c</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>semantic::LocalVarDefInfo</label>
+        <link refid="structsemantic_1_1LocalVarDefInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>var</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shc::Col4</label>
+        <link refid="structshc_1_1Col4"/>
+      </node>
+    </collaborationgraph>
+    <location file="variantSemantic.h" line="301" column="1" bodyfile="variantSemantic.h" bodystart="302" bodyend="305"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1LocalVarDefInfo_1a66a7b5d17b2d262945565f782a573950" prot="public" virt="non-virtual"><scope>semantic::LocalVarDefInfo</scope><name>expr</name></member>
+      <member refid="structsemantic_1_1LocalVarDefInfo_1a527e63663e14d98ae38f1e26e04390de" prot="public" virt="non-virtual"><scope>semantic::LocalVarDefInfo</scope><name>var</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

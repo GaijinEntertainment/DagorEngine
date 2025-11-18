@@ -1,0 +1,438 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shader Family: land_mesh_combined_decal</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="daNetGame-based Shaders" href="dng-shaders/index.html" />
+    <link rel="prev" title="Shader Family: rendinst_layered" href="rendinst_layered_family.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#basic-shader-land-mesh-combined-dynamic-combined-decal">Basic Shader: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_combined_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shader-with-one-detail-layer-land-mesh-combined-detailed-decal-dynamic-combined-detailed-decal">Shader with One Detail Layer: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_detailed_decal</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_combined_detailed_decal</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shader-with-four-detail-layers-land-mesh-combined-mixed-decal-dynamic-combined-mixed-decal">Shader with Four Detail Layers: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_mixed_decal</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_combined_mixed_decal</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#shader-textures">Shader Textures</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters">Parameters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dng-shaders/index.html">daNetGame-based Shaders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Shaders</a></li>
+      <li class="breadcrumb-item active">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/shaders/land_mesh_combined_decal_family.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="shader-family-land-mesh-combined-decal">
+<h1>Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code><a class="headerlink" href="#shader-family-land-mesh-combined-decal" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>We use several shaders for object geometry to apply decals to the terrain. This
+is not to be confused with simple ground decals, which apply directly to the
+terrain geometry – that’s a different topic. Here, we are dealing with
+<strong>geometric decals</strong>.</p>
+<p>When do we need to apply a decal to the terrain using geometry? When we want to
+modify the landscape’s geometry and add some new color (and possibly details). A
+good example would be airfields. Given their large size, it’s impractical to
+render them as full-scale models with unique textures (or tiled textures), as
+this would result in a poor texel density. Moreover, they wouldn’t blend
+seamlessly with the surrounding terrain – there would be harsh transitions
+between textures.</p>
+<p>The solution is decals. For example, if you want a snowy airfield in a desert,
+you can achieve this with decals. All decals are prefabs – they are baked into
+the level’s geometry.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_01.jpg"><img alt="../../_images/land_mesh_combined_decal_01.jpg" class="bg-primary align-center" src="../../_images/land_mesh_combined_decal_01.jpg" style="width: 75%;" />
+</a>
+<br>
+<p>There are several shaders we can use for this:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">land_mesh_combined</span></code> and its dynamic version <code class="docutils literal notranslate"><span class="pre">dynamic_combined_decal</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">land_mesh_combined_detailed_decal</span></code> and its dynamic version
+<code class="docutils literal notranslate"><span class="pre">dynamic_combined_detailed_decal</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">land_mesh_combined_mixed_decal</span></code> and its dynamic version
+<code class="docutils literal notranslate"><span class="pre">dynamic_combined_mixed_decal</span></code></p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The difference between dynamic and static shaders boils down to two key points:</p>
+<ul class="simple">
+<li><p>Static shaders are applied to prefabs, while dynamic shaders are applied to
+dynamic models (for simplicity, think of them as models with dynamic shaders).</p></li>
+<li><p>Objects with dynamic shaders can only be placed through the <em>MissionEditor</em> as
+units (whether they’re part of an object group or a dynamic object). In
+contrast, static objects are placed directly as entities in the <strong>Landscape</strong>
+tab.</p></li>
+</ul>
+</div>
+</section>
+<section id="basic-shader-land-mesh-combined-dynamic-combined-decal">
+<h2>Basic Shader: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_combined_decal</span></code><a class="headerlink" href="#basic-shader-land-mesh-combined-dynamic-combined-decal" title="Link to this heading"></a></h2>
+<p>This is the simplest shader in the family. It has no parameters and applies only
+a decal texture to the geometry. The typical material configuration looks like
+this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">material</span><span class="p">{</span>
+  <span class="n">name</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;airfield_side&quot;</span>
+  <span class="n">class</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;land_mesh_combined&quot;</span>
+  <span class="n">tex0</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;./norway_herdla_airfield_empty_alpha.tif&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The decal texture represents the diffuse component of what we are applying. The
+alpha channel controls the transparency of the decal.</p>
+<p>For example:</p>
+<table style="text-align:center; width:98%"><thead><tr>
+  <th style="text-align:center; width:30%"><p>Airfield on the Map</p></th>
+  <th style="text-align:center; width:33%"><p>Decal Diffuse</p></th>
+  <th style="text-align:center; width:33%"><p>Decal Alpha</p></th></tr></thead>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_02.jpg"><img alt="../../_images/land_mesh_combined_decal_02.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_02.jpg" style="width: 30%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_03.jpg"><img alt="../../_images/land_mesh_combined_decal_03.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_03.jpg" style="width: 33%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_04.jpg"><img alt="../../_images/land_mesh_combined_decal_04.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_04.jpg" style="width: 33%;" />
+</a>
+<p>Currently, this basic shader is rarely used because the need for greater detail,
+even for aircraft-related assets, has increased. However, it’s sometimes applied
+to the “manchette” of airfields (the curved edges used to blend the airfield
+surface with the surrounding terrain). In such cases, the shader with a
+transparent alpha texture is assigned to this geometry:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_05.jpg"><img alt="../../_images/land_mesh_combined_decal_05.jpg" class="bg-primary align-center" src="../../_images/land_mesh_combined_decal_05.jpg" style="width: 75%;" />
+</a>
+<br>
+</section>
+<section id="shader-with-one-detail-layer-land-mesh-combined-detailed-decal-dynamic-combined-detailed-decal">
+<h2>Shader with One Detail Layer: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_detailed_decal</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_combined_detailed_decal</span></code><a class="headerlink" href="#shader-with-one-detail-layer-land-mesh-combined-detailed-decal-dynamic-combined-detailed-decal" title="Link to this heading"></a></h2>
+<p>This shader works with three textures:</p>
+<ul class="simple">
+<li><p><strong>Slot 1:</strong> decal texture with transparency in the alpha channel.</p></li>
+<li><p><strong>Slot 2:</strong> diffuse detail texture.</p></li>
+<li><p><strong>Slot 3:</strong> <code class="docutils literal notranslate"><span class="pre">_r</span></code> detail texture.</p></li>
+</ul>
+<p>The first two slots are self-explanatory. The <code class="docutils literal notranslate"><span class="pre">_r</span></code> texture requires further
+reading, but in short, it contains a height map, microdetail index, smoothness,
+and reflectance. Based on these parameters, the detail on the terrain is
+embossed and exhibits the physical properties of the desired material.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This <code class="docutils literal notranslate"><span class="pre">_r</span></code> texture is not the same as the one used for landscapes! On landscapes,
+the <code class="docutils literal notranslate"><span class="pre">_r</span></code> texture includes reflectance, ambient occlusion, microdetail index, and
+smoothness.</p>
+</div>
+<p>This shader has the following parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail1_size_ofs=0.25,0.25,0,0&quot;</span></code> – this offsets the detail texture
+(effectively controlling the tiling).</p></li>
+</ul>
+<p>A typical material configuration looks like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">material</span><span class="p">{</span>
+  <span class="n">name</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;smolensk_aero_south&quot;</span>
+  <span class="n">class</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;land_mesh_combined_detailed_decal&quot;</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail1_size_ofs=64,32,0,0&quot;</span>
+  <span class="n">tex0</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;smolensk_aero_south_tex.tif&quot;</span>
+  <span class="n">tex1</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_soil_cracked_tex_d.tif&quot;</span>
+  <span class="n">tex2</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_soil_cracked_tex_r.tif&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The logic is the same as in <code class="docutils literal notranslate"><span class="pre">land_mesh_combined</span></code>, except that this shader adds a
+detail layer to the decal texture. Essentially, in this case, the decal acts
+more as an overlay because of its large texel size, which results in a blurred
+appearance.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_06.jpg"><img alt="../../_images/land_mesh_combined_decal_06.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_06.jpg" style="width: 49.5%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_07.jpg"><img alt="../../_images/land_mesh_combined_decal_07.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_07.jpg" style="width: 48.5%;" />
+</a>
+<p>The fine details come from the detail and microdetail textures. For instance,
+fine textures such as small cracks or wear patterns are handled by the detail
+layers, while larger surface elements, like ruts or pathways, are represented by
+the decal.</p>
+</section>
+<section id="shader-with-four-detail-layers-land-mesh-combined-mixed-decal-dynamic-combined-mixed-decal">
+<h2>Shader with Four Detail Layers: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_mixed_decal</span></code>/<code class="docutils literal notranslate"><span class="pre">dynamic_combined_mixed_decal</span></code><a class="headerlink" href="#shader-with-four-detail-layers-land-mesh-combined-mixed-decal-dynamic-combined-mixed-decal" title="Link to this heading"></a></h2>
+<p>This is the most advanced shader in the family. It operates similarly to
+<code class="docutils literal notranslate"><span class="pre">land_mesh_combined_detailed_decal</span></code> but supports up to four detail layers
+instead of one.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>There’s a known issue: if an object has mapping in the third channel, its
+texture on the ground may appear semi-transparent. Avoid using unnecessary
+mapping channels.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The dynamic version is not suitable for large surfaces (hundreds of meters) made
+of dense materials (concrete, asphalt, etc.), as it becomes semi-transparent
+when viewed from a distance. For example, you might notice that the markings and
+runway seem to fade when seen from far away.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_08.jpg"><img alt="../../_images/land_mesh_combined_decal_08.jpg" class="bg-primary align-center" src="../../_images/land_mesh_combined_decal_08.jpg" style="width: 75%;" />
+</a>
+</div>
+<section id="shader-textures">
+<h3>Shader Textures<a class="headerlink" href="#shader-textures" title="Link to this heading"></a></h3>
+<p>The shader works with 10 textures:</p>
+<ul class="simple">
+<li><p><strong>Slot 1:</strong> decal</p></li>
+<li><p><strong>Slot 2:</strong> detail blending mask</p></li>
+<li><p><strong>Slot 4:</strong> diffuse texture for detail layer 1</p></li>
+<li><p><strong>Slot 5:</strong> <code class="docutils literal notranslate"><span class="pre">_r</span></code> texture for detail layer 1</p></li>
+<li><p><strong>Slot 6:</strong> diffuse texture for detail layer 2</p></li>
+<li><p><strong>Slot 7:</strong> <code class="docutils literal notranslate"><span class="pre">_r</span></code> texture for detail layer 2</p></li>
+<li><p><strong>Slot 8:</strong> diffuse texture for detail layer 3</p></li>
+<li><p><strong>Slot 9:</strong> <code class="docutils literal notranslate"><span class="pre">_r</span></code> texture for detail layer 3</p></li>
+<li><p><strong>Slot 10:</strong> diffuse texture for detail layer 4</p></li>
+<li><p><strong>Slot 11:</strong> <code class="docutils literal notranslate"><span class="pre">_r</span></code> texture for detail layer 4</p></li>
+</ul>
+<p>The blending mask is an RGB mask where:</p>
+<ul class="simple">
+<li><p>R-channel represents detail layer 1</p></li>
+<li><p>G-channel represents detail layer 2</p></li>
+<li><p>B-channel represents detail layer 3</p></li>
+<li><p>Areas with less than 100% brightness in all channels will display detail layer
+4.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Don’t worry if the fourth detail layer appears in areas without detail layers 1,
+2, or 3. The final decal’s visibility is controlled by the decal’s alpha
+transparency, meaning you can control the appearance of all details, including
+the fourth layer, using the transparency mask.</p>
+</div>
+<p>For example:</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:45%"><p>Airfield on the Map</p></th>
+  <th style="text-align:center; width:53%"><p>Decal Diffuse</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_02.jpg"><img alt="../../_images/land_mesh_combined_decal_02.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_02.jpg" style="width: 45%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_03.jpg"><img alt="../../_images/land_mesh_combined_decal_03.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_03.jpg" style="width: 53%;" />
+</a>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Decal Alpha</p></th>
+  <th style="text-align:center; width:49%"><p>Blending Mask</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_04.jpg"><img alt="../../_images/land_mesh_combined_decal_04.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_04.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_09.jpg"><img alt="../../_images/land_mesh_combined_decal_09.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_09.jpg" style="width: 49%;" />
+</a>
+<p>In this case:</p>
+<ul class="simple">
+<li><p>The blue channel defines the pathways.</p></li>
+<li><p>The alpha mask smooths the edges of other detail layers, making them
+transparent and revealing the fourth layer.</p></li>
+<li><p>All channels together create a multicolored effect on the runway, blending
+different types of sand, dirt, and rocks.</p></li>
+</ul>
+<p>Some examples use more defined masks:</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:42%"><p>Airfield on the Map</p></th>
+  <th style="text-align:center; width:56%"><p>Decal Diffuse</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_10.jpg"><img alt="../../_images/land_mesh_combined_decal_10.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_10.jpg" style="width: 42%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_11.jpg"><img alt="../../_images/land_mesh_combined_decal_11.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_11.jpg" style="width: 56%;" />
+</a>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Decal Alpha</p></th>
+  <th style="text-align:center; width:49%"><p>Blending Mask</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_12.jpg"><img alt="../../_images/land_mesh_combined_decal_12.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_12.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_13.jpg"><img alt="../../_images/land_mesh_combined_decal_13.jpg" class="bg-primary" src="../../_images/land_mesh_combined_decal_13.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/land_mesh_combined_decal_14.jpg"><img alt="../../_images/land_mesh_combined_decal_14.jpg" class="bg-primary align-center" src="../../_images/land_mesh_combined_decal_14.jpg" style="width: 75%;" />
+</a>
+<br>
+<p>In this case:</p>
+<ul class="simple">
+<li><p>R-channel represents concrete.</p></li>
+<li><p>G-channel represents concrete slabs.</p></li>
+<li><p>B-channel represents dirt.</p></li>
+<li><p>A-channel (black in the mask) represents dirt paths and dust along the edges
+of the concrete and slabs.</p></li>
+</ul>
+<p>All these elements appear based on the decal’s alpha transparency.</p>
+</section>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail1_size_ofs=0.25,0.25,0,0&quot;</span></code> – detail layer 1 texture offset
+(tiling)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail2_size_ofs=0.25,0.25,0,0&quot;</span></code> – detail layer 2 texture offset</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail3_size_ofs=0.25,0.25,0,0&quot;</span></code> – detail layer 3 texture offset</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail4_size_ofs=0.25,0.25,0,0&quot;</span></code> – detail layer 4 texture offset</p></li>
+</ul>
+<p>A typical material configuration looks like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">material</span><span class="p">{</span>
+  <span class="n">name</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;markup_1&quot;</span>
+  <span class="n">class</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;land_mesh_combined_mixed_decal&quot;</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail1_size_ofs=128,64,0,0&quot;</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail2_size_ofs=128,64,0,0&quot;</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail3_size_ofs=128,64,0,0&quot;</span>
+  <span class="n">script</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail4_size_ofs=256,128,0,0&quot;</span>
+  <span class="n">tex0</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;afghan_airfield_bagram_tex.tif&quot;</span>
+  <span class="n">tex1</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;afghan_airfield_bagram_tex_mask.tif&quot;</span>
+  <span class="n">tex3</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_asphalt_a_tex_d.tif&quot;</span>
+  <span class="n">tex4</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_asphalt_a_tex_r.tif&quot;</span>
+  <span class="n">tex5</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_concrete_tex_d.tif&quot;</span>
+  <span class="n">tex6</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_concrete_tex_r.tif&quot;</span>
+  <span class="n">tex7</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_concrete_tex_d.tif&quot;</span>
+  <span class="n">tex8</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_asphalt_cracks_tex_r.tif&quot;</span>
+  <span class="n">tex9</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_sand_ground_tex_d.tif&quot;</span>
+  <span class="n">tex10</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;detail_sand_ground_tex_r.tif&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_layered_family.html" class="btn btn-neutral float-left" title="Shader Family: rendinst_layered" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dng-shaders/index.html" class="btn btn-neutral float-right" title="daNetGame-based Shaders" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

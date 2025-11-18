@@ -1,0 +1,868 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderCommon_8h" kind="file" language="C++">
+    <compoundname>dag_shaderCommon.h</compoundname>
+    <includes local="no">3d/dag_texMgr.h</includes>
+    <includes local="no">drv/3d/dag_consts.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <includes refid="dag__shaderVarType_8h" local="no">shaders/dag_shaderVarType.h</includes>
+    <includedby refid="dag__shMaterialUtils_8h" local="no">dag_shMaterialUtils.h</includedby>
+    <includedby refid="dag__shaders_8h" local="no">dag_shaders.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="2">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_span.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>dag_DebugPrimitivesVbuffer.h</label>
+        <link refid="dag__DebugPrimitivesVbuffer_8h_source"/>
+      </node>
+      <node id="5">
+        <label>dag_DynamicShaderHelper.h</label>
+        <link refid="dag__DynamicShaderHelper_8h_source"/>
+      </node>
+      <node id="6">
+        <label>dag_DynamicShadersBuffer.h</label>
+        <link refid="dag__DynamicShadersBuffer_8h_source"/>
+      </node>
+      <node id="12">
+        <label>dag_dynSceneRes.h</label>
+        <link refid="dag__dynSceneRes_8h_source"/>
+      </node>
+      <node id="7">
+        <label>dag_dynShaderBuf.h</label>
+        <link refid="dag__dynShaderBuf_8h_source"/>
+      </node>
+      <node id="15">
+        <label>dag_instShaderMeshRes.h</label>
+        <link refid="dag__instShaderMeshRes_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>dag_linkedListOfShadervars.h</label>
+        <link refid="dag__linkedListOfShadervars_8h_source"/>
+      </node>
+      <node id="13">
+        <label>dag_rendInstRes.h</label>
+        <link refid="dag__rendInstRes_8h_source"/>
+      </node>
+      <node id="9">
+        <label>dag_renderScene.h</label>
+        <link refid="dag__renderScene_8h_source"/>
+      </node>
+      <node id="2">
+        <label>dag_shMaterialUtils.h</label>
+        <link refid="dag__shMaterialUtils_8h_source"/>
+      </node>
+      <node id="10">
+        <label>dag_shSkinMesh.h</label>
+        <link refid="dag__shSkinMesh_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>dag_shaderResUnitedData.h</label>
+        <link refid="dag__shaderResUnitedData_8h_source"/>
+      </node>
+      <node id="3">
+        <label>dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>dag_shadersRes.h</label>
+        <link refid="dag__shadersRes_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShaderChannelId" prot="public">ShaderChannelId</innerclass>
+    <innerclass refid="structCompiledShaderChannelId" prot="public">CompiledShaderChannelId</innerclass>
+    <innerclass refid="classShaderChannelsEnumCB" prot="public">ShaderChannelsEnumCB</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__shaderCommon_8h_1aa6db074c5e2b93ea7b6254410b2a5b41" prot="public" static="no">
+        <name>RELEM_NO_INDEX_BUFFER</name>
+        <initializer>-1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="24" column="9" bodyfile="dag_shaderCommon.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1ae0a82ee7bf95487cb674c8461af2ea1f" prot="public" static="no">
+        <name>SCTYPE_FLOAT1</name>
+        <initializer>VSDT_FLOAT1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="93" column="9" bodyfile="dag_shaderCommon.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a044f3e691f8d70b24f305648b25ca5a8" prot="public" static="no">
+        <name>SCTYPE_FLOAT2</name>
+        <initializer>VSDT_FLOAT2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="94" column="9" bodyfile="dag_shaderCommon.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1aa11bf460f056ec38aebfab34737f1612" prot="public" static="no">
+        <name>SCTYPE_FLOAT3</name>
+        <initializer>VSDT_FLOAT3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="95" column="9" bodyfile="dag_shaderCommon.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1aadfab2d9bc4f40d87d4654243298e796" prot="public" static="no">
+        <name>SCTYPE_FLOAT4</name>
+        <initializer>VSDT_FLOAT4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="96" column="9" bodyfile="dag_shaderCommon.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1ab508be80e9ab093f14f86f212227ce00" prot="public" static="no">
+        <name>SCTYPE_E3DCOLOR</name>
+        <initializer>VSDT_E3DCOLOR</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="97" column="9" bodyfile="dag_shaderCommon.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1aa49806eab8a1fbd1cde73b0aa3ec0d24" prot="public" static="no">
+        <name>SCTYPE_UBYTE4</name>
+        <initializer>VSDT_UBYTE4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="98" column="9" bodyfile="dag_shaderCommon.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1ad1fef5a99986ab33a6b8abaca52a1195" prot="public" static="no">
+        <name>SCTYPE_SHORT2</name>
+        <initializer>VSDT_SHORT2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="99" column="9" bodyfile="dag_shaderCommon.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a02c72c75f380fe18898e4f63fac6db07" prot="public" static="no">
+        <name>SCTYPE_SHORT4</name>
+        <initializer>VSDT_SHORT4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="100" column="9" bodyfile="dag_shaderCommon.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a2f3eae0ce8f67799de7d4d837fe4df91" prot="public" static="no">
+        <name>SCTYPE_HALF2</name>
+        <initializer>VSDT_HALF2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="101" column="9" bodyfile="dag_shaderCommon.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a5c0d31b9d50f8b50c7175303ed16ccf7" prot="public" static="no">
+        <name>SCTYPE_HALF4</name>
+        <initializer>VSDT_HALF4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="102" column="9" bodyfile="dag_shaderCommon.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a1dc872eb1a542f74b40daa8abd5d7388" prot="public" static="no">
+        <name>SCTYPE_SHORT2N</name>
+        <initializer>VSDT_SHORT2N</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="103" column="9" bodyfile="dag_shaderCommon.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a0fb10ff1fed2b949222828bc3215b5c4" prot="public" static="no">
+        <name>SCTYPE_SHORT4N</name>
+        <initializer>VSDT_SHORT4N</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="104" column="9" bodyfile="dag_shaderCommon.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a317a59d58c172e79a7727694407d9a91" prot="public" static="no">
+        <name>SCTYPE_USHORT2N</name>
+        <initializer>VSDT_USHORT2N</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="105" column="9" bodyfile="dag_shaderCommon.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1acafc4baf9b4a1793af864d6dd8df27c8" prot="public" static="no">
+        <name>SCTYPE_USHORT4N</name>
+        <initializer>VSDT_USHORT4N</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="106" column="9" bodyfile="dag_shaderCommon.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a7e60da38f7a1ea5c7bbe88b423aa1576" prot="public" static="no">
+        <name>SCTYPE_UDEC3</name>
+        <initializer>VSDT_UDEC3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="107" column="9" bodyfile="dag_shaderCommon.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a2745542bac436429b8da47169eea4c1e" prot="public" static="no">
+        <name>SCTYPE_DEC3N</name>
+        <initializer>VSDT_DEC3N</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="108" column="9" bodyfile="dag_shaderCommon.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1ada6ce210b48c25d3db3f4d90a37798da" prot="public" static="no">
+        <name>SCTYPE_UINT1</name>
+        <initializer>VSDT_UINT1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="109" column="9" bodyfile="dag_shaderCommon.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1ae15e7cf81a3f509b31a8f09a94210601" prot="public" static="no">
+        <name>SCTYPE_UINT2</name>
+        <initializer>VSDT_UINT2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="110" column="9" bodyfile="dag_shaderCommon.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1a70db951845ee5e99e8b799e850f8f91e" prot="public" static="no">
+        <name>SCTYPE_UINT3</name>
+        <initializer>VSDT_UINT3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="111" column="9" bodyfile="dag_shaderCommon.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderCommon_8h_1ad8f9cbfac3683eb738b548e287541af0" prot="public" static="no">
+        <name>SCTYPE_UINT4</name>
+        <initializer>VSDT_UINT4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="112" column="9" bodyfile="dag_shaderCommon.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__shaderCommon_8h_1a42f81fec81c02af959bc98162ba6ba3d" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ShaderFlags</name>
+        <enumvalue id="dag__shaderCommon_8h_1a42f81fec81c02af959bc98162ba6ba3da518de40697a1acbd66f2c612eb2492dc" prot="public">
+          <name>SC_STAGE_IDX_MASK</name>
+          <initializer>= 0x0007</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a42f81fec81c02af959bc98162ba6ba3da14331473bf1447815a1448d4124c3b75" prot="public">
+          <name>SC_NEW_STAGE_FMT</name>
+          <initializer>= 0x1000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="26" column="1" bodyfile="dag_shaderCommon.h" bodystart="27" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ChannelModifier</name>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6ae1274f4b21aca1704a97a07e7653c212" prot="public">
+          <name>CMOD_NONE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6ae9d24be355b42b9ac8b9a8d63c70d2c2" prot="public">
+          <name>CMOD_SIGNED_PACK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6aeb4c91842b8a8a95d882554f14bb1ebb" prot="public">
+          <name>CMOD_UNSIGNED_PACK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6a9c4b77523b630e6c6e5d78c0942d38a3" prot="public">
+          <name>CMOD_MUL_1K</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6adb8c3366317aa00f42f50960173e9421" prot="public">
+          <name>CMOD_MUL_2K</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6a1cee17bde3cdf31025ca6b63388b7e93" prot="public">
+          <name>CMOD_MUL_4K</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6a841bb9c8559636cb7b350a04bc5d00a0" prot="public">
+          <name>CMOD_MUL_8K</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6adfd02d1ace9fd83c37d984c3c39393ec" prot="public">
+          <name>CMOD_MUL_16K</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6af6f2dd2cf04c85c24432fc6d0da64990" prot="public">
+          <name>CMOD_BOUNDING_PACK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a7b354e766843605332768054900819b6acd0aab7405c949308ca8e3698663c6ed" prot="public">
+          <name>CMOD_SIGNED_SHORT_PACK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="34" column="1" bodyfile="dag_shaderCommon.h" bodystart="35" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__shaderCommon_8h_1ab04a0655cd1e3bcac5e8f48c18df1a57" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dag__shaderCommon_8h_1ab04a0655cd1e3bcac5e8f48c18df1a57a78cfe6b8e1f5db0a06b3aa27fa0c81b5" prot="public">
+          <name>SCUSAGE_POS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1ab04a0655cd1e3bcac5e8f48c18df1a57a6a28c57f70cd2d569c1dc512ebe9d38f" prot="public">
+          <name>SCUSAGE_NORM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1ab04a0655cd1e3bcac5e8f48c18df1a57a238362190b8742dc65d304ebe5e134f4" prot="public">
+          <name>SCUSAGE_VCOL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1ab04a0655cd1e3bcac5e8f48c18df1a57a06fb13756d6824d491cad4c5856c6712" prot="public">
+          <name>SCUSAGE_TC</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1ab04a0655cd1e3bcac5e8f48c18df1a57a7e79ba728b8f1f17a0bddc81487d0568" prot="public">
+          <name>SCUSAGE_LIGHTMAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1ab04a0655cd1e3bcac5e8f48c18df1a57a738faf2f3507c6fc3ff0d3b4f36063c0" prot="public">
+          <name>SCUSAGE_EXTRA</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="83" column="1" bodyfile="dag_shaderCommon.h" bodystart="84" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__shaderCommon_8h_1a385c44f6fb256e5716a2302a5b940388" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dag__shaderCommon_8h_1a385c44f6fb256e5716a2302a5b940388aecd43fb9e81764c05a66b73c4ddc85e3" prot="public">
+          <name>SHFLG_LIGHTMAP</name>
+          <initializer>= 0 &lt;&lt; 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a385c44f6fb256e5716a2302a5b940388a0974712a289aef3651ad0988a1738cb0" prot="public">
+          <name>SHFLG_VLTMAP</name>
+          <initializer>= 0 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a385c44f6fb256e5716a2302a5b940388a3151617e912c10a001b12714cf29a5c8" prot="public">
+          <name>SHFLG_2SIDED</name>
+          <initializer>= 1 &lt;&lt; 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__shaderCommon_8h_1a385c44f6fb256e5716a2302a5b940388a0e7abbeb87cfafc5d6ff71780f849984" prot="public">
+          <name>SHFLG_REAL2SIDED</name>
+          <initializer>= 1 &lt;&lt; 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="181" column="1" bodyfile="dag_shaderCommon.h" bodystart="182" bodyend="187"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shaderCommon_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" prot="public" static="no">
+        <type>BaseTexture</type>
+        <definition>typedef BaseTexture Texture</definition>
+        <argsstring></argsstring>
+        <name>Texture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="20" column="21" bodyfile="dag_shaderCommon.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__shaderCommon_8h_1ac218278927b722c70ba97306a27d5e42" prot="public" static="no">
+        <type>dag::Span&lt; Color4 &gt; *</type>
+        <definition>typedef dag::Span&lt;Color4&gt;* VprArrayPtr</definition>
+        <argsstring></argsstring>
+        <name>VprArrayPtr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="190" column="19" bodyfile="dag_shaderCommon.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shaderCommon_8h_1a36dd9623b0b51b97693c908fc8f19c1e" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr char</type>
+        <definition>constexpr char ARRAY_SIZE_GETTER_NAME[]</definition>
+        <argsstring>[]</argsstring>
+        <name>ARRAY_SIZE_GETTER_NAME</name>
+        <initializer>= &quot;get_array_size(%s)&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="32" column="23" bodyfile="dag_shaderCommon.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaderCommon_8h_1a1c771a054a2cd4b4cabad2acfbf1f9b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool channel_size</definition>
+        <argsstring>(unsigned t, unsigned &amp;channelSize)</argsstring>
+        <name>channel_size</name>
+        <param>
+          <type>unsigned</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>channelSize</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="115" column="13" bodyfile="dag_shaderCommon.h" bodystart="115" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderCommon_8h_1a59e2f335efec38268bd5bad2462ea827" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool channel_signed</definition>
+        <argsstring>(unsigned t)</argsstring>
+        <name>channel_signed</name>
+        <param>
+          <type>unsigned</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="145" column="13" bodyfile="dag_shaderCommon.h" bodystart="145" bodyend="171"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/><sp/>common<sp/>shader<sp/>types<sp/>&amp;<sp/>constants</highlight></codeline>
+<codeline lineno="9"><highlight class="comment">************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_texMgr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderVarType.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderElement" kindref="compound">ShaderElement</ref>;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">BaseTexture;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>BaseTexture<sp/>Texture;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/>if<sp/>this<sp/>parameter<sp/>passed<sp/>to<sp/>ShaderElement-&gt;render</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>as<sp/>3rd<sp/>parameter<sp/>(startIndex),<sp/>use<sp/>d3d::draw<sp/>instead<sp/>d3d::drawind</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RELEM_NO_INDEX_BUFFER<sp/>-1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>ShaderFlags</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>SC_STAGE_IDX_MASK<sp/>=<sp/>0x0007,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>SC_NEW_STAGE_FMT<sp/>=<sp/>0x1000,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>ARRAY_SIZE_GETTER_NAME[]<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;get_array_size(%s)&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>ChannelModifier</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>CMOD_NONE,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>nothing</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>CMOD_SIGNED_PACK,<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>rescale<sp/>data<sp/>[0..+1]<sp/>-&gt;<sp/>[-1..+1]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>CMOD_UNSIGNED_PACK,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>rescale<sp/>data<sp/>[-1..+1]<sp/>-&gt;<sp/>[0..+1]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>CMOD_MUL_1K,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>multiply<sp/>by<sp/><sp/>1024</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>CMOD_MUL_2K,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>multiply<sp/>by<sp/><sp/>2048</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>CMOD_MUL_4K,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>multiply<sp/>by<sp/><sp/>4096</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>CMOD_MUL_8K,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>multiply<sp/>by<sp/><sp/>8192</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>CMOD_MUL_16K,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>multiply<sp/>by<sp/>16384</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>CMOD_BOUNDING_PACK,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>rescale<sp/>data<sp/>[minbounding..maxbounding]<sp/>-&gt;<sp/>[0..+1]<sp/>or<sp/>[-1<sp/>..<sp/>1]<sp/>(according<sp/>to<sp/>target<sp/>format)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>CMOD_SIGNED_SHORT_PACK,<sp/></highlight><highlight class="comment">//<sp/>multiply<sp/>by<sp/>32767(!)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="structShaderChannelId" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderChannelId" kindref="compound">ShaderChannelId</ref></highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>uint16_t<sp/>u<sp/>=<sp/>0,<sp/>streamId<sp/>=<sp/>0,<sp/>ui<sp/>=<sp/>0,<sp/>resv<sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>usage<sp/>and<sp/>usage<sp/>index<sp/>specifying<sp/>source<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>t<sp/>=<sp/>0;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>data<sp/>type</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vbu<sp/>=<sp/>0,<sp/>vbui<sp/>=<sp/>0;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>VB<sp/>usage<sp/>and<sp/>usage<sp/>index<sp/>for<sp/>this<sp/>channel</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>ChannelModifier<sp/>mod<sp/>=<sp/>CMOD_NONE;<sp/></highlight><highlight class="comment">//<sp/>modifier</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>val=(val+offset)*mul</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setPosBounding(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;offset,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;mul);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>getPosBounding(Point3<sp/>&amp;offset,<sp/>Point3<sp/>&amp;mul);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setBoundingUsed();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getBoundingUsed();</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resetBoundingUsed();</highlight></codeline>
+<codeline lineno="62"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="structCompiledShaderChannelId" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref></highlight></codeline>
+<codeline lineno="66"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>t;<sp/></highlight><highlight class="comment">//<sp/>data<sp/>type</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vbu;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>int16_t<sp/>vbui;<sp/></highlight><highlight class="comment">//<sp/>VB<sp/>usage<sp/>and<sp/>usage<sp/>index<sp/>for<sp/>this<sp/>channel</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>uint16_t<sp/>streamId;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref>()<sp/>:<sp/>t(-1)<sp/>{}<sp/></highlight><highlight class="comment">//-V730,<sp/>intentionally<sp/>uninitialized</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>t_,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vbu_,<sp/>int16_t<sp/>vbui_,<sp/>uint16_t<sp/>sid<sp/>=<sp/>0)<sp/>:<sp/>t(t_),<sp/>vbu(vbu_),<sp/>vbui(vbui_),<sp/>streamId(sid)<sp/>{}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>convertFrom(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderChannelId" kindref="compound">ShaderChannelId</ref><sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>t<sp/>=<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.t;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>vbu<sp/>=<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.vbu;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>vbui<sp/>=<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.vbui;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>streamId<sp/>=<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.streamId;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>SCUSAGE_POS,</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>SCUSAGE_NORM,</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>SCUSAGE_VCOL,</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>SCUSAGE_TC,</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/>SCUSAGE_LIGHTMAP,</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>SCUSAGE_EXTRA,</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_FLOAT1<sp/><sp/><sp/>VSDT_FLOAT1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_FLOAT2<sp/><sp/><sp/>VSDT_FLOAT2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_FLOAT3<sp/><sp/><sp/>VSDT_FLOAT3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_FLOAT4<sp/><sp/><sp/>VSDT_FLOAT4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_E3DCOLOR<sp/>VSDT_E3DCOLOR</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_UBYTE4<sp/><sp/><sp/>VSDT_UBYTE4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_SHORT2<sp/><sp/><sp/>VSDT_SHORT2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_SHORT4<sp/><sp/><sp/>VSDT_SHORT4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_HALF2<sp/><sp/><sp/><sp/>VSDT_HALF2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_HALF4<sp/><sp/><sp/><sp/>VSDT_HALF4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_SHORT2N<sp/><sp/>VSDT_SHORT2N</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_SHORT4N<sp/><sp/>VSDT_SHORT4N</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_USHORT2N<sp/>VSDT_USHORT2N</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_USHORT4N<sp/>VSDT_USHORT4N</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_UDEC3<sp/><sp/><sp/><sp/>VSDT_UDEC3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_DEC3N<sp/><sp/><sp/><sp/>VSDT_DEC3N</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_UINT1<sp/><sp/><sp/><sp/>VSDT_UINT1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_UINT2<sp/><sp/><sp/><sp/>VSDT_UINT2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_UINT3<sp/><sp/><sp/><sp/>VSDT_UINT3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCTYPE_UINT4<sp/><sp/><sp/><sp/>VSDT_UINT4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>channel_size(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>t,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;channelSize)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(t)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT3:</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT3:<sp/>channelSize<sp/>=<sp/>12;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT4:</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT4:<sp/>channelSize<sp/>=<sp/>16;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT1:</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT1:</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UDEC3:</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_DEC3N:</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_E3DCOLOR:</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UBYTE4:</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_HALF2:</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT2N:</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_USHORT2N:</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT2:<sp/>channelSize<sp/>=<sp/>4;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT2:</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT2:</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_HALF4:</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT4N:</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_USHORT4N:</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT4:<sp/>channelSize<sp/>=<sp/>8;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>channel_signed(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>t)</highlight></codeline>
+<codeline lineno="146"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(t)</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT1:</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT2:</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT3:</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_FLOAT4:</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_HALF2:</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT2N:</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT2:</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_HALF4:</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT4N:</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_SHORT4:</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_DEC3N:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_USHORT2N:</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_USHORT4N:</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UDEC3:</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_E3DCOLOR:</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UBYTE4:</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT1:</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT2:</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT3:</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>VSDT_UINT4:</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="171"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174" refid="classShaderChannelsEnumCB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderChannelsEnumCB" kindref="compound">ShaderChannelsEnumCB</ref></highlight></codeline>
+<codeline lineno="175"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enum_shader_channel(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>usage,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>usage_index,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vb_usage,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vb_usage_index,<sp/>ChannelModifier<sp/>mod,</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stream<sp/>=<sp/>0)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/>SHFLG_LIGHTMAP<sp/>=<sp/>0<sp/>&lt;&lt;<sp/>0,<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>shader<sp/>material<sp/>has<sp/>lightmap</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>SHFLG_VLTMAP<sp/>=<sp/>0<sp/>&lt;&lt;<sp/>1,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>shader<sp/>material<sp/>has<sp/>&quot;vertex<sp/>lightmap&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>SHFLG_2SIDED<sp/>=<sp/>1<sp/>&lt;&lt;<sp/>2,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>shader<sp/>material<sp/>is<sp/>two-sided</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>SHFLG_REAL2SIDED<sp/>=<sp/>1<sp/>&lt;&lt;<sp/>3,<sp/></highlight><highlight class="comment">//<sp/>two-sided<sp/>lighting<sp/>if<sp/>material<sp/>is<sp/>two-sided</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Color4;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>dag::Span&lt;Color4&gt;<sp/>*VprArrayPtr;</highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderCommon.h"/>
+  </compounddef>
+</doxygen>

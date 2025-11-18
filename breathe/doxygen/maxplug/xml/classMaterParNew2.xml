@@ -1,0 +1,193 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMaterParNew2" kind="class" language="C++" prot="public">
+    <compoundname>MaterParNew2</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classMaterParNew2_1a03d70ddda5f7753130bd6d51318305ef" prot="private" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND MaterParNew2::hWnd</definition>
+        <argsstring></argsstring>
+        <name>hWnd</name>
+        <qualifiedname>MaterParNew2::hWnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="56" column="8" bodyfile="mater2.cpp" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterParNew2_1a7ac7ccca08244c2fa39d6c255fd63635" prot="private" static="no" mutable="no">
+        <type><ref refid="classMaterDlg2" kindref="compound">MaterDlg2</ref> *</type>
+        <definition>MaterDlg2* MaterParNew2::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>MaterParNew2::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="57" column="13" bodyfile="mater2.cpp" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterParNew2_1a6cf973f5baabc338567c0cfa6e3f2c4f" prot="private" static="no" mutable="no">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING MaterParNew2::shader</definition>
+        <argsstring></argsstring>
+        <name>shader</name>
+        <qualifiedname>MaterParNew2::shader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="58" column="16" bodyfile="mater2.cpp" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterParNew2_1af173c989ce1317cb5ced05f39b9d8890" prot="private" static="no" mutable="no">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING MaterParNew2::param_name</definition>
+        <argsstring></argsstring>
+        <name>param_name</name>
+        <qualifiedname>MaterParNew2::param_name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="59" column="16" bodyfile="mater2.cpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMaterParNew2_1a8a2be3d879f5332c8b4f438db59c6347" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MaterParNew2::MaterParNew2</definition>
+        <argsstring>(MaterDlg2 *p, M_STD_STRING &amp;shdr)</argsstring>
+        <name>MaterParNew2</name>
+        <qualifiedname>MaterParNew2::MaterParNew2</qualifiedname>
+        <param>
+          <type><ref refid="classMaterDlg2" kindref="compound">MaterDlg2</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &amp;</type>
+          <declname>shdr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="45" column="3" bodyfile="mater2.cpp" bodystart="1906" bodyend="1906"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParNew2_1a6b9dea4201999772e43385b462a2b3aa" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>MaterParNew2::~MaterParNew2</definition>
+        <argsstring>()</argsstring>
+        <name>~MaterParNew2</name>
+        <qualifiedname>MaterParNew2::~MaterParNew2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="46" column="11" bodyfile="mater2.cpp" bodystart="1908" bodyend="1908"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParNew2_1a9b9caf0342744ac2e74201e8fa128aa9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING MaterParNew2::GetNewParamName</definition>
+        <argsstring>() const</argsstring>
+        <name>GetNewParamName</name>
+        <qualifiedname>MaterParNew2::GetNewParamName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="48" column="16" bodyfile="mater2.cpp" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParNew2_1a0e2254aee497148b020ec061895d4343" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterParNew2::DoModal</definition>
+        <argsstring>()</argsstring>
+        <name>DoModal</name>
+        <qualifiedname>MaterParNew2::DoModal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="50" column="7" bodyfile="mater2.cpp" bodystart="1910" bodyend="1913"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterParNew2_1ae830ffcbc7010f3381e16eaddcfff417" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL MaterParNew2::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>MaterParNew2::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="51" column="8" bodyfile="mater2.cpp" bodystart="1920" bodyend="2020"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classMaterParNew2_1aca8afaf3962e7a196c0adea0235dc3a3" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING MaterParNew2::GetParamName</definition>
+        <argsstring>()</argsstring>
+        <name>GetParamName</name>
+        <qualifiedname>MaterParNew2::GetParamName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="54" column="16" bodyfile="mater2.cpp" bodystart="2022" bodyend="2034"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mater2.cpp" line="42" column="1" bodyfile="mater2.cpp" bodystart="43" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classMaterParNew2_1a0e2254aee497148b020ec061895d4343" prot="public" virt="non-virtual"><scope>MaterParNew2</scope><name>DoModal</name></member>
+      <member refid="classMaterParNew2_1a9b9caf0342744ac2e74201e8fa128aa9" prot="public" virt="non-virtual"><scope>MaterParNew2</scope><name>GetNewParamName</name></member>
+      <member refid="classMaterParNew2_1aca8afaf3962e7a196c0adea0235dc3a3" prot="private" virt="non-virtual"><scope>MaterParNew2</scope><name>GetParamName</name></member>
+      <member refid="classMaterParNew2_1a03d70ddda5f7753130bd6d51318305ef" prot="private" virt="non-virtual"><scope>MaterParNew2</scope><name>hWnd</name></member>
+      <member refid="classMaterParNew2_1a8a2be3d879f5332c8b4f438db59c6347" prot="public" virt="non-virtual"><scope>MaterParNew2</scope><name>MaterParNew2</name></member>
+      <member refid="classMaterParNew2_1af173c989ce1317cb5ced05f39b9d8890" prot="private" virt="non-virtual"><scope>MaterParNew2</scope><name>param_name</name></member>
+      <member refid="classMaterParNew2_1a7ac7ccca08244c2fa39d6c255fd63635" prot="private" virt="non-virtual"><scope>MaterParNew2</scope><name>parent</name></member>
+      <member refid="classMaterParNew2_1a6cf973f5baabc338567c0cfa6e3f2c4f" prot="private" virt="non-virtual"><scope>MaterParNew2</scope><name>shader</name></member>
+      <member refid="classMaterParNew2_1ae830ffcbc7010f3381e16eaddcfff417" prot="public" virt="non-virtual"><scope>MaterParNew2</scope><name>WndProc</name></member>
+      <member refid="classMaterParNew2_1a6b9dea4201999772e43385b462a2b3aa" prot="public" virt="virtual"><scope>MaterParNew2</scope><name>~MaterParNew2</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

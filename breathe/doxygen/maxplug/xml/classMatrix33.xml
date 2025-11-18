@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMatrix33" kind="class" language="C++" prot="public">
+    <compoundname>Matrix33</compoundname>
+    <includes refid="math3d_8h" local="no">math3d.h</includes>
+      <sectiondef kind="public-attrib">
+      <member refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kind="variable"><name>m</name></member>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <member refid="group__common_1ga70acb6647b172d017cc4265a29a7d263" kind="function"><name>Matrix33</name></member>
+      <member refid="group__common_1ga6e0f57908c33558f35d445653b221ca4" kind="function"><name>Matrix33</name></member>
+      <member refid="group__common_1ga38c1f60e54c8db313bc316fa46afc373" kind="function"><name>identity</name></member>
+      <member refid="group__common_1ga8dce718aa79ad69990213c748aa1ac47" kind="function"><name>zero</name></member>
+      <member refid="group__common_1gad4ed7d0760513215e7e4ff8f0e255cc8" kind="function"><name>operator[]</name></member>
+      <member refid="group__common_1ga3a95fa5bfa3bcfbc96b3cf05a7572aa5" kind="function"><name>operator[]</name></member>
+      <member refid="group__common_1gaaf23e1cabaac3d888f83aeed54155d1c" kind="function"><name>operator-</name></member>
+      <member refid="group__common_1ga44a949b1c65ea398639c6cb6dfaa4114" kind="function"><name>operator+</name></member>
+      <member refid="group__common_1ga512adfa91f868726f646797b83175dea" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1ga038b9136341c80c07ab222cdbbcd9b1d" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1ga6cbda1f223b4fb1767e738289adfea89" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1ga98ce03520f83373aa0e38e0ea7a3dee4" kind="function"><name>operator+</name></member>
+      <member refid="group__common_1gae6c199b90ec72e42dfdc2d06bb5e8719" kind="function"><name>operator-</name></member>
+      <member refid="group__common_1ga54429ff1e46955d3712d50e828b087e2" kind="function"><name>operator+=</name></member>
+      <member refid="group__common_1ga466fd0e1ed13ac4d3783cbc47b46ce7b" kind="function"><name>operator-=</name></member>
+      <member refid="group__common_1ga610de4352849b8d2a04fae3188c3bb90" kind="function"><name>operator*=</name></member>
+      <member refid="group__common_1ga80fac09a95d1a8f73560b9ff89d4051c" kind="function"><name>operator*=</name></member>
+      <member refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" kind="function"><name>det</name></member>
+      <member refid="group__common_1ga85eb647b8096cc0fdf7c23b0b26e4f79" kind="function"><name>setcol</name></member>
+      <member refid="group__common_1ga60a7e8fc7fea26c98658165704f72365" kind="function"><name>setcol</name></member>
+      <member refid="group__common_1gac94266011945877c5639b5fedd2fd9d9" kind="function"><name>getcol</name></member>
+      <member refid="group__common_1ga6a176557269254a55cb9fccd39652271" kind="function"><name>operator==</name></member>
+      <member refid="group__common_1ga638797175f6ce7ef297d512563cedcc4" kind="function"><name>operator!=</name></member>
+      <member refid="group__common_1gaf4f816c674fc3c58dbe3b8e71136fb55" kind="function"><name>rotxTM</name></member>
+      <member refid="group__common_1ga420f04d731bb073fef64b713338c57ad" kind="function"><name>rotyTM</name></member>
+      <member refid="group__common_1ga5f97dfda03dbecbb26cee9b1d3813bf6" kind="function"><name>rotzTM</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="math3d.h" line="22" column="1" bodyfile="math3d.h" bodystart="23" bodyend="137"/>
+    <listofallmembers>
+      <member refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>det</name></member>
+      <member refid="group__common_1gac94266011945877c5639b5fedd2fd9d9" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>getcol</name></member>
+      <member refid="group__common_1ga38c1f60e54c8db313bc316fa46afc373" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>identity</name></member>
+      <member refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>m</name></member>
+      <member refid="group__common_1ga70acb6647b172d017cc4265a29a7d263" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>Matrix33</name></member>
+      <member refid="group__common_1ga6e0f57908c33558f35d445653b221ca4" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>Matrix33</name></member>
+      <member refid="group__common_1ga638797175f6ce7ef297d512563cedcc4" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator!=</name></member>
+      <member refid="group__common_1ga512adfa91f868726f646797b83175dea" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator*</name></member>
+      <member refid="group__common_1ga038b9136341c80c07ab222cdbbcd9b1d" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator*</name></member>
+      <member refid="group__common_1ga6cbda1f223b4fb1767e738289adfea89" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator*</name></member>
+      <member refid="group__common_1ga610de4352849b8d2a04fae3188c3bb90" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator*=</name></member>
+      <member refid="group__common_1ga80fac09a95d1a8f73560b9ff89d4051c" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator*=</name></member>
+      <member refid="group__common_1ga44a949b1c65ea398639c6cb6dfaa4114" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator+</name></member>
+      <member refid="group__common_1ga98ce03520f83373aa0e38e0ea7a3dee4" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator+</name></member>
+      <member refid="group__common_1ga54429ff1e46955d3712d50e828b087e2" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator+=</name></member>
+      <member refid="group__common_1gaaf23e1cabaac3d888f83aeed54155d1c" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator-</name></member>
+      <member refid="group__common_1gae6c199b90ec72e42dfdc2d06bb5e8719" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator-</name></member>
+      <member refid="group__common_1ga466fd0e1ed13ac4d3783cbc47b46ce7b" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator-=</name></member>
+      <member refid="group__common_1ga6a176557269254a55cb9fccd39652271" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator==</name></member>
+      <member refid="group__common_1gad4ed7d0760513215e7e4ff8f0e255cc8" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator[]</name></member>
+      <member refid="group__common_1ga3a95fa5bfa3bcfbc96b3cf05a7572aa5" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator[]</name></member>
+      <member refid="group__common_1gaf4f816c674fc3c58dbe3b8e71136fb55" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>rotxTM</name></member>
+      <member refid="group__common_1ga420f04d731bb073fef64b713338c57ad" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>rotyTM</name></member>
+      <member refid="group__common_1ga5f97dfda03dbecbb26cee9b1d3813bf6" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>rotzTM</name></member>
+      <member refid="group__common_1ga85eb647b8096cc0fdf7c23b0b26e4f79" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>setcol</name></member>
+      <member refid="group__common_1ga60a7e8fc7fea26c98658165704f72365" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>setcol</name></member>
+      <member refid="group__common_1ga8dce718aa79ad69990213c748aa1ac47" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>zero</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,496 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shader Constants and Const Buffers</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Shader Model Versions" href="ShaderModelVersions.html" />
+    <link rel="prev" title="Shader Programs" href="Shader.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Shader Constants and Const Buffers</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9set_constEjjPKvj"><code class="docutils literal notranslate"><span class="pre">d3d::set_const()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12set_vs_constEjPKvj"><code class="docutils literal notranslate"><span class="pre">d3d::set_vs_const()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12set_ps_constEjPKvj"><code class="docutils literal notranslate"><span class="pre">d3d::set_ps_const()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12set_cs_constEjPKvj"><code class="docutils literal notranslate"><span class="pre">d3d::set_cs_const()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d13set_vs_const1Ejffff"><code class="docutils literal notranslate"><span class="pre">d3d::set_vs_const1()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d13set_ps_const1Ejffff"><code class="docutils literal notranslate"><span class="pre">d3d::set_ps_const1()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d19set_immediate_constEjPK8uint32_tj"><code class="docutils literal notranslate"><span class="pre">d3d::set_immediate_const()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d16set_const_bufferEjjPKfj"><code class="docutils literal notranslate"><span class="pre">d3d::set_const_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d16set_const_bufferEjjP7Sbuffer8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::set_const_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d23set_vs_constbuffer_sizeEi"><code class="docutils literal notranslate"><span class="pre">d3d::set_vs_constbuffer_size()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d23set_cs_constbuffer_sizeEi"><code class="docutils literal notranslate"><span class="pre">d3d::set_cs_constbuffer_size()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12set_cb0_dataEjPKfj"><code class="docutils literal notranslate"><span class="pre">d3d::set_cb0_data()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d16release_cb0_dataEj"><code class="docutils literal notranslate"><span class="pre">d3d::release_cb0_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Shader Constants and Const Buffers</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/ShaderConstants.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="shader-constants-and-const-buffers">
+<h1>Shader Constants and Const Buffers<a class="headerlink" href="#shader-constants-and-const-buffers" title="Link to this heading"></a></h1>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9set_constEjjPKvj">
+<span id="_CPPv3N3d3d9set_constEjjPKvj"></span><span id="_CPPv2N3d3d9set_constEjjPKvj"></span><span id="d3d::set_const__unsigned.unsigned.voidCP.unsigned"></span><span class="target" id="namespaced3d_1aff5a0ee30da880ed6ab05e7f9ec288df"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_const</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg_base</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_regs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9set_constEjjPKvj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets shader constants for the specified stage. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These constants will be ignored, if a constant buffer is explicitly bound to slot 0. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stage</strong> – The shader stage (STAGE_VS, STAGE_PS, STAGE_CS). </p></li>
+<li><p><strong>reg_base</strong> – The base register index. </p></li>
+<li><p><strong>data</strong> – Pointer to the data to be set. The size must be a multiple of sizeof(float4). </p></li>
+<li><p><strong>num_regs</strong> – The number of registers (float4) to be set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constants were set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12set_vs_constEjPKvj">
+<span id="_CPPv3N3d3d12set_vs_constEjPKvj"></span><span id="_CPPv2N3d3d12set_vs_constEjPKvj"></span><span id="d3d::set_vs_const__unsigned.voidCP.unsigned"></span><span class="target" id="namespaced3d_1ad49fe7918ce4e1b80d5f3327f4f3c533"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_vs_const</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg_base</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_regs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12set_vs_constEjPKvj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets vertex shader constants. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These constants will be ignored, if a constant buffer is explicitly bound to slot 0. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reg_base</strong> – The base register index. </p></li>
+<li><p><strong>data</strong> – Pointer to the data to be set. The size must be a multiple of sizeof(float4). </p></li>
+<li><p><strong>num_regs</strong> – The number of registers (float4) to be set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constants were set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12set_ps_constEjPKvj">
+<span id="_CPPv3N3d3d12set_ps_constEjPKvj"></span><span id="_CPPv2N3d3d12set_ps_constEjPKvj"></span><span id="d3d::set_ps_const__unsigned.voidCP.unsigned"></span><span class="target" id="namespaced3d_1a940b10dfc8503a371f3ce3cf4669169b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_ps_const</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg_base</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_regs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12set_ps_constEjPKvj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets pixel shader constants. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These constants will be ignored, if a constant buffer is explicitly bound to slot 0. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reg_base</strong> – The base register index. </p></li>
+<li><p><strong>data</strong> – Pointer to the data to be set. The size must be a multiple of sizeof(float4). </p></li>
+<li><p><strong>num_regs</strong> – The number of registers (float4) to be set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constants were set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12set_cs_constEjPKvj">
+<span id="_CPPv3N3d3d12set_cs_constEjPKvj"></span><span id="_CPPv2N3d3d12set_cs_constEjPKvj"></span><span id="d3d::set_cs_const__unsigned.voidCP.unsigned"></span><span class="target" id="namespaced3d_1a151ca8096fad5a339b3713ffd2a6b242"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_cs_const</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg_base</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_regs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12set_cs_constEjPKvj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets compute shader constants. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These constants will be ignored, if a constant buffer is explicitly bound to slot 0. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reg_base</strong> – The base register index. </p></li>
+<li><p><strong>data</strong> – Pointer to the data to be set. The size must be a multiple of sizeof(float4). </p></li>
+<li><p><strong>num_regs</strong> – The number of registers (float4) to be set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constants were set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d13set_vs_const1Ejffff">
+<span id="_CPPv3N3d3d13set_vs_const1Ejffff"></span><span id="_CPPv2N3d3d13set_vs_const1Ejffff"></span><span id="d3d::set_vs_const1__unsigned.float.float.float.float"></span><span class="target" id="namespaced3d_1a61b3c7266463dd89a69f66220a483e47"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_vs_const1</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v0</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v1</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v2</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v3</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d13set_vs_const1Ejffff" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets a single vertex shader constant register. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This constant will be ignored, if a constant buffer is explicitly bound to slot 0. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reg</strong> – The register index. </p></li>
+<li><p><strong>v0</strong> – The value for the first component. </p></li>
+<li><p><strong>v1</strong> – The value for the second component. </p></li>
+<li><p><strong>v2</strong> – The value for the third component. </p></li>
+<li><p><strong>v3</strong> – The value for the fourth component. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constant was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d13set_ps_const1Ejffff">
+<span id="_CPPv3N3d3d13set_ps_const1Ejffff"></span><span id="_CPPv2N3d3d13set_ps_const1Ejffff"></span><span id="d3d::set_ps_const1__unsigned.float.float.float.float"></span><span class="target" id="namespaced3d_1adb026c9307a991b81fd35cc6b87d2899"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_ps_const1</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v0</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v1</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v2</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v3</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d13set_ps_const1Ejffff" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets a single pixel shader constant register. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This constant will be ignored, if a constant buffer is explicitly bound to slot 0. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reg</strong> – The register index. </p></li>
+<li><p><strong>v0</strong> – The value for the first component. </p></li>
+<li><p><strong>v1</strong> – The value for the second component. </p></li>
+<li><p><strong>v2</strong> – The value for the third component. </p></li>
+<li><p><strong>v3</strong> – The value for the fourth component. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constant was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d19set_immediate_constEjPK8uint32_tj">
+<span id="_CPPv3N3d3d19set_immediate_constEjPK8uint32_tj"></span><span id="_CPPv2N3d3d19set_immediate_constEjPK8uint32_tj"></span><span id="d3d::set_immediate_const__unsigned.uint32_tCP.unsigned"></span><span class="target" id="namespaced3d_1a8ba8d82aa75260edca7b115799ee448a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_immediate_const</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_words</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d19set_immediate_constEjPK8uint32_tj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets immediate constants for the specified stage. </p>
+<p>Immediate constants are supposed to be very cheap to set dwords. It is guaranteed to support up to 4 dwords on each stage. Use as little as possible, ideally one or two (or none). On XB1(PS4), it is implemented as user regs (C|P|V)SSetShaderUserData. On DX11, it is implemented as constant buffers. On VK/DX12, it should be implemented as descriptor/push constants buffers. Calling with data = nullptr || num_words == 0 is benign and currently works as “stop using immediate” (probably have to be replaced with shader system).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stage</strong> – The shader stage (STAGE_VS, STAGE_PS, STAGE_CS). </p></li>
+<li><p><strong>data</strong> – Pointer to the data to be set. </p></li>
+<li><p><strong>num_words</strong> – The number of words to be set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constants were set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d16set_const_bufferEjjPKfj">
+<span id="_CPPv3N3d3d16set_const_bufferEjjPKfj"></span><span id="_CPPv2N3d3d16set_const_bufferEjjPKfj"></span><span id="d3d::set_const_buffer__unsigned.unsigned.floatCP.unsigned"></span><span class="target" id="namespaced3d_1abc19a5aac5646eca18c9c4823c560f7a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_const_buffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_regs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d16set_const_bufferEjjPKfj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets a constant buffer for the specified stage. PS4 specific. </p>
+<p>Constant buffers are valid until driver acquire call or end of frame. To unbind, use set_const_buffer(stage, 0, nullptr).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When slot is 0, and data is not nullptr, it will also override any constants set via set_const and related calls. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stage</strong> – The shader stage (STAGE_VS, STAGE_PS, STAGE_CS). </p></li>
+<li><p><strong>slot</strong> – The buffer slot. </p></li>
+<li><p><strong>data</strong> – Pointer to the data to be set. The size must be a multiple of sizeof(float4). </p></li>
+<li><p><strong>num_regs</strong> – The number of registers (float4) to be set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constant buffer was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d16set_const_bufferEjjP7Sbuffer8uint32_t8uint32_t">
+<span id="_CPPv3N3d3d16set_const_bufferEjjP7Sbuffer8uint32_t8uint32_t"></span><span id="_CPPv2N3d3d16set_const_bufferEjjP7Sbuffer8uint32_t8uint32_t"></span><span id="d3d::set_const_buffer__unsigned.unsigned.SbufferP.uint32_t.uint32_t"></span><span class="target" id="namespaced3d_1a7faa22a3eee807e8574873fdcc6b3fa3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_const_buffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buffer</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">consts_offset</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">consts_size</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d16set_const_bufferEjjP7Sbuffer8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets a constant buffer for the specified stage using a buffer object. </p>
+<p>Constant buffers are valid until driver acquire call or end of frame. To unbind, use set_const_buffer(stage, 0, nullptr).</p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>consts_offset and consts_size are not used. Remove them? </p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stage</strong> – The shader stage (STAGE_VS, STAGE_PS, STAGE_CS). </p></li>
+<li><p><strong>slot</strong> – The buffer slot. </p></li>
+<li><p><strong>buffer</strong> – Pointer to the buffer object. Must be created with <a class="reference internal" href="Buffers.html#namespaced3d_1_1buffers_1a7bebf9def14bda25122a6a6ab0525f94"><span class="std std-ref">d3d::buffers::create_persistent_cb</span></a> or <a class="reference internal" href="Buffers.html#namespaced3d_1_1buffers_1a02cea12b62344cecc0d445c2859d69dc"><span class="std std-ref">d3d::buffers::create_one_frame_cb</span></a>. </p></li>
+<li><p><strong>consts_offset</strong> – The offset of the constants in the buffer. (Not used) </p></li>
+<li><p><strong>consts_size</strong> – The size of the constants in the buffer. (Not used) </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constant buffer was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d23set_vs_constbuffer_sizeEi">
+<span id="_CPPv3N3d3d23set_vs_constbuffer_sizeEi"></span><span id="_CPPv2N3d3d23set_vs_constbuffer_sizeEi"></span><span id="d3d::set_vs_constbuffer_size__i"></span><span class="target" id="namespaced3d_1a2af71db90e47ee8917fa9e326db28006"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_vs_constbuffer_size</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">required_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d23set_vs_constbuffer_sizeEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the size of the vertex shader constant buffer that can be filled with set_const call. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>required_size</strong> – The required size of the constant buffer. If 0, the default size is set. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The actual size of the constant buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d23set_cs_constbuffer_sizeEi">
+<span id="_CPPv3N3d3d23set_cs_constbuffer_sizeEi"></span><span id="_CPPv2N3d3d23set_cs_constbuffer_sizeEi"></span><span id="d3d::set_cs_constbuffer_size__i"></span><span class="target" id="namespaced3d_1ae177d5503a48a32221db1748c809a900"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_cs_constbuffer_size</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">required_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d23set_cs_constbuffer_sizeEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the size of the compute shader constant buffer that can be filled with set_const call. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>required_size</strong> – The required size of the constant buffer. If 0, the default size is set. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The actual size of the constant buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12set_cb0_dataEjPKfj">
+<span id="_CPPv3N3d3d12set_cb0_dataEjPKfj"></span><span id="_CPPv2N3d3d12set_cb0_dataEjPKfj"></span><span id="d3d::set_cb0_data__unsigned.floatCP.unsigned"></span><span class="target" id="namespaced3d_1adeb50aaeacc0a1cb233005854ab5fbe9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_cb0_data</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_regs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12set_cb0_dataEjPKfj" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets a constant buffer at slot 0 for the specified stage. Uses the fastest method available on the platform. </p>
+<p>Constant buffers are valid until driver acquire call or end of frame. To unbind, use release_cb0_data(stage).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stage</strong> – The shader stage (STAGE_VS, STAGE_PS, STAGE_CS). </p></li>
+<li><p><strong>data</strong> – Pointer to the data to be set. The size must be a multiple of sizeof(float4). </p></li>
+<li><p><strong>num_regs</strong> – The number of registers (float4) to be set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the constants were set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d16release_cb0_dataEj">
+<span id="_CPPv3N3d3d16release_cb0_dataEj"></span><span id="_CPPv2N3d3d16release_cb0_dataEj"></span><span id="d3d::release_cb0_data__unsigned"></span><span class="target" id="namespaced3d_1aeeea3fce4e42995a125567134463690c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">release_cb0_data</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d16release_cb0_dataEj" title="Link to this definition"></a><br /></dt>
+<dd><p>Releases the constant buffer at slot 0, which should have been previously set by set_cb0_data. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stage</strong> – The shader stage (STAGE_VS, STAGE_PS, STAGE_CS). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Shader.html" class="btn btn-neutral float-left" title="Shader Programs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ShaderModelVersions.html" class="btn btn-neutral float-right" title="Shader Model Versions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

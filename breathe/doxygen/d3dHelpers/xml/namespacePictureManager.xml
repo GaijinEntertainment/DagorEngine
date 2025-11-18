@@ -1,0 +1,439 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacePictureManager" kind="namespace" language="C++">
+    <compoundname>PictureManager</compoundname>
+    <innerclass refid="structPictureManager_1_1PicDesc" prot="public">PictureManager::PicDesc</innerclass>
+    <innerclass refid="structPictureManager_1_1PictureRenderFactory" prot="public">PictureManager::PictureRenderFactory</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespacePictureManager_1aa8a639518169f2263ce46d858861b0b5" prot="public" static="no">
+        <type>void(*</type>
+        <definition>typedef void(* PictureManager::async_load_done_cb_t) (PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb, const Point2 *picture_sz, void *arg)</definition>
+        <argsstring>)(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb, const Point2 *picture_sz, void *arg)</argsstring>
+        <name>async_load_done_cb_t</name>
+        <qualifiedname>PictureManager::async_load_done_cb_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="25" column="9" bodyfile="dag_picMgr.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacePictureManager_1afffcf58982a1b31e3ed39fba61673f4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::init</definition>
+        <argsstring>(const DataBlock *params=NULL)</argsstring>
+        <name>init</name>
+        <qualifiedname>PictureManager::init</qualifiedname>
+        <param>
+          <type>const DataBlock *</type>
+          <declname>params</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="33" column="6" declfile="dag_picMgr.h" declline="33" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a11a56d8d2369464e534054282267a3ca" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::prepare_to_release</definition>
+        <argsstring>(bool final_term=true)</argsstring>
+        <name>prepare_to_release</name>
+        <qualifiedname>PictureManager::prepare_to_release</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>final_term</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="34" column="6" declfile="dag_picMgr.h" declline="34" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1aba739212ccdc3bea434c7c2fb14d0779" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::release</definition>
+        <argsstring>()</argsstring>
+        <name>release</name>
+        <qualifiedname>PictureManager::release</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="35" column="6" declfile="dag_picMgr.h" declline="35" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1abb138203f8dc811d7ac5c390741a08d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::per_frame_update</definition>
+        <argsstring>()</argsstring>
+        <name>per_frame_update</name>
+        <qualifiedname>PictureManager::per_frame_update</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="38" column="6" declfile="dag_picMgr.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a1dd262f8927f1b1bcd5941b222cf5ed8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::before_d3d_reset</definition>
+        <argsstring>()</argsstring>
+        <name>before_d3d_reset</name>
+        <qualifiedname>PictureManager::before_d3d_reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="41" column="6" declfile="dag_picMgr.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a62308700e8245e47c1f0d47ef615a822" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::after_d3d_reset</definition>
+        <argsstring>()</argsstring>
+        <name>after_d3d_reset</name>
+        <qualifiedname>PictureManager::after_d3d_reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="42" column="6" declfile="dag_picMgr.h" declline="42" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a7061748746b9395e84d909db8287c3f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PictureManager::get_picture_ex</definition>
+        <argsstring>(const char *file_name, PICTUREID &amp;out_pic_id, TEXTUREID &amp;out_tex_id, d3d::SamplerHandle &amp;out_smp_id, Point2 *out_tc_lefttop=NULL, Point2 *out_tc_rightbottom=NULL, Point2 *picture_size=NULL, async_load_done_cb_t load_done_cb=NULL, void *cb_arg=NULL)</argsstring>
+        <name>get_picture_ex</name>
+        <qualifiedname>PictureManager::get_picture_ex</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>file_name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref> &amp;</type>
+          <declname>out_pic_id</declname>
+        </param>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>out_tex_id</declname>
+        </param>
+        <param>
+          <type>d3d::SamplerHandle &amp;</type>
+          <declname>out_smp_id</declname>
+        </param>
+        <param>
+          <type>Point2 *</type>
+          <declname>out_tc_lefttop</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>Point2 *</type>
+          <declname>out_tc_rightbottom</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>Point2 *</type>
+          <declname>picture_size</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type><ref refid="namespacePictureManager_1aa8a639518169f2263ce46d858861b0b5" kindref="member">async_load_done_cb_t</ref></type>
+          <declname>load_done_cb</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>cb_arg</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="49" column="6" declfile="dag_picMgr.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1ad008b3e22012d95dee79926ce145387a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::get_picture</definition>
+        <argsstring>(const char *file_name, PicDesc &amp;out_pic)</argsstring>
+        <name>get_picture</name>
+        <qualifiedname>PictureManager::get_picture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>file_name</declname>
+        </param>
+        <param>
+          <type><ref refid="structPictureManager_1_1PicDesc" kindref="compound">PicDesc</ref> &amp;</type>
+          <declname>out_pic</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="54" column="6" declfile="dag_picMgr.h" declline="54" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a49f374522971139e30755f5eec8e1d33" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref></type>
+        <definition>PICTUREID PictureManager::add_picture</definition>
+        <argsstring>(BaseTexture *tex, const char *as_name, bool get_it=false)</argsstring>
+        <name>add_picture</name>
+        <qualifiedname>PictureManager::add_picture</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>as_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>get_it</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="57" column="11" declfile="dag_picMgr.h" declline="57" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1ab3176d6e7e3d90ca66b5058214ed71bf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID PictureManager::get_picture_data</definition>
+        <argsstring>(PICTUREID pid, Point2 &amp;out_lt, Point2 &amp;out_rb)</argsstring>
+        <name>get_picture_data</name>
+        <qualifiedname>PictureManager::get_picture_data</qualifiedname>
+        <param>
+          <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref></type>
+          <declname>pid</declname>
+        </param>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>out_lt</declname>
+        </param>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>out_rb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="61" column="11" declfile="dag_picMgr.h" declline="61" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1ac1ff51bffd2c1757c7a5d69d9694e6e0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point2</type>
+        <definition>Point2 PictureManager::get_picture_pix_size</definition>
+        <argsstring>(PICTUREID pid)</argsstring>
+        <name>get_picture_pix_size</name>
+        <qualifiedname>PictureManager::get_picture_pix_size</qualifiedname>
+        <param>
+          <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref></type>
+          <declname>pid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="64" column="8" declfile="dag_picMgr.h" declline="64" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a7eb5cb7d24c778b5f5131a1fda0e48da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PictureManager::get_picture_size</definition>
+        <argsstring>(PICTUREID pid, Point2 &amp;out_total_texsz, Point2 &amp;out_picsz)</argsstring>
+        <name>get_picture_size</name>
+        <qualifiedname>PictureManager::get_picture_size</qualifiedname>
+        <param>
+          <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref></type>
+          <declname>pid</declname>
+        </param>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>out_total_texsz</declname>
+        </param>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>out_picsz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="68" column="6" declfile="dag_picMgr.h" declline="68" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1ad5f057af81401c10beb9b9328886b029" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::add_ref_picture</definition>
+        <argsstring>(PICTUREID pid)</argsstring>
+        <name>add_ref_picture</name>
+        <qualifiedname>PictureManager::add_ref_picture</qualifiedname>
+        <param>
+          <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref></type>
+          <declname>pid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="71" column="6" declfile="dag_picMgr.h" declline="71" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a1ee2f21f0bd27195e4efa15cb67a66e9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::free_picture</definition>
+        <argsstring>(PICTUREID pic_id)</argsstring>
+        <name>free_picture</name>
+        <qualifiedname>PictureManager::free_picture</qualifiedname>
+        <param>
+          <type><ref refid="dag__picMgr_8h_1a1b029c2caf92d6a1931655479bcf05b5" kindref="member">PICTUREID</ref></type>
+          <declname>pic_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="74" column="6" declfile="dag_picMgr.h" declline="74" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a8fd9131eba9100f40ac09970a46be987" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PictureManager::discard_unused_picture</definition>
+        <argsstring>(bool force_lock=true)</argsstring>
+        <name>discard_unused_picture</name>
+        <qualifiedname>PictureManager::discard_unused_picture</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>force_lock</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="77" column="6" declfile="dag_picMgr.h" declline="77" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1ab3e40131a2e7c8d22a5326ce1ade2f69" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PictureManager::load_tex_atlas_data</definition>
+        <argsstring>(const char *ta_fn, DataBlock &amp;out_ta_blk, String &amp;out_ta_tex_fn)</argsstring>
+        <name>load_tex_atlas_data</name>
+        <qualifiedname>PictureManager::load_tex_atlas_data</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>ta_fn</declname>
+        </param>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>out_ta_blk</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_ta_tex_fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="80" column="6" declfile="dag_picMgr.h" declline="80" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a60bbac634572845e7da6eb9e169f8921" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PictureManager::is_picture_in_dynamic_atlas</definition>
+        <argsstring>(const char *file_name, bool *out_premul_alpha=NULL)</argsstring>
+        <name>is_picture_in_dynamic_atlas</name>
+        <qualifiedname>PictureManager::is_picture_in_dynamic_atlas</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>file_name</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>out_premul_alpha</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="83" column="6" declfile="dag_picMgr.h" declline="83" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a281b4608c6e1b03a379300555178ca99" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::register_pic_render_factory</definition>
+        <argsstring>(PictureRenderFactory *f)</argsstring>
+        <name>register_pic_render_factory</name>
+        <qualifiedname>PictureManager::register_pic_render_factory</qualifiedname>
+        <param>
+          <type><ref refid="structPictureManager_1_1PictureRenderFactory" kindref="compound">PictureRenderFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="103" column="6" declfile="dag_picMgr.h" declline="103" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacePictureManager_1a360b8f21f203eaeffaf0d2a8d1110441" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PictureManager::unregister_pic_render_factory</definition>
+        <argsstring>(PictureRenderFactory *f)</argsstring>
+        <name>unregister_pic_render_factory</name>
+        <qualifiedname>PictureManager::unregister_pic_render_factory</qualifiedname>
+        <param>
+          <type><ref refid="structPictureManager_1_1PictureRenderFactory" kindref="compound">PictureRenderFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="104" column="6" declfile="dag_picMgr.h" declline="104" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_picMgr.h" line="21" column="1"/>
+  </compounddef>
+</doxygen>

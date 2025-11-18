@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="meshUtil_8h" kind="file" language="C++">
+    <compoundname>meshUtil.h</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="meshUtil_8h_1a7438545cca84e64fde792e3a27501028" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool validate_mesh</definition>
+        <argsstring>(const char *node_name, const Mesh &amp;mesh, ILogWriter &amp;log)</argsstring>
+        <name>validate_mesh</name>
+        <param>
+          <type>const char *</type>
+          <declname>node_name</declname>
+        </param>
+        <param>
+          <type>const Mesh &amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <param>
+          <type><ref refid="classILogWriter" kindref="compound">ILogWriter</ref> &amp;</type>
+          <declname>log</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshUtil.h" line="11" column="6" declfile="meshUtil.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="meshUtil_8h_1a4d7350a8922d36cecacd7e8a34a5db48" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void split_real_two_sided</definition>
+        <argsstring>(Mesh &amp;m, Bitarray &amp;is_material_real_two_sided_array, int side_channel_id)</argsstring>
+        <name>split_real_two_sided</name>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Bitarray &amp;</type>
+          <declname>is_material_real_two_sided_array</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>side_channel_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshUtil.h" line="13" column="6" declfile="meshUtil.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Mesh;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classILogWriter" kindref="compound">ILogWriter</ref>;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Bitarray;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="meshUtil_8h_1a7438545cca84e64fde792e3a27501028" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="meshUtil_8h_1a7438545cca84e64fde792e3a27501028" kindref="member">validate_mesh</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*node_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Mesh<sp/>&amp;mesh,<sp/><ref refid="classILogWriter" kindref="compound">ILogWriter</ref><sp/>&amp;log);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="meshUtil_8h_1a4d7350a8922d36cecacd7e8a34a5db48" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="meshUtil_8h_1a4d7350a8922d36cecacd7e8a34a5db48" kindref="member">split_real_two_sided</ref>(Mesh<sp/>&amp;m,<sp/>Bitarray<sp/>&amp;is_material_real_two_sided_array,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>side_channel_id);</highlight></codeline>
+    </programlisting>
+    <location file="meshUtil.h"/>
+  </compounddef>
+</doxygen>

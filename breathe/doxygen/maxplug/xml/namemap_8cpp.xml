@@ -1,0 +1,183 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namemap_8cpp" kind="file" language="C++">
+    <compoundname>namemap.cpp</compoundname>
+    <includes refid="namemap_8h" local="yes">namemap.h</includes>
+    <includes refid="debug_8h" local="yes">debug.h</includes>
+    <incdepgraph>
+      <node id="5">
+        <label>debug.h</label>
+        <link refid="debug_8h"/>
+      </node>
+      <node id="1">
+        <label>namemap.cpp</label>
+        <link refid="namemap_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>namemap.h</label>
+        <link refid="namemap_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>max.h</label>
+      </node>
+      <node id="4">
+        <label>str.h</label>
+      </node>
+    </incdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="namemap_8h" kindref="compound">namemap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="debug_8h" kindref="compound">debug.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"><ref refid="classBaseNameMap_1a9f4799aa8bbfb1c2a50c7b3ab581e7fd" kindref="member">BaseNameMap::BaseNameMap</ref>()</highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/><sp/><sp/><sp/>DEBUG_CTX(&quot;NameMap::NameMap=%p<sp/>from:&quot;,<sp/>this);</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"></highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/><sp/><sp/><sp/>static<sp/>String<sp/>s(inimem_ptr());</highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/><sp/><sp/><sp/>s.reserve(5000);</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/><sp/><sp/><sp/>_getstackinfo(s);</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/><sp/><sp/><sp/>debug<sp/>(<sp/>&quot;%s&quot;,<sp/>(char*)s<sp/>);</highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/><sp/>//*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><ref refid="classBaseNameMap_1a27f04775f7b188f0eba8472fc608471a" kindref="member">BaseNameMap::~BaseNameMap</ref>()<sp/>{<sp/><ref refid="classBaseNameMap_1a379dcfcd995d228fb440ba46dff71efa" kindref="member">clear</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1a379dcfcd995d228fb440ba46dff71efa" kindref="member">BaseNameMap::clear</ref>()<sp/>{<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Delete(0,<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count());<sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1a1d3bd0a327df8efbf135ae5ac552f5a1" kindref="member">BaseNameMap::save</ref>(FILE<sp/>*f<sp/></highlight><highlight class="comment">/*GeneralSaveCB<sp/>&amp;cb*/</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="27"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n<sp/>=<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="polyBumpUtil_8cpp_1a0c923945d48565c5146d14e14bb094c3" kindref="member">fwrite</ref>(&amp;n,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(n),<sp/>1,<sp/>f);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len<sp/>=<sp/>(int)strlen(<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i]);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(len<sp/>&gt;=<sp/>(1<sp/>&lt;&lt;<sp/>16))</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="debug_8cpp_1ad66a73f3673f2879326899cf57fd8d2e" kindref="member">debug</ref>(</highlight><highlight class="stringliteral">&quot;NameMap<sp/>string<sp/>is<sp/>too<sp/>long<sp/>to<sp/>save&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>l<sp/>=<sp/>len;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1a0c923945d48565c5146d14e14bb094c3" kindref="member">fwrite</ref>(&amp;l,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(l),<sp/>1,<sp/>f);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1a0c923945d48565c5146d14e14bb094c3" kindref="member">fwrite</ref>(<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i],<sp/>l,<sp/>1,<sp/>f);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1a017e5959e9c9e8c7624e34f7fdba9447" kindref="member">BaseNameMap::load</ref>(FILE<sp/>*f)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap_1a379dcfcd995d228fb440ba46dff71efa" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>fread(&amp;n,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(n),<sp/>1,<sp/>f);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Resize(n);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>l;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>fread(&amp;l,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(l),<sp/>1,<sp/>f);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s<sp/>=<sp/>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)malloc(l<sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>fread(s,<sp/>l,<sp/>1,<sp/>f);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>s[l]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i]<sp/>=<sp/>s;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classBaseNameMap_1ad27291165fe02dcd33077696c0df2a51" kindref="member">BaseNameMap::getName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="67"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&lt;<sp/>0<sp/>||<sp/>i<sp/>&gt;=<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count())</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i];</highlight></codeline>
+<codeline lineno="71"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap_1aa12d4ba58ab9753e5b30595c9b7e9718" kindref="member">BaseNameMap::copyFrom</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseNameMap" kindref="compound">BaseNameMap</ref><sp/>&amp;nm)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap_1a379dcfcd995d228fb440ba46dff71efa" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Resize(nm.<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count());</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i]<sp/>=<sp/>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)malloc(strlen(nm.<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i])<sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>strcpy(<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i],<sp/>nm.<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i]);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMap_1a8218bc8a19c32dff3d67a3376abf2d23" kindref="member">NameMap::getNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="87"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!name)</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strcmp(<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i],<sp/>name)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMap_1af81ec08e783e09c8596c8a0ebf2b5328" kindref="member">NameMap::addNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!name)</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strcmp(<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i],<sp/>name)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>String<sp/>*str<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>String(name);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>i<sp/>=<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Append(1,<sp/>str);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMapCI_1aaf0e95d9545da2c3fb625f91e41ef5f7" kindref="member">NameMapCI::getNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="115"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!name)</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stricmp(<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i],<sp/>name)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classNameMapCI_1a8e025492600f75ea9b2179088090edd4" kindref="member">NameMapCI::addNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!name)</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stricmp(<ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>[i],<sp/>name)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>String<sp/>*str<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>String(name);</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>i<sp/>=<sp/><ref refid="classBaseNameMap_1ad7e889893aef629ea322484d0638eb26" kindref="member">names</ref>.Append(1,<sp/>str);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="namemap.cpp"/>
+  </compounddef>
+</doxygen>

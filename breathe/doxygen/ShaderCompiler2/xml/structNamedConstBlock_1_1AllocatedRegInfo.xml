@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structNamedConstBlock_1_1AllocatedRegInfo" kind="struct" language="C++" prot="public">
+    <compoundname>NamedConstBlock::AllocatedRegInfo</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structNamedConstBlock_1_1AllocatedRegInfo_1af78566d3b2c7e994c5f23295978a225f" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string NamedConstBlock::AllocatedRegInfo::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>NamedConstBlock::AllocatedRegInfo::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="157" column="19" bodyfile="namedConst.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1AllocatedRegInfo_1ae5ae9d0c21d31fbcdce62b1147f7c1ed" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int NamedConstBlock::AllocatedRegInfo::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>NamedConstBlock::AllocatedRegInfo::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="158" column="9" bodyfile="namedConst.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="namedConst.h" line="155" column="3" bodyfile="namedConst.h" bodystart="156" bodyend="159"/>
+    <listofallmembers>
+      <member refid="structNamedConstBlock_1_1AllocatedRegInfo_1af78566d3b2c7e994c5f23295978a225f" prot="public" virt="non-virtual"><scope>NamedConstBlock::AllocatedRegInfo</scope><name>name</name></member>
+      <member refid="structNamedConstBlock_1_1AllocatedRegInfo_1ae5ae9d0c21d31fbcdce62b1147f7c1ed" prot="public" virt="non-virtual"><scope>NamedConstBlock::AllocatedRegInfo</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

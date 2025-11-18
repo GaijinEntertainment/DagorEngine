@@ -1,0 +1,1073 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>application.blk</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title=".composit.blk" href="composit_blk.html" />
+    <link rel="prev" title="All About .blk Files" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">application.blk</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#root-level-parameters">Root Level Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blocks-and-block-parameters">Blocks and Block Parameters</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#dynamicdeferred"><code class="docutils literal notranslate"><span class="pre">dynamicDeferred{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#clipmap"><code class="docutils literal notranslate"><span class="pre">clipmap{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#hdr-mode"><code class="docutils literal notranslate"><span class="pre">hdr_mode{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#sdk"><code class="docutils literal notranslate"><span class="pre">SDK{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#game"><code class="docutils literal notranslate"><span class="pre">game{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#levelsblkprefix"><code class="docutils literal notranslate"><span class="pre">levelsBlkPrefix{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#assets"><code class="docutils literal notranslate"><span class="pre">assets{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#level-metrics"><code class="docutils literal notranslate"><span class="pre">level_metrics{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#genobjtypes"><code class="docutils literal notranslate"><span class="pre">genObjTypes{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dagored-visibility-tags"><code class="docutils literal notranslate"><span class="pre">dagored_visibility_tags{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dagored-disabled-plugins"><code class="docutils literal notranslate"><span class="pre">dagored_disabled_plugins{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#daeditorexportorder"><code class="docutils literal notranslate"><span class="pre">daEditorExportOrder{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#lightmap"><code class="docutils literal notranslate"><span class="pre">lightmap{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#projectdefaults"><code class="docutils literal notranslate"><span class="pre">projectDefaults{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shader-glob-vars-scheme"><code class="docutils literal notranslate"><span class="pre">shader_glob_vars_scheme{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#heightmap"><code class="docutils literal notranslate"><span class="pre">heightMap{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#additional-platforms"><code class="docutils literal notranslate"><span class="pre">additional_platforms{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#parameters"><code class="docutils literal notranslate"><span class="pre">parameters{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#assetlight"><code class="docutils literal notranslate"><span class="pre">AssetLight{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#defprojectlocal"><code class="docutils literal notranslate"><span class="pre">defProjectLocal{}</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#animcharview"><code class="docutils literal notranslate"><span class="pre">animCharView{}</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="composit_blk.html"><code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="config_and_settings_blk.html"><code class="docutils literal notranslate"><span class="pre">.config.blk</span></code> and <code class="docutils literal notranslate"><span class="pre">.settings.blk</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folder_blk.html"><code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_blk.html"><code class="docutils literal notranslate"><span class="pre">.skeleton.blk</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="spline_blk.html"><code class="docutils literal notranslate"><span class="pre">spline.blk</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">application.blk</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/all-about-blk/application_blk.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="application-blk">
+<h1><code class="docutils literal notranslate"><span class="pre">application.blk</span></code><a class="headerlink" href="#application-blk" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">application.blk</span></code> file is a key configuration file for the Dagor Engine
+tools, detailing the setup and customization of various aspects of the editors
+and builders, including rendering options, shader configurations, shadow
+settings, asset management, and game-specific settings. This file contains
+multiple blocks, each dedicated to specific functions and settings.</p>
+<p>Below is a description of each block within the <code class="docutils literal notranslate"><span class="pre">application.blk</span></code> file:</p>
+<section id="root-level-parameters">
+<h2>Root Level Parameters<a class="headerlink" href="#root-level-parameters" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">collision</span></code>: Specifies the collision detection system to be used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">shaders</span></code>: Defines the path to the shaders.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">useDynrend</span></code>: A boolean flag to enable or disable dynamic rendering.</p></li>
+</ul>
+</section>
+<section id="blocks-and-block-parameters">
+<h2>Blocks and Block Parameters<a class="headerlink" href="#blocks-and-block-parameters" title="Link to this heading"></a></h2>
+<section id="dynamicdeferred">
+<h3><code class="docutils literal notranslate"><span class="pre">dynamicDeferred{}</span></code><a class="headerlink" href="#dynamicdeferred" title="Link to this heading"></a></h3>
+<p>This block configures settings for the dynamic deferred rendering system,
+including supported options, default rendering options, debug display options,
+and various rendering formats.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">supportsRopt{}</span></code>: Defines which rendering options are supported.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">render</span> <span class="pre">shadows</span></code>: Enables shadow rendering.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">render</span> <span class="pre">VSM</span> <span class="pre">shadows</span></code>: Enables variance shadow map shadows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">use</span> <span class="pre">SSAO</span></code>: Enables screen space ambient occlusion.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">use</span> <span class="pre">SSR</span></code>: Enables screen space reflections.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">no</span> <span class="pre">sun,</span> <span class="pre">no</span> <span class="pre">amb,</span> <span class="pre">no</span> <span class="pre">envi</span> <span class="pre">refl,</span> <span class="pre">no</span> <span class="pre">transp,</span> <span class="pre">no</span> <span class="pre">postfx</span></code>: Enables sun,
+ambient, environmental reflections, transparency, and post-processing
+effects, respectively.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">defaultRopt{}</span></code>: Sets the default rendering options.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">render</span> <span class="pre">VSM</span> <span class="pre">shadows</span></code>: Enables variance shadow map shadows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">no</span> <span class="pre">sun,</span> <span class="pre">no</span> <span class="pre">amb,</span> <span class="pre">no</span> <span class="pre">envi</span> <span class="pre">refl,</span> <span class="pre">no</span> <span class="pre">transp,</span> <span class="pre">no</span> <span class="pre">postfx</span></code>: Enables sun,
+ambient, environmental reflections, transparency, and post-processing
+effects, respectively.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dbgShow{}</span></code>: Configures debug display options with various rendering
+indices for different components.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">diffuse</span></code>: Diffuse component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">specular</span></code>: Specular component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">normal</span></code>: Normal vector component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">smoothness</span></code>: Smoothness (or roughness) component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">base_color</span></code>: Base color of the material.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">metallness</span></code>: Metallic component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">material</span></code>: Material ID.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssao</span></code>: Screen space ambient occlusion (SSAO).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ao</span></code>: Ambient occlusion (AO).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">albedo_ao</span></code>: Maps the albedo multiplied by ambient occlusion.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">final_ao</span></code>: Maps the final ambient occlusion.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preshadow</span></code>: Maps the pre-shadow (shadow map before applying shadows).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">translucency</span></code>: Maps the translucency component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">translucency_color</span></code>: Maps the translucency color component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssr</span></code>: Maps the screen space reflections (SSR).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssr_strength</span></code>: Maps the strength of the screen space reflections.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sceneFmt,</span> <span class="pre">postfxFmt,</span> <span class="pre">ssaoFmt</span></code>: Specifies formats for scene, post-processing
+effects, and SSAO.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">postfx_sRGB_backbuf_write</span></code>: Enables/disables sRGB back buffer writing for
+post-processing effects.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gbufCount</span></code>: Sets the number of G-buffers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gbufFmt0,</span> <span class="pre">gbufFmt1,</span> <span class="pre">gbufFmt2</span></code>: Defines formats for the G-buffers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">shadowPreset{}</span></code>: Defines presets for shadow mapping parameters. These
+presets are used to configure the resolution and distance for shadow maps, as
+well as the variance shadow maps (VSM).</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: Defines the name of the shadow preset, describing its
+configuration in terms of map size and maximum distance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">csmSize</span></code>: Sets the size of the cascaded shadow map (CSM).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">csmMaxDist</span></code>: Sets the maximum distance for the cascaded shadow map.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vsmSize</span></code>: Sets the size of the variance shadow map (VSM).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vsmMaxDist</span></code>: Sets the maximum distance for the variance shadow map.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hdrMode,</span> <span class="pre">postfx,</span> <span class="pre">vsmAllowed,</span> <span class="pre">grassTranslucency</span></code>: Configures high dynamic
+range mode, post-processing effects, VSM allowance, and grass translucency.</p></li>
+</ul>
+</section>
+<section id="clipmap">
+<h3><code class="docutils literal notranslate"><span class="pre">clipmap{}</span></code><a class="headerlink" href="#clipmap" title="Link to this heading"></a></h3>
+<p>Configures settings for clipmap rendering, which is typically used for large
+terrains.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sideSize,</span> <span class="pre">stackCount,</span> <span class="pre">texelSize,</span> <span class="pre">step,</span> <span class="pre">finalSize,</span> <span class="pre">cacheCnt,</span> <span class="pre">bufferCnt</span></code>:
+Defines various parameters for the clipmap, including size, number of stacks,
+texel size, step size, final size, cache count, and buffer count.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cache_tex0,</span> <span class="pre">cache_tex1,</span> <span class="pre">cache_tex2,</span> <span class="pre">buf_tex0,</span> <span class="pre">buf_tex1,</span> <span class="pre">buf_tex2</span></code>:
+Specifies formats for cache textures and buffer textures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">useUAVFeedback,</span> <span class="pre">useToroidalHeightmap</span></code>: Enables UAV feedback and toroidal
+heightmap usage.</p></li>
+</ul>
+</section>
+<section id="hdr-mode">
+<h3><code class="docutils literal notranslate"><span class="pre">hdr_mode{}</span></code><a class="headerlink" href="#hdr-mode" title="Link to this heading"></a></h3>
+<p>Specifies the high dynamic range mode settings.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ps3,</span> <span class="pre">real</span></code>: Enables specific HDR modes.</p></li>
+</ul>
+</section>
+<section id="sdk">
+<h3><code class="docutils literal notranslate"><span class="pre">SDK{}</span></code><a class="headerlink" href="#sdk" title="Link to this heading"></a></h3>
+<p>Defines settings related to the SDK (Software Development Kit).</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sdk_folder,</span> <span class="pre">levels_folder</span></code>: Paths to the SDK directory and levels
+directory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">daeditor3x_additional_plugins</span></code>: Path to additional plugins for the editor.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exclude_dll</span></code>: Regex pattern to exclude specific <code class="docutils literal notranslate"><span class="pre">.dll</span></code> files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allow_debug_bitmap_dump</span></code>: Enables debug bitmap dumping.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">levelExpSHA1Tags{}</span></code>: Defines a list of SHA-1 tags associated with
+various elements within a level. Each tag represents a specific type of data
+or asset that is included in the level export process.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">tag</span></code>: Defines a certain tag.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="game">
+<h3><code class="docutils literal notranslate"><span class="pre">game{}</span></code><a class="headerlink" href="#game" title="Link to this heading"></a></h3>
+<p>Contains game-specific settings and paths.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">game_folder,</span> <span class="pre">levels_bin_folder</span></code>: Paths to the game directory and levels
+binary directory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">physmat,</span> <span class="pre">params,</span> <span class="pre">entities,</span> <span class="pre">scene,</span> <span class="pre">car_params</span></code>: Paths to various game
+configuration files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">texStreamingFile,</span> <span class="pre">texStreamingBlock,</span> <span class="pre">navmesh_layers</span></code>: Paths and settings
+related to texture streaming and navigation mesh layers.</p></li>
+</ul>
+</section>
+<section id="levelsblkprefix">
+<h3><code class="docutils literal notranslate"><span class="pre">levelsBlkPrefix{}</span></code><a class="headerlink" href="#levelsblkprefix" title="Link to this heading"></a></h3>
+<p>Configures prefix settings for level blocks.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">useExportBinPath</span></code>: Enables the use of export binary path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">try</span></code>: Path to try for level export.</p></li>
+</ul>
+</section>
+<section id="assets">
+<h3><code class="docutils literal notranslate"><span class="pre">assets{}</span></code><a class="headerlink" href="#assets" title="Link to this heading"></a></h3>
+<p>Defines the parameters and settings related to the handling of game assets,
+including their types, base paths, export settings, impostor rendering
+parameters, and build configurations.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">types{}</span></code>: Lists various asset types used in the game. Specifies
+various asset types such as textures (<code class="docutils literal notranslate"><span class="pre">tex</span></code>), prefabs (<code class="docutils literal notranslate"><span class="pre">prefab</span></code>), render
+instances (<code class="docutils literal notranslate"><span class="pre">rendInst</span></code>), effects (<code class="docutils literal notranslate"><span class="pre">fx</span></code>), and more.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Specifies the type of asset.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">base</span></code>: Defines the base directory for asset storage.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export{}</span></code>: Contains settings for exporting assets.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">types{}</span></code>: Specifies the types of assets to be exported.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Specifies the type of asset.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cache</span></code>: Defines the cache directory used during export.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">useCache2Fast</span></code>: Enables fast caching.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">profiles{}</span></code>: Defines export profiles.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">dedicatedServer{}</span></code>: A profile for dedicated servers.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">strip_d3d_res</span></code>: Removes Direct3D resources.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">collapse_packs</span></code>: Collapses packs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reject_exp</span></code>: Specifies asset types to reject during export.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">destination{}</span></code>: Specifies export destinations for different
+platforms.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">PC</span></code>: PC destination path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;PC~~dedicatedServer&quot;</span></code>: PC dedicated server destination path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iOS</span></code>: iOS destination path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allow_patch</span></code>: Disables patching.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">additional{}</span></code>: Additional export settings.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">destGrpHdrCache{}</span></code>: Configures the group header cache in VROMFS for
+export.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">packages{}</span></code>: Manages asset packages.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">forceExplicitList</span></code>: Enables explicit package list usage.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">outer_space{}</span></code>: Specifies settings for the <em>OuterSpace</em>
+package.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outer_space_hq{}</span></code>: Specifies settings for the high-quality
+<em>OuterSpace</em> package.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stripPrefix</span></code>: Specifies the prefix to strip from all package file paths.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">addTexPrefix</span></code>: Defines the prefix to add for texture packages.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">packlist</span></code>: Specifies the pack list file to maintain the current list of
+valid packs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">defaultDdsxTexPack</span></code>: Defines the default DDSX (DirectDraw Surface)
+texture pack file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rtMipGenAllowed</span></code>: Disables real-time mipmap generation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">folderDefaults{}</span></code>: Specifies default settings for directories when
+certain properties are not explicitly defined for a specific directory.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ddsxTexPack</span></code>: Defines that if a directory does not have an explicitly
+defined <code class="docutils literal notranslate"><span class="pre">ddsxTexPack</span></code>, it can inherit this property from its parent
+directory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gameResPack</span></code>: Defines that if a directory does not have an explicitly
+defined <code class="docutils literal notranslate"><span class="pre">gameResPack</span></code>, it can inherit this property from its parent
+directory.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plugins{}</span></code>: Specifies the locations of export plugins.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">folder</span></code>: Path to the directory.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">perTypeDest{}</span></code>: Defines destination packages for specific asset
+types.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">perTypeDest{}</span></code>: Manages destination settings per asset type.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">package{}</span></code>: Specifies package settings.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">pack{}</span></code>: Specifies pack settings.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">tifMask</span></code>: Indicates that assets related to mask textures are grouped
+into the certain package.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">land</span></code>: Indicates that assets related to landscape elements are
+grouped into the certain package.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">collision</span></code>: Indicates that assets related to collision detection are
+grouped into the certain package.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">impostor{}</span></code>: Defines settings for impostor rendering (simplified
+representations of complex objects to improve performance).</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">data_folder</span></code>: Specifies the directory for impostor data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aoBrightness</span></code>: Adjusts ambient occlusion brightness.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aoFalloffStart</span></code>: Sets the start distance for ambient occlusion falloff.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aoFalloffStop</span></code>: Sets the stop distance for ambient occlusion falloff.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preshadowEnabled</span></code>: Enables pre-shadowing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">textureQualityLevels{}</span></code>: Defines texture quality levels.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">qualityLevel{}</span></code>: Quality levels based on:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">minHeight</span></code>: Defines minimum height.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">textureHeight</span></code>: Defines texture height.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">build{}</span></code>: Configures general build settings.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxJobs</span></code>: Maximum number of build jobs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stateGraph{}</span></code>: Defines state graph settings.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">cppOutDir</span></code>: Specifies the output directory for state graph C++ files.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynModel{}</span></code>: Sets parameters for dynamic models.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">descListOutPath</span></code>: Specifies the output path for the description list of
+dynamic models.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">separateModelMatToDescBin</span></code>: Enables storing of model materials
+separately in the description binary file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ignoreMappingInPrepareBillboardMesh</span></code>: Enables ignoring texture mapping
+during the preparation of billboard meshes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enableMeshNodeCollapse</span></code>: Enables the collapsing of mesh nodes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxBonesCount</span></code>: Sets the maximum number of bones that can be used in
+the skeletal animation of a dynamic model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">setBonePerVertex</span></code>: Specifies the number of bones influencing each
+vertex.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxVPRConst</span></code>: Sets the maximum number of vertex shader constant
+registers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">useDirectBones</span></code>: Enables the use of direct bone transformations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">remapShaders{}</span></code>: Maps original shader names to new or alternative
+shaders, provides specific remapping rules, and optionally denies certain
+shaders from being used.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">denyShaders{}</span></code>: Specifies a regular expression to deny shaders
+whose names match the pattern.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bat_shader</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">bat_shader</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">rendinst_simple</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendinst_simple_glass</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">rendinst_simple_glass</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">glass</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">glass</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">glass_refraction</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">glass_refraction</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">simple</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_simple</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_simple</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_simple</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_null</span></code>:: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_null</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">propeller_front</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">propeller_front</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">propeller_side</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">propeller_side</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_glass_chrome</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_glass_chrome</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_masked_chrome</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_masked_chrome</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_masked_glass_chrome</span></code>: Sets mapping for
+<code class="docutils literal notranslate"><span class="pre">dynamic_masked_glass_chrome</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_illum</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_illum</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_mirror</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_mirror</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_alpha_blend</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">dynamic_alpha_blend</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">glass_crack</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">glass_crack</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">collimator</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">collimator</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aces_weapon_fire</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">aces_weapon_fire</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">land_mesh_combined</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">land_mesh_combined</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">land_mesh_combined_2x</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_2x</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">random_grass</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">random_grass</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tracer_head</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">tracer_head</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gi_black</span></code>: Sets mapping for <code class="docutils literal notranslate"><span class="pre">gi_black</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rendInst{}</span></code>: Configures render instance settings, shader remapping,
+and material processing.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ignoreMappingInPrepareBillboardMesh</span></code>: Enables ignoring the mapping when
+preparing billboard meshes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">descListOutPath</span></code>: Specifies the output path for the descriptor list of
+rendering instances.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">impostorParamsOutPath</span></code>: Specifies the output path for impostor
+parameters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">separateModelMatToDescBin</span></code>: Enables separating the model materials into
+a descriptor binary.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forceRiExtra</span></code>: Enables the inclusion of extra rendering instance data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">remapShaders{}</span></code>: Maps original shader names to new or alternative
+shaders, similar to the <code class="docutils literal notranslate"><span class="pre">remapShaders{}</span></code> block in the <code class="docutils literal notranslate"><span class="pre">dynModel{}</span></code> block.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">processMat{}</span></code>: Specifies material processing settings.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">collision{}</span></code>: Defines settings for collision data.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">preferZSTD</span></code>: Enables a preference for ZSTD compression algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">writePrecookedFmt</span></code>: Enables writing the collision data in a pre-cooked
+format.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skeleton{}</span></code>: Defines settings for skeleton data compression.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">preferZSTD</span></code>: Enables a preference for ZSTD compression algorithm.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">a2d{}</span></code>: Defines settings for 2D assets data compression.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">preferZSTD</span></code>: Enables a preference for ZSTD compression algorithm.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tex{}</span></code>: Defines texture settings.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">defMaxTexSz</span></code>: Sets the default maximum texture size.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iOS{}</span></code>: Configures settings for iOS platform.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">defMaxTexSz</span></code>: Sets the maximum texture size.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">and{}</span></code>: Configures settings for Android platform`</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">defMaxTexSz</span></code>: Sets the maximum texture size.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">physObj{}</span></code>: Configures physical object properties.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ragdoll{}</span></code>: Specifies ragdoll physics for characters.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">def_density</span></code>: Sets the default density.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">def_massType</span></code>: Defines the default mass type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">def_collType</span></code>: Specifies the default collision type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name_full{}</span></code>: Defines the physical properties and constraints
+for the whole character.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name_tail{}</span></code>: Specifies the joints for different parts of the
+characters body.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">Pelvis&quot;{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Joint{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Defined joint type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minLimit</span></code>: Minimum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxLimit</span></code>: Maximum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Damping</span></code>: Controls how quickly the joint’s motion slows down.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Twist</span> <span class="pre">Damping</span></code>: Specified damping applied to rotational movements.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">Spine1&quot;{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Joint{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Defined joint type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minLimit</span></code>: Minimum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxLimit</span></code>: Maximum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Damping</span></code>: Controls how quickly the joint’s motion slows down.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Twist</span> <span class="pre">Damping</span></code>: Specified damping applied to rotational
+movements.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">R</span> <span class="pre">Calf&quot;{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Joint{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Defined joint type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minLimit</span></code>: Minimum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Damping</span></code>: Controls how quickly the joint’s motion slows down.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;&#64;clone-last:</span> <span class="pre">L</span> <span class="pre">Calf&quot;{}</span></code>: Clones the settings from the <code class="docutils literal notranslate"><span class="pre">&quot;R</span> <span class="pre">Calf&quot;</span></code> joint for the left calf.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">R</span> <span class="pre">Foot&quot;{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Joint{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Defined joint type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minLimit</span></code>: Minimum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxLimit</span></code>: Maximum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Damping</span></code>: Controls how quickly the joint’s motion slows down.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Twist</span> <span class="pre">Damping</span></code>: Specified damping applied to rotational
+movements.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;&#64;clone-last:</span> <span class="pre">L</span> <span class="pre">Foot&quot;{}</span></code>: Clones the settings from the <code class="docutils literal notranslate"><span class="pre">&quot;R</span> <span class="pre">Foot&quot;</span></code> joint for the left foot.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Override{}</span></code>: Overrides the parameters.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">swapLimZ</span></code>: Swaps the limits for the Z-axis.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">Neck&quot;{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Joint{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Defined joint type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minLimit</span></code>: Minimum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxLimit</span></code>: Maximum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Damping</span></code>: Controls how quickly the joint’s motion slows down.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Twist</span> <span class="pre">Damping</span></code>: Specified damping applied to rotational
+movements.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">Head&quot;{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Reference</span></code>: References the neck bone for alignment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Joint{}</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Defined joint type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minLimit</span></code>: Minimum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxLimit</span></code>: Maximum rotational limits for the joint in X, Y, and
+Z axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Damping</span></code>: Controls how quickly the joint’s motion slows down.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Twist</span> <span class="pre">Damping</span></code>: Specified damping applied to rotational
+movements.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">def_helper{}</span></code>: Sets default helper settings.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">physObj</span></code>: Enables treating object as a physical object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">animated_node</span></code>: Enables treating object as an animated node.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">twist_ctrl{}</span></code>: Specifies the configuration for controlling the
+twisting motion of certain bones in the character’s rig.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">node0</span></code>: Specifies the starting bone or node for the twist control.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">node1</span></code>: Specifies the ending bone or node for the twist control.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">twistNode</span></code>: Defines the node that will handle the twisting effect
+between <code class="docutils literal notranslate"><span class="pre">node0</span></code> and <code class="docutils literal notranslate"><span class="pre">node1</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">twistNode</span></code>: An additional twist node, which might be used to
+enhance or refine the twisting effect.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">angDiff:</span></code>: Specifies the angular difference or rotation applied to
+the twist nodes.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lshader{}</span></code>: Manages the location of shader subgraphs.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">subgraphsFolder</span></code>: Specifies the folder path where shader subgraphs are
+stored.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preferZSTD</span></code>: Enables settings for ZSTD compression.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preferZLIB</span></code>: Enables settings for ZLIB compression.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">writeDdsxTexPackVer</span></code>: Sets the version for writing DDS texture packs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">writeGameResPackVer</span></code>: Sets the version for writing game resource packs.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="level-metrics">
+<h3><code class="docutils literal notranslate"><span class="pre">level_metrics{}</span></code><a class="headerlink" href="#level-metrics" title="Link to this heading"></a></h3>
+<p>Defines metrics for levels and plugins.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">whole_level{}</span></code>: Maximum sizes and counts for textures and level data.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">textures_size</span></code>: Maximum total size of textures allowed for the entire
+level.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">level_size</span></code>: Maximum total size of the level data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">textures_count</span></code>: Maximum number of textures allowed in the level.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plugin{}</span></code>: Metrics for collision plugins.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">name:t=&quot;Collision&quot;</span></code>: Name of the plugin or category. In this case, it
+pertains to <code class="docutils literal notranslate"><span class="pre">collision</span></code> data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_size</span></code>: Maximum size of collision data allowed.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plugin{}</span></code>: Metrics for occluders plugins.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">name:t=&quot;Occluders&quot;</span></code>: Name of the plugin or category related to
+<code class="docutils literal notranslate"><span class="pre">occluders</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_triangles</span></code>: Maximum number of triangles allowed for occluder data.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plugin{}</span></code>: Metrics for environment plugins.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">name:t=&quot;Environment&quot;</span></code>: Name of the plugin or category related to
+<code class="docutils literal notranslate"><span class="pre">environment</span></code> data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_faces</span></code>: Maximum number of faces allowed in the environment data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">znear_min</span></code>: Minimum value for the near clipping plane in the
+environment’s rendering setup.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">znear_max</span></code>: Maximum value for the near clipping plane.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zfar_min</span></code>: Minimum value for the far clipping plane in the environment’s
+rendering setup.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zfar_max</span></code>: Maximum value for the far clipping plane.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">z_ratio_max</span></code>: Maximum ratio of the distance between far and near clipping
+planes to the near clipping plane.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="genobjtypes">
+<h3><code class="docutils literal notranslate"><span class="pre">genObjTypes{}</span></code><a class="headerlink" href="#genobjtypes" title="Link to this heading"></a></h3>
+<p>Lists general object types.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Various object types used by the tools.</p></li>
+</ul>
+</section>
+<section id="dagored-visibility-tags">
+<h3><code class="docutils literal notranslate"><span class="pre">dagored_visibility_tags{}</span></code><a class="headerlink" href="#dagored-visibility-tags" title="Link to this heading"></a></h3>
+<p>Configures visibility tags for different plugins.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">plugin{}</span></code>: Names of plugins and their associated tags for visibility.</p></li>
+</ul>
+</section>
+<section id="dagored-disabled-plugins">
+<h3><code class="docutils literal notranslate"><span class="pre">dagored_disabled_plugins{}</span></code><a class="headerlink" href="#dagored-disabled-plugins" title="Link to this heading"></a></h3>
+<p>Lists plugins that are disabled.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">disable</span></code>: Names of plugins that are disabled in the editor.</p></li>
+</ul>
+</section>
+<section id="daeditorexportorder">
+<h3><code class="docutils literal notranslate"><span class="pre">daEditorExportOrder{}</span></code><a class="headerlink" href="#daeditorexportorder" title="Link to this heading"></a></h3>
+<p>Defines the order in which various game elements and assets are exported by the
+editor. This ensures that dependencies are resolved and that assets are
+processed in the correct sequence.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">plugin</span></code>: Specifies the plugins used by the editor in a specific sequence.</p></li>
+</ul>
+</section>
+<section id="lightmap">
+<h3><code class="docutils literal notranslate"><span class="pre">lightmap{}</span></code><a class="headerlink" href="#lightmap" title="Link to this heading"></a></h3>
+<p>Configures settings for generating lightmaps, which are precomputed lighting
+information used for static objects.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">High{}</span></code>: A quality preset defining the number of passes and settings
+per light.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">passes</span></code>: Number of passes or iterations for generating the lightmap.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cub5</span></code>: Enables using the 5-face cubemaps.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">perLight</span></code>: Enables generating lightmaps per each light source.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">map{}</span></code>: Defines the settings for the lightmap textures, specifies
+the resolution of the lightmaps used.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">size</span></code>: Size of the lightmap texture.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="projectdefaults">
+<h3><code class="docutils literal notranslate"><span class="pre">projectDefaults{}</span></code><a class="headerlink" href="#projectdefaults" title="Link to this heading"></a></h3>
+<p>Defines default project-wide settings.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">disableGrass</span></code>: Enables grass rendering.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gpuGrass</span></code>: Enables grass rendering on the GPU</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">riMgr{}</span></code>: Configures settings for render instance management.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Specifies the type of render instance manager to use.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gridCellSize</span></code>: Sets the size of the grid cell for rendering instances.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subGridSize</span></code>: Defines the size of the sub-grid within the main grid.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minGridCellSize</span></code>: Sets the minimum size for a grid cell.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minGridCellCount</span></code>: Specifies the minimum number of grid cells.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">writeOptTree</span></code>: Enables the writing of an optimized tree for rendering
+instances.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">packedRIBB</span></code>: Enables packed render instance bounding boxes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gen{}</span></code>: Configures generation settings for different platforms.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">PC</span></code>, <code class="docutils literal notranslate"><span class="pre">and</span></code>, <code class="docutils literal notranslate"><span class="pre">iOS</span></code>: Enables generation for PC, Android, and iOS.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tmInst12x32bit</span></code>: Enables a specific rendering instance mode.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxRiGenPerCell</span></code>: Sets the maximum number of render instances generated
+per each cell.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">perInstDataDwords</span></code>: Specifies the number of DWORDs per instance data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">perInstDataUseSeed</span></code>: Enables the use of seed data for instances.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prefabMgr{}</span></code>: Configures the prefab manager for handling reusable
+game objects.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">clipmapShaderRE</span></code>: Defines a regular expression for selecting shaders
+related to clipmaps.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">envi{}</span></code>: Environment settings, including sky rendering and weather
+types.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Specifies the type of environment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">znear</span></code>: Sets the near clipping plane distance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zfar</span></code>: Sets the far clipping plane distance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skiesFilePathPrefix</span></code>: Defines the file path prefix for sky-related
+files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skiesWeatherTypes</span></code>: Specifies the file for weather types.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skiesPresets</span></code>: Defines the file pattern for weather presets.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skiesGlobal</span></code>: Sets the global environment file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">daSkiesDepthTex</span></code>: Specifies the depth texture for the skies.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enviNames</span></code>: Enables specific environment names.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">morning</span></code>: Enables morning environment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">day</span></code>: Enables day environment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">evening</span></code>: Enables evening environment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">night</span></code>: Enables night environment.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skies</span></code>: Placeholder for additional sky settings.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hmap{}</span></code>: Heightmap settings for terrain.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code>: Specifies the type of heightmap to use.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scnExport{}</span></code>: Export settings for scenes.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">removeInsideFaces</span></code>: Enables removing inner faces during scene export.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preferZSTD</span></code>: Enables a preference for ZSTD compression algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preferZLIB</span></code>: Enables a preference for ZLIB compression algorithm.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="shader-glob-vars-scheme">
+<h3><code class="docutils literal notranslate"><span class="pre">shader_glob_vars_scheme{}</span></code><a class="headerlink" href="#shader-glob-vars-scheme" title="Link to this heading"></a></h3>
+<p>Global shader variables configuration.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">common{}</span></code>: Common settings for shaders.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">assetViewer{}</span></code>: Specific settings for the <em>Asset Viewer</em>, including
+anti-aliasing options.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">caption</span></code>: Defines the caption or label for a setting within the <em>Asset
+Viewer</em>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">show_no_aa</span></code>: Controls the display of assets without anti-aliasing.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="heightmap">
+<h3><code class="docutils literal notranslate"><span class="pre">heightMap{}</span></code><a class="headerlink" href="#heightmap" title="Link to this heading"></a></h3>
+<p>Configures settings for heightmaps, which define terrain elevation and other
+surface details.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">useMeshSurface</span></code>: Enables mesh surface using for height map generation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">requireTileTexe</span></code>: Enables tile textures required for height maps.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hasColorTex</span></code>: Enables color textures presenting in the height map.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hasLightmapTex</span></code>: Enables lightmap textures presenting in the height map.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">storeNxzInLtmapTex</span></code>: Enables storing normal and height (NxZ) data in the
+lightmap texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">genFwdRadius</span></code>: Defines the forward radius for height map generation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">genBackRadius</span></code>: Defines the backward radius for height map generation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">genDiscardRadius</span></code>: Defines the discard radius for height map generation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">landClassLayers{}</span></code>: Defines various layers used in height maps. Each
+layer specifies its properties and attributes.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">layer{}</span></code>: Represents a distinct layer in the height map.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: The name of the layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bits</span></code>: The bit width for this layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">attr</span></code>: The attribute associated with this layer.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lightmapCvtProps{}</span></code>: Defines properties for converting lightmaps.
+This includes format settings, swizzling, addressing, mipmap levels, and gamma
+correction.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">fmt</span></code>: The format for the lightmap texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swizzleARGB</span></code>: The swizzling pattern for the lightmap texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">addr</span></code>: The addressing mode for the lightmap texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hqMip</span></code>; <code class="docutils literal notranslate"><span class="pre">mqMip</span></code>; <code class="docutils literal notranslate"><span class="pre">lqMip</span></code>: Mipmap levels for high, medium, and low
+quality.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gamma</span></code>: The gamma correction value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iOS{}</span></code>, <code class="docutils literal notranslate"><span class="pre">and{}</span></code>: Platform-specific format settings.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="additional-platforms">
+<h3><code class="docutils literal notranslate"><span class="pre">additional_platforms{}</span></code><a class="headerlink" href="#additional-platforms" title="Link to this heading"></a></h3>
+<p>Lists additional platforms for which the tools are configured.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">platform</span></code>: Specifies the platform.</p></li>
+</ul>
+</section>
+<section id="parameters">
+<h3><code class="docutils literal notranslate"><span class="pre">parameters{}</span></code><a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<p>Defines general parameters for the tools.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">maxTraceDistance</span></code>: Maximum distance for tracing operations, such as ray
+casting.</p></li>
+</ul>
+</section>
+<section id="assetlight">
+<h3><code class="docutils literal notranslate"><span class="pre">AssetLight{}</span></code><a class="headerlink" href="#assetlight" title="Link to this heading"></a></h3>
+<p>Configures lighting assets, including dynamic cube textures and level of detail
+(LOD) settings.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">shader_var</span></code>: Shader variable for dynamic cube textures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">blur_lods</span></code>: Enables LOD blurring.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bound_with_camera</span></code>: Enables binding the lighting to the camera.</p></li>
+</ul>
+</section>
+<section id="defprojectlocal">
+<h3><code class="docutils literal notranslate"><span class="pre">defProjectLocal{}</span></code><a class="headerlink" href="#defprojectlocal" title="Link to this heading"></a></h3>
+<p>Defines local project settings, particularly camera control settings for
+different types of camera modes.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">freeCamera{}</span></code>: Configures settings for a free-moving camera,
+typically used for debugging or exploration purposes.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">move_step</span></code>: The step size for camera movement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">strife_step</span></code>: The step size for strafing movement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">control_multiplier</span></code>: The multiplier for camera control, affecting how
+responsive the camera is to input.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxCamera{}</span></code>: Configures settings for a maximum control camera, which
+might be used for more precise control.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">move_step</span></code>: The step size for camera movement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">strife_step</span></code>: The step size for strafing movement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">control_multiplier</span></code>: The multiplier for camera control, offering more
+fine-grained control compared to the <code class="docutils literal notranslate"><span class="pre">freeCamera</span></code> settings.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="animcharview">
+<h3><code class="docutils literal notranslate"><span class="pre">animCharView{}</span></code><a class="headerlink" href="#animcharview" title="Link to this heading"></a></h3>
+<p>Defines variables and first-person shooter (FPS) views for character animation.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">vars{}</span></code>: Contains various enumerations and ranges for character
+states and animations. These settings allow for detailed control over
+character behavior and animation.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">weapon_mod_state{}</span></code>: Enumeration for weapon modification states.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">weapon_selected{}</span></code>: Enumeration for selected weapons.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vehicle_selected{}</span></code>: Enumeration for selected vehicles.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seat_type{}</span></code>: Enumeration for seat types.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">heal_item_selected{}</span></code>: Enumeration for selected healing items.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">weap_state{}</span></code>: Enumeration for weapon states.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pos_state{}</span></code>: Enumeration for position states.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">move_state{}</span></code>: Enumeration for movement states.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">move_ang{}</span></code>: Defines the angle range for movement with minimum,
+maximum, and step values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pers_course{}</span></code>: Defines the personal course angle with minimum,
+maximum, and step values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aim_pitch{}</span></code>: Defines the aim pitch angle with minimum, maximum,
+and step values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">torso_lean{}</span></code>: Defines the torso lean angle with minimum, maximum,
+and step values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">torso_rotate{}</span></code>: Defines the torso rotation angle with minimum,
+maximum, and step values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bolt_action{}</span></code>: Progress for bolt action with a trackbar for UI
+representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reload_progress{}</span></code>: Progress for reloading with a trackbar for UI
+representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reload_style{}</span></code>: Enumeration for reload styles.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">single_reload_progress{}</span></code>: Progress for single reload with a
+trackbar for UI representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">single_reload_state{}</span></code>: Enumeration for single reload states.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device_progress{}</span></code>: Progress for device usage with a trackbar for
+UI representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device_state{}</span></code>: Enumeration for device states.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deflection_progress{}</span></code>: Progress for deflection with a trackbar for
+UI representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deflect_angle{}</span></code>: Angle for deflection with a trackbar for UI
+representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">l.hand_ik_mul{}</span></code>: Multiplier for left-hand IK with a trackbar for
+UI representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r.hand_ik_mul{}</span></code>: Multiplier for right-hand IK with a trackbar for
+UI representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">changeweapon_progress{}</span></code>: Progress for changing weapons with a
+trackbar for UI representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">throw_progress{}</span></code>: Progress for throwing with a trackbar for UI
+representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">action_progress{}</span></code>: Progress for actions with a trackbar for UI
+representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">recover_progress{}</span></code>: Progress for recovery with a trackbar for UI
+representation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gesture_progress{}</span></code>: Progress for gestures with a trackbar for UI
+representation.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fps_view{}</span></code>: Define the first-person shooter views for different
+scenarios.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: Name of the view.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">node</span></code>: Node to attach the camera.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">camOfs</span></code>: Camera offset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">camAxis</span></code>: Camera axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">camUpAxis</span></code>: Camera up axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fixed_dir</span></code>: Whether the direction is fixed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pitch_param</span></code>: Parameter for pitch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">yaw_param</span></code>: Parameter for yaw.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">znear</span></code>: Near clipping plane.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zfar</span></code>: Far clipping plane.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hideNodes{}</span></code>: Nodes to hide during rendering.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="All About .blk Files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="composit_blk.html" class="btn btn-neutral float-right" title=".composit.blk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

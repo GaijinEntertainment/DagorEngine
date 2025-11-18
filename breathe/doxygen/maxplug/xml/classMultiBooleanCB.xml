@@ -1,0 +1,177 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMultiBooleanCB" kind="class" language="C++" prot="public">
+    <compoundname>MultiBooleanCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMultiBooleanCB_1aed2f9d269042589eef40023ccab53cc1" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* MultiBooleanCB::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>MultiBooleanCB::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3119" column="13" bodyfile="util.cpp" bodystart="3119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMultiBooleanCB_1a54901634640e4321f851438ebb994bc0" prot="public" static="no" mutable="no">
+        <type>Tab&lt; INode * &gt;</type>
+        <definition>Tab&lt;INode *&gt; MultiBooleanCB::nodes</definition>
+        <argsstring></argsstring>
+        <name>nodes</name>
+        <qualifiedname>MultiBooleanCB::nodes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3120" column="7" bodyfile="util.cpp" bodystart="3120" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMultiBooleanCB_1a358b9bac8424571626f2687fdf5e1f82" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MultiBooleanCB::MultiBooleanCB</definition>
+        <argsstring>(Interface *iptr)</argsstring>
+        <name>MultiBooleanCB</name>
+        <qualifiedname>MultiBooleanCB::MultiBooleanCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>iptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3121" column="3" bodyfile="util.cpp" bodystart="3121" bodyend="3121"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultiBooleanCB_1a5824cdb28f712607af837ea8d45e50da" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MultiBooleanCB::add</definition>
+        <argsstring>(MNMesh &amp;to, MNMesh &amp;from, int inst)</argsstring>
+        <name>add</name>
+        <qualifiedname>MultiBooleanCB::add</qualifiedname>
+        <param>
+          <type>MNMesh &amp;</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>MNMesh &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>inst</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3122" column="8" bodyfile="util.cpp" bodystart="3122" bodyend="3148"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultiBooleanCB_1ab5e63d3bd32d877058b5a1ca4fe2c000" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MultiBooleanCB::adjust_matrix</definition>
+        <argsstring>(Matrix3 &amp;m, Mesh &amp;me)</argsstring>
+        <name>adjust_matrix</name>
+        <qualifiedname>MultiBooleanCB::adjust_matrix</qualifiedname>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>me</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3149" column="8" bodyfile="util.cpp" bodystart="3149" bodyend="3160"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultiBooleanCB_1a80356856afa936f9de002c7f14686306" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MultiBooleanCB::boolean</definition>
+        <argsstring>()</argsstring>
+        <name>boolean</name>
+        <qualifiedname>MultiBooleanCB::boolean</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3175" column="8" bodyfile="util.cpp" bodystart="3175" bodyend="3247"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultiBooleanCB_1ab971b0d038490233599f27c194f99b5c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int MultiBooleanCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>MultiBooleanCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3248" column="7" bodyfile="util.cpp" bodystart="3248" bodyend="3262"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>MultiBooleanCB</label>
+        <link refid="classMultiBooleanCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>MultiBooleanCB</label>
+        <link refid="classMultiBooleanCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="3116" column="1" bodyfile="util.cpp" bodystart="3117" bodyend="3263"/>
+    <listofallmembers>
+      <member refid="classMultiBooleanCB_1a5824cdb28f712607af837ea8d45e50da" prot="public" virt="non-virtual"><scope>MultiBooleanCB</scope><name>add</name></member>
+      <member refid="classMultiBooleanCB_1ab5e63d3bd32d877058b5a1ca4fe2c000" prot="public" virt="non-virtual"><scope>MultiBooleanCB</scope><name>adjust_matrix</name></member>
+      <member refid="classMultiBooleanCB_1a80356856afa936f9de002c7f14686306" prot="public" virt="non-virtual"><scope>MultiBooleanCB</scope><name>boolean</name></member>
+      <member refid="classMultiBooleanCB_1aed2f9d269042589eef40023ccab53cc1" prot="public" virt="non-virtual"><scope>MultiBooleanCB</scope><name>ip</name></member>
+      <member refid="classMultiBooleanCB_1a358b9bac8424571626f2687fdf5e1f82" prot="public" virt="non-virtual"><scope>MultiBooleanCB</scope><name>MultiBooleanCB</name></member>
+      <member refid="classMultiBooleanCB_1a54901634640e4321f851438ebb994bc0" prot="public" virt="non-virtual"><scope>MultiBooleanCB</scope><name>nodes</name></member>
+      <member refid="classMultiBooleanCB_1ab971b0d038490233599f27c194f99b5c" prot="public" virt="virtual"><scope>MultiBooleanCB</scope><name>proc</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>MultiBooleanCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

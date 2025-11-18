@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__RenderPassConsts" kind="group">
+    <compoundname>RenderPassConsts</compoundname>
+    <title>RenderPassConsts</title>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group__RenderPassConsts_1ga8431b4a076f4044781f7f7189e8d8533" prot="public" static="no" strong="no">
+        <type>int</type>
+        <name>RenderPassTargetAction</name>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533aa05907297589ceb5d532df5ea1700905" prot="public">
+          <name>RP_TA_NONE</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+<para>No action with target will happen. </para>
+          </briefdescription>
+          <detaileddescription>
+<para>Only <bold>dependencyBarrier</bold> of binding will be executed for this target <simplesect kind="warning"><para>Content of target becomes invalid if no action is supplied overall </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a0eb5a87898b73b894cb8531657e9f7fb" prot="public">
+          <name>RP_TA_LOAD_READ</name>
+          <initializer>= 1u &lt;&lt; 0</initializer>
+          <briefdescription>
+<para>Loads contents of target from memory to framebuffer. </para>
+          </briefdescription>
+          <detaileddescription>
+<para><simplesect kind="note"><para>Avoid load operations on TBDR hardware </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a86dd591f2cf52f01c200d11a67846218" prot="public">
+          <name>RP_TA_LOAD_CLEAR</name>
+          <initializer>= 1u &lt;&lt; 1</initializer>
+          <briefdescription>
+<para>Loads clear value to framebuffer instead of doing any memory operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a9a2284a921be82ca8e45e16489b73b92" prot="public">
+          <name>RP_TA_LOAD_NO_CARE</name>
+          <initializer>= 1u &lt;&lt; 2</initializer>
+          <briefdescription>
+<para>Don&apos;t care about loading contents of target (aka discard) </para>
+          </briefdescription>
+          <detaileddescription>
+<para><simplesect kind="warning"><para>Initial content of frame buffer is undefined, make sure to handle this </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a59ed82dde9783ba9670527bf2457bd49" prot="public">
+          <name>RP_TA_LOAD_MASK</name>
+          <initializer>= RP_TA_LOAD_NO_CARE | RP_TA_LOAD_CLEAR | RP_TA_LOAD_READ</initializer>
+          <briefdescription>
+<para>Bitmask of any load operation. </para>
+          </briefdescription>
+          <detaileddescription>
+<para><simplesect kind="note"><para>load action is performed for each target when its being accessed for the first time in render pass </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a3144c5d98bac6f9f140be2a4f001ca3b" prot="public">
+          <name>RP_TA_SUBPASS_READ</name>
+          <initializer>= 1u &lt;&lt; 3</initializer>
+          <briefdescription>
+<para>Target contents will be readed by subpass. </para>
+          </briefdescription>
+          <detaileddescription>
+<para><simplesect kind="note"><para>This corresponds to SubpassInput with SubpassLoad inside shader </para>
+</simplesect>
+<simplesect kind="warning"><para>Generic implementation uses T register with <bold>subpassBindingOffset</bold> instead of SubpassInput, this must be handled properly in shader code </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533ab9038e95302071f3b172f6060d1f4cb6" prot="public">
+          <name>RP_TA_SUBPASS_RESOLVE</name>
+          <initializer>= 1u &lt;&lt; 4</initializer>
+          <briefdescription>
+<para>Target will be used as MSAA resolve destination of MSAA target bound in same slot. </para>
+          </briefdescription>
+          <detaileddescription>
+<para><simplesect kind="note"><para>MSAA Depth resolve is optional feature if non generic implementation is used </para>
+</simplesect>
+<simplesect kind="warning"><para>Must supply MSAA target in same slot in another binding otherwise creation on render pass will fail </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a7ff215fbc52b396fd68cee9bec7627cd" prot="public">
+          <name>RP_TA_SUBPASS_WRITE</name>
+          <initializer>= 1u &lt;&lt; 5</initializer>
+          <briefdescription>
+<para>Target contents will be written by subpass. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533ab58e6f5772eff7e038f88332993d53d9" prot="public">
+          <name>RP_TA_SUBPASS_KEEP</name>
+          <initializer>= 1u &lt;&lt; 6</initializer>
+          <briefdescription>
+<para>Target contents will be keeped intact if it was not used in subpass (otherwise UB) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a6525aa8e26e87a88306158c7fe7c512f" prot="public">
+          <name>RP_TA_SUBPASS_MASK</name>
+          <initializer>= RP_TA_SUBPASS_READ | RP_TA_SUBPASS_RESOLVE | RP_TA_SUBPASS_WRITE | RP_TA_SUBPASS_KEEP</initializer>
+          <briefdescription>
+<para>Bitmask of any subpass operation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a4e4c4bfd5c03519ae8a319971beda5af" prot="public">
+          <name>RP_TA_STORE_WRITE</name>
+          <initializer>= 1u &lt;&lt; 7</initializer>
+          <briefdescription>
+<para>Contents of framebuffer will be written to target memory. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533a2cceacb7ca609c61eb922ffd9ccd5b07" prot="public">
+          <name>RP_TA_STORE_NONE</name>
+          <initializer>= 1u &lt;&lt; 8</initializer>
+          <briefdescription>
+<para>Contents of framebuffer will not be stored. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533af47792514bbbf8d28c20b6fd6264064c" prot="public">
+          <name>RP_TA_STORE_NO_CARE</name>
+          <initializer>= 1u &lt;&lt; 9</initializer>
+          <briefdescription>
+<para>Don&apos;t care about target memory contents. </para>
+          </briefdescription>
+          <detaileddescription>
+<para><simplesect kind="warning"><para>Target memory contents will be left in UB state </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1gga8431b4a076f4044781f7f7189e8d8533acb24a6f490ac92b21b8e437ea4f28047" prot="public">
+          <name>RP_TA_STORE_MASK</name>
+          <initializer>= RP_TA_STORE_NO_CARE | RP_TA_STORE_NONE | RP_TA_STORE_WRITE</initializer>
+          <briefdescription>
+<para>Bitmask of any load operation. </para>
+          </briefdescription>
+          <detaileddescription>
+<para><simplesect kind="note"><para>store action is performed once for each target on whole pass completion </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Bitfield of actions that happen with target at given slot and subpass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2721" column="1" bodyfile="dag_consts.h" bodystart="2722" bodyend="2768"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__RenderPassConsts_1gaebaef49e0e86d1b6bb4d0bf55003b230" prot="public" static="no" strong="no">
+        <type>int</type>
+        <name>RenderPassExtraIndexes</name>
+        <enumvalue id="group__RenderPassConsts_1ggaebaef49e0e86d1b6bb4d0bf55003b230a5f16ae641cf28d30a33d9d1c1acab64f" prot="public">
+          <name>RP_INDEX_NORMAL</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1ggaebaef49e0e86d1b6bb4d0bf55003b230ae487704aafe06293fa68c1ea501d29ec" prot="public">
+          <name>RP_SUBPASS_EXTERNAL_END</name>
+          <initializer>= -1</initializer>
+          <briefdescription>
+<para>Pseudo subpass index, that happens at end of render pass. </para>
+          </briefdescription>
+          <detaileddescription>
+<para>Used to provide store actions as well as <bold>dependencyBarriers</bold> for generic implementation </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__RenderPassConsts_1ggaebaef49e0e86d1b6bb4d0bf55003b230ab40271ad0790aec15e3a5ec47b714d19" prot="public">
+          <name>RP_SLOT_DEPTH_STENCIL</name>
+          <initializer>= -1</initializer>
+          <briefdescription>
+<para>Slot for depth/stencil. </para>
+          </briefdescription>
+          <detaileddescription>
+<para>Using this slot will bind target as depth/stencil </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>extra indexes that encode special cases of render pass description </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2776" column="1" bodyfile="dag_consts.h" bodystart="2777" bodyend="2785"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__RenderPassConsts_1gaf40ce0be4fbd960c6b1a0350a3a0d518" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="group__RenderPassConsts_1ga8431b4a076f4044781f7f7189e8d8533" kindref="member">RenderPassTargetAction</ref></type>
+        <definition>constexpr RenderPassTargetAction operator|</definition>
+        <argsstring>(RenderPassTargetAction l, RenderPassTargetAction r)</argsstring>
+        <name>operator|</name>
+        <param>
+          <type><ref refid="group__RenderPassConsts_1ga8431b4a076f4044781f7f7189e8d8533" kindref="member">RenderPassTargetAction</ref></type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type><ref refid="group__RenderPassConsts_1ga8431b4a076f4044781f7f7189e8d8533" kindref="member">RenderPassTargetAction</ref></type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2770" column="41" bodyfile="dag_consts.h" bodystart="2770" bodyend="2773"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

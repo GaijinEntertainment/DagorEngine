@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__DaFgCoreAliases" kind="group">
+    <compoundname>DaFgCoreAliases</compoundname>
+    <title>Core daFG aliases</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__DaFgCoreAliases_1ga809e6b0f9d075aea31d0f0a73599fc62" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type>NodeHandle</type>
+        <definition>NodeHandle dafg::register_node</definition>
+        <argsstring>(const char *name, const char *source_location, F &amp;&amp;declaration_callback)</argsstring>
+        <name>register_node</name>
+        <qualifiedname>dafg::register_node</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_location</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>declaration_callback</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.registerNode, see <ref refid="classdafg_1_1NameSpace_1a54aea8ab5caafcc975df19c64eaab5cb" kindref="member">NameSpace::registerNode</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="92" column="13" bodyfile="daFG.h" bodystart="92" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCoreAliases_1gada7d9ec98286cfca314b477b5dd934d2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void dafg::set_resolution</definition>
+        <argsstring>(const char *typeName, T value)</argsstring>
+        <name>set_resolution</name>
+        <qualifiedname>dafg::set_resolution</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>typeName</declname>
+        </param>
+        <param>
+          <type>T</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.setResolution, see <ref refid="classdafg_1_1NameSpace_1a1fbc5594fd28c7facc6d0d16fcb14b8b" kindref="member">NameSpace::setResolution</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="101" column="13" bodyfile="daFG.h" bodystart="101" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCoreAliases_1ga031d2d7924b7baeb08647c431019452c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void dafg::set_dynamic_resolution</definition>
+        <argsstring>(const char *typeName, T value)</argsstring>
+        <name>set_dynamic_resolution</name>
+        <qualifiedname>dafg::set_dynamic_resolution</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>typeName</declname>
+        </param>
+        <param>
+          <type>T</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.setDynamicResolution, see <ref refid="classdafg_1_1NameSpace_1ae03a69748fdad987326fb8372aab8041" kindref="member">NameSpace::setDynamicResolution</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="111" column="13" bodyfile="daFG.h" bodystart="111" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCoreAliases_1ga62307e106e4ac06241f33b24995c651f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::fill_slot</definition>
+        <argsstring>(NamedSlot slot, const char *res_name)</argsstring>
+        <name>fill_slot</name>
+        <qualifiedname>dafg::fill_slot</qualifiedname>
+        <param>
+          <type>NamedSlot</type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.fillSlot(slot, dafg::root(), res_name), see <ref refid="classdafg_1_1NameSpace_1ae0c678e180f0677e1ffc4ba4a37b4127" kindref="member">NameSpace::fillSlot</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="119" column="13" bodyfile="daFG.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCoreAliases_1gab9fc6f86b483dbd2d7860c5f0272432d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::update_externally_consumed_resource_set</definition>
+        <argsstring>(eastl::span&lt; const char *const &gt; res_names)</argsstring>
+        <name>update_externally_consumed_resource_set</name>
+        <qualifiedname>dafg::update_externally_consumed_resource_set</qualifiedname>
+        <param>
+          <type>eastl::span&lt; const char *const &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.updateExternallyConsumedResourceSet, see <ref refid="classdafg_1_1NameSpace_1a969d24afa74d4613e616bc206b5fb700" kindref="member">NameSpace::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names)</ref> </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="125" column="13" bodyfile="daFG.h" bodystart="125" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCoreAliases_1ga2f6d90eeb6f8432df5db9bfe6e62f620" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::update_externally_consumed_resource_set</definition>
+        <argsstring>(std::initializer_list&lt; const char * &gt; res_names)</argsstring>
+        <name>update_externally_consumed_resource_set</name>
+        <qualifiedname>dafg::update_externally_consumed_resource_set</qualifiedname>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.updateExternallyConsumedResourceSet, see <ref refid="classdafg_1_1NameSpace_1a969d24afa74d4613e616bc206b5fb700" kindref="member">NameSpace::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names)</ref>   </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="131" column="13" bodyfile="daFG.h" bodystart="131" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCoreAliases_1gaf75370aa6dbb49fd1c67e327b5c16b3e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::mark_resource_externally_consumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>mark_resource_externally_consumed</name>
+        <qualifiedname>dafg::mark_resource_externally_consumed</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.markResourceExternallyConsumed, see <ref refid="classdafg_1_1NameSpace_1a0a7cf65859a94385851ae68a2afb3c20" kindref="member">NameSpace::markResourceExternallyConsumed</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="140" column="13" bodyfile="daFG.h" bodystart="140" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCoreAliases_1gaeefdb179bc6c743eedcfad4cae1f819a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::unmark_resource_externally_consumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>unmark_resource_externally_consumed</name>
+        <qualifiedname>dafg::unmark_resource_externally_consumed</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias for <ref refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kindref="member">dafg::root()</ref>.unmarkResourceExternallyConsumed, see <ref refid="classdafg_1_1NameSpace_1a9e21fe6d39b7936f5a5526da5297190e" kindref="member">NameSpace::unmarkResourceExternallyConsumed</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="146" column="13" bodyfile="daFG.h" bodystart="146" bodyend="146"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Compatibility aliases for access to the root name space. </para>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

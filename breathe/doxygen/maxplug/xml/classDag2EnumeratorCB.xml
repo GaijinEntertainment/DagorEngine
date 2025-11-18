@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDag2EnumeratorCB" kind="class" language="C++" prot="public">
+    <compoundname>Dag2EnumeratorCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDag2EnumeratorCB_1a59a24513e615463be08622cb6902d660" prot="public" static="no" mutable="no">
+        <type><ref refid="util_8cpp_1a6ee17e63dcc1de0e21f035f22b7815ab" kindref="member">StrVec</ref></type>
+        <definition>StrVec Dag2EnumeratorCB::materials</definition>
+        <argsstring></argsstring>
+        <name>materials</name>
+        <qualifiedname>Dag2EnumeratorCB::materials</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1928" column="10" bodyfile="util.cpp" bodystart="1928" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2EnumeratorCB_1ab6a9b19ef674bcf5e6dadaec11d8f2ef" prot="public" static="no" mutable="no">
+        <type><ref refid="util_8cpp_1a6ee17e63dcc1de0e21f035f22b7815ab" kindref="member">StrVec</ref></type>
+        <definition>StrVec Dag2EnumeratorCB::scripts</definition>
+        <argsstring></argsstring>
+        <name>scripts</name>
+        <qualifiedname>Dag2EnumeratorCB::scripts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1929" column="10" bodyfile="util.cpp" bodystart="1929" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2EnumeratorCB_1a58d7b92d8f0b4b441868b445801d96a3" prot="public" static="no" mutable="no">
+        <type><ref refid="util_8cpp_1a0e673fb099db630ac89da5dd6a661e11" kindref="member">StrMap</ref></type>
+        <definition>StrMap Dag2EnumeratorCB::mats</definition>
+        <argsstring></argsstring>
+        <name>mats</name>
+        <qualifiedname>Dag2EnumeratorCB::mats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1931" column="10" bodyfile="util.cpp" bodystart="1931" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2EnumeratorCB_1a05e4bf22bdf3305300c71969e05c0b09" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* Dag2EnumeratorCB::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>Dag2EnumeratorCB::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1933" column="13" bodyfile="util.cpp" bodystart="1933" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2EnumeratorCB_1a091a74400830c225109bc7251a5bc825" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue Dag2EnumeratorCB::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>Dag2EnumeratorCB::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1934" column="13" bodyfile="util.cpp" bodystart="1934" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDag2EnumeratorCB_1abe67e4058840c2fa4f5909ddfc875e74" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2EnumeratorCB::Dag2EnumeratorCB</definition>
+        <argsstring>(Interface *iptr)</argsstring>
+        <name>Dag2EnumeratorCB</name>
+        <qualifiedname>Dag2EnumeratorCB::Dag2EnumeratorCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>iptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1936" column="3" bodyfile="util.cpp" bodystart="1936" bodyend="1940"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2EnumeratorCB_1a361f53a29cba2ec7dfd08abae6bc8708" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2EnumeratorCB::~Dag2EnumeratorCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~Dag2EnumeratorCB</name>
+        <qualifiedname>Dag2EnumeratorCB::~Dag2EnumeratorCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1942" column="3" bodyfile="util.cpp" bodystart="1942" bodyend="1942"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2EnumeratorCB_1aabc11b8b73f6309f6d2f3aa823d638ba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Dag2EnumeratorCB::enumerate</definition>
+        <argsstring>(Mtl *&amp;m)</argsstring>
+        <name>enumerate</name>
+        <qualifiedname>Dag2EnumeratorCB::enumerate</qualifiedname>
+        <param>
+          <type>Mtl *&amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1944" column="7" bodyfile="util.cpp" bodystart="1944" bodyend="2004"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2EnumeratorCB_1ab0dd63e3747e4aa77978092e2ce1403f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Dag2EnumeratorCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>Dag2EnumeratorCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2006" column="7" bodyfile="util.cpp" bodystart="2006" bodyend="2031"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dag2EnumeratorCB</label>
+        <link refid="classDag2EnumeratorCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>Dag2EnumeratorCB</label>
+        <link refid="classDag2EnumeratorCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="1925" column="1" bodyfile="util.cpp" bodystart="1926" bodyend="2032"/>
+    <listofallmembers>
+      <member refid="classDag2EnumeratorCB_1abe67e4058840c2fa4f5909ddfc875e74" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>Dag2EnumeratorCB</name></member>
+      <member refid="classDag2EnumeratorCB_1aabc11b8b73f6309f6d2f3aa823d638ba" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>enumerate</name></member>
+      <member refid="classDag2EnumeratorCB_1a05e4bf22bdf3305300c71969e05c0b09" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>ip</name></member>
+      <member refid="classDag2EnumeratorCB_1a59a24513e615463be08622cb6902d660" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>materials</name></member>
+      <member refid="classDag2EnumeratorCB_1a58d7b92d8f0b4b441868b445801d96a3" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>mats</name></member>
+      <member refid="classDag2EnumeratorCB_1ab0dd63e3747e4aa77978092e2ce1403f" prot="public" virt="virtual"><scope>Dag2EnumeratorCB</scope><name>proc</name></member>
+      <member refid="classDag2EnumeratorCB_1ab6a9b19ef674bcf5e6dadaec11d8f2ef" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>scripts</name></member>
+      <member refid="classDag2EnumeratorCB_1a091a74400830c225109bc7251a5bc825" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>time</name></member>
+      <member refid="classDag2EnumeratorCB_1a361f53a29cba2ec7dfd08abae6bc8708" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>~Dag2EnumeratorCB</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>Dag2EnumeratorCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

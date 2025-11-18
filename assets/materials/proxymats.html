@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proxymats</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Shaders" href="../shaders/index.html" />
+    <link rel="prev" title="Physmats" href="physmats.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Materials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="physmats.html">Physmats</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Proxymats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-create-a-proxymat">How to Create a Proxymat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-name-a-proxymat">How to Name a Proxymat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-assign-proxymat-in-3ds-max">How to Assign Proxymat in 3ds Max</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-assign-proxymat-in-blender">How to Assign Proxymat in Blender</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Materials</a></li>
+      <li class="breadcrumb-item active">Proxymats</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/materials/proxymats.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="proxymats">
+<h1>Proxymats<a class="headerlink" href="#proxymats" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Proxy materials (<em>proxymats</em>) are a system of shared reference materials for
+multiple <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files. These materials are stored as separate <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files, and
+when edited, changes automatically apply to all <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files referencing that
+specific proxy material.</p>
+<p>To implement the system, follow these steps:</p>
+<ul>
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file for the proxy material.</p></li>
+<li><p>Specify that the material in the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file is a proxy material.</p></li>
+<li><p>In the <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>, specify that the underlying <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files use proxy
+materials. For example:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">virtual_res_blk</span><span class="ni">{</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)\.lod00\.dag$&quot;</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;rendInst&quot;</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="se">lod</span><span class="ni">{</span><span class="no">range</span><span class="nt">:r=</span><span class="m">200</span><span class="gp">;</span><span class="ni">}</span>
+    <span class="no">allowProxyMat</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>This way, all underlying <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files will be rebuilt whenever the proxy
+materials they reference are modified.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ol class="arabic">
+<li><p><strong>Do not add this parameter to directories without <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files that utilize
+proxy materials.</strong> Doing so will slow down asset validation and building
+resources.</p></li>
+<li><p><strong>Use the system wisely.</strong> Avoid creating common proxy materials across
+fundamentally different asset packs.</p>
+<p>For example, you don’t want the machine gun materials for player-controlled
+ships to change just because an environment artist tweaked the proxy material
+for their own needs.</p>
+<p>In such cases, it’s better to duplicate the proxy material. Remember, it’s
+just a material, not the textures themselves.</p>
+</li>
+</ol>
+</div>
+</section>
+<section id="how-to-create-a-proxymat">
+<h2>How to Create a Proxymat<a class="headerlink" href="#how-to-create-a-proxymat" title="Link to this heading"></a></h2>
+<p>Proxy material <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files must have the suffix <code class="docutils literal notranslate"><span class="pre">.proxymat.blk</span></code>.</p>
+<p>For instance, a <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file for a brick wall proxy material would be named:
+<code class="docutils literal notranslate"><span class="pre">brick_wall.proxymat.blk</span></code>.</p>
+<p>The simplest way to create content for a proxy material <code class="docutils literal notranslate"><span class="pre">.blk</span></code> is to configure a
+material on a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file and then copy the content into a separate <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file.
+Only minimal edits are required. Since a proxy material <code class="docutils literal notranslate"><span class="pre">.blk</span></code> can only contain
+one material (though a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> can reference any number of proxy materials), you
+don’t need the material name or the enclosing brackets.</p>
+<p>For example, instead of</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">material</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;stz_workshop_brick_plaster_wall&quot;</span>
+  <span class="no">class</span><span class="nt">:t=</span><span class="nf">&quot;rendinst_emissive&quot;</span>
+  <span class="no">tex16support</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="no">twosided</span><span class="nt">:b=</span><span class="m">0</span>
+  <span class="no">power</span><span class="nt">:r=</span><span class="m">32</span>
+  <span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;emissive_color=1,0.1,0.2,8&quot;</span>
+  <span class="no">tex0</span><span class="nt">:t=</span><span class="nf">&quot;emissive_a_tex_d.tif&quot;</span>
+  <span class="no">tex2</span><span class="nt">:t=</span><span class="nf">&quot;emissive_a_tex_n.tif&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>the proxy material <code class="docutils literal notranslate"><span class="pre">.blk</span></code> would contain only:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">class</span><span class="nt">:t=</span><span class="nf">&quot;rendinst_emissive&quot;</span>
+<span class="no">tex16support</span><span class="nt">:b=</span><span class="si">yes</span>
+<span class="no">twosided</span><span class="nt">:b=</span><span class="m">0</span>
+<span class="no">power</span><span class="nt">:r=</span><span class="m">32</span>
+<span class="no">script</span><span class="nt">:t=</span><span class="nf">&quot;emissive_color=1,0.1,0.2,8&quot;</span>
+<span class="no">tex0</span><span class="nt">:t=</span><span class="nf">&quot;emissive_a_tex_d.tif&quot;</span>
+<span class="no">tex2</span><span class="nt">:t=</span><span class="nf">&quot;emissive_a_tex_n.tif&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="how-to-name-a-proxymat">
+<h2>How to Name a Proxymat<a class="headerlink" href="#how-to-name-a-proxymat" title="Link to this heading"></a></h2>
+<p>Proxy materials should be named according to their application. For example:
+<code class="docutils literal notranslate"><span class="pre">berlin_town_buildings_wall_brick_plaster_a</span></code>.</p>
+<p>This approach is necessary for the following reasons:</p>
+<ol class="arabic simple">
+<li><p>To avoid creating multiple similar proxy materials (e.g.,
+<code class="docutils literal notranslate"><span class="pre">brick_plaster_wall_a-j</span></code> for different maps) and losing track of their
+purposes.</p></li>
+<li><p>To ensure that the material’s usage is clear, preventing it from being
+inadvertently applied to a different map or asset, which could result in
+broken assets when the original proxy material is changed for other needs.</p></li>
+</ol>
+<p>Thus, always name the proxy material:</p>
+<ul class="simple">
+<li><p>Based on the asset type and location.</p></li>
+<li><p>According to the material’s composition (i.e., what it’s made of).</p></li>
+</ul>
+</section>
+<section id="how-to-assign-proxymat-in-3ds-max">
+<h2>How to Assign Proxymat in 3ds Max<a class="headerlink" href="#how-to-assign-proxymat-in-3ds-max" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If you’re using proxymats, make sure to clean the materials into which they are
+inserted. Leftover parameters won’t affect anything, but leftover textures could
+cause errors, especially if those textures are later deleted. Although they
+won’t have any direct influence, missing textures will prevent building
+resources because the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file will reference non-existent textures.</p>
+<p><strong>Rule:</strong> Once you assign a proxymat to a material, remove everything else from
+it!</p>
+</div>
+<p>Proxy materials are assigned as a <code class="docutils literal notranslate"><span class="pre">class</span></code> (shader), meaning that the class name
+should reference the proxy material. For example:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">class</span><span class="nt">:t=</span><span class="nf">&quot;brick_wall:proxymat&quot;</span>
+</pre></div>
+</div>
+<p>An important note is that proxymats can only be assigned through the <code class="docutils literal notranslate"><span class="pre">DagorMat</span></code>
+material type in <em>3ds Max</em>. For example:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/proxymats_01.jpg"><img alt="../../_images/proxymats_01.jpg" class="bg-primary align-center" src="../../_images/proxymats_01.jpg" style="width: 35%;" />
+</a>
+<br>
+<p>After export, the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> will contain:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">material</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;brick_wall&quot;</span>
+  <span class="no">class</span><span class="nt">:t=</span><span class="nf">&quot;brick_wall:proxymat&quot;</span>
+  <span class="no">tex16support</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="no">twosided</span><span class="nt">:i=</span><span class="m">0</span>
+  <span class="no">amb</span><span class="nt">:ip3=</span><span class="m">255</span><span class="gp">,</span> <span class="m">255</span><span class="gp">,</span> <span class="m">255</span>
+  <span class="no">diff</span><span class="nt">:ip3=</span><span class="m">255</span><span class="gp">,</span> <span class="m">255</span><span class="gp">,</span> <span class="m">255</span>
+  <span class="no">spec</span><span class="nt">:ip3=</span><span class="m">255</span><span class="gp">,</span> <span class="m">255</span><span class="gp">,</span> <span class="m">255</span>
+  <span class="no">emis</span><span class="nt">:ip3=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">power</span><span class="nt">:r=</span><span class="m">32</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>Of course, you can manually change the material in any <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file to a proxy
+material by updating the <code class="docutils literal notranslate"><span class="pre">class</span></code> (shader) accordingly.</p>
+</section>
+<section id="how-to-assign-proxymat-in-blender">
+<h2>How to Assign Proxymat in Blender<a class="headerlink" href="#how-to-assign-proxymat-in-blender" title="Link to this heading"></a></h2>
+<p>To assign a proxymat in <em>Blender</em>, create a new material, name it according to
+the desired proxymat (without the <code class="docutils literal notranslate"><span class="pre">:proxymat</span></code> suffix), and check the
+corresponding checkbox:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/proxymats_02.jpg"><img alt="../../_images/proxymats_02.jpg" class="bg-primary align-center" src="../../_images/proxymats_02.jpg" style="width: 35%;" />
+</a>
+<br>
+<p>If the proxymat already exists, specify the path to its directory and click
+<strong>(Re)load from file</strong> to load it into the viewport.</p>
+<p>If you are unsure of the path, but know the material exists in the project,
+click <strong>Find missing proxymat</strong>, and the
+<a class="reference internal" href="../../dagor-tools/addons/blender/dag4blend/dag4blend.html"><span class="std std-doc">add-on</span></a> will
+automatically locate the required <code class="docutils literal notranslate"><span class="pre">.blk</span></code>.</p>
+<p>To edit a proxymat, open it as a text file, make changes, and apply them using
+the corresponding buttons in the Tools panel. Then, save the changes using the
+<strong>Save proxymat</strong> button.</p>
+<p>You can also temporarily uncheck the <strong>is proxymat</strong> checkbox and edit the
+material using standard tools instead of as text.</p>
+<p>Any material can be converted into a proxymat by checking the appropriate
+checkbbox, specifying the target directory, and saving it.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The material name in <em>Blender</em> will always match the name of the proxymat.
+Therefore, if an imported <code class="docutils literal notranslate"><span class="pre">.dag</span></code> contains a proxymat with a different name
+(e.g., “bricks”, but the shader is <code class="docutils literal notranslate"><span class="pre">&quot;brick_wall:proxymat&quot;</span></code>), it will be
+automatically renamed to match the proxymat.</p>
+<p>If this material is referenced in the object properties for
+<code class="docutils literal notranslate"><span class="pre">apex_interior_material</span></code>, that parameter will also be updated to avoid errors
+during export and building resources.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="physmats.html" class="btn btn-neutral float-left" title="Physmats" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../shaders/index.html" class="btn btn-neutral float-right" title="Shaders" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

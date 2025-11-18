@@ -1,0 +1,1116 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buffers</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Compute Shader Dispatch API" href="Dispatch.html" />
+    <link rel="prev" title="Bindless Resources API" href="Bindless.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Buffers</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv47Sbuffer"><code class="docutils literal notranslate"><span class="pre">Sbuffer</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer17setReloadCallbackEP11IReloadData"><code class="docutils literal notranslate"><span class="pre">Sbuffer::setReloadCallback()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK7Sbuffer7getTypeEv"><code class="docutils literal notranslate"><span class="pre">Sbuffer::getType()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer4lockE8uint32_t8uint32_tPPvi"><code class="docutils literal notranslate"><span class="pre">Sbuffer::lock()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer6unlockEv"><code class="docutils literal notranslate"><span class="pre">Sbuffer::unlock()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK7Sbuffer8getFlagsEv"><code class="docutils literal notranslate"><span class="pre">Sbuffer::getFlags()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK7Sbuffer10getBufNameEv"><code class="docutils literal notranslate"><span class="pre">Sbuffer::getBufName()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK7Sbuffer14getElementSizeEv"><code class="docutils literal notranslate"><span class="pre">Sbuffer::getElementSize()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK7Sbuffer14getNumElementsEv"><code class="docutils literal notranslate"><span class="pre">Sbuffer::getNumElements()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer6copyToEP7Sbuffer"><code class="docutils literal notranslate"><span class="pre">Sbuffer::copyTo()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer6copyToEP7Sbuffer8uint32_t8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">Sbuffer::copyTo()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0EN7Sbuffer6lockExEi8uint32_t8uint32_tPP1Ti"><code class="docutils literal notranslate"><span class="pre">Sbuffer::lockEx()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer18updateDataWithLockE8uint32_t8uint32_tPKvi"><code class="docutils literal notranslate"><span class="pre">Sbuffer::updateDataWithLock()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer10updateDataE8uint32_t8uint32_tPKv8uint32_t"><code class="docutils literal notranslate"><span class="pre">Sbuffer::updateData()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer4lockE8uint32_t8uint32_tPP8uint16_ti"><code class="docutils literal notranslate"><span class="pre">Sbuffer::lock()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer6lock32E8uint32_t8uint32_tPP8uint32_ti"><code class="docutils literal notranslate"><span class="pre">Sbuffer::lock32()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N7Sbuffer11IReloadDataE"><code class="docutils literal notranslate"><span class="pre">Sbuffer::IReloadData</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7Sbuffer11IReloadDataD0Ev"><code class="docutils literal notranslate"><span class="pre">Sbuffer::IReloadData::~IReloadData()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7Sbuffer11IReloadData12reloadD3dResEP7Sbuffer"><code class="docutils literal notranslate"><span class="pre">Sbuffer::IReloadData::reloadD3dRes()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N7Sbuffer11IReloadData11destroySelfEv"><code class="docutils literal notranslate"><span class="pre">Sbuffer::IReloadData::destroySelf()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d14create_sbufferEiijjPKc"><code class="docutils literal notranslate"><span class="pre">d3d::create_sbuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d10set_bufferEjjP7Sbuffer"><code class="docutils literal notranslate"><span class="pre">d3d::set_buffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d12set_rwbufferEjjP7Sbuffer"><code class="docutils literal notranslate"><span class="pre">d3d::set_rwbuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d7buffersE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::Init</span></code></a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::Init::No</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init4ZeroE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::Init::Zero</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers8IndirectE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::Indirect</span></code></a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d7buffers8Indirect8DispatchE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::Indirect::Dispatch</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d7buffers8Indirect4DrawE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::Indirect::Draw</span></code></a></li>
+<li class="toctree-l8"><a class="reference internal" href="#_CPPv4N3d3d7buffers8Indirect11DrawIndexedE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::Indirect::DrawIndexed</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4I0EN3d3d7buffers18cb_array_reg_countE8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::cb_array_reg_count()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4I0EN3d3d7buffers19cb_struct_reg_countE8uint32_tv"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::cb_struct_reg_count()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers20create_persistent_cbE8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_persistent_cb()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers19create_one_frame_cbE8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_one_frame_cb()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers25create_ua_sr_byte_addressE8uint32_tPKc4Init"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_sr_byte_address()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers23create_ua_sr_structuredE8uint32_t8uint32_tPKc4Init"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_sr_structured()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers22create_ua_byte_addressE8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_byte_address()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers20create_ua_structuredE8uint32_t8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_structured()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers31create_ua_byte_address_readbackE8uint32_tPKc4Init"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_byte_address_readback()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers29create_ua_structured_readbackE8uint32_t8uint32_tPKc4Init"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_structured_readback()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers20dword_count_per_callE8Indirect"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::dword_count_per_call()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers18create_ua_indirectE8Indirect8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_indirect()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers15create_indirectE8Indirect8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_indirect()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers14create_stagingE8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_staging()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers25create_persistent_sr_tbufE8uint32_t8uint32_tPKc4Init"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_persistent_sr_tbuf()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers33create_persistent_sr_byte_addressE8uint32_tPKc4Init"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_persistent_sr_byte_address()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers31create_persistent_sr_structuredE8uint32_t8uint32_tPKc4Init"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_persistent_sr_structured()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers24create_one_frame_sr_tbufE8uint32_t8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_one_frame_sr_tbuf()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers32create_one_frame_sr_byte_addressE8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_one_frame_sr_byte_address()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers30create_one_frame_sr_structuredE8uint32_t8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_one_frame_sr_structured()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers30create_raytrace_scratch_bufferE8uint32_tPKc"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_raytrace_scratch_buffer()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers21CBUFFER_REGISTER_SIZEE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::CBUFFER_REGISTER_SIZE</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d7buffers25BYTE_ADDRESS_ELEMENT_SIZEE"><code class="docutils literal notranslate"><span class="pre">d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Buffers</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/Buffers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="buffers">
+<h1>Buffers<a class="headerlink" href="#buffers" title="Link to this heading"></a></h1>
+<p><ul class="simple">
+<li><p>_ua_ -&gt; allows UAV access (default is formatted/sampled view)</p></li>
+<li><p>_sr_ -&gt; allows SRV access (default is formatted/sampled view)</p></li>
+<li><p>_cb -&gt; allows const buffer access</p></li>
+<li><p>_one_frame_ -&gt; for cb to indicate this buffer contents is only valid this frame after a discard write</p></li>
+<li><p>_persistent_ -&gt; for cb counter part to _one_frame_, buffer holds its contents until changed</p></li>
+<li><p>_byte_address -&gt; for ua and sr to indicate byte address view</p></li>
+<li><p>_structured -&gt; for ua and sr to indicate structured view</p></li>
+<li><p>_readback -&gt; buffer is used for read back</p></li>
+<li><p>_indirect -&gt; buffer can be an indirect argument</p></li>
+<li><p>_staging -&gt; staging buffer </p></li>
+</ul>
+</p>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv47Sbuffer">
+<span id="_CPPv37Sbuffer"></span><span id="_CPPv27Sbuffer"></span><span id="Sbuffer"></span><span class="target" id="classSbuffer"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Sbuffer</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">D3dResource</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceChecker</span></span><a class="headerlink" href="#_CPPv47Sbuffer" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_buffers.h&gt;</em></div>
+<p>The <a class="reference internal" href="#classSbuffer"><span class="std std-ref">Sbuffer</span></a> class represents a buffer used for 3D rendering. </p>
+<p>This class is derived from the D3dResource class and provides functionality for locking and unlocking the buffer, retrieving buffer information, and updating buffer data. It represents all possible buffer types in the engine. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer17setReloadCallbackEP11IReloadData">
+<span id="_CPPv3N7Sbuffer17setReloadCallbackEP11IReloadData"></span><span id="_CPPv2N7Sbuffer17setReloadCallbackEP11IReloadData"></span><span id="Sbuffer::setReloadCallback__IReloadDataP"></span><span class="target" id="classSbuffer_1aaaa64c1cddc34a101e09ab67dd7be0f3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setReloadCallback</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N7Sbuffer11IReloadDataE" title="Sbuffer::IReloadData"><span class="n"><span class="pre">IReloadData</span></span></a><span class="p"><span class="pre">*</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer17setReloadCallbackEP11IReloadData" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the Reload Callback object for the buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the callback was successfully set, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7Sbuffer7getTypeEv">
+<span id="_CPPv3NK7Sbuffer7getTypeEv"></span><span id="_CPPv2NK7Sbuffer7getTypeEv"></span><span id="Sbuffer::getTypeC"></span><span class="target" id="classSbuffer_1a80a2a1113f4574d5afe9e9c0f173b4a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">D3DResourceType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getType</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">final</span></span><a class="headerlink" href="#_CPPv4NK7Sbuffer7getTypeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the type of the D3dResource. It is always D3DResourceType::SBUF for <a class="reference internal" href="#classSbuffer"><span class="std std-ref">Sbuffer</span></a> objects. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>D3DResourceType::SBUF. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer4lockE8uint32_t8uint32_tPPvi">
+<span id="_CPPv3N7Sbuffer4lockE8uint32_t8uint32_tPPvi"></span><span id="_CPPv2N7Sbuffer4lockE8uint32_t8uint32_tPPvi"></span><span id="Sbuffer::lock__uint32_t.uint32_t.voidPP.i"></span><span class="target" id="classSbuffer_1a5db17ff4984b33762e3f977c800054f1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lock</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N7Sbuffer4lockE8uint32_t8uint32_tPPvi" title="Link to this definition"></a><br /></dt>
+<dd><p>Locks a portion of the buffer for reading or writing.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is better to use lock_sbuffer method for more safety.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ofs_bytes</strong> – The offset in bytes from the beginning of the buffer. </p></li>
+<li><p><strong>size_bytes</strong> – The size in bytes of the portion to lock. The whole buffer will be locked if 0. </p></li>
+<li><p><strong>p</strong> – A pointer to a void pointer that will receive the locked memory address. </p></li>
+<li><p><strong>flags</strong> – Additional flags to control the locking behavior. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An integer representing the result of the lock operation. 0 if the lock failed, 1 if the lock succeeded. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer6unlockEv">
+<span id="_CPPv3N7Sbuffer6unlockEv"></span><span id="_CPPv2N7Sbuffer6unlockEv"></span><span id="Sbuffer::unlock"></span><span class="target" id="classSbuffer_1adeb26fce00357095237e09285b45690a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unlock</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N7Sbuffer6unlockEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Unlocks the buffer after it has been locked.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An integer representing the result of the unlock operation. 0 if the unlock failed, 1 if the unlock succeeded. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7Sbuffer8getFlagsEv">
+<span id="_CPPv3NK7Sbuffer8getFlagsEv"></span><span id="_CPPv2NK7Sbuffer8getFlagsEv"></span><span id="Sbuffer::getFlagsC"></span><span class="target" id="classSbuffer_1a4b68173afcbea69b2842ad1f3289591d"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getFlags</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK7Sbuffer8getFlagsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the Flags object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Flags that control the buffer behavior and was set on a buffer creation. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7Sbuffer10getBufNameEv">
+<span id="_CPPv3NK7Sbuffer10getBufNameEv"></span><span id="_CPPv2NK7Sbuffer10getBufNameEv"></span><span id="Sbuffer::getBufNameC"></span><span class="target" id="classSbuffer_1a9c19d28513e314e51754a0d8c32619b4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getBufName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7Sbuffer10getBufNameEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the Buffer name. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The name of the buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7Sbuffer14getElementSizeEv">
+<span id="_CPPv3NK7Sbuffer14getElementSizeEv"></span><span id="_CPPv2NK7Sbuffer14getElementSizeEv"></span><span id="Sbuffer::getElementSizeC"></span><span class="target" id="classSbuffer_1a1597ce988ddef66fd056c3aa4fa29de7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getElementSize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7Sbuffer14getElementSizeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the size of the structured buffer element. </p>
+<p>This method works only for structured buffers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The size of the buffer element. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7Sbuffer14getNumElementsEv">
+<span id="_CPPv3NK7Sbuffer14getNumElementsEv"></span><span id="_CPPv2NK7Sbuffer14getNumElementsEv"></span><span id="Sbuffer::getNumElementsC"></span><span class="target" id="classSbuffer_1a3410267f2b833071f1900ffb44537fb1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getNumElements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7Sbuffer14getNumElementsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the amount of elements in the structured buffer. </p>
+<p>This method works only for structured buffers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int amount of elements in the buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer6copyToEP7Sbuffer">
+<span id="_CPPv3N7Sbuffer6copyToEP7Sbuffer"></span><span id="_CPPv2N7Sbuffer6copyToEP7Sbuffer"></span><span id="Sbuffer::copyTo__SbufferP"></span><span class="target" id="classSbuffer_1ac9d711eddc70289ee3474283cb7486f9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">copyTo</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dest</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer6copyToEP7Sbuffer" title="Link to this definition"></a><br /></dt>
+<dd><p>Copy current buffer to another buffer. The sizes of the buffers should match exactly. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dest</strong> – The destination buffer. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the buffer was successfully copied, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer6copyToEP7Sbuffer8uint32_t8uint32_t8uint32_t">
+<span id="_CPPv3N7Sbuffer6copyToEP7Sbuffer8uint32_t8uint32_t8uint32_t"></span><span id="_CPPv2N7Sbuffer6copyToEP7Sbuffer8uint32_t8uint32_t8uint32_t"></span><span id="Sbuffer::copyTo__SbufferP.uint32_t.uint32_t.uint32_t"></span><span class="target" id="classSbuffer_1a9c440cde819bc62f01e24c558ad8616c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">copyTo</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dest</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dst_ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">src_ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer6copyToEP7Sbuffer8uint32_t8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Copy a portion of the buffer to another buffer. Both buffers must be large enough for the copied portion offset and size. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dest</strong> – The destination buffer. </p></li>
+<li><p><strong>dst_ofs_bytes</strong> – The offset in bytes from the beginning of the destination buffer. </p></li>
+<li><p><strong>src_ofs_bytes</strong> – The offset in bytes from the beginning of the source buffer. </p></li>
+<li><p><strong>size_bytes</strong> – The size in bytes of the portion to copy. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the buffer was successfully copied, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN7Sbuffer6lockExEi8uint32_t8uint32_tPP1Ti">
+<span id="_CPPv3I0EN7Sbuffer6lockExE8uint32_t8uint32_tPP1Ti"></span><span id="_CPPv2I0EN7Sbuffer6lockExE8uint32_t8uint32_tPP1Ti"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classSbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lockEx</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <a class="reference internal" href="#_CPPv4I0EN7Sbuffer6lockExEi8uint32_t8uint32_tPP1Ti" title="Sbuffer::lockEx::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN7Sbuffer6lockExEi8uint32_t8uint32_tPP1Ti" title="Link to this definition"></a><br /></dt>
+<dd><p>Locks a portion of the buffer for reading or writing. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is better to use lock_sbuffer method for more safety.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – type of the data to lock </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ofs_bytes</strong> – offset in bytes from the beginning of the buffer </p></li>
+<li><p><strong>size_bytes</strong> – size in bytes of the portion to lock </p></li>
+<li><p><strong>p</strong> – pointer to a pointer that will receive the locked memory address </p></li>
+<li><p><strong>flags</strong> – additional flags to control the locking behavior VBLOCK_* </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int 0 if the lock failed, 1 if the lock succeeded </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer18updateDataWithLockE8uint32_t8uint32_tPKvi">
+<span id="_CPPv3N7Sbuffer18updateDataWithLockE8uint32_t8uint32_tPKvi"></span><span id="_CPPv2N7Sbuffer18updateDataWithLockE8uint32_t8uint32_tPKvi"></span><span id="Sbuffer::updateDataWithLock__uint32_t.uint32_t.voidCP.i"></span><span class="target" id="classSbuffer_1a847dccde4430c12c1737e15c69a2c9b1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">updateDataWithLock</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">src</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lockFlags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer18updateDataWithLockE8uint32_t8uint32_tPKvi" title="Link to this definition"></a><br /></dt>
+<dd><p>Updates buffer content with the specified data using lock/memcpy/unlock. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ofs_bytes</strong> – offset in bytes from the beginning of the buffer </p></li>
+<li><p><strong>size_bytes</strong> – size in bytes of the portion to update. Must be non-zero. </p></li>
+<li><p><strong>src</strong> – pointer to the source data </p></li>
+<li><p><strong>lockFlags</strong> – additional flags to control the locking behavior VBLOCK_* </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the buffer was successfully updated, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer10updateDataE8uint32_t8uint32_tPKv8uint32_t">
+<span id="_CPPv3N7Sbuffer10updateDataE8uint32_t8uint32_tPKv8uint32_t"></span><span id="_CPPv2N7Sbuffer10updateDataE8uint32_t8uint32_tPKv8uint32_t"></span><span id="Sbuffer::updateData__uint32_t.uint32_t.voidCP.uint32_t"></span><span class="target" id="classSbuffer_1a54c4d28edee841bda8ccee85ee8233a6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">updateData</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">src</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lockFlags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer10updateDataE8uint32_t8uint32_tPKv8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Updates buffer content with the specified data using lock/memcpy/unlock. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ofs_bytes</strong> – offset in bytes from the beginning of the buffer </p></li>
+<li><p><strong>size_bytes</strong> – size in bytes of the portion to update. Must be non-zero. </p></li>
+<li><p><strong>src</strong> – pointer to the source data </p></li>
+<li><p><strong>lockFlags</strong> – additional flags to control the locking behavior VBLOCK_* </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the buffer was successfully updated, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer4lockE8uint32_t8uint32_tPP8uint16_ti">
+<span id="_CPPv3N7Sbuffer4lockE8uint32_t8uint32_tPP8uint16_ti"></span><span id="_CPPv2N7Sbuffer4lockE8uint32_t8uint32_tPP8uint16_ti"></span><span id="Sbuffer::lock__uint32_t.uint32_t.uint16_tPP.i"></span><span class="target" id="classSbuffer_1a99727061a6ed4d537debb99300d5a19f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lock</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer4lockE8uint32_t8uint32_tPP8uint16_ti" title="Link to this definition"></a><br /></dt>
+<dd><p>Lock method specified for index buffer with 16-bit indices. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ofs_bytes</strong> – offset in bytes from the beginning of the buffer </p></li>
+<li><p><strong>size_bytes</strong> – size in bytes of the portion to lock </p></li>
+<li><p><strong>p</strong> – pointer to a pointer that will receive the locked memory address </p></li>
+<li><p><strong>flags</strong> – additional flags to control the locking behavior VBLOCK_* </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>int 0 if the lock failed, 1 if the lock succeeded </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer6lock32E8uint32_t8uint32_tPP8uint32_ti">
+<span id="_CPPv3N7Sbuffer6lock32E8uint32_t8uint32_tPP8uint32_ti"></span><span id="_CPPv2N7Sbuffer6lock32E8uint32_t8uint32_tPP8uint32_ti"></span><span id="Sbuffer::lock32__uint32_t.uint32_t.uint32_tPP.i"></span><span class="target" id="classSbuffer_1ad205a97b6c5938a5aa634d2edc2bd87c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lock32</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_bytes</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer6lock32E8uint32_t8uint32_tPP8uint32_ti" title="Link to this definition"></a><br /></dt>
+<dd><p>Lock method specified for index buffer with 32-bit indices. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ofs_bytes</strong> – offset in bytes from the beginning of the buffer </p></li>
+<li><p><strong>size_bytes</strong> – size in bytes of the portion to lock </p></li>
+<li><p><strong>p</strong> – pointer to a pointer that will receive the locked memory address </p></li>
+<li><p><strong>flags</strong> – additional flags to control the locking behavior VBLOCK_* </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>int 0 if the lock failed, 1 if the lock succeeded </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer11IReloadDataE">
+<span id="_CPPv3N7Sbuffer11IReloadDataE"></span><span id="_CPPv2N7Sbuffer11IReloadDataE"></span><span id="Sbuffer::IReloadData"></span><span class="target" id="structSbuffer_1_1IReloadData"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IReloadData</span></span></span><a class="headerlink" href="#_CPPv4N7Sbuffer11IReloadDataE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_buffers.h&gt;</em></div>
+<p>Interface for a callback that is called when the buffer is restored after device reset. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer11IReloadDataD0Ev">
+<span id="_CPPv3N7Sbuffer11IReloadDataD0Ev"></span><span id="_CPPv2N7Sbuffer11IReloadDataD0Ev"></span><span id="Sbuffer::IReloadData::~IReloadData"></span><span class="target" id="structSbuffer_1_1IReloadData_1aecd663c2526f5e520d955a2d1f3a9814"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~IReloadData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7Sbuffer11IReloadDataD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer11IReloadData12reloadD3dResEP7Sbuffer">
+<span id="_CPPv3N7Sbuffer11IReloadData12reloadD3dResEP7Sbuffer"></span><span id="_CPPv2N7Sbuffer11IReloadData12reloadD3dResEP7Sbuffer"></span><span id="Sbuffer::IReloadData::reloadD3dRes__SbufferP"></span><span class="target" id="structSbuffer_1_1IReloadData_1a145726c0eb268dae987354f306393d44"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reloadD3dRes</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">sb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N7Sbuffer11IReloadData12reloadD3dResEP7Sbuffer" title="Link to this definition"></a><br /></dt>
+<dd><p>Reloads content of the buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sb</strong> – The buffer to fill. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7Sbuffer11IReloadData11destroySelfEv">
+<span id="_CPPv3N7Sbuffer11IReloadData11destroySelfEv"></span><span id="_CPPv2N7Sbuffer11IReloadData11destroySelfEv"></span><span id="Sbuffer::IReloadData::destroySelf"></span><span class="target" id="structSbuffer_1_1IReloadData_1af3e0e88aa47556474857d194360d37fb"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroySelf</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N7Sbuffer11IReloadData11destroySelfEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Destroys the callback object. Will be called on a buffer destruction. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d14create_sbufferEiijjPKc">
+<span id="_CPPv3N3d3d14create_sbufferEiijjPKc"></span><span id="_CPPv2N3d3d14create_sbufferEiijjPKc"></span><span id="d3d::create_sbuffer__i.i.unsigned.unsigned.cCP"></span><span class="target" id="namespaced3d_1afd21fceb7da673b87882d780710152e3"></span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_sbuffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">struct_size</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">texfmt</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d14create_sbufferEiijjPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a buffer with the specified parameters. </p>
+<p>The buffer can be used for various purposes, such as constant buffers, structured buffers, byte address buffers, and more. It is an uber method, and not all combinations of parameters are valid. Use <a class="reference internal" href="#namespaced3d_1_1buffers"><span class="std std-ref">d3d::buffers</span></a> namespace for more specific buffer creation methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>struct_size</strong> – The size of each structure in the buffer. </p></li>
+<li><p><strong>elements</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>flags</strong> – Additional flags for the buffer. </p></li>
+<li><p><strong>texfmt</strong> – The texture format for tBuffers. </p></li>
+<li><p><strong>name</strong> – The name of the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d10set_bufferEjjP7Sbuffer">
+<span id="_CPPv3N3d3d10set_bufferEjjP7Sbuffer"></span><span id="_CPPv2N3d3d10set_bufferEjjP7Sbuffer"></span><span id="d3d::set_buffer__unsigned.unsigned.SbufferP"></span><span class="target" id="namespaced3d_1a108d8b24d96675f8f4edb6bebcfdac8b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_buffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shader_stage</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buffer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d10set_bufferEjjP7Sbuffer" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets an <a class="reference internal" href="#classSbuffer"><span class="std std-ref">Sbuffer</span></a> for a specific shader stage and slot. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shader_stage</strong> – The shader stage to set the buffer for. One of STAGE_ values. </p></li>
+<li><p><strong>slot</strong> – The slot to bind the buffer to. </p></li>
+<li><p><strong>buffer</strong> – A pointer to the <a class="reference internal" href="#classSbuffer"><span class="std std-ref">Sbuffer</span></a> to set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the buffer was successfully set, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d12set_rwbufferEjjP7Sbuffer">
+<span id="_CPPv3N3d3d12set_rwbufferEjjP7Sbuffer"></span><span id="_CPPv2N3d3d12set_rwbufferEjjP7Sbuffer"></span><span id="d3d::set_rwbuffer__unsigned.unsigned.SbufferP"></span><span class="target" id="namespaced3d_1add60a36c80b8e756c8a6f8b0eb266a65"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rwbuffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shader_stage</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buffer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d12set_rwbufferEjjP7Sbuffer" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets a read-write <a class="reference internal" href="#classSbuffer"><span class="std std-ref">Sbuffer</span></a> for a specific shader stage and slot. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shader_stage</strong> – The shader stage to set the buffer for. One of STAGE_ values. </p></li>
+<li><p><strong>slot</strong> – The slot to bind the buffer to. </p></li>
+<li><p><strong>buffer</strong> – A pointer to the <a class="reference internal" href="#classSbuffer"><span class="std std-ref">Sbuffer</span></a> to set. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the buffer was successfully set, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffersE">
+<span id="_CPPv3N3d3d7buffersE"></span><span id="_CPPv2N3d3d7buffersE"></span><span id="d3d::buffers"></span><span class="target" id="namespaced3d_1_1buffers"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffers</span></span></span><a class="headerlink" href="#_CPPv4N3d3d7buffersE" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers4InitE">
+<span id="_CPPv3N3d3d7buffers4InitE"></span><span id="_CPPv2N3d3d7buffers4InitE"></span><span class="target" id="namespaced3d_1_1buffers_1a7289ebd6e955087eeb533762bac0b98f"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Init</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers4InitE" title="Link to this definition"></a><br /></dt>
+<dd><p>Enumeration for buffer initialization options. Not all buffer types currently support it. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers4Init2NoE">
+<span id="_CPPv3N3d3d7buffers4Init2NoE"></span><span id="_CPPv2N3d3d7buffers4Init2NoE"></span><span class="target" id="namespaced3d_1_1buffers_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">No</span></span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers4Init2NoE" title="Link to this definition"></a><br /></dt>
+<dd><p>We don’t know anything about buffer content on creation. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers4Init4ZeroE">
+<span id="_CPPv3N3d3d7buffers4Init4ZeroE"></span><span id="_CPPv2N3d3d7buffers4Init4ZeroE"></span><span class="target" id="namespaced3d_1_1buffers_1a7289ebd6e955087eeb533762bac0b98fad7ed4ee1df437474d005188535f74875"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Zero</span></span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers4Init4ZeroE" title="Link to this definition"></a><br /></dt>
+<dd><p>A resource guaranteed to be zeroed on the first usage. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers8IndirectE">
+<span id="_CPPv3N3d3d7buffers8IndirectE"></span><span id="_CPPv2N3d3d7buffers8IndirectE"></span><span class="target" id="namespaced3d_1_1buffers_1a696757538a427695f6e00683069bd4ca"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Indirect</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers8IndirectE" title="Link to this definition"></a><br /></dt>
+<dd><p>The Indirect enum represents different GPU indirect buffer types. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers8Indirect8DispatchE">
+<span id="_CPPv3N3d3d7buffers8Indirect8DispatchE"></span><span id="_CPPv2N3d3d7buffers8Indirect8DispatchE"></span><span class="target" id="namespaced3d_1_1buffers_1a696757538a427695f6e00683069bd4caa5a628d4cc7426c31799aa35e0fbcf45e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Dispatch</span></span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers8Indirect8DispatchE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers8Indirect4DrawE">
+<span id="_CPPv3N3d3d7buffers8Indirect4DrawE"></span><span id="_CPPv2N3d3d7buffers8Indirect4DrawE"></span><span class="target" id="namespaced3d_1_1buffers_1a696757538a427695f6e00683069bd4caa2d03c2d5a7ec65ef4619e0582c272ec2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Draw</span></span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers8Indirect4DrawE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers8Indirect11DrawIndexedE">
+<span id="_CPPv3N3d3d7buffers8Indirect11DrawIndexedE"></span><span id="_CPPv2N3d3d7buffers8Indirect11DrawIndexedE"></span><span class="target" id="namespaced3d_1_1buffers_1a696757538a427695f6e00683069bd4caafe1132393be2697e9023d6f9e1ea4c83"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DrawIndexed</span></span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers8Indirect11DrawIndexedE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN3d3d7buffers18cb_array_reg_countE8uint32_t8uint32_t">
+<span id="_CPPv3I0EN3d3d7buffers18cb_array_reg_countE8uint32_t"></span><span id="_CPPv2I0EN3d3d7buffers18cb_array_reg_countE8uint32_t"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespaced3d_1_1buffers_1ae9041fa33b354aab1fd1e6934fa6277d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cb_array_reg_count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">array_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN3d3d7buffers18cb_array_reg_countE8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the number of register (in const buffer term) count for a given array size of type T. Structure must be aligned as float4 to not have problems with alignment in cbuffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type of the array elements. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>array_size</strong> – The size of the array. </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The registers count. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN3d3d7buffers19cb_struct_reg_countE8uint32_tv">
+<span id="_CPPv3I0EN3d3d7buffers19cb_struct_reg_countEv"></span><span id="_CPPv2I0EN3d3d7buffers19cb_struct_reg_countEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespaced3d_1_1buffers_1a9aa525de1d641fdeabaf43b9198398d3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cb_struct_reg_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN3d3d7buffers19cb_struct_reg_countE8uint32_tv" title="Link to this definition"></a><br /></dt>
+<dd><p>Calculate the number of register (in const buffer term) count for a single instance of a type T. Structure must be aligned as float4 to not have problems with alignment in cbuffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type of the structure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The registers count. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers20create_persistent_cbE8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers20create_persistent_cbE8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers20create_persistent_cbE8uint32_tPKc"></span><span id="d3d::buffers::create_persistent_cb__uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1a7bebf9def14bda25122a6a6ab0525f94"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_persistent_cb</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registers_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers20create_persistent_cbE8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a persistent constant buffer. </p>
+<p>Such buffers could be updated from time to time. It is recommended to use <a class="reference internal" href="#namespaced3d_1_1buffers_1ae9041fa33b354aab1fd1e6934fa6277d"><span class="std std-ref">cb_array_reg_count</span></a> and <a class="reference internal" href="#namespaced3d_1_1buffers_1a9aa525de1d641fdeabaf43b9198398d3"><span class="std std-ref">cb_struct_reg_count</span></a> methods to calculate registers_count.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This buffer will not be restored after device reset!</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>registers_count</strong> – The number of registers in the buffer. Must be not bigger than 4096. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Created persistent constant buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers19create_one_frame_cbE8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers19create_one_frame_cbE8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers19create_one_frame_cbE8uint32_tPKc"></span><span id="d3d::buffers::create_one_frame_cb__uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1a02cea12b62344cecc0d445c2859d69dc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_one_frame_cb</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registers_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers19create_one_frame_cbE8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Create an one frame constant buffer. </p>
+<p>Such buffers must be updated every frame (you can skip update if the buffer is not used this frame). Because of that we don’t care about its content on device reset. It is recommended to use <a class="reference internal" href="#namespaced3d_1_1buffers_1ae9041fa33b354aab1fd1e6934fa6277d"><span class="std std-ref">cb_array_reg_count</span></a> and <a class="reference internal" href="#namespaced3d_1_1buffers_1a9aa525de1d641fdeabaf43b9198398d3"><span class="std std-ref">cb_struct_reg_count</span></a> methods to calculate registers_count.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>registers_count</strong> – The number of registers. Must be not bigger than 4096. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers25create_ua_sr_byte_addressE8uint32_tPKc4Init">
+<span id="_CPPv3N3d3d7buffers25create_ua_sr_byte_addressE8uint32_tPKc4Init"></span><span id="_CPPv2N3d3d7buffers25create_ua_sr_byte_addressE8uint32_tPKc4Init"></span><span id="d3d::buffers::create_ua_sr_byte_address__uint32_t.cCP.Init"></span><span class="target" id="namespaced3d_1_1buffers_1af0a2c321a3d7e53d01537438f4921710"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ua_sr_byte_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_in_dwords</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_init</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE" title="d3d::buffers::Init::No"><span class="n"><span class="pre">No</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers25create_ua_sr_byte_addressE8uint32_tPKc4Init" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a byte address buffer, which can be used thorugh an unordered access view or through a shader resource view in shaders. In a shader you can declare the buffer using (RW)ByteAddressBuffer. Such a buffer is always 16-byte aligned. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>Use registers instead of dwords for size because of alignment. </p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_in_dwords</strong> – The size of the buffer in dwords. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers23create_ua_sr_structuredE8uint32_t8uint32_tPKc4Init">
+<span id="_CPPv3N3d3d7buffers23create_ua_sr_structuredE8uint32_t8uint32_tPKc4Init"></span><span id="_CPPv2N3d3d7buffers23create_ua_sr_structuredE8uint32_t8uint32_tPKc4Init"></span><span id="d3d::buffers::create_ua_sr_structured__uint32_t.uint32_t.cCP.Init"></span><span class="target" id="namespaced3d_1_1buffers_1aefe99f08ed8f42e8f2174cfcaa1346de"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ua_sr_structured</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">structure_size</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_init</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE" title="d3d::buffers::Init::No"><span class="n"><span class="pre">No</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers23create_ua_sr_structuredE8uint32_t8uint32_tPKc4Init" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a structured buffer, which can be used thorugh an unordered access view or through a shader resource view in shaders. In a shader you can declare the buffer using (RW)StructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>structure_size</strong> – The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </p></li>
+<li><p><strong>elements_count</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers22create_ua_byte_addressE8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers22create_ua_byte_addressE8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers22create_ua_byte_addressE8uint32_tPKc"></span><span id="d3d::buffers::create_ua_byte_address__uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1ac3d4e3aafd9a7884be161183f8292ede"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ua_byte_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_in_dwords</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers22create_ua_byte_addressE8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a byte address buffer, which can be used thorugh an unordered access view in shaders. In a shader you can declare the buffer using RWByteAddressBuffer. Such a buffer is always 16-byte aligned. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>Use registers instead of dwords for size because of alignment. </p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_in_dwords</strong> – The size of the buffer in dwords. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers20create_ua_structuredE8uint32_t8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers20create_ua_structuredE8uint32_t8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers20create_ua_structuredE8uint32_t8uint32_tPKc"></span><span id="d3d::buffers::create_ua_structured__uint32_t.uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1ad15be2ab842d331a22b84f251c3a46da"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ua_structured</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">structure_size</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers20create_ua_structuredE8uint32_t8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a structured buffer, which can be used thorugh an unordered access view in shaders. In a shader you can declare the buffer using RWStructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>structure_size</strong> – The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </p></li>
+<li><p><strong>elements_count</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers31create_ua_byte_address_readbackE8uint32_tPKc4Init">
+<span id="_CPPv3N3d3d7buffers31create_ua_byte_address_readbackE8uint32_tPKc4Init"></span><span id="_CPPv2N3d3d7buffers31create_ua_byte_address_readbackE8uint32_tPKc4Init"></span><span id="d3d::buffers::create_ua_byte_address_readback__uint32_t.cCP.Init"></span><span class="target" id="namespaced3d_1_1buffers_1a9192bf3c86f843993ae9f6d89b010975"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ua_byte_address_readback</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_in_dwords</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_init</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE" title="d3d::buffers::Init::No"><span class="n"><span class="pre">No</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers31create_ua_byte_address_readbackE8uint32_tPKc4Init" title="Link to this definition"></a><br /></dt>
+<dd><p>The same as <a class="reference internal" href="#namespaced3d_1_1buffers_1ac3d4e3aafd9a7884be161183f8292ede"><span class="std std-ref">create_ua_byte_address</span></a> but its content can be read on CPU. Such a buffer is always 16-byte aligned. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Todo:</span></em></dt>
+<dd><p>Use registers instead of dwords for size because of alignment. </p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_in_dwords</strong> – The size of the buffer in dwords. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers29create_ua_structured_readbackE8uint32_t8uint32_tPKc4Init">
+<span id="_CPPv3N3d3d7buffers29create_ua_structured_readbackE8uint32_t8uint32_tPKc4Init"></span><span id="_CPPv2N3d3d7buffers29create_ua_structured_readbackE8uint32_t8uint32_tPKc4Init"></span><span id="d3d::buffers::create_ua_structured_readback__uint32_t.uint32_t.cCP.Init"></span><span class="target" id="namespaced3d_1_1buffers_1a9d3419aebd8710b77145b4ab391adee0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ua_structured_readback</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">structure_size</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_init</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE" title="d3d::buffers::Init::No"><span class="n"><span class="pre">No</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers29create_ua_structured_readbackE8uint32_t8uint32_tPKc4Init" title="Link to this definition"></a><br /></dt>
+<dd><p>The same as <a class="reference internal" href="#namespaced3d_1_1buffers_1ad15be2ab842d331a22b84f251c3a46da"><span class="std std-ref">create_ua_structured</span></a> but its content can be read on CPU. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>structure_size</strong> – The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </p></li>
+<li><p><strong>elements_count</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers20dword_count_per_callE8Indirect">
+<span id="_CPPv3N3d3d7buffers20dword_count_per_callE8Indirect"></span><span id="_CPPv2N3d3d7buffers20dword_count_per_callE8Indirect"></span><span id="d3d::buffers::dword_count_per_call__Indirect"></span><span class="target" id="namespaced3d_1_1buffers_1a35f6b002b758ba351f194da46b93a5de"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dword_count_per_call</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N3d3d7buffers8IndirectE" title="d3d::buffers::Indirect"><span class="n"><span class="pre">Indirect</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">indirect_type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers20dword_count_per_callE8Indirect" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the amount of dwords per indirect command parameters based on the given indirect buffer type. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>indirect_type</strong> – The type of indirect operation (Dispatch, Draw, or DrawIndexed).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The amount of dwords per indirect command parameters. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers18create_ua_indirectE8Indirect8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers18create_ua_indirectE8Indirect8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers18create_ua_indirectE8Indirect8uint32_tPKc"></span><span id="d3d::buffers::create_ua_indirect__Indirect.uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1aa81d4cda2fd61b2a286035fa03a4a25c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_ua_indirect</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N3d3d7buffers8IndirectE" title="d3d::buffers::Indirect"><span class="n"><span class="pre">Indirect</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">indirect_type</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">records_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers18create_ua_indirectE8Indirect8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates an indirect buffer filled by the GPU. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indirect_type</strong> – The type of the indirect commands stored in the buffer. </p></li>
+<li><p><strong>records_count</strong> – The number of indirect records in the buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers15create_indirectE8Indirect8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers15create_indirectE8Indirect8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers15create_indirectE8Indirect8uint32_tPKc"></span><span id="d3d::buffers::create_indirect__Indirect.uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1aa32f38f3746f3aa2716756359233fefd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_indirect</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N3d3d7buffers8IndirectE" title="d3d::buffers::Indirect"><span class="n"><span class="pre">Indirect</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">indirect_type</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">records_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers15create_indirectE8Indirect8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates an indirect buffer filled by the CPU. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indirect_type</strong> – The type of the indirect commands stored in the buffer. </p></li>
+<li><p><strong>records_count</strong> – The number of indirect records in the buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers14create_stagingE8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers14create_stagingE8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers14create_stagingE8uint32_tPKc"></span><span id="d3d::buffers::create_staging__uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1abe7afbe7c1a824f0f310eb81e948071e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_staging</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_in_bytes</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers14create_stagingE8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a buffer for data transfer from CPU to GPU. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_in_bytes</strong> – The size of the buffer in bytes. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers25create_persistent_sr_tbufE8uint32_t8uint32_tPKc4Init">
+<span id="_CPPv3N3d3d7buffers25create_persistent_sr_tbufE8uint32_t8uint32_tPKc4Init"></span><span id="_CPPv2N3d3d7buffers25create_persistent_sr_tbufE8uint32_t8uint32_tPKc4Init"></span><span id="d3d::buffers::create_persistent_sr_tbuf__uint32_t.uint32_t.cCP.Init"></span><span class="target" id="namespaced3d_1_1buffers_1adc0851f19e23245821a7f08fc5ba66b9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_persistent_sr_tbuf</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements_count</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">format</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_init</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE" title="d3d::buffers::Init::No"><span class="n"><span class="pre">No</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers25create_persistent_sr_tbufE8uint32_t8uint32_tPKc4Init" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a t-buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using Buffer&lt;BufferFormat&gt;. BufferFormat is a kind of template parameter here. </p>
+<p>
+The total size of the buffer is sizeof(format) * elements_count.</p>
+<p>It is a persistent buffer, so you can update it with VBLOCK_WRITEONLY flag. Locked part of the buffer content will be overwritten.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The buffer type can be used only for the code which will be used for DX10 compatible hardware.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>elements_count</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>format</strong> – The format of each element in the buffer. It must be a valid texture format. Not all texture formats are allowed. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers33create_persistent_sr_byte_addressE8uint32_tPKc4Init">
+<span id="_CPPv3N3d3d7buffers33create_persistent_sr_byte_addressE8uint32_tPKc4Init"></span><span id="_CPPv2N3d3d7buffers33create_persistent_sr_byte_addressE8uint32_tPKc4Init"></span><span id="d3d::buffers::create_persistent_sr_byte_address__uint32_t.cCP.Init"></span><span class="target" id="namespaced3d_1_1buffers_1a56b92c7b511d9208d640a91fa3a1caf8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_persistent_sr_byte_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_in_dwords</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_init</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE" title="d3d::buffers::Init::No"><span class="n"><span class="pre">No</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers33create_persistent_sr_byte_addressE8uint32_tPKc4Init" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a byte address buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using ByteAddressBuffer. </p>
+<p>It is a persistent buffer, so you can update it with VBLOCK_WRITEONLY flag. Locked part of the buffer content will be overwritten.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_in_dwords</strong> – The size of the buffer in dwords. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers31create_persistent_sr_structuredE8uint32_t8uint32_tPKc4Init">
+<span id="_CPPv3N3d3d7buffers31create_persistent_sr_structuredE8uint32_t8uint32_tPKc4Init"></span><span id="_CPPv2N3d3d7buffers31create_persistent_sr_structuredE8uint32_t8uint32_tPKc4Init"></span><span id="d3d::buffers::create_persistent_sr_structured__uint32_t.uint32_t.cCP.Init"></span><span class="target" id="namespaced3d_1_1buffers_1acb80ca9442d718525a04ee3e1e4a4655"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_persistent_sr_structured</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">structure_size</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_init</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N3d3d7buffers4InitE" title="d3d::buffers::Init"><span class="n"><span class="pre">Init</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N3d3d7buffers4Init2NoE" title="d3d::buffers::Init::No"><span class="n"><span class="pre">No</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers31create_persistent_sr_structuredE8uint32_t8uint32_tPKc4Init" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a structured buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using StructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </p>
+<p>It is a persistent buffer, so you can update it with VBLOCK_WRITEONLY flag. Locked part of the buffer content will be overwritten.</p>
+<p>Declare StructureType in *.hlsli file and include it both in C++ and shader code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>structure_size</strong> – The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </p></li>
+<li><p><strong>elements_count</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+<li><p><strong>buffer_init</strong> – The initialization option for the buffer. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers24create_one_frame_sr_tbufE8uint32_t8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers24create_one_frame_sr_tbufE8uint32_t8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers24create_one_frame_sr_tbufE8uint32_t8uint32_tPKc"></span><span id="d3d::buffers::create_one_frame_sr_tbuf__uint32_t.uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1ae0ec01f2d5df025225881ff36fde0936"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_one_frame_sr_tbuf</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements_count</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">format</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers24create_one_frame_sr_tbufE8uint32_t8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a t-buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using Buffer&lt;BufferFormat&gt;. BufferFormat is a kind of template parameter here. </p>
+<p>
+The total size of the buffer is sizeof(format) * elements_count. To use the buffer, lock it with VBLOCK_DISCARD flag (and with VBLOCK_NOOVERWRITE during the frame) and fill it on CPU. On the next frame data in the buffer could be invalid, so don’t read from it until you fill it with lock again.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The buffer type can be used only for the code which will be used for DX10 compatible hardware.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>elements_count</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>format</strong> – The format of each element in the buffer. It must be a valid texture format. Not all texture formats are allowed. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers32create_one_frame_sr_byte_addressE8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers32create_one_frame_sr_byte_addressE8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers32create_one_frame_sr_byte_addressE8uint32_tPKc"></span><span id="d3d::buffers::create_one_frame_sr_byte_address__uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1a7c338748365c1d7e19e3ce4312deac39"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_one_frame_sr_byte_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_in_dwords</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers32create_one_frame_sr_byte_addressE8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a byte address buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using ByteAddressBuffer. </p>
+<p>To use the buffer, lock it with VBLOCK_DISCARD flag (and with VBLOCK_NOOVERWRITE during the frame) and fill it on CPU. On the next frame data in the buffer could be invalid, so don’t read from it until you fill it with lock again.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_in_dwords</strong> – The size of the buffer in dwords. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers30create_one_frame_sr_structuredE8uint32_t8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers30create_one_frame_sr_structuredE8uint32_t8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers30create_one_frame_sr_structuredE8uint32_t8uint32_tPKc"></span><span id="d3d::buffers::create_one_frame_sr_structured__uint32_t.uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1ababe700f51a05d5d95189afc00e778a6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_one_frame_sr_structured</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">structure_size</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">elements_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers30create_one_frame_sr_structuredE8uint32_t8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Create a structured buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using StructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </p>
+<p>To use the buffer, lock it with VBLOCK_DISCARD flag (and with VBLOCK_NOOVERWRITE during the frame) and fill it on CPU. On the next frame data in the buffer could be invalid, so don’t read from it until you fill it with lock again.</p>
+<p>Declare StructureType in *.hlsli file and include it both in C++ and shader code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>structure_size</strong> – The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </p></li>
+<li><p><strong>elements_count</strong> – The number of elements in the buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers30create_raytrace_scratch_bufferE8uint32_tPKc">
+<span id="_CPPv3N3d3d7buffers30create_raytrace_scratch_bufferE8uint32_tPKc"></span><span id="_CPPv2N3d3d7buffers30create_raytrace_scratch_bufferE8uint32_tPKc"></span><span id="d3d::buffers::create_raytrace_scratch_buffer__uint32_t.cCP"></span><span class="target" id="namespaced3d_1_1buffers_1a6aa683e81f70c4860bfe7ddd9eac7acd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">create_raytrace_scratch_buffer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size_in_bytes</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d7buffers30create_raytrace_scratch_bufferE8uint32_tPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a buffer to be used as scratch space for bottom acceleration structure builds and updates. This buffer is used as input for <a class="reference internal" href="RayTracing.html#structraytrace_1_1BottomAccelerationStructureBuildInfo_1aa691f78681c696f0e3bc622126784682"><span class="std std-ref">raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBuffer</span></a> which is used by d3d::build_bottom_acceleration_structure. </p>
+<p>This buffer is not meant to be accessed in any other way than to be used as a this scratch buffer, as it is used as temporary storage for the on GPU build and update process of bottom acceleration structure and its contents is highly device and device driver specific and can’t be used for anything else anyway.</p>
+<p>Sizes needed are provided by the d3d::create_raytrace_bottom_acceleration_structure function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size_in_bytes</strong> – The size in bytes of the scratch buffer. </p></li>
+<li><p><strong>name</strong> – The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pointer to the created buffer. Returns nullptr on failure. Possible failures are device lost state or out of memory. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-variables">Variables</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers21CBUFFER_REGISTER_SIZEE">
+<span id="_CPPv3N3d3d7buffers21CBUFFER_REGISTER_SIZEE"></span><span id="_CPPv2N3d3d7buffers21CBUFFER_REGISTER_SIZEE"></span><span id="d3d::buffers::CBUFFER_REGISTER_SIZE__uint32_t"></span><span class="target" id="namespaced3d_1_1buffers_1ab085b535f5176b793b3e3dd0799779db"></span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CBUFFER_REGISTER_SIZE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers21CBUFFER_REGISTER_SIZEE" title="Link to this definition"></a><br /></dt>
+<dd><p>The size of the cbuffer register. It should have a size divisible by sizeof(float4), because the cbuffer is a set of float4 registers. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d7buffers25BYTE_ADDRESS_ELEMENT_SIZEE">
+<span id="_CPPv3N3d3d7buffers25BYTE_ADDRESS_ELEMENT_SIZEE"></span><span id="_CPPv2N3d3d7buffers25BYTE_ADDRESS_ELEMENT_SIZEE"></span><span id="d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE__uint32_t"></span><span class="target" id="namespaced3d_1_1buffers_1a421822f58870275c63b259526196379b"></span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BYTE_ADDRESS_ELEMENT_SIZE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">sizeof</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N3d3d7buffers25BYTE_ADDRESS_ELEMENT_SIZEE" title="Link to this definition"></a><br /></dt>
+<dd><p>The size of an element of a byte address buffer. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Bindless.html" class="btn btn-neutral float-left" title="Bindless Resources API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Dispatch.html" class="btn btn-neutral float-right" title="Compute Shader Dispatch API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

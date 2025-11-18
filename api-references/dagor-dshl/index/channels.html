@@ -1,0 +1,262 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Channels</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Shaders" href="shaders.html" />
+    <link rel="prev" title="Macros" href="basic-concepts/macros.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Shading Language (DSHL) docs</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic-concepts.html">Basic Concepts</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Channels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shaders.html">Shaders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="materials.html">Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="directives.html">Common directives</a></li>
+<li class="toctree-l3"><a class="reference internal" href="intrinsics.html">Intrinsics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="global-constants.html">Global constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pipeline-states.html">Pipeline state configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="keywords.html">Keywords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stream_output.html">Stream output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Shading Language (DSHL) docs</a></li>
+      <li class="breadcrumb-item active">Channels</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-dshl/index/channels.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="channels">
+<span id="id1"></span><h1>Channels<a class="headerlink" href="#channels" title="Link to this heading"></a></h1>
+<p>Channels are used to declare the data that the vertex shader is going to get from the vertex buffer.
+Channels must be defined within a <code class="docutils literal notranslate"><span class="pre">shader{...}</span></code> block via the following syntax:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">channel</span><span class="w"> </span><span class="p">(</span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="n">usage_dst</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">usage_src</span><span class="p">)</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">modifier</span><span class="w"> </span><span class="p">];</span>
+</pre></div>
+</div>
+<p><strong>Data types</strong></p>
+<p>Data types that follow the <code class="docutils literal notranslate"><span class="pre">channel</span></code> keyword differ from those native DSHL types described in <a class="reference internal" href="basic-concepts/data-types.html#data-types"><span class="std std-ref">Data types and variables</span></a>.
+These types are considered <em>convertable</em>, meaning that they are always casted to native HLSL data types when piped to
+variables in <code class="docutils literal notranslate"><span class="pre">hlsl{...}</span></code> blocks.</p>
+<p>This cast always happens to a 4-component vector of some basic scalar type, even if the source DSHL type is not a 4-component type.
+For example, <code class="docutils literal notranslate"><span class="pre">float2</span></code> type with <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> components is casted to 4-component float vector via the rule <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">0,</span> <span class="pre">1)</span></code>.</p>
+<p>The list below describes these <em>convertable</em> types as well as their casts to 4D vectors.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">float1</span></code> – 1D float <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">float2</span></code> – 2D float <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">0,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">float3</span></code> – 3D float <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">float4</span></code> – 4D float <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">w)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">short2</span></code> – 2D signed short <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">0,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">short4</span></code> – 4D signed short <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">w)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ubyte4</span></code> – 4D uint8_t <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">w)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">color8</span></code> – 4-byte <code class="docutils literal notranslate"><span class="pre">(R,</span> <span class="pre">G,</span> <span class="pre">B,</span> <span class="pre">A)</span></code> color in <code class="docutils literal notranslate"><span class="pre">[0..1]</span></code> range</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">half2</span></code> – 2D 16-bit float <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">0,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">half4</span></code> – 4D 16-bit float <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">w)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">short2n</span></code> – 2D signed short normalized <code class="docutils literal notranslate"><span class="pre">(x/32767.0,</span> <span class="pre">y/32767.0</span> <span class="pre">,</span> <span class="pre">0,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">short4n</span></code> – 4D signed short normalized <code class="docutils literal notranslate"><span class="pre">(x/32767.0,</span> <span class="pre">y/32767.0</span> <span class="pre">,</span> <span class="pre">z/32767.0,</span> <span class="pre">w/32767.0)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ushort2n</span></code> – 2D unsigned short normalized <code class="docutils literal notranslate"><span class="pre">(x/32767.0,</span> <span class="pre">y/32767.0</span> <span class="pre">,</span> <span class="pre">0,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ushort4n</span></code> – 4D unsigned short normalized <code class="docutils literal notranslate"><span class="pre">(x/32767.0,</span> <span class="pre">y/32767.0</span> <span class="pre">,</span> <span class="pre">z/32767.0,</span> <span class="pre">w/32767.0)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">udec3</span></code> – 3D unsigned 10-bit float <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">1)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dec3n</span></code> – 3D signed 10-bit float normalized <code class="docutils literal notranslate"><span class="pre">(x/511.0,</span> <span class="pre">y/511.0,</span> <span class="pre">z/511.0,</span> <span class="pre">1)</span></code></p></li>
+</ul>
+<p><strong>Data usages</strong></p>
+<p>Shader resource builder needs to know which data to extract from the given mesh that will be sent to your shader.
+This is why you need to specify channel’s <em>usage</em>.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pos</span></code> – position</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">norm</span></code> – normal</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vcol</span></code> – vertex color</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tc</span></code> – texture coordinates</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lightmap</span></code> – lightmap, deprecated (legacy from the times when lightmaps were used)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extra</span></code> – extra, can be used only as <code class="docutils literal notranslate"><span class="pre">usage_src</span></code> (used for providing additional info for vertices)</p></li>
+</ul>
+<p>Usually, <code class="docutils literal notranslate"><span class="pre">usage_src</span></code> and <code class="docutils literal notranslate"><span class="pre">usage_dst</span></code> match. But sometimes, e.g. when the <code class="docutils literal notranslate"><span class="pre">extra</span></code> channel is used as <code class="docutils literal notranslate"><span class="pre">usage_src</span></code>,
+you must remap it to other intended <code class="docutils literal notranslate"><span class="pre">usage_dst</span></code>.</p>
+<p><strong>Data modifiers</strong></p>
+<p>Data modifiers might be useful in some cases where the data from the channel should be rescaled or multiplied by some constant.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">signed_pack</span></code> – converts data from <code class="docutils literal notranslate"><span class="pre">[0..1]</span></code> range to <code class="docutils literal notranslate"><span class="pre">[-1..1]</span></code> range</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unsigned_pack</span></code> – converts data from <code class="docutils literal notranslate"><span class="pre">[-1..1]</span></code> range to <code class="docutils literal notranslate"><span class="pre">[0..1]</span></code> range</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bounding_pack</span></code> – rescales data from <code class="docutils literal notranslate"><span class="pre">[min..max]</span></code> to <code class="docutils literal notranslate"><span class="pre">[0..1]</span></code> if <code class="docutils literal notranslate"><span class="pre">usage_dst</span></code> is unsigned or <code class="docutils literal notranslate"><span class="pre">[-1..1]</span></code> if it is signed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mul_1k</span></code> – multiplies data by <code class="docutils literal notranslate"><span class="pre">1024</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mul_2k</span></code> – multiplies data by <code class="docutils literal notranslate"><span class="pre">2048</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mul_4k</span></code> – multiplies data by <code class="docutils literal notranslate"><span class="pre">4096</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mul_8k</span></code> – multiplies data by <code class="docutils literal notranslate"><span class="pre">8192</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mul_16k</span></code> – multiplies data by <code class="docutils literal notranslate"><span class="pre">16384</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mul_32767</span></code> – multiplies data by <code class="docutils literal notranslate"><span class="pre">32767</span></code> and clamps it to <code class="docutils literal notranslate"><span class="pre">[-32767..32767]</span></code> range</p></li>
+</ul>
+<p>Here is a simple usage example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">shader</span><span class="w"> </span><span class="n">some_shader</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="cm">/*</span>
+<span class="cm">  Here we declare channels for the vertex shader, which</span>
+<span class="cm">  will be used by the shader compiler to generate appropriate</span>
+<span class="cm">  vertex shader declaration for this particular shader.</span>
+<span class="cm">  */</span>
+<span class="w">  </span><span class="n">channel</span><span class="w"> </span><span class="n">float3</span><span class="w"> </span><span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">;</span><span class="w">       </span><span class="c1">// vertex position</span>
+<span class="w">  </span><span class="n">channel</span><span class="w"> </span><span class="n">color8</span><span class="w"> </span><span class="n">vcol</span><span class="o">=</span><span class="n">vcol</span><span class="p">;</span><span class="w">     </span><span class="c1">// vertex color</span>
+<span class="w">  </span><span class="n">channel</span><span class="w"> </span><span class="n">float3</span><span class="w"> </span><span class="n">tc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tc</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"> </span><span class="c1">// vertex texture coordinate</span>
+<span class="w">  </span><span class="n">channel</span><span class="w"> </span><span class="n">float3</span><span class="w"> </span><span class="n">tc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tc</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span><span class="w"> </span><span class="c1">// another vertex texture coordinate</span>
+
+<span class="w">  </span><span class="n">hlsl</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="cm">/*</span>
+<span class="cm">    This VsInput struct declares vertex information in HLSL-style.</span>
+<span class="cm">    Note that for each DSHL channel declared above, there should be a corresponding</span>
+<span class="cm">    HLSL semantic matching the declared channel.</span>
+<span class="cm">    */</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">VsInput</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">float4</span><span class="w"> </span><span class="n">pos</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">POSITION</span><span class="p">;</span><span class="w">               </span><span class="c1">// vertex position</span>
+<span class="w">      </span><span class="n">float4</span><span class="w"> </span><span class="n">color</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">COLOR0</span><span class="p">;</span><span class="w">               </span><span class="c1">// vertex color</span>
+<span class="w">      </span><span class="n">float3</span><span class="w"> </span><span class="n">texcoord</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">TEXCOORD0</span><span class="p">;</span><span class="w">         </span><span class="c1">// vertex texture coordinate</span>
+<span class="w">      </span><span class="n">float3</span><span class="w"> </span><span class="n">another_texcoord</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">TEXCOORD1</span><span class="p">;</span><span class="w"> </span><span class="c1">// another vertex texture coordinate</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">hlsl</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">VsOutput</span><span class="w"> </span><span class="nf">some_vs</span><span class="p">(</span><span class="n">VsInput</span><span class="w"> </span><span class="n">input</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// ...</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="basic-concepts/macros.html" class="btn btn-neutral float-left" title="Macros" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shaders.html" class="btn btn-neutral float-right" title="Shaders" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBaseTexture_1_1IReloadData" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>BaseTexture::IReloadData</compoundname>
+    <includes refid="dag__tex3d_8h" local="no">dag_tex3d.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structBaseTexture_1_1IReloadData_1a27265b2427473e2e025d35723611c163" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual BaseTexture::IReloadData::~IReloadData</definition>
+        <argsstring>()</argsstring>
+        <name>~IReloadData</name>
+        <qualifiedname>BaseTexture::IReloadData::~IReloadData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="160" column="13" bodyfile="dag_tex3d.h" bodystart="160" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="function" id="structBaseTexture_1_1IReloadData_1a118c145d10ab3bbc119b1601240c6e36" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::IReloadData::reloadD3dRes</definition>
+        <argsstring>(BaseTexture *t)=0</argsstring>
+        <name>reloadD3dRes</name>
+        <qualifiedname>BaseTexture::IReloadData::reloadD3dRes</qualifiedname>
+        <param>
+          <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="161" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="structBaseTexture_1_1IReloadData_1a8e6ab1aaeb013836a15e777d6e2f323b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::IReloadData::destroySelf</definition>
+        <argsstring>()=0</argsstring>
+        <name>destroySelf</name>
+        <qualifiedname>BaseTexture::IReloadData::destroySelf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_tex3d.h" line="162" column="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_tex3d.h" line="158" column="3" bodyfile="dag_tex3d.h" bodystart="159" bodyend="163"/>
+    <listofallmembers>
+      <member refid="structBaseTexture_1_1IReloadData_1a8e6ab1aaeb013836a15e777d6e2f323b" prot="public" virt="pure-virtual"><scope>BaseTexture::IReloadData</scope><name>destroySelf</name></member>
+      <member refid="structBaseTexture_1_1IReloadData_1a118c145d10ab3bbc119b1601240c6e36" prot="public" virt="pure-virtual"><scope>BaseTexture::IReloadData</scope><name>reloadD3dRes</name></member>
+      <member refid="structBaseTexture_1_1IReloadData_1a27265b2427473e2e025d35723611c163" prot="public" virt="virtual"><scope>BaseTexture::IReloadData</scope><name>~IReloadData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

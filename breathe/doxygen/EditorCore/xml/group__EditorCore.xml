@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__EditorCore" kind="group">
+    <compoundname>EditorCore</compoundname>
+    <title>Editor Core</title>
+    <innerclass refid="classIBrushClient" prot="public">IBrushClient</innerclass>
+    <innerclass refid="classBrush" prot="public">Brush</innerclass>
+    <innerclass refid="classBrushEventFilter" prot="public">BrushEventFilter</innerclass>
+    <innerclass refid="structInertia" prot="public">Inertia</innerclass>
+    <innerclass refid="structCameraConfig" prot="public">CameraConfig</innerclass>
+    <innerclass refid="structFpsCameraConfig" prot="public">FpsCameraConfig</innerclass>
+    <innerclass refid="classCCameraElem" prot="public">CCameraElem</innerclass>
+    <innerclass refid="classGenericEditorAppWindow" prot="public">GenericEditorAppWindow</innerclass>
+    <innerclass refid="classGenericEditorAppWindow_1_1AppEventHandler" prot="public">GenericEditorAppWindow::AppEventHandler</innerclass>
+    <innerclass refid="classGeneralEditorData" prot="public">GeneralEditorData</innerclass>
+    <innerclass refid="classGizmoEventFilter" prot="public">GizmoEventFilter</innerclass>
+    <innerclass refid="classGridObject" prot="public">GridObject</innerclass>
+    <innerclass refid="classIGenViewportWnd" prot="public">IGenViewportWnd</innerclass>
+    <innerclass refid="classIGenEventHandler" prot="public">IGenEventHandler</innerclass>
+    <innerclass refid="classIGizmoClient" prot="public">IGizmoClient</innerclass>
+    <innerclass refid="classIEditorCoreEngine" prot="public">IEditorCoreEngine</innerclass>
+    <innerclass refid="classIObjectsList" prot="public">IObjectsList</innerclass>
+    <innerclass refid="classIGenEventHandlerWrapper" prot="public">IGenEventHandlerWrapper</innerclass>
+    <innerclass refid="classICustomCameras" prot="public">ICustomCameras</innerclass>
+    <innerclass refid="classINamespace" prot="public">INamespace</innerclass>
+    <innerclass refid="classEditableObject" prot="public">EditableObject</innerclass>
+    <innerclass refid="classBoxCreator" prot="public">BoxCreator</innerclass>
+    <innerclass refid="classSphereCreator" prot="public">SphereCreator</innerclass>
+    <innerclass refid="classPointCreator" prot="public">PointCreator</innerclass>
+    <innerclass refid="classTargetCreator" prot="public">TargetCreator</innerclass>
+    <innerclass refid="classPlaneCreator" prot="public">PlaneCreator</innerclass>
+    <innerclass refid="classObjectEditor" prot="public">ObjectEditor</innerclass>
+    <innerclass refid="classRenderableEditableObject" prot="public">RenderableEditableObject</innerclass>
+    <innerclass refid="classSelWindow" prot="public">SelWindow</innerclass>
+    <innerclass refid="classToolBarManager" prot="public">ToolBarManager</innerclass>
+    <innerclass refid="classViewportWindow" prot="public">ViewportWindow</innerclass>
+    <innergroup refid="group__EditorBaseClasses">Editor base classes</innergroup>
+    <innergroup refid="group__Cameras">Cameras</innergroup>
+    <innergroup refid="group__Brush">Brush</innergroup>
+    <innergroup refid="group__Gizmo">Gizmo</innergroup>
+    <innergroup refid="group__Grid">Grid</innergroup>
+    <innergroup refid="group__Log">Log management</innergroup>
+    <innergroup refid="group__Misc">Miscellaneous</innergroup>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="group__EditorCore_1ga8187112d800c6222b0cde94907a214c3" prot="public" static="no">
+        <name>EO_IMPLEMENT_RTTI_EX</name>
+        <param><defname>id</defname></param>
+        <param><defname>BASECLS</defname></param>
+        <initializer>  static DClassID getStaticClassId() { return id; }                                    \
+  bool isSubOf(DClassID cid) override { return cid == (id) || BASECLS::isSubOf(cid); } \
+  DClassID getClassId() override { return id; }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper macro for RTTI implementation. static DClassID <bold>getStaticClassId()</bold> - Returns class ID<linebreak/>
+virtual bool <bold>isSubOf(DClassID cid)</bold> - Returns <bold>true</bold> if tested object is of specified class or is derived from specified class,<linebreak/>
+ <bold>false</bold> in other case<linebreak/>
+virtual DClassID <bold>getClassId</bold> () - Returns class ID </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="18" column="9" bodyfile="ec_object.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

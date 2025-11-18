@@ -1,0 +1,257 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__lockSbuffer_8h" kind="file" language="C++">
+    <compoundname>dag_lockSbuffer.h</compoundname>
+    <includes local="no">drv/3d/dag_driver.h</includes>
+    <includes local="no">drv/3d/dag_buffers.h</includes>
+    <includes local="no">drv/3d/dag_query.h</includes>
+    <includes local="no">EASTL/type_traits.h</includes>
+    <includes local="no">EASTL/algorithm.h</includes>
+    <includedby refid="dag__indirectDrawcallsBuffer_8h" local="no">dag_indirectDrawcallsBuffer.h</includedby>
+    <includedby refid="dag__ringDynBuf_8h" local="no">dag_ringDynBuf.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_lockSbuffer.h</label>
+        <link refid="dag__lockSbuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_query.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_indirectDrawcallsBuffer.h</label>
+        <link refid="dag__indirectDrawcallsBuffer_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_lockSbuffer.h</label>
+        <link refid="dag__lockSbuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>dag_multidrawContext.h</label>
+        <link refid="dag__multidrawContext_8h"/>
+      </node>
+      <node id="3">
+        <label>dag_ringDynBuf.h</label>
+        <link refid="dag__ringDynBuf_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classLockedBuffer" prot="public">LockedBuffer</innerclass>
+    <innerclass refid="classLockedBufferWithOffset" prot="public">LockedBufferWithOffset</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__lockSbuffer_8h_1aa65db97eb4156cd6f992771627acb453" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref>&lt; T &gt;</type>
+        <definition>LockedBuffer&lt; T &gt; lock_sbuffer</definition>
+        <argsstring>(Sbuffer *buf, uint32_t ofs_bytes, uint32_t count, int flags)</argsstring>
+        <name>lock_sbuffer</name>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="109" column="14" bodyfile="dag_lockSbuffer.h" bodystart="109" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__lockSbuffer_8h_1a05ad3593a94b5cebd723388a27ac7a0c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool issue_readback_query</definition>
+        <argsstring>(D3dEventQuery *query, Sbuffer *buf)</argsstring>
+        <name>issue_readback_query</name>
+        <param>
+          <type>D3dEventQuery *</type>
+          <declname>query</declname>
+        </param>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="118" column="13" bodyfile="dag_lockSbuffer.h" bodystart="118" bodyend="123"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_driver.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_buffers.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_query.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/type_traits.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/algorithm.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="14" refid="classLockedBuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*mLockedObject<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>T<sp/>*mData<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>mCount<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="21" refid="classLockedBuffer_1af37074d8de877ad5be5e58c9d02275ff" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer_1af37074d8de877ad5be5e58c9d02275ff" kindref="member">LockedBuffer</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22" refid="classLockedBuffer_1ae9f119d008905b51fd41d60a345463ba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer_1ae9f119d008905b51fd41d60a345463ba" kindref="member">LockedBuffer</ref>(Sbuffer<sp/>*locked_object,<sp/>uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>count,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)<sp/>:<sp/>mLockedObject(locked_object)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(locked_object);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TODO:<sp/>It<sp/>is<sp/>necessary<sp/>to<sp/>prohibit<sp/>having<sp/>count<sp/>==<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(!count<sp/>||<sp/>ofs_bytes<sp/>+<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>*<sp/>count<sp/>&lt;=<sp/>locked_object-&gt;getSize());</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>size_bytes<sp/>=<sp/>count<sp/>?<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>*<sp/>count<sp/>:<sp/>mLockedObject-&gt;getSize()<sp/>-<sp/>ofs_bytes;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(size_bytes<sp/>%<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>mCount<sp/>=<sp/>size_bytes<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!mLockedObject-&gt;lock(ofs_bytes,<sp/>size_bytes,<sp/>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**)&amp;mData,<sp/>flags)<sp/>||<sp/>!mData)</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mLockedObject<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mData<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="36" refid="classLockedBuffer_1aac9d4f91d2470f70999fff76fe94df86" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer_1aac9d4f91d2470f70999fff76fe94df86" kindref="member">LockedBuffer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref><sp/>&amp;rhs)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="37" refid="classLockedBuffer_1a37b4e1d9bb0f401d4f85beee65e858ec" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer_1a37b4e1d9bb0f401d4f85beee65e858ec" kindref="member">LockedBuffer</ref>(<ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref><sp/>&amp;&amp;rhs)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(mLockedObject,<sp/>rhs.mLockedObject);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(mData,<sp/>rhs.mData);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(mCount,<sp/>rhs.mCount);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43" refid="classLockedBuffer_1aba66018de3a91fe6d08c7faa55a5baf6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref><sp/><ref refid="classLockedBuffer_1aba66018de3a91fe6d08c7faa55a5baf6" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref><sp/>&amp;rhs)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44" refid="classLockedBuffer_1a635a600b526e3fb88a3b9de28cc136b7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref><sp/>&amp;<ref refid="classLockedBuffer_1a635a600b526e3fb88a3b9de28cc136b7" kindref="member">operator=</ref>(<ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref><sp/>&amp;&amp;rhs)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(mLockedObject,<sp/>rhs.mLockedObject);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(mData,<sp/>rhs.mData);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(mCount,<sp/>rhs.mCount);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="51" refid="classLockedBuffer_1a0949d1ada0d544f03e1ee82a44fa3d71" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer_1a0949d1ada0d544f03e1ee82a44fa3d71" kindref="member">~LockedBuffer</ref>()</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mLockedObject)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mLockedObject-&gt;unlock();</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="classLockedBuffer_1a7d7b9df6ee643b4c1dd762ce266ed8e8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classLockedBuffer_1a7d7b9df6ee643b4c1dd762ce266ed8e8" kindref="member">close</ref>()<sp/>{<sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref><sp/>tmp(eastl::move(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="classLockedBuffer_1a39675dff8a35f9573c534a174066a4d1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mLockedObject<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>TODO:<sp/>[[deprecated]]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="classLockedBuffer_1afe66d936aea5aecb39e505117290415d" refkind="member"><highlight class="normal"><sp/><sp/>T<sp/>*<ref refid="classLockedBuffer_1afe66d936aea5aecb39e505117290415d" kindref="member">get</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mData;<sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="classLockedBuffer_1afe5e40e27521f215497fafe59afee5a4" refkind="member"><highlight class="normal"><sp/><sp/>T<sp/>&amp;<ref refid="classLockedBuffer_1afe5e40e27521f215497fafe59afee5a4" kindref="member">operator[]</ref>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>index)</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>_DEBUG_TAB_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(index<sp/>&lt;<sp/>mCount);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mData[index];</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="classLockedBuffer_1aa44225aaad95504a4b8b806079ccb75b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>T<sp/>&amp;<ref refid="classLockedBuffer_1aa44225aaad95504a4b8b806079ccb75b" kindref="member">operator[]</ref>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>index)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="73"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>_DEBUG_TAB_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(index<sp/>&lt;<sp/>mCount);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mData[index];</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>InputIterator&gt;</highlight></codeline>
+<codeline lineno="81" refid="classLockedBuffer_1a4f28b8649231a58bf0b4a639aa73f795" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classLockedBuffer_1a4f28b8649231a58bf0b4a639aa73f795" kindref="member">updateDataRange</ref>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>index,<sp/>InputIterator<sp/>data,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>count_elements)</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(index<sp/>+<sp/>count_elements<sp/>&lt;=<sp/>mCount);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::copy_n(data,<sp/>count_elements,<sp/>&amp;mData[index]);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="89" refid="classLockedBufferWithOffset" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classLockedBufferWithOffset" kindref="compound">LockedBufferWithOffset</ref></highlight></codeline>
+<codeline lineno="90"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer&lt;T&gt;</ref><sp/>&amp;mLockedBuffer;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>mOffsetInElems;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="95" refid="classLockedBufferWithOffset_1a912f6bef5db39fbaa8a791709e62e70a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBufferWithOffset_1a912f6bef5db39fbaa8a791709e62e70a" kindref="member">LockedBufferWithOffset</ref>(<ref refid="classLockedBuffer" kindref="compound">LockedBuffer&lt;T&gt;</ref><sp/>&amp;locked_buffer,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>offset_in_elements<sp/>=<sp/>0)<sp/>:</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>mLockedBuffer(locked_buffer),<sp/>mOffsetInElems(offset_in_elements)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="classLockedBufferWithOffset_1a46ab9232190e400a30a93becca8e8d75" refkind="member"><highlight class="normal"><sp/><sp/>T<sp/>&amp;<ref refid="classLockedBufferWithOffset_1a46ab9232190e400a30a93becca8e8d75" kindref="member">operator[]</ref>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>index)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mLockedBuffer[mOffsetInElems<sp/>+<sp/>index];<sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101" refid="classLockedBufferWithOffset_1a09cc96c6bc37e6f8f10c8cbffe03980c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classLockedBufferWithOffset" kindref="compound">LockedBufferWithOffset</ref><sp/>&amp;<ref refid="classLockedBufferWithOffset_1a09cc96c6bc37e6f8f10c8cbffe03980c" kindref="member">operator+=</ref>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>count)</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>mOffsetInElems<sp/>+=<sp/>count;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="109" refid="dag__lockSbuffer_8h_1aa65db97eb4156cd6f992771627acb453" refkind="member"><highlight class="normal"><ref refid="classLockedBuffer" kindref="compound">LockedBuffer&lt;T&gt;</ref><sp/><ref refid="dag__lockSbuffer_8h_1aa65db97eb4156cd6f992771627acb453" kindref="member">lock_sbuffer</ref>(Sbuffer<sp/>*buf,<sp/>uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>count,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="110"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>G_ASSERT(buf);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(eastl::is_const_v&lt;T&gt;)</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>flags<sp/>|=<sp/>VBLOCK_READONLY;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/>G_ASSERT(eastl::is_const_v&lt;T&gt;<sp/>==<sp/>!!(flags<sp/>&amp;<sp/>VBLOCK_READONLY));</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer&lt;T&gt;</ref>(buf,<sp/>ofs_bytes,<sp/>count,<sp/>flags);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118" refid="dag__lockSbuffer_8h_1a05ad3593a94b5cebd723388a27ac7a0c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__lockSbuffer_8h_1a05ad3593a94b5cebd723388a27ac7a0c" kindref="member">issue_readback_query</ref>(D3dEventQuery<sp/>*query,<sp/>Sbuffer<sp/>*buf)</highlight></codeline>
+<codeline lineno="119"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(buf-&gt;lock(0,<sp/>0,<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">),<sp/>VBLOCK_READONLY))</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>buf-&gt;unlock();</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3d::issue_event_query(query);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="dag_lockSbuffer.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__DaFgCore" kind="group">
+    <compoundname>DaFgCore</compoundname>
+    <title>Core daFG functionality</title>
+    <innerclass refid="structdafg_1_1ExternalState" prot="public">dafg::ExternalState</innerclass>
+    <innerclass refid="classdafg_1_1NameSpace" prot="public">dafg::NameSpace</innerclass>
+    <innergroup refid="group__DaFgCoreAliases">Core daFG aliases</innergroup>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>NameSpace</type>
+        <definition>NameSpace dafg::root</definition>
+        <argsstring>()</argsstring>
+        <name>root</name>
+        <qualifiedname>dafg::root</qualifiedname>
+        <briefdescription>
+<para>Creates a namespace object for the root frame graph namespace. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The object representing the root namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="29" column="11" declfile="daFG.h" declline="29" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1gadcd1f8fcbd59c45221a4c019da78b8ef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::set_multiplexing_default_mode</definition>
+        <argsstring>(multiplexing::Mode mode, multiplexing::Mode history_mode)</argsstring>
+        <name>set_multiplexing_default_mode</name>
+        <qualifiedname>dafg::set_multiplexing_default_mode</qualifiedname>
+        <param>
+          <type>multiplexing::Mode</type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>multiplexing::Mode</type>
+          <declname>history_mode</declname>
+        </param>
+        <briefdescription>
+<para>Sets the default multiplexing mode for nodes. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>May safely be called every frame, only triggers a recompilation when the values actually change <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The default multiplexing mode for nodes. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>history_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The multiplexing mode that is applied to resources that are generated on a previous frame. If means that some of the multiplexing indices for these resources will live only on previous frame and this frame we will access clamped multiplexing index. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="40" column="6" declfile="daFG.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1ga9c7ea4d4a1ff177e608822e2143caab7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::set_multiplexing_extents</definition>
+        <argsstring>(multiplexing::Extents extents)</argsstring>
+        <name>set_multiplexing_extents</name>
+        <qualifiedname>dafg::set_multiplexing_extents</qualifiedname>
+        <param>
+          <type>multiplexing::Extents</type>
+          <declname>extents</declname>
+        </param>
+        <briefdescription>
+<para>Sets the multiplexing extents for the following frames. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>May safely be called every frame, only triggers a recompilation when the values actually change </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="47" column="6" declfile="daFG.h" declline="47" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1ga7b070b98495f0a529b0975f5397b227b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool dafg::run_nodes</definition>
+        <argsstring>()</argsstring>
+        <name>run_nodes</name>
+        <qualifiedname>dafg::run_nodes</qualifiedname>
+        <briefdescription>
+<para>Executes the frame graph, possibly recompiling it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Return false if run is not possible (d3d device was lost for example) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="51" column="6" declfile="daFG.h" declline="51" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1ga018106098f1b4d3b288101565f38854e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::startup</definition>
+        <argsstring>()</argsstring>
+        <name>startup</name>
+        <qualifiedname>dafg::startup</qualifiedname>
+        <briefdescription>
+<para>Initializes the daFG backend. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="54" column="6" declfile="daFG.h" declline="54" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1ga195f1fa9c2e79c8d9e4d75e8edfbe274" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::shutdown</definition>
+        <argsstring>()</argsstring>
+        <name>shutdown</name>
+        <qualifiedname>dafg::shutdown</qualifiedname>
+        <briefdescription>
+<para>Frees resources held by the daFG backend. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="57" column="6" declfile="daFG.h" declline="57" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1ga0a00bb8d9e8c9c430617ab9c53bdf033" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::invalidate_history</definition>
+        <argsstring>()</argsstring>
+        <name>invalidate_history</name>
+        <qualifiedname>dafg::invalidate_history</qualifiedname>
+        <briefdescription>
+<para>Invalidates history. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When making changes to the graph history is generally preserved calling this function makes this preservation invalid and the history resources will be recreated. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="65" column="6" declfile="daFG.h" declline="65" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1ga7faecc99c2d71ab2e7bf758093d1c0f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::update_external_state</definition>
+        <argsstring>(ExternalState state)</argsstring>
+        <name>update_external_state</name>
+        <qualifiedname>dafg::update_external_state</qualifiedname>
+        <param>
+          <type>ExternalState</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+<para>Sets various global state that is external to daFG. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="68" column="6" declfile="daFG.h" declline="68" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group__DaFgCore_1ga94023330da759d5a4ffb118e9e3d499f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::mark_external_resource_for_validation</definition>
+        <argsstring>(const D3dResource *resource)</argsstring>
+        <name>mark_external_resource_for_validation</name>
+        <qualifiedname>dafg::mark_external_resource_for_validation</qualifiedname>
+        <param>
+          <type>const D3dResource *</type>
+          <declname>resource</declname>
+        </param>
+        <briefdescription>
+<para>Marks an external resource to be validated for illegal access within nodes. Note that daFG-managed resources are always automatically validated for illegal access through sneaky global variables, but external are often used for gradual migration to FG, at which point they are indeed illegally accessed through global state and that is intended. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>resource</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource to be validated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="daFG.h" line="79" column="6" declfile="daFG.h" declline="79" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="group__DaFgCore_1ga3c807a87c57b6b84868343ca83391614" prot="public" static="no">
+        <name>DAFG_PP_NODE_SRC</name>
+        <initializer>&quot;&quot;</initializer>
+        <briefdescription>
+<para>A macro that expands to the current source location. Should always be provided to <ref refid="group__DaFgCoreAliases_1ga809e6b0f9d075aea31d0f0a73599fc62" kindref="member">dafg::register_node</ref> as the <computeroutput>source_location</computeroutput> parameter. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="31" column="10" bodyfile="nameSpace.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Core daFG functions that everything else is accessed through. </para>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

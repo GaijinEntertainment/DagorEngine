@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFillCB" kind="class" language="C++" prot="public">
+    <compoundname>FillCB</compoundname>
+    <basecompoundref refid="classEDataBlockCB" prot="public" virt="non-virtual">EDataBlockCB</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classFillCB_1af88b6c230294a4bd8bb37865b2212382" prot="private" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND FillCB::hwnd</definition>
+        <argsstring></argsstring>
+        <name>hwnd</name>
+        <qualifiedname>FillCB::hwnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="210" column="8" bodyfile="rolluppanel.cpp" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFillCB_1affa606278f8add58ced5a9e5ade3843c" prot="private" static="no" mutable="no">
+        <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+        <definition>RollupPanel* FillCB::panel</definition>
+        <argsstring></argsstring>
+        <name>panel</name>
+        <qualifiedname>FillCB::panel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="211" column="15" bodyfile="rolluppanel.cpp" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFillCB_1a4bc0677a60f6929cc2830a9913f1797a" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool FillCB::enable</definition>
+        <argsstring></argsstring>
+        <name>enable</name>
+        <qualifiedname>FillCB::enable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="212" column="8" bodyfile="rolluppanel.cpp" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFillCB_1ad659c25d094e2e3b72d3f81994b0aa9b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FillCB::FillCB</definition>
+        <argsstring>(HWND hwnd_, RollupPanel *panel_, bool enable_)</argsstring>
+        <name>FillCB</name>
+        <qualifiedname>FillCB::FillCB</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwnd_</declname>
+        </param>
+        <param>
+          <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+          <declname>panel_</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>enable_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="169" column="3" bodyfile="rolluppanel.cpp" bodystart="169" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="classFillCB_1a9c8a5d06a4c7a7fbf3c459f24ed17755" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int FillCB::procCheck</definition>
+        <argsstring>(bool val) override</argsstring>
+        <name>procCheck</name>
+        <qualifiedname>FillCB::procCheck</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a927c63983a13b001d14af1710d178b00">procCheck</reimplements>
+        <param>
+          <type>bool</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="170" column="7" bodyfile="rolluppanel.cpp" bodystart="170" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="classFillCB_1aeb11cc5fe08c756e785d24038b60473e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int FillCB::procCombo</definition>
+        <argsstring>(const char *val, Tab&lt; String &gt; &amp;items) override</argsstring>
+        <name>procCombo</name>
+        <qualifiedname>FillCB::procCombo</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a9ce4638755e2f1afdfb4a288a77ad102">procCombo</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>items</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="175" column="7" bodyfile="rolluppanel.cpp" bodystart="175" bodyend="180"/>
+      </memberdef>
+      <memberdef kind="function" id="classFillCB_1ae5f7d7c63f64597bccb8a2f818ebd4f1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int FillCB::procInt</definition>
+        <argsstring>(int val) override</argsstring>
+        <name>procInt</name>
+        <qualifiedname>FillCB::procInt</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1af332c55d0b8afbc0e43bf346ccb69d34">procInt</reimplements>
+        <param>
+          <type>int</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="181" column="7" bodyfile="rolluppanel.cpp" bodystart="181" bodyend="185"/>
+      </memberdef>
+      <memberdef kind="function" id="classFillCB_1a08c9890b1378c3623afbefb12aa6878c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int FillCB::procReal</definition>
+        <argsstring>(real val) override</argsstring>
+        <name>procReal</name>
+        <qualifiedname>FillCB::procReal</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a8111e2ebca5d5f1b175eeef1458898b2">procReal</reimplements>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="186" column="7" bodyfile="rolluppanel.cpp" bodystart="186" bodyend="190"/>
+      </memberdef>
+      <memberdef kind="function" id="classFillCB_1a384b5e9c2b0bd31d2ea1596f297e2112" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int FillCB::procStr</definition>
+        <argsstring>(const char *val) override</argsstring>
+        <name>procStr</name>
+        <qualifiedname>FillCB::procStr</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a8c0209058acca0617fc5642480051a2c">procStr</reimplements>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="191" column="7" bodyfile="rolluppanel.cpp" bodystart="191" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classFillCB_1a42b361a873372ecbb9e986221315b321" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int FillCB::procPoint3</definition>
+        <argsstring>(const Point3 &amp;val) override</argsstring>
+        <name>procPoint3</name>
+        <qualifiedname>FillCB::procPoint3</qualifiedname>
+        <reimplements refid="classEDataBlockCB_1a1e77fd0eb49a978014986488c1bdaed5">procPoint3</reimplements>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="196" column="7" bodyfile="rolluppanel.cpp" bodystart="196" bodyend="207"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>EDataBlockCB</label>
+        <link refid="classEDataBlockCB"/>
+      </node>
+      <node id="1">
+        <label>FillCB</label>
+        <link refid="classFillCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>EDataBlockCB</label>
+        <link refid="classEDataBlockCB"/>
+      </node>
+      <node id="1">
+        <label>FillCB</label>
+        <link refid="classFillCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rolluppanel.cpp" line="166" column="1" bodyfile="rolluppanel.cpp" bodystart="167" bodyend="213"/>
+    <listofallmembers>
+      <member refid="classFillCB_1a4bc0677a60f6929cc2830a9913f1797a" prot="private" virt="non-virtual"><scope>FillCB</scope><name>enable</name></member>
+      <member refid="classFillCB_1ad659c25d094e2e3b72d3f81994b0aa9b" prot="public" virt="non-virtual"><scope>FillCB</scope><name>FillCB</name></member>
+      <member refid="classEDataBlockCB_1a6193af9cabfe7ec2d10317ff4d63d930" prot="public" virt="non-virtual"><scope>FillCB</scope><name>groupId</name></member>
+      <member refid="classFillCB_1af88b6c230294a4bd8bb37865b2212382" prot="private" virt="non-virtual"><scope>FillCB</scope><name>hwnd</name></member>
+      <member refid="classEDataBlockCB_1ae04e35149b085a3203b2b0374bf841f1" prot="public" virt="non-virtual"><scope>FillCB</scope><name>name</name></member>
+      <member refid="classFillCB_1affa606278f8add58ced5a9e5ade3843c" prot="private" virt="non-virtual"><scope>FillCB</scope><name>panel</name></member>
+      <member refid="classEDataBlockCB_1ae0d7b4125e1df4192ea4e1e78314faa1" prot="public" virt="non-virtual"><scope>FillCB</scope><name>paramId</name></member>
+      <member refid="classFillCB_1a9c8a5d06a4c7a7fbf3c459f24ed17755" prot="public" virt="virtual"><scope>FillCB</scope><name>procCheck</name></member>
+      <member refid="classFillCB_1aeb11cc5fe08c756e785d24038b60473e" prot="public" virt="virtual"><scope>FillCB</scope><name>procCombo</name></member>
+      <member refid="classFillCB_1ae5f7d7c63f64597bccb8a2f818ebd4f1" prot="public" virt="virtual"><scope>FillCB</scope><name>procInt</name></member>
+      <member refid="classFillCB_1a42b361a873372ecbb9e986221315b321" prot="public" virt="virtual"><scope>FillCB</scope><name>procPoint3</name></member>
+      <member refid="classFillCB_1a08c9890b1378c3623afbefb12aa6878c" prot="public" virt="virtual"><scope>FillCB</scope><name>procReal</name></member>
+      <member refid="classFillCB_1a384b5e9c2b0bd31d2ea1596f297e2112" prot="public" virt="virtual"><scope>FillCB</scope><name>procStr</name></member>
+      <member refid="classEDataBlockCB_1a89b47c88e410957d8ba4aad62c4ad2e2" prot="public" virt="virtual"><scope>FillCB</scope><name>~EDataBlockCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

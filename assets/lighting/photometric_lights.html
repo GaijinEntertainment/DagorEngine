@@ -1,0 +1,607 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photometric Lights (IES)</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Adding Light Fixtures to Building Composites" href="adding_light_fixtures_to_building_composites.html" />
+    <link rel="prev" title="Flickering Lights" href="flickering_lights.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Lighting</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lights_creation_guide.html">Lights Creation Guide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lights.html">Lights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flickering_lights.html">Flickering Lights</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Photometric Lights (IES)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#integrating-ies-files-in-danetgame-based-projects">Integrating IES Files in daNetGame-based Projects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-an-ies-file-in-a-light-source">Using an IES File in a Light Source</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#important-notes-on-ies-and-omni-lights">Important Notes on IES and Omni Lights</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-of-ies-usage">Examples of IES Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#limitations-of-ies">Limitations of IES</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#photometry">Photometry</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#supported-file-types">Supported File Types</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#file-placement">File Placement</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#spotlights-special-options">Spotlights &amp; Special Options</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#usage">Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#blurring">Blurring</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#id1">Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#angular-restrictions">Angular Restrictions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#setting-photometry-for-omni-light">Setting Photometry for Omni Light</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#notes-for-custom-textures">Notes for Custom Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#mapping">Mapping</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#changing-mapping-algorithm">Changing Mapping Algorithm</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#technical-details-of-generated-textures">Technical Details of Generated Textures</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="adding_light_fixtures_to_building_composites.html">Adding Light Fixtures to Building Composites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="replacing_or_modifying_lights.html">Replacing or Modifying Lights in Props</a></li>
+<li class="toctree-l3"><a class="reference internal" href="in_game_placeable_light_source.html">Placeable In-Game Light with Render Instance and Dynamic Model Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lighting_catalog.html">Lighting Catalog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Lighting</a></li>
+      <li class="breadcrumb-item active">Photometric Lights (IES)</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/lighting/photometric_lights.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="photometric-lights-ies">
+<h1>Photometric Lights (IES)<a class="headerlink" href="#photometric-lights-ies" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>In daNetGame-based projects, along with traditional light sources like spot or
+omni, you can also add photometric light sources using the <a class="reference external" href="https://blog.ansi.org/2020/02/standard-file-photometric-data-ies-lm-63-19/">IES
+format</a>.</p>
+<p>An IES file is essentially a text file that defines the distribution of light
+intensity from a source, based on angles in 3D space. The format specification
+can be found
+<a class="reference external" href="http://expertunion.ru/normyi-osvescheniya/iesna-lm-63-1995-opisanie-formata-ies.html">here</a>.</p>
+<p>You can download ready-made IES files from the internet, as most lighting
+manufacturers provide IES profiles for their products. There are also extensive
+IES libraries available, containing thousands of profiles suitable for various
+visualization needs.</p>
+<p>Alternatively, you can create IES profiles manually using various editors. I’ve
+used this <a class="reference external" href="https://lightonline.ru/documents/Other/IES_Generator.html">IES
+generator</a>, which is
+simple to use: you draw the light profile in the vertical plane with the mouse.
+The resulting profile is then “rotated” around the vertical axis (similar to the
+<em>Lathe</em> modifier in 3ds Max, which creates a 3D object from a spline). However,
+this tool cannot create non-symmetrical IES profiles along both axes, meaning
+the light distribution cannot vary simultaneously on walls and floors.</p>
+<p><img alt="Photometric Light Sources" src="../../_images/photometric_lights_01.jpg" /></p>
+<p>If more complex IES profiles are needed, you’ll have to find and test other
+software, or search for existing IES files. For simpler tasks, this tool
+suffices. Examples are provided at the end of this article.</p>
+</section>
+<section id="integrating-ies-files-in-danetgame-based-projects">
+<h2>Integrating IES Files in daNetGame-based Projects<a class="headerlink" href="#integrating-ies-files-in-danetgame-based-projects" title="Link to this heading"></a></h2>
+<p>Once you’ve downloaded or created an IES file, place it in the following
+directory:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/&lt;project_name&gt;/develop/assets/manmade_common/textures/ies
+</pre></div>
+</div>
+<p>The following block in the global <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> file handles the processing of
+IES files:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">virtual_res_blk</span><span class="ni">{</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)\.ies$&quot;</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;tex&quot;</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="no">addrU</span><span class="nt">:t=</span><span class="nf">&quot;clamp&quot;</span><span class="gp">;</span> <span class="no">addrV</span><span class="nt">:t=</span><span class="nf">&quot;clamp&quot;</span>
+    <span class="no">convert</span><span class="nt">:b=</span><span class="si">yes</span>
+    <span class="no">buildIES</span><span class="nt">:b=</span><span class="si">yes</span>
+    <span class="no">textureWidth</span><span class="nt">:i=</span><span class="m">128</span>
+    <span class="no">textureHeight</span><span class="nt">:i=</span><span class="m">128</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This means that during the build process, each IES file is converted into a
+simple 128x128 pixel texture in L8 format.</p>
+<p>Details of the engine’s implementation are discussed in the
+<a class="reference internal" href="#photometry"><span class="std std-ref">Photometry</span></a> section.</p>
+</section>
+<section id="using-an-ies-file-in-a-light-source">
+<h2>Using an IES File in a Light Source<a class="headerlink" href="#using-an-ies-file-in-a-light-source" title="Link to this heading"></a></h2>
+<p>To use a specific IES file as a light source, simply specify its name in the
+template under the <code class="docutils literal notranslate"><span class="pre">light.texture_name</span></code> variable and compile the vroms.</p>
+<p>The light template for daNetGame-based projects is located at:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/&lt;project_name&gt;/prog/gameBase/content/common/gamedata/templates/_lights.blk
+</pre></div>
+</div>
+<p>For example, a wall sconce with two lamps would look like this:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">light_sconce_medium</span><span class="ni">{</span>
+  <span class="no">_extends</span><span class="nt">:t=</span><span class="nf">&quot;omni_light&quot;</span>
+  <span class="no">light</span>.max_radius:r=3.5
+  <span class="no">light</span>.offset:p3=0<span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">light</span>.color:c=255<span class="gp">,</span> <span class="m">152</span><span class="gp">,</span> <span class="m">70</span><span class="gp">,</span> <span class="m">255</span>
+  <span class="no">light</span>.brightness:r=2.5
+  <span class="no">light</span>.contact_shadows:b=false
+  <span class="no">light</span>.texture_name:t=&quot;ies_doublelamp_sconce_a&quot;
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="important-notes-on-ies-and-omni-lights">
+<h2>Important Notes on IES and Omni Lights<a class="headerlink" href="#important-notes-on-ies-and-omni-lights" title="Link to this heading"></a></h2>
+<p>Photometric lights can only be applied to omni lights, which means they won’t
+cast shadows. As such, they are not suitable for use in lamps, spotlights, or
+similar sources. Instead, they should be reserved for artistic lighting effects.</p>
+</section>
+<section id="examples-of-ies-usage">
+<h2>Examples of IES Usage<a class="headerlink" href="#examples-of-ies-usage" title="Link to this heading"></a></h2>
+<p>Below are some example IES profiles (from left to right: view in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a>, view in
+the IESGen 4 generator, and view in-game):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ies_doublelamp_sconce_a</span></code></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_02.jpg"><img alt="../../_images/photometric_lights_02.jpg" class="bg-primary" src="../../_images/photometric_lights_02.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_03.jpg"><img alt="../../_images/photometric_lights_03.jpg" class="bg-primary" src="../../_images/photometric_lights_03.jpg" style="width: 37%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_04.jpg"><img alt="../../_images/photometric_lights_04.jpg" class="bg-primary" src="../../_images/photometric_lights_04.jpg" style="width: 37%;" />
+</a>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ies_multilamp_sconce_a</span></code></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_05.jpg"><img alt="../../_images/photometric_lights_05.jpg" class="bg-primary" src="../../_images/photometric_lights_05.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_06.jpg"><img alt="../../_images/photometric_lights_06.jpg" class="bg-primary" src="../../_images/photometric_lights_06.jpg" style="width: 37%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_07.jpg"><img alt="../../_images/photometric_lights_07.jpg" class="bg-primary" src="../../_images/photometric_lights_07.jpg" style="width: 37%;" />
+</a>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ies_singlelamp_sconce_a</span></code></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_08.jpg"><img alt="../../_images/photometric_lights_08.jpg" class="bg-primary" src="../../_images/photometric_lights_08.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_09.jpg"><img alt="../../_images/photometric_lights_09.jpg" class="bg-primary" src="../../_images/photometric_lights_09.jpg" style="width: 37%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_10.jpg"><img alt="../../_images/photometric_lights_10.jpg" class="bg-primary" src="../../_images/photometric_lights_10.jpg" style="width: 37%;" />
+</a>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ies_singlelamp_sconce_b</span></code></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_11.jpg"><img alt="../../_images/photometric_lights_11.jpg" class="bg-primary" src="../../_images/photometric_lights_11.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_12.jpg"><img alt="../../_images/photometric_lights_12.jpg" class="bg-primary" src="../../_images/photometric_lights_12.jpg" style="width: 37%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_13.jpg"><img alt="../../_images/photometric_lights_13.jpg" class="bg-primary" src="../../_images/photometric_lights_13.jpg" style="width: 37%;" />
+</a>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ies_hand_lantern_a</span></code> (initially intended for a kerosene lamp, but ultimately
+used for emergency exit signs).</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_14.jpg"><img alt="../../_images/photometric_lights_14.jpg" class="bg-primary" src="../../_images/photometric_lights_14.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_15.jpg"><img alt="../../_images/photometric_lights_15.jpg" class="bg-primary" src="../../_images/photometric_lights_15.jpg" style="width: 37%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_16.jpg"><img alt="../../_images/photometric_lights_16.jpg" class="bg-primary" src="../../_images/photometric_lights_16.jpg" style="width: 37%;" />
+</a>
+<p>In one of the examples, to get uneven lighting on the ceiling, I simply rotated
+the light source horizontally by 90 degrees.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ies_monitor_a</span></code></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_17.jpg"><img alt="../../_images/photometric_lights_17.jpg" class="bg-primary" src="../../_images/photometric_lights_17.jpg" style="width: 24%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_18.jpg"><img alt="../../_images/photometric_lights_18.jpg" class="bg-primary" src="../../_images/photometric_lights_18.jpg" style="width: 37%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometric_lights_19.jpg"><img alt="../../_images/photometric_lights_19.jpg" class="bg-primary" src="../../_images/photometric_lights_19.jpg" style="width: 37%;" />
+</a>
+<p>As shown in the last example, even under the table there is light because omni
+lights do not cast shadows. However, the result is acceptable – certainly better
+than placing there a spotlight with harsh shadows.</p>
+</section>
+<section id="limitations-of-ies">
+<h2>Limitations of IES<a class="headerlink" href="#limitations-of-ies" title="Link to this heading"></a></h2>
+<p>It’s important to understand that a single IES profile cannot perfectly recreate
+the complex light pattern of multi-source or surface-based lights. The light
+always radiates from a single point, not from multiple sources or an area. For
+instance, representing a wall sconce with many small bulbs using a single IES
+profile is always a compromise. You’ll notice that the light rays emanate from
+the center rather than from each individual bulb. Nevertheless, the result is
+still visually acceptable.</p>
+<a class="reference internal image-reference" href="../../_images/photometric_lights_20.jpg"><img alt="../../_images/photometric_lights_20.jpg" class="align-center" src="../../_images/photometric_lights_20.jpg" style="width: 30%;" />
+</a>
+</section>
+<section id="photometry">
+<h2>Photometry<a class="headerlink" href="#photometry" title="Link to this heading"></a></h2>
+<p>daNetGame-based projects support photometry files to describe the light
+distribution of omni lights. This article explains how to use them.</p>
+<section id="supported-file-types">
+<h3>Supported File Types<a class="headerlink" href="#supported-file-types" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>IES</strong></p>
+<ul>
+<li><p>Format: <a class="reference external" href="https://blog.ansi.org/2020/02/standard-file-photometric-data-ies-lm-63-19/">ANSI/IES LM-63-19</a></p></li>
+<li><p>File details: <a class="reference external" href="https://www.lifewire.com/ies-file-2621816">Lifewire article on .ies files</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="file-placement">
+<h3>File Placement<a class="headerlink" href="#file-placement" title="Link to this heading"></a></h3>
+<p>Photometry files should be placed in the <code class="docutils literal notranslate"><span class="pre">develop/assets/</span></code> directory under an
+appropriate folder. To export these assets, add the following block to the
+<code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">virtual_res_blk</span><span class="ni">{</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)\.ies$&quot;</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;tex&quot;</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="no">convert</span><span class="nt">:b=</span><span class="si">yes</span>
+    <span class="no">buildIES</span><span class="nt">:b=</span><span class="si">yes</span>
+    <span class="no">textureWidth</span><span class="nt">:i=</span><span class="m">128</span>
+    <span class="no">textureHeight</span><span class="nt">:i=</span><span class="m">128</span>
+    <span class="no">blurRadius</span><span class="nt">:r=</span><span class="m">3</span>
+    <span class="no">phiMin</span><span class="nt">:r=</span><span class="m">0</span>
+    <span class="no">phiMax</span><span class="nt">:r=</span><span class="m">360</span>
+    <span class="no">thetaMin</span><span class="nt">:r=</span><span class="m">0</span>
+    <span class="no">thetaMax</span><span class="nt">:r=</span><span class="m">180</span>
+    <span class="no">edgeFadeout</span><span class="nt">:r=</span><span class="m">-1</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>Ensure that the asset names have the <code class="docutils literal notranslate"><span class="pre">ies_</span></code> prefix. Without it, they will not be
+recognized as photometry textures in the game.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">textureWidth</span></code> and <code class="docutils literal notranslate"><span class="pre">textureHeight</span></code> components globally define the resolution
+of the generated textures. While it’s possible to export photometry textures
+with different resolutions, the game will not be able to load them. If you
+create additional blocks to parse <code class="docutils literal notranslate"><span class="pre">.ies</span></code> files or add another type later, ensure
+that all photometry textures maintain the same resolution.</p>
+</section>
+<section id="spotlights-special-options">
+<h3>Spotlights &amp; Special Options<a class="headerlink" href="#spotlights-special-options" title="Link to this heading"></a></h3>
+<p>For spotlights, light is concentrated around the center, allowing for enhanced
+texture quality. The IES exporter supports limiting light intensity to a
+specific angle around the view direction (e.g., 180 degrees to restrict light to
+the forward direction).</p>
+<section id="usage">
+<h4>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h4>
+<p>This option must be applied individually to lights:</p>
+<ol class="arabic">
+<li><p>Place the <code class="docutils literal notranslate"><span class="pre">.ies</span></code> file in the appropriate directory (with a corresponding
+<code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> for processing).</p></li>
+<li><p>Open the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a> and
+select the IES resource.</p>
+<ul class="simple">
+<li><p>Check the photometry info in the right-side panel.</p></li>
+<li><p>The top three values (blur radius, scaling, rotated) show the current
+configuration.</p></li>
+<li><p>The bottom two values represent the calculated optimal values.</p></li>
+</ul>
+</li>
+<li><p>Create a virtual asset <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, such as <code class="docutils literal notranslate"><span class="pre">ies_flashlight_a.tex.blk</span></code> for
+<code class="docutils literal notranslate"><span class="pre">ies_flashlight_a.ies</span></code>.</p></li>
+<li><p>Specify the <code class="docutils literal notranslate"><span class="pre">iesScale:r</span></code> and <code class="docutils literal notranslate"><span class="pre">iesRotation:b</span></code> properties with the optimal
+values. (Currently, this process is not automated.)</p>
+<img alt="How to Use" class="align-center" src="../../_images/photometry_01.jpg" />
+</li>
+</ol>
+<p>The rotation value also implicitly adjusts the scaling. These specified values
+should be close to the optimal values displayed in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>. If the
+values are too low, leading to a loss in texture quality, daBuild will display a
+warning and suggest the optimal values. If the scaling cannot store the texture
+properly, daBuild will produce an error.</p>
+</section>
+</section>
+<section id="blurring">
+<h3>Blurring<a class="headerlink" href="#blurring" title="Link to this heading"></a></h3>
+<p>Blurring can help mitigate pixelation or aliasing in lights. The <code class="docutils literal notranslate"><span class="pre">blurRadius</span></code> is
+specified in degrees, not pixels, and applies to the entire sphere to ensure
+texture edges align seamlessly.</p>
+<section id="id1">
+<h4>Usage<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<p>Define the <code class="docutils literal notranslate"><span class="pre">blurRadius:r</span></code> parameter in the <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> or the virtual asset
+<code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, as shown in the examples. The default value is <code class="docutils literal notranslate"><span class="pre">3</span></code>.</p>
+</section>
+</section>
+<section id="angular-restrictions">
+<h3>Angular Restrictions<a class="headerlink" href="#angular-restrictions" title="Link to this heading"></a></h3>
+<p>The light source’s content can be restricted to specific angular ranges on both
+axes. The relevant options are:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">phiMin</span><span class="nt">:r=</span><span class="m">0</span>
+<span class="no">phiMax</span><span class="nt">:r=</span><span class="m">360</span>
+<span class="no">thetaMin</span><span class="nt">:r=</span><span class="m">0</span>
+<span class="no">thetaMax</span><span class="nt">:r=</span><span class="m">180</span>
+<span class="no">edgeFadeout</span><span class="nt">:r=</span><span class="m">-1</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">phiMin</span></code>-<code class="docutils literal notranslate"><span class="pre">phiMax</span></code> range defines the restriction around the forward
+direction.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">thetaMin</span></code>-<code class="docutils literal notranslate"><span class="pre">thetaMax</span></code> defines the restriction from forward (theta=<code class="docutils literal notranslate"><span class="pre">0</span></code>) to
+backward (theta=<code class="docutils literal notranslate"><span class="pre">180</span></code>).</p></li>
+</ul>
+<p>Light intensity is fully preserved within the specified area. Outside this area,
+it fades out based on <code class="docutils literal notranslate"><span class="pre">edgeFadeout</span></code>. By default, <code class="docutils literal notranslate"><span class="pre">edgeFadeout:r=-1</span></code> calculates
+an automatic fadeout to ensure the light doesn’t bleed more than one pixel on
+the texture (resolution-dependent). If <code class="docutils literal notranslate"><span class="pre">edgeFadeout</span> <span class="pre">&gt;=</span> <span class="pre">0</span></code>, it is treated as a
+degree value, independent of texture resolution.</p>
+<p><strong>Example</strong>:</p>
+<p>To prevent backlight leakage through walls, use a vertical restriction with
+<code class="docutils literal notranslate"><span class="pre">thetaMin:r=0</span></code> and <code class="docutils literal notranslate"><span class="pre">thetaMax:r=93</span></code>. You must create a new virtual resource with
+these parameters in the <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> (e.g.,
+<code class="docutils literal notranslate"><span class="pre">&lt;project-name&gt;/develop/assets/manmade_common/textures/ies/.folder.blk</span></code>).</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometry_02.jpg"><img alt="../../_images/photometry_02.jpg" class="bg-primary" src="../../_images/photometry_02.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometry_03.jpg"><img alt="../../_images/photometry_03.jpg" class="bg-primary" src="../../_images/photometry_03.jpg" style="width: 49%;" />
+</a>
+</section>
+<section id="setting-photometry-for-omni-light">
+<h3>Setting Photometry for Omni Light<a class="headerlink" href="#setting-photometry-for-omni-light" title="Link to this heading"></a></h3>
+<p>To set the photometry for an omni light:</p>
+<ol class="arabic simple">
+<li><p>Add the <code class="docutils literal notranslate"><span class="pre">.ies</span></code> files to an asset folder.</p></li>
+<li><p>Define the photometry of the omni light in the map’s <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file:</p></li>
+</ol>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">entity</span><span class="ni">{</span>
+  <span class="no">_template</span><span class="nt">:t=</span><span class="nf">&quot;omni_light&quot;</span>
+  <span class="no">light</span>.direction:p3=0<span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">light</span>.texture_name:t=&quot;asset_name&quot;
+  ...
+<span class="ni">}</span>
+</pre></div>
+</div>
+<section id="notes-for-custom-textures">
+<h4>Notes for Custom Textures<a class="headerlink" href="#notes-for-custom-textures" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Any texture can be used as a photometry texture in <code class="docutils literal notranslate"><span class="pre">light.texture_name</span></code>, but
+for custom textures (not generated by the IES converter), keep the following
+in mind:</p>
+<ul>
+<li><p>The red channel is used in the shader.</p></li>
+<li><p>The resolution must match the photometry resolution specified in the
+<code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>.</p></li>
+<li><p>The layout must match the mapping algorithm (spherical or octahedral).</p></li>
+<li><p>If the resolution is low, folding lines may be visible in the light
+intensity. This can be mitigated by blurring the pixel pairs at the folding
+lines to have similar values:</p>
+<ul>
+<li><p><strong>Spherical mapping</strong>: Left and right sides <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">y)</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">(w-1,</span> <span class="pre">y)</span></code></p></li>
+<li><p><strong>Octahedral mapping</strong>: Each side’s halves fold together, e.g., for the
+top: <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">0)</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">(w-x-1,</span> <span class="pre">0)</span></code></p></li>
+</ul>
+</li>
+<li><p>Using custom textures for purposes other than testing is not recommended due
+to the maintenance overhead associated with resolution and layout changes.</p></li>
+</ul>
+</li>
+<li><p>The game will load assets based on the <code class="docutils literal notranslate"><span class="pre">ies_</span></code> prefix.</p></li>
+<li><p>Additionally, since photometry is not uniform, the light source direction must
+be specified. By default, the light points downward, but this may not match
+the orientation of the photometry in the <code class="docutils literal notranslate"><span class="pre">.ies</span></code> file. While this worked for
+tested files, no rule guarantees a specific orientation in <code class="docutils literal notranslate"><span class="pre">.ies</span></code> files.</p></li>
+<li><p>For better performance, lights do not store a full orientation and can rotate
+freely around their direction. Below are the exact details of how the light’s
+orientation is handled:</p>
+<ul>
+<li><p>The light’s <strong>direction</strong> corresponds to its <strong>Y-axis</strong>. When sampling
+photometry data, this direction is represented by <code class="docutils literal notranslate"><span class="pre">theta</span> <span class="pre">=</span> <span class="pre">0</span></code>, while <code class="docutils literal notranslate"><span class="pre">phi</span></code>
+varies within the range <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">2*pi]</span></code>. This typically reflects the direction
+in which the light was pointed during measurement.</p></li>
+<li><p>The <strong>X-axis</strong> is either <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0)</span></code> or <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">1)</span></code> — whichever option
+results in a vector that is perpendicular to the light’s direction. The
+parallel component along the light’s direction is removed to ensure this
+perpendicularity. The axis further from the light’s direction is chosen.</p></li>
+</ul>
+</li>
+<li><p>If the texture is not found, the game will issue a warning and proceed without
+applying a photometry texture.</p></li>
+<li><p>In cases where no photometry texture is specified or located, the light will
+behave as before, using full intensity.</p></li>
+</ul>
+</section>
+</section>
+<section id="mapping">
+<h3>Mapping<a class="headerlink" href="#mapping" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">.ies</span></code> files typically contain a limited number of non-uniformly spaced samples.
+These are converted into textures using one of two mapping methods:</p>
+<ul>
+<li><p><strong>Octahedral Mapping</strong> (default): Provides better sample distribution.</p>
+<img alt="Octahedral Mapping" class="align-center" src="../../_images/photometry_04.jpg" />
+</li>
+<li><p><strong>Spherical Mapping</strong>: Though implemented, it’s not in use due to slightly
+worse performance and uneven sample distribution (dense at the poles, sparse
+on the sides).</p></li>
+</ul>
+<section id="changing-mapping-algorithm">
+<h4>Changing Mapping Algorithm<a class="headerlink" href="#changing-mapping-algorithm" title="Link to this heading"></a></h4>
+<p>To enable spherical mapping:</p>
+<ol class="arabic">
+<li><p>In <code class="docutils literal notranslate"><span class="pre">&lt;engine_root&gt;/prog/gameLibs/publicInclude/render/renderLights.hlsl</span></code>,
+comment or uncomment the line:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>#define USE_OCTAHEDRAL_MAPPING
+</pre></div>
+</div>
+</li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">prog/tools/sceneTools/assetExp/exporters/texExp.cpp</span></code>, modify the
+following:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>IesReader::ImageData img = ies.generateOctahedral(width, height);
+// IesReader::ImageData img = ies.generateSpherical(width, height)
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="technical-details-of-generated-textures">
+<h4>Technical Details of Generated Textures<a class="headerlink" href="#technical-details-of-generated-textures" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>Format: <strong>L8 (8-bit, single channel)</strong></p></li>
+<li><p>File type: <code class="docutils literal notranslate"><span class="pre">.DDSX</span></code></p></li>
+<li><p><strong>Spherical Mapping</strong>: The first and last pixel columns are nearly identical
+to avoid issues with interpolation at the folding lines (redundancy: h
+pixels).</p></li>
+<li><p><strong>Octahedral Mapping</strong>: Edge pixels are nearly matched with corresponding
+folding pixels (redundancy: h + w pixels).</p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<ul class="simple">
+<li><p>Test file: <a class="reference download internal" download="" href="../../_downloads/053b7874806a5e13786d25fc325581a1/photometry_file_test2.ies"><span class="xref download myst">photometry_file_test2.ies</span></a></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometry_05.jpg"><img alt="../../_images/photometry_05.jpg" class="bg-primary" src="../../_images/photometry_05.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometry_06.jpg"><img alt="../../_images/photometry_06.jpg" class="bg-primary" src="../../_images/photometry_06.jpg" style="width: 49%;" />
+</a>
+<ul class="simple">
+<li><p>Real data: <a class="reference download internal" download="" href="../../_downloads/52163aedd9b5377f820afd5538284bc8/photometry_file_t8_06nw.ies"><span class="xref download myst">photometry_file_t8_06nw.ies</span></a></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometry_07.jpg"><img alt="../../_images/photometry_07.jpg" class="bg-primary" src="../../_images/photometry_07.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/photometry_08.jpg"><img alt="../../_images/photometry_08.jpg" class="bg-primary" src="../../_images/photometry_08.jpg" style="width: 49%;" />
+</a>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="flickering_lights.html" class="btn btn-neutral float-left" title="Flickering Lights" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="adding_light_fixtures_to_building_composites.html" class="btn btn-neutral float-right" title="Adding Light Fixtures to Building Composites" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

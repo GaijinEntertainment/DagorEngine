@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="semUtils_8h" kind="file" language="C++">
+    <compoundname>semUtils.h</compoundname>
+    <includedby refid="cppStcode_8cpp" local="yes">cppStcode.cpp</includedby>
+    <includedby refid="semUtils_8cpp" local="yes">semUtils.cpp</includedby>
+    <includedby refid="shExprParser_8cpp" local="yes">shExprParser.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>cppStcode.cpp</label>
+        <link refid="cppStcode_8cpp"/>
+      </node>
+      <node id="3">
+        <label>semUtils.cpp</label>
+        <link refid="semUtils_8cpp"/>
+      </node>
+      <node id="1">
+        <label>semUtils.h</label>
+        <link refid="semUtils_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespacesemutils">semutils</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>some<sp/>semantic<sp/>funtions</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__SEMUTILS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__SEMUTILS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;shsyn.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="namespacesemutils" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacesemutils" kindref="compound">semutils</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/>convert<sp/>from<sp/>string<sp/>to<sp/>integer,<sp/>assert<sp/>if<sp/>failed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespacesemutils_1a6811ced6d8ed588c8946e5816ea788a0" kindref="member">int_number</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>convert<sp/>from<sp/>string<sp/>to<sp/>real,<sp/>assert<sp/>if<sp/>failed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/><ref refid="namespacesemutils_1a1dac415db8fc672b85f17fd11c13d3b6" kindref="member">real_number</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//<sp/>convert<sp/>from<sp/>string<sp/>to<sp/>integer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacesemutils_1ad3cdae42558afe55545de2d9dff909d3" kindref="member">try_int_number</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;out);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>convert<sp/>from<sp/>string<sp/>to<sp/>real</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacesemutils_1a11f9bcf0a45b97da3a1142d486dc36a0" kindref="member">try_real_number</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s,<sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>&amp;out);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>convert<sp/>from<sp/>real<sp/>decl<sp/>to<sp/>real</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/><ref refid="namespacesemutils_1a1dac415db8fc672b85f17fd11c13d3b6" kindref="member">real_number</ref>(ShaderTerminal::signed_real<sp/>*s);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">//<sp/>convert<sp/>from<sp/>real<sp/>decl<sp/>to<sp/>int<sp/>(given<sp/>that<sp/>the<sp/>literal<sp/>denotes<sp/>an<sp/>int)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespacesemutils_1a6811ced6d8ed588c8946e5816ea788a0" kindref="member">int_number</ref>(ShaderTerminal::signed_real<sp/>*s);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>semutils</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">//__SEMUTILS_H</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="semUtils.h"/>
+  </compounddef>
+</doxygen>

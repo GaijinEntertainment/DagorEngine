@@ -1,0 +1,320 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daScript Code Formatter</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Dear ImGui and ImPlot" href="../dear-imgui/index.html" />
+    <link rel="prev" title="daScript Code Formatter" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">daScript Code Formatter</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">daScript Code Formatter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#manual-execution">Manual Execution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ide-integration">IDE Integration</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#visual-studio-code-plugin">Visual Studio Code Plugin</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#git-pre-commit-hook">Git Pre-Commit Hook</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exceptions">Exceptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#visual-studio-code-manual-integration">Visual Studio Code Manual Integration</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daScript Code Formatter</a></li>
+      <li class="breadcrumb-item active">daScript Code Formatter</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/dascript-code-formatter/dascript_code_formatter.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dascript-code-formatter">
+<h1>daScript Code Formatter<a class="headerlink" href="#dascript-code-formatter" title="Link to this heading"></a></h1>
+<section id="manual-execution">
+<h2>Manual Execution<a class="headerlink" href="#manual-execution" title="Link to this heading"></a></h2>
+<p>To automatically format project code and its dependencies, run the following
+script:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$&lt;project_name&gt;/prog/das-fmt.bat
+</pre></div>
+</div>
+</section>
+<section id="ide-integration">
+<h2>IDE Integration<a class="headerlink" href="#ide-integration" title="Link to this heading"></a></h2>
+<p>Any IDE can execute the same batch file:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$&lt;project_name&gt;/prog/das-fmt.bat
+</pre></div>
+</div>
+<p>You can also specify only the currently opened file. For example, <code class="docutils literal notranslate"><span class="pre">${file}</span></code>
+represents the file currently opened in the editor:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;../tools/das-aot/&lt;project_name&gt;_aot_compiler.exe&quot;</span><span class="w"> </span><span class="s2">&quot;../../prog/1stPartyLibs/daScript/das-fmt/dasfmt.das&quot;</span><span class="w"> </span>--<span class="w"> </span>^
+--path<span class="w"> </span><span class="si">${</span><span class="nv">file</span><span class="si">}</span><span class="w"> </span>--base-path<span class="w"> </span>../../prog/1stPartyLibs/daScript/das-fmt<span class="w"> </span>--das-root<span class="w"> </span>../../prog/1stPartyLibs/daScript
+</pre></div>
+</div>
+<p>Alternatively, you can use the common <code class="docutils literal notranslate"><span class="pre">das-dev.exe</span></code> from the <code class="docutils literal notranslate"><span class="pre">util</span></code> folder:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">pushd</span><span class="w"> </span>d:<span class="se">\&lt;</span>engine_root&gt;<span class="se">\p</span>rog<span class="se">\1</span>stPartyLibs<span class="se">\d</span>aScript<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="s2">&quot;../../../tools/util/das-dev.exe&quot;</span><span class="w"> </span><span class="s2">&quot;das-fmt/dasfmt.das&quot;</span><span class="w"> </span>--<span class="w"> </span>--path<span class="w"> </span><span class="si">${</span><span class="nv">file</span><span class="si">}</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">popd</span>
+</pre></div>
+</div>
+<section id="visual-studio-code-plugin">
+<h3>Visual Studio Code Plugin<a class="headerlink" href="#visual-studio-code-plugin" title="Link to this heading"></a></h3>
+<p>Starting from version <code class="docutils literal notranslate"><span class="pre">0.10.10</span></code>, the Visual Studio Code <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=profelis.dascript-plugin">daScript language
+support
+plugin</a>
+includes built-in support for code formatting using the default shortcut
+<code class="docutils literal notranslate"><span class="pre">Shift</span></code>+ <code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">F</span></code>.</p>
+</section>
+</section>
+<section id="git-pre-commit-hook">
+<h2>Git Pre-Commit Hook<a class="headerlink" href="#git-pre-commit-hook" title="Link to this heading"></a></h2>
+<p>To enforce formatting before commits, add a <code class="docutils literal notranslate"><span class="pre">pre-commit</span></code> script to the
+<code class="docutils literal notranslate"><span class="pre">$&lt;engine_root&gt;/.git/hooks</span></code> folder with the following content:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+
+<span class="nv">root</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--show-toplevel<span class="k">)</span><span class="s2">&quot;</span>
+
+<span class="nv">files</span><span class="o">=</span><span class="k">$((</span><span class="nv">git</span><span class="w"> </span><span class="nv">diff</span><span class="w"> </span><span class="o">--</span><span class="nv">cached</span><span class="w"> </span><span class="o">--</span><span class="nv">name</span><span class="o">-</span><span class="nv">only</span><span class="w"> </span><span class="o">--</span><span class="nv">diff</span><span class="o">-</span><span class="nv">filter</span><span class="o">=</span><span class="nv">ACMR</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nv">grep</span><span class="w"> </span><span class="o">-</span><span class="nv">Ei</span><span class="w"> </span><span class="s2">&quot;\.das</span>$<span class="s2">&quot;</span><span class="o">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nv">true</span><span class="o">)</span>
+
+<span class="nv">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>!<span class="w"> </span><span class="o">-</span><span class="nv">z</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">files</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="nv">then</span>
+<span class="w">    </span><span class="nv">result</span><span class="o">=</span><span class="m">0</span>
+<span class="w">    </span><span class="nv">paths</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="w">    </span><span class="nv">for</span><span class="w"> </span><span class="nv">it</span><span class="w"> </span><span class="nv">in</span><span class="w"> </span><span class="nv">$files</span><span class="p">;</span><span class="w"> </span><span class="nv">do</span>
+<span class="w">        </span><span class="nv">paths</span><span class="o">+=</span><span class="s2">&quot;--path </span><span class="si">${</span><span class="nv">root</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">it</span><span class="si">}</span><span class="s2"> &quot;</span>
+<span class="w">    </span><span class="nv">done</span>
+
+<span class="w">    </span><span class="nv">pushd</span><span class="w"> </span><span class="nv">$root</span><span class="o">/</span><span class="nv">prog</span><span class="o">/</span><span class="m">1</span><span class="nv">stPartyLibs</span><span class="o">/</span><span class="nv">daScript</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="o">/</span><span class="nv">dev</span><span class="o">/</span><span class="nv">null</span>
+<span class="w">    </span><span class="s2">&quot;</span><span class="nv">$root</span><span class="s2">/tools/util/das-dev.exe&quot;</span><span class="w"> </span><span class="s2">&quot;das-fmt/dasfmt.das&quot;</span><span class="w"> </span><span class="o">--</span><span class="w"> </span><span class="nv">$paths</span><span class="w"> </span><span class="o">--</span><span class="nv">exclude</span><span class="o">-</span><span class="nv">mask</span><span class="w"> </span><span class="m">1</span><span class="nv">stPartyLibs</span><span class="o">/</span><span class="nv">daScript</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nv">result</span><span class="o">=</span><span class="m">1</span>
+<span class="w">    </span><span class="nv">popd</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="o">/</span><span class="nv">dev</span><span class="o">/</span><span class="nv">null</span>
+
+<span class="w">    </span><span class="nv">for</span><span class="w"> </span><span class="nv">it</span><span class="w"> </span><span class="nv">in</span><span class="w"> </span><span class="nv">$files</span><span class="p">;</span><span class="w"> </span><span class="nv">do</span>
+<span class="w">        </span><span class="nv">git</span><span class="w"> </span><span class="nv">add</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">it</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nv">done</span>
+
+<span class="w">    </span><span class="nv">exit</span><span class="w"> </span><span class="nv">$result</span>
+<span class="nv">fi</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Ensure that this file is saved with LF line endings.</p>
+</div>
+<p>The path to the daScript compiler (<code class="docutils literal notranslate"><span class="pre">$root/tools/util/das-dev.exe</span></code>) can be
+replaced with the project-specific Ahead-Of-Time (AOT) compiler.</p>
+</section>
+<section id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading"></a></h2>
+<p>To disable automatic formatting or validation for specific files, use one of the
+following methods:</p>
+<ul>
+<li><p>Exclude an entire folder using the <code class="docutils literal notranslate"><span class="pre">--exclude-mask</span></code> argument (as shown in the
+pre-commit hook example). The validator uses
+<code class="docutils literal notranslate"><span class="pre">$&lt;project_name&gt;/prog/das-fmt-test.bat</span></code> files.</p></li>
+<li><p>Add the following token anywhere in a <code class="docutils literal notranslate"><span class="pre">.das</span></code> file:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>//fmt:ignore-file
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="visual-studio-code-manual-integration">
+<h2>Visual Studio Code Manual Integration<a class="headerlink" href="#visual-studio-code-manual-integration" title="Link to this heading"></a></h2>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>The VS Code <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=profelis.dascript-plugin">daScript language
+support plugin</a> (version <code class="docutils literal notranslate"><span class="pre">0.10.10</span></code> and later) provides built-in formatting support (<code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">F</span></code>).</p>
+</div>
+<p>For manual formatting in VS Code, create a task in
+<code class="docutils literal notranslate"><span class="pre">$&lt;project_name&gt;/prog/.vscode/tasks.json</span></code>. Ensure the correct path to the
+compiler for your project:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.0.0&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;tasks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Format current das&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;shell&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;../tools/das-aot/&lt;project_name&gt;_aot_compiler.exe&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;../../prog/1stPartyLibs/daScript/das-fmt/dasfmt.das&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--verbose&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--path&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;\&quot;${file}\&quot;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--base-path&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;../../prog/1stPartyLibs/daScript/das-fmt&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;--das-root&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;../../prog/1stPartyLibs/daScript&quot;</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;presentation&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;reveal&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;never&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;problemMatcher&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you use the <code class="docutils literal notranslate"><span class="pre">das_vscode_workspace</span></code> utility to generate a VS Code workspace,
+this task will be included by default (if the <code class="docutils literal notranslate"><span class="pre">.vscode</span></code> folder does not already
+exist).</p>
+</div>
+<p>To execute this task for the currently open file:</p>
+<ul class="simple">
+<li><p>Navigate to <strong>Terminal &gt; Run Task… &gt; Format current das</strong>.</p></li>
+<li><p>Alternatively, bind a custom shortcut in <code class="docutils literal notranslate"><span class="pre">keybindings.json</span></code> (<strong>File &gt;
+Preferences &gt; Keyboard Shortcuts</strong>, click on icon on top right corner that
+says <strong>Open Keyboard Shortcuts(JSON)</strong>):</p></li>
+</ul>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ctrl+alt+d&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;workbench.action.tasks.runTask&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Format current das&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="daScript Code Formatter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dear-imgui/index.html" class="btn btn-neutral float-right" title="Dear ImGui and ImPlot" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

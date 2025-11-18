@@ -1,0 +1,613 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDriver3dDesc" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dDesc</compoundname>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDriver3dDesc_1aa74a2f08476e11f3a6f171711253722d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::zcmpfunc</definition>
+        <argsstring></argsstring>
+        <name>zcmpfunc</name>
+        <qualifiedname>Driver3dDesc::zcmpfunc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2497" column="7" bodyfile="dag_consts.h" bodystart="2497" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1ab19539c8dd32ee3220827823bfa0eb07" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::acmpfunc</definition>
+        <argsstring></argsstring>
+        <name>acmpfunc</name>
+        <qualifiedname>Driver3dDesc::acmpfunc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2497" column="16" bodyfile="dag_consts.h" bodystart="2497" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1af575e303734dfb41bfbd4e6f76ee5da2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::sblend</definition>
+        <argsstring></argsstring>
+        <name>sblend</name>
+        <qualifiedname>Driver3dDesc::sblend</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2498" column="7" bodyfile="dag_consts.h" bodystart="2498" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a28ee4518e99499b281b5212465042e88" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::dblend</definition>
+        <argsstring></argsstring>
+        <name>dblend</name>
+        <qualifiedname>Driver3dDesc::dblend</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2498" column="14" bodyfile="dag_consts.h" bodystart="2498" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1ae11cc1f931f5738b5b3b705642cf5347" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::mintexw</definition>
+        <argsstring></argsstring>
+        <name>mintexw</name>
+        <qualifiedname>Driver3dDesc::mintexw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2500" column="7" bodyfile="dag_consts.h" bodystart="2500" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a6ed3288c78f782f8d4d2354aef12703e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::mintexh</definition>
+        <argsstring></argsstring>
+        <name>mintexh</name>
+        <qualifiedname>Driver3dDesc::mintexh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2500" column="15" bodyfile="dag_consts.h" bodystart="2500" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a77f52dd0785484a2ff62f4e9d6d058ab" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxtexw</definition>
+        <argsstring></argsstring>
+        <name>maxtexw</name>
+        <qualifiedname>Driver3dDesc::maxtexw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2501" column="7" bodyfile="dag_consts.h" bodystart="2501" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a2f277f067c89ea64bf799f370998d6d8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxtexh</definition>
+        <argsstring></argsstring>
+        <name>maxtexh</name>
+        <qualifiedname>Driver3dDesc::maxtexh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2501" column="15" bodyfile="dag_consts.h" bodystart="2501" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1aa8a4f22ed838f260cb25ae56141f4eb6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::mincubesize</definition>
+        <argsstring></argsstring>
+        <name>mincubesize</name>
+        <qualifiedname>Driver3dDesc::mincubesize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2502" column="7" bodyfile="dag_consts.h" bodystart="2502" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1aecaea1216e6018e077bedebd5ccbf64d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxcubesize</definition>
+        <argsstring></argsstring>
+        <name>maxcubesize</name>
+        <qualifiedname>Driver3dDesc::maxcubesize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2502" column="19" bodyfile="dag_consts.h" bodystart="2502" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1ad43fa7e1e29a64a8d7ffc78c4db40586" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::minvolsize</definition>
+        <argsstring></argsstring>
+        <name>minvolsize</name>
+        <qualifiedname>Driver3dDesc::minvolsize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2503" column="7" bodyfile="dag_consts.h" bodystart="2503" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1aadb94107e37ccbb3c3926a68298108e8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxvolsize</definition>
+        <argsstring></argsstring>
+        <name>maxvolsize</name>
+        <qualifiedname>Driver3dDesc::maxvolsize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2503" column="18" bodyfile="dag_consts.h" bodystart="2503" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1ae0ced9806ebf358cea1f25315f205283" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxtexaspect</definition>
+        <argsstring></argsstring>
+        <name>maxtexaspect</name>
+        <qualifiedname>Driver3dDesc::maxtexaspect</qualifiedname>
+        <briefdescription>
+<para>1 means texture should be square, 0 means no limit </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2504" column="7" bodyfile="dag_consts.h" bodystart="2504" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a90d8486f78b53d8d2fa19c3524380c40" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxtexcoord</definition>
+        <argsstring></argsstring>
+        <name>maxtexcoord</name>
+        <qualifiedname>Driver3dDesc::maxtexcoord</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2505" column="7" bodyfile="dag_consts.h" bodystart="2505" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a6fa227c177a4a29e946f84ed3ef87987" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxsimtex</definition>
+        <argsstring></argsstring>
+        <name>maxsimtex</name>
+        <qualifiedname>Driver3dDesc::maxsimtex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2506" column="7" bodyfile="dag_consts.h" bodystart="2506" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a2f93abe54ceab108947d288f74701674" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxvertexsamplers</definition>
+        <argsstring></argsstring>
+        <name>maxvertexsamplers</name>
+        <qualifiedname>Driver3dDesc::maxvertexsamplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2507" column="7" bodyfile="dag_consts.h" bodystart="2507" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a5bb278b5561f3fd0d683a5ac65be4655" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxclipplanes</definition>
+        <argsstring></argsstring>
+        <name>maxclipplanes</name>
+        <qualifiedname>Driver3dDesc::maxclipplanes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2508" column="7" bodyfile="dag_consts.h" bodystart="2508" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a220b7881cef6f4cc7a84de2c554d9753" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxstreams</definition>
+        <argsstring></argsstring>
+        <name>maxstreams</name>
+        <qualifiedname>Driver3dDesc::maxstreams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2509" column="7" bodyfile="dag_consts.h" bodystart="2509" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a9af512a42cf333e207de57ca502bcd9c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxstreamstr</definition>
+        <argsstring></argsstring>
+        <name>maxstreamstr</name>
+        <qualifiedname>Driver3dDesc::maxstreamstr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2510" column="7" bodyfile="dag_consts.h" bodystart="2510" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a5969b04abc4d2e035e8769ce554648a8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxvpconsts</definition>
+        <argsstring></argsstring>
+        <name>maxvpconsts</name>
+        <qualifiedname>Driver3dDesc::maxvpconsts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2511" column="7" bodyfile="dag_consts.h" bodystart="2511" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1aa52e2e7ef8a530157969ed17c087c24b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxprims</definition>
+        <argsstring></argsstring>
+        <name>maxprims</name>
+        <qualifiedname>Driver3dDesc::maxprims</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2512" column="7" bodyfile="dag_consts.h" bodystart="2512" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1afb7a3f37acb54410c53fb1f7b8e28da0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxvertind</definition>
+        <argsstring></argsstring>
+        <name>maxvertind</name>
+        <qualifiedname>Driver3dDesc::maxvertind</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2512" column="16" bodyfile="dag_consts.h" bodystart="2512" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a0c48ae1fbd1fdd8183ba0abd872e88e8" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dDesc::upixofs</definition>
+        <argsstring></argsstring>
+        <name>upixofs</name>
+        <qualifiedname>Driver3dDesc::upixofs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>pixel-size UV offsets that align texture pixels to frame buffer pixels; usually .5 for DX, and 0 for OGL </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2515" column="9" bodyfile="dag_consts.h" bodystart="2515" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a21b4ff34507d44592a1245e03900adb5" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dDesc::vpixofs</definition>
+        <argsstring></argsstring>
+        <name>vpixofs</name>
+        <qualifiedname>Driver3dDesc::vpixofs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2515" column="17" bodyfile="dag_consts.h" bodystart="2515" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a98790450933cc19c7c6c565e7f1f82be" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxSimRT</definition>
+        <argsstring></argsstring>
+        <name>maxSimRT</name>
+        <qualifiedname>Driver3dDesc::maxSimRT</qualifiedname>
+        <briefdescription>
+<para>Maximum number of simultaneous render targets, will be at least 1. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2517" column="7" bodyfile="dag_consts.h" bodystart="2517" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a7a4429854781296c9cd952489299964f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Driver3dDesc::is20ArbitrarySwizzleAvailable</definition>
+        <argsstring></argsstring>
+        <name>is20ArbitrarySwizzleAvailable</name>
+        <qualifiedname>Driver3dDesc::is20ArbitrarySwizzleAvailable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2518" column="8" bodyfile="dag_consts.h" bodystart="2518" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a13e94054a2025901639f17b80d13093a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::minWarpSize</definition>
+        <argsstring></argsstring>
+        <name>minWarpSize</name>
+        <qualifiedname>Driver3dDesc::minWarpSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2519" column="7" bodyfile="dag_consts.h" bodystart="2519" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a6ed10932ca5546af5b20bd87fe237504" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dDesc::maxWarpSize</definition>
+        <argsstring></argsstring>
+        <name>maxWarpSize</name>
+        <qualifiedname>Driver3dDesc::maxWarpSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2519" column="19" bodyfile="dag_consts.h" bodystart="2519" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1ac930b75b3a30d634c93d1e243d577b65" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned Driver3dDesc::variableRateTextureTileSizeX</definition>
+        <argsstring></argsstring>
+        <name>variableRateTextureTileSizeX</name>
+        <qualifiedname>Driver3dDesc::variableRateTextureTileSizeX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2524" column="12" bodyfile="dag_consts.h" bodystart="2524" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1abbe8e140d3ecb56fccab5955dfb7d12c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned Driver3dDesc::variableRateTextureTileSizeY</definition>
+        <argsstring></argsstring>
+        <name>variableRateTextureTileSizeY</name>
+        <qualifiedname>Driver3dDesc::variableRateTextureTileSizeY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2525" column="12" bodyfile="dag_consts.h" bodystart="2525" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a5afe80c47700849a0b82dc4c4d72932c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned Driver3dDesc::depthResolveModes</definition>
+        <argsstring></argsstring>
+        <name>depthResolveModes</name>
+        <qualifiedname>Driver3dDesc::depthResolveModes</qualifiedname>
+        <initializer>= <ref refid="dag__consts_8h_1adb179fd85240615e180542c2cdf9708faef01ee5693ef072d6cbe965c9ca91665" kindref="member">DepthResolveMode::DEPTH_RESOLVE_MODE_NONE</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2527" column="12" bodyfile="dag_consts.h" bodystart="2527" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a03b3a3fe4baec7cc215203aad8e656b6" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__consts_8h_1afbd81c17e5c6bfc197b37ad70ad1299a" kindref="member">DeviceAttributes</ref></type>
+        <definition>DeviceAttributes Driver3dDesc::info</definition>
+        <argsstring></argsstring>
+        <name>info</name>
+        <qualifiedname>Driver3dDesc::info</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2528" column="20" bodyfile="dag_consts.h" bodystart="2528" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1aadd54ff75ed893e23258b6cf17e4087f" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__consts_8h_1a9ff789772007d3ee105f261291492bc3" kindref="member">DeviceDriverCapabilities</ref></type>
+        <definition>DeviceDriverCapabilities Driver3dDesc::caps</definition>
+        <argsstring></argsstring>
+        <name>caps</name>
+        <qualifiedname>Driver3dDesc::caps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2529" column="28" bodyfile="dag_consts.h" bodystart="2529" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a71ebf43fdf46d6d336fb133af35903ee" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__consts_8h_1ae84494be97614d5243a92513f8c8ac23" kindref="member">DeviceDriverIssues</ref></type>
+        <definition>DeviceDriverIssues Driver3dDesc::issues</definition>
+        <argsstring></argsstring>
+        <name>issues</name>
+        <qualifiedname>Driver3dDesc::issues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2530" column="22" bodyfile="dag_consts.h" bodystart="2530" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1a1b81d8689a09f09881f2f538c3ab9c48" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__consts_8h_1ae7aa518dd202cb91d82d96dd0405bc86" kindref="member">DeviceDriverShaderModelVersion</ref></type>
+        <definition>DeviceDriverShaderModelVersion Driver3dDesc::shaderModel</definition>
+        <argsstring></argsstring>
+        <name>shaderModel</name>
+        <qualifiedname>Driver3dDesc::shaderModel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2531" column="34" bodyfile="dag_consts.h" bodystart="2531" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dDesc_1af61c642274ecd1655c670aeefdb61450" prot="public" static="no" mutable="no">
+        <type><ref refid="structDeviceDriverRaytraceProperties" kindref="compound">DeviceDriverRaytraceProperties</ref></type>
+        <definition>DeviceDriverRaytraceProperties Driver3dDesc::raytrace</definition>
+        <argsstring></argsstring>
+        <name>raytrace</name>
+        <qualifiedname>Driver3dDesc::raytrace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2532" column="34" bodyfile="dag_consts.h" bodystart="2532" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceAttributesBase</label>
+        <link refid="structDeviceAttributesBase"/>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="6">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+      <node id="4">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="structDeviceDriverIssuesNoIssues"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>DeviceDriverIssuesWindows</label>
+        <link refid="structDeviceDriverIssuesWindows"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>DeviceDriverRaytraceProperties</label>
+        <link refid="structDeviceDriverRaytraceProperties"/>
+      </node>
+      <node id="1">
+        <label>Driver3dDesc</label>
+        <link refid="structDriver3dDesc"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>info</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>caps</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>issues</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>shaderModel</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>raytrace</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>d3d::shadermodel::Version</label>
+        <link refid="structd3d_1_1shadermodel_1_1Version"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="2495" column="1" bodyfile="dag_consts.h" bodystart="2496" bodyend="2533"/>
+    <listofallmembers>
+      <member refid="structDriver3dDesc_1ab19539c8dd32ee3220827823bfa0eb07" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>acmpfunc</name></member>
+      <member refid="structDriver3dDesc_1aadd54ff75ed893e23258b6cf17e4087f" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>caps</name></member>
+      <member refid="structDriver3dDesc_1a28ee4518e99499b281b5212465042e88" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>dblend</name></member>
+      <member refid="structDriver3dDesc_1a5afe80c47700849a0b82dc4c4d72932c" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>depthResolveModes</name></member>
+      <member refid="structDriver3dDesc_1a03b3a3fe4baec7cc215203aad8e656b6" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>info</name></member>
+      <member refid="structDriver3dDesc_1a7a4429854781296c9cd952489299964f" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>is20ArbitrarySwizzleAvailable</name></member>
+      <member refid="structDriver3dDesc_1a71ebf43fdf46d6d336fb133af35903ee" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>issues</name></member>
+      <member refid="structDriver3dDesc_1a5bb278b5561f3fd0d683a5ac65be4655" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxclipplanes</name></member>
+      <member refid="structDriver3dDesc_1aecaea1216e6018e077bedebd5ccbf64d" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxcubesize</name></member>
+      <member refid="structDriver3dDesc_1aa52e2e7ef8a530157969ed17c087c24b" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxprims</name></member>
+      <member refid="structDriver3dDesc_1a98790450933cc19c7c6c565e7f1f82be" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxSimRT</name></member>
+      <member refid="structDriver3dDesc_1a6fa227c177a4a29e946f84ed3ef87987" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxsimtex</name></member>
+      <member refid="structDriver3dDesc_1a220b7881cef6f4cc7a84de2c554d9753" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxstreams</name></member>
+      <member refid="structDriver3dDesc_1a9af512a42cf333e207de57ca502bcd9c" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxstreamstr</name></member>
+      <member refid="structDriver3dDesc_1ae0ced9806ebf358cea1f25315f205283" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxtexaspect</name></member>
+      <member refid="structDriver3dDesc_1a90d8486f78b53d8d2fa19c3524380c40" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxtexcoord</name></member>
+      <member refid="structDriver3dDesc_1a2f277f067c89ea64bf799f370998d6d8" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxtexh</name></member>
+      <member refid="structDriver3dDesc_1a77f52dd0785484a2ff62f4e9d6d058ab" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxtexw</name></member>
+      <member refid="structDriver3dDesc_1a2f93abe54ceab108947d288f74701674" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxvertexsamplers</name></member>
+      <member refid="structDriver3dDesc_1afb7a3f37acb54410c53fb1f7b8e28da0" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxvertind</name></member>
+      <member refid="structDriver3dDesc_1aadb94107e37ccbb3c3926a68298108e8" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxvolsize</name></member>
+      <member refid="structDriver3dDesc_1a5969b04abc4d2e035e8769ce554648a8" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxvpconsts</name></member>
+      <member refid="structDriver3dDesc_1a6ed10932ca5546af5b20bd87fe237504" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>maxWarpSize</name></member>
+      <member refid="structDriver3dDesc_1aa8a4f22ed838f260cb25ae56141f4eb6" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>mincubesize</name></member>
+      <member refid="structDriver3dDesc_1a6ed3288c78f782f8d4d2354aef12703e" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>mintexh</name></member>
+      <member refid="structDriver3dDesc_1ae11cc1f931f5738b5b3b705642cf5347" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>mintexw</name></member>
+      <member refid="structDriver3dDesc_1ad43fa7e1e29a64a8d7ffc78c4db40586" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>minvolsize</name></member>
+      <member refid="structDriver3dDesc_1a13e94054a2025901639f17b80d13093a" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>minWarpSize</name></member>
+      <member refid="structDriver3dDesc_1af61c642274ecd1655c670aeefdb61450" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>raytrace</name></member>
+      <member refid="structDriver3dDesc_1af575e303734dfb41bfbd4e6f76ee5da2" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>sblend</name></member>
+      <member refid="structDriver3dDesc_1a1b81d8689a09f09881f2f538c3ab9c48" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>shaderModel</name></member>
+      <member refid="structDriver3dDesc_1a0c48ae1fbd1fdd8183ba0abd872e88e8" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>upixofs</name></member>
+      <member refid="structDriver3dDesc_1ac930b75b3a30d634c93d1e243d577b65" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>variableRateTextureTileSizeX</name></member>
+      <member refid="structDriver3dDesc_1abbe8e140d3ecb56fccab5955dfb7d12c" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>variableRateTextureTileSizeY</name></member>
+      <member refid="structDriver3dDesc_1a21b4ff34507d44592a1245e03900adb5" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>vpixofs</name></member>
+      <member refid="structDriver3dDesc_1aa74a2f08476e11f3a6f171711253722d" prot="public" virt="non-virtual"><scope>Driver3dDesc</scope><name>zcmpfunc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

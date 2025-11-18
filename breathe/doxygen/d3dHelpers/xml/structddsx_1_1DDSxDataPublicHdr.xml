@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structddsx_1_1DDSxDataPublicHdr" kind="struct" language="C++" prot="public">
+    <compoundname>ddsx::DDSxDataPublicHdr</compoundname>
+    <includes refid="dag__texPackMgr2_8h" local="no">dag_texPackMgr2.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr</qualifiedname>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a1ea610af59b846cb8b16b0f3eb13b3d5" prot="public">
+          <name>FLG_HASBORDER</name>
+          <initializer>= 0x0400</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a4011472fee4b098a24d9af27dcec36f1" prot="public">
+          <name>FLG_CUBTEX</name>
+          <initializer>= 0x0800</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a4e1ed388a52cf37a1c2bdffe4766c0af" prot="public">
+          <name>FLG_VOLTEX</name>
+          <initializer>= 0x1000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685aa98f2cae38aa221fa3459d009d3b7dfe" prot="public">
+          <name>FLG_GENMIP_BOX</name>
+          <initializer>= 0x2000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a16aa18db4d8fc5c11e07bd4a5d5bbec8" prot="public">
+          <name>FLG_GENMIP_KAIZER</name>
+          <initializer>= 0x4000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a58edec3ae54e2e7717037199e4c30857" prot="public">
+          <name>FLG_GAMMA_EQ_1</name>
+          <initializer>= 0x8000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a6655e2efdcdd2c870b3aa48afb393856" prot="public">
+          <name>FLG_NEED_PAIRED_BASETEX</name>
+          <initializer>= 0x00020000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685abc9a52ea541e9d8c4c6eb95761580b4d" prot="public">
+          <name>FLG_REV_MIP_ORDER</name>
+          <initializer>= 0x00040000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685aad5a3da9b13b40db32d183708a01940e" prot="public">
+          <name>FLG_HQ_PART</name>
+          <initializer>= 0x00080000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="55" column="3" bodyfile="dag_texPackMgr2.h" bodystart="56" bodyend="69"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1a79edf097d3f64d912017f22cd3a4bfd8" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ddsx::DDSxDataPublicHdr::d3dFormat</definition>
+        <argsstring></argsstring>
+        <name>d3dFormat</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::d3dFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="48" column="12" bodyfile="dag_texPackMgr2.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1af4e143b03039f5b8fb796952771b4924" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ddsx::DDSxDataPublicHdr::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="49" column="12" bodyfile="dag_texPackMgr2.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1a7f2e73a1644f50132085e6634adad9ad" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short ddsx::DDSxDataPublicHdr::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="50" column="18" bodyfile="dag_texPackMgr2.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1a3558ed6643f24e2742a43bde9734ddc7" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short ddsx::DDSxDataPublicHdr::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::h</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="50" column="20" bodyfile="dag_texPackMgr2.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1acfbe1d8f3caa956ac4012de26d273103" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short ddsx::DDSxDataPublicHdr::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::depth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="50" column="22" bodyfile="dag_texPackMgr2.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1a2534ee6e361296f4afc25c1c9173d8d2" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short ddsx::DDSxDataPublicHdr::bitsPerPixel</definition>
+        <argsstring></argsstring>
+        <name>bitsPerPixel</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::bitsPerPixel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="50" column="28" bodyfile="dag_texPackMgr2.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1acf40fc84f62baf3899a92c32c101d1ef" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short ddsx::DDSxDataPublicHdr::tcType</definition>
+        <argsstring></argsstring>
+        <name>tcType</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::tcType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="52" column="18" bodyfile="dag_texPackMgr2.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1a910b6ad9e1e0d0c6439c19094d23d9a4" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char ddsx::DDSxDataPublicHdr::levels</definition>
+        <argsstring></argsstring>
+        <name>levels</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::levels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="53" column="17" bodyfile="dag_texPackMgr2.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1a3859d3e543d06fdd60399814e3d63e43" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char ddsx::DDSxDataPublicHdr::hqPartLevels</definition>
+        <argsstring></argsstring>
+        <name>hqPartLevels</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::hqPartLevels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="53" column="24" bodyfile="dag_texPackMgr2.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1ac0152dfd98ba6632932d2c6d1362d52f" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char ddsx::DDSxDataPublicHdr::dxtShift</definition>
+        <argsstring></argsstring>
+        <name>dxtShift</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::dxtShift</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="53" column="37" bodyfile="dag_texPackMgr2.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1abc393897679ca971d659c216e39c6b5e" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char ddsx::DDSxDataPublicHdr::lQmip</definition>
+        <argsstring></argsstring>
+        <name>lQmip</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::lQmip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="53" column="46" bodyfile="dag_texPackMgr2.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1acf1bb87e736c1653d840e0d977c27f64" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char ddsx::DDSxDataPublicHdr::mQmip</definition>
+        <argsstring></argsstring>
+        <name>mQmip</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::mQmip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="53" column="52" bodyfile="dag_texPackMgr2.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structddsx_1_1DDSxDataPublicHdr_1af6a6abf3cee77bfe248a7fda6d97aa94" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char ddsx::DDSxDataPublicHdr::uQmip</definition>
+        <argsstring></argsstring>
+        <name>uQmip</name>
+        <qualifiedname>ddsx::DDSxDataPublicHdr::uQmip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texPackMgr2.h" line="53" column="58" bodyfile="dag_texPackMgr2.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_texPackMgr2.h" line="46" column="1" bodyfile="dag_texPackMgr2.h" bodystart="47" bodyend="70"/>
+    <listofallmembers>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a2534ee6e361296f4afc25c1c9173d8d2" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>bitsPerPixel</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a79edf097d3f64d912017f22cd3a4bfd8" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>d3dFormat</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1acfbe1d8f3caa956ac4012de26d273103" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>depth</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1ac0152dfd98ba6632932d2c6d1362d52f" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>dxtShift</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1af4e143b03039f5b8fb796952771b4924" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>flags</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a4011472fee4b098a24d9af27dcec36f1" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_CUBTEX</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a58edec3ae54e2e7717037199e4c30857" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_GAMMA_EQ_1</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685aa98f2cae38aa221fa3459d009d3b7dfe" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_GENMIP_BOX</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a16aa18db4d8fc5c11e07bd4a5d5bbec8" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_GENMIP_KAIZER</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a1ea610af59b846cb8b16b0f3eb13b3d5" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_HASBORDER</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685aad5a3da9b13b40db32d183708a01940e" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_HQ_PART</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a6655e2efdcdd2c870b3aa48afb393856" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_NEED_PAIRED_BASETEX</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685abc9a52ea541e9d8c4c6eb95761580b4d" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_REV_MIP_ORDER</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f581d2801d3b18611188824ef34c685a4e1ed388a52cf37a1c2bdffe4766c0af" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>FLG_VOLTEX</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a3558ed6643f24e2742a43bde9734ddc7" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>h</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a3859d3e543d06fdd60399814e3d63e43" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>hqPartLevels</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a910b6ad9e1e0d0c6439c19094d23d9a4" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>levels</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1abc393897679ca971d659c216e39c6b5e" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>lQmip</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1acf1bb87e736c1653d840e0d977c27f64" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>mQmip</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1acf40fc84f62baf3899a92c32c101d1ef" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>tcType</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1af6a6abf3cee77bfe248a7fda6d97aa94" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>uQmip</name></member>
+      <member refid="structddsx_1_1DDSxDataPublicHdr_1a7f2e73a1644f50132085e6634adad9ad" prot="public" virt="non-virtual"><scope>ddsx::DDSxDataPublicHdr</scope><name>w</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDrv3dTimings" kind="struct" language="C++" prot="public">
+    <compoundname>Drv3dTimings</compoundname>
+    <includes refid="dag__commands_8h" local="no">dag_commands.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDrv3dTimings_1af3dc8d70ff2355f277b50644b944a311" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::frontendUpdateScreenInterval</definition>
+        <argsstring></argsstring>
+        <name>frontendUpdateScreenInterval</name>
+        <qualifiedname>Drv3dTimings::frontendUpdateScreenInterval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="518" column="13" bodyfile="dag_commands.h" bodystart="518" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dTimings_1abb9620a65c07c8bf0417e7c7b1916bb6" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::frontendToBackendUpdateScreenLatency</definition>
+        <argsstring></argsstring>
+        <name>frontendToBackendUpdateScreenLatency</name>
+        <qualifiedname>Drv3dTimings::frontendToBackendUpdateScreenLatency</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="519" column="13" bodyfile="dag_commands.h" bodystart="519" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dTimings_1a1f8956e05fea579fc057b536afe45c67" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::frontendBackendWaitDuration</definition>
+        <argsstring></argsstring>
+        <name>frontendBackendWaitDuration</name>
+        <qualifiedname>Drv3dTimings::frontendBackendWaitDuration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="520" column="13" bodyfile="dag_commands.h" bodystart="520" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dTimings_1a1049f6e9ff6aaf0a2a085d543b828282" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::backendFrontendWaitDuration</definition>
+        <argsstring></argsstring>
+        <name>backendFrontendWaitDuration</name>
+        <qualifiedname>Drv3dTimings::backendFrontendWaitDuration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="521" column="13" bodyfile="dag_commands.h" bodystart="521" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dTimings_1a15e571952da761b3ff31e092af49e8f0" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::gpuWaitDuration</definition>
+        <argsstring></argsstring>
+        <name>gpuWaitDuration</name>
+        <qualifiedname>Drv3dTimings::gpuWaitDuration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="522" column="13" bodyfile="dag_commands.h" bodystart="522" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dTimings_1a80d0864e07fa74106d10b88c383b7e7c" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::presentDuration</definition>
+        <argsstring></argsstring>
+        <name>presentDuration</name>
+        <qualifiedname>Drv3dTimings::presentDuration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="523" column="13" bodyfile="dag_commands.h" bodystart="523" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dTimings_1aec82e13237a7437fe4fabf66f8ee07bf" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::backbufferAcquireDuration</definition>
+        <argsstring></argsstring>
+        <name>backbufferAcquireDuration</name>
+        <qualifiedname>Drv3dTimings::backbufferAcquireDuration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="524" column="13" bodyfile="dag_commands.h" bodystart="524" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrv3dTimings_1a73405348704bef09af6dcf2b6cc656ad" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long Drv3dTimings::frontendWaitForSwapchainDuration</definition>
+        <argsstring></argsstring>
+        <name>frontendWaitForSwapchainDuration</name>
+        <qualifiedname>Drv3dTimings::frontendWaitForSwapchainDuration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="525" column="13" bodyfile="dag_commands.h" bodystart="525" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_commands.h" line="516" column="1" bodyfile="dag_commands.h" bodystart="517" bodyend="526"/>
+    <listofallmembers>
+      <member refid="structDrv3dTimings_1aec82e13237a7437fe4fabf66f8ee07bf" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>backbufferAcquireDuration</name></member>
+      <member refid="structDrv3dTimings_1a1049f6e9ff6aaf0a2a085d543b828282" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>backendFrontendWaitDuration</name></member>
+      <member refid="structDrv3dTimings_1a1f8956e05fea579fc057b536afe45c67" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>frontendBackendWaitDuration</name></member>
+      <member refid="structDrv3dTimings_1abb9620a65c07c8bf0417e7c7b1916bb6" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>frontendToBackendUpdateScreenLatency</name></member>
+      <member refid="structDrv3dTimings_1af3dc8d70ff2355f277b50644b944a311" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>frontendUpdateScreenInterval</name></member>
+      <member refid="structDrv3dTimings_1a73405348704bef09af6dcf2b6cc656ad" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>frontendWaitForSwapchainDuration</name></member>
+      <member refid="structDrv3dTimings_1a15e571952da761b3ff31e092af49e8f0" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>gpuWaitDuration</name></member>
+      <member refid="structDrv3dTimings_1a80d0864e07fa74106d10b88c383b7e7c" prot="public" virt="non-virtual"><scope>Drv3dTimings</scope><name>presentDuration</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

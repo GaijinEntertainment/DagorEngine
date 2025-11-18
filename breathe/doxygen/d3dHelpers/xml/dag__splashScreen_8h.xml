@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__splashScreen_8h" kind="file" language="C++">
+    <compoundname>dag_splashScreen.h</compoundname>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__splashScreen_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" prot="public" static="no">
+        <type>BaseTexture</type>
+        <definition>typedef BaseTexture Texture</definition>
+        <argsstring></argsstring>
+        <name>Texture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_splashScreen.h" line="8" column="21" bodyfile="dag_splashScreen.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__splashScreen_8h_1aceb42bbcd22f1b6c5111e0b60e6d3dcd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void show_splash_screen</definition>
+        <argsstring>(Texture *tex, bool independent_render=true)</argsstring>
+        <name>show_splash_screen</name>
+        <param>
+          <type><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>independent_render</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_splashScreen.h" line="11" column="6" declfile="dag_splashScreen.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__splashScreen_8h_1aaba49bce8f2f34d109b568dbbab0e459" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void release_splash_screen_resources</definition>
+        <argsstring>()</argsstring>
+        <name>release_splash_screen_resources</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_splashScreen.h" line="12" column="6" declfile="dag_splashScreen.h" declline="12" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">BaseTexture;</highlight></codeline>
+<codeline lineno="8" refid="dag__splashScreen_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>BaseTexture<sp/><ref refid="dag__splashScreen_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref>;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="dag__splashScreen_8h_1aceb42bbcd22f1b6c5111e0b60e6d3dcd" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__splashScreen_8h_1aceb42bbcd22f1b6c5111e0b60e6d3dcd" kindref="member">show_splash_screen</ref>(<ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref><sp/>*tex,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>independent_render<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="12" refid="dag__splashScreen_8h_1aaba49bce8f2f34d109b568dbbab0e459" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__splashScreen_8h_1aaba49bce8f2f34d109b568dbbab0e459" kindref="member">release_splash_screen_resources</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="dag_splashScreen.h"/>
+  </compounddef>
+</doxygen>

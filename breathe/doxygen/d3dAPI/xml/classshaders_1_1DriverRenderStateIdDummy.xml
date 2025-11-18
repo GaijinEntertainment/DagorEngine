@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshaders_1_1DriverRenderStateIdDummy" kind="class" language="C++" prot="public">
+    <compoundname>shaders::DriverRenderStateIdDummy</compoundname>
+    <includes refid="dag__renderStateId_8h" local="no">dag_renderStateId.h</includes>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderStateId.h" line="18" column="1" bodyfile="dag_renderStateId.h" bodystart="19" bodyend="19"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

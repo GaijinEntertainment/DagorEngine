@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGenericEditorAppWindow_1_1WorldCursorParams" kind="struct" language="C++" prot="protected">
+    <compoundname>GenericEditorAppWindow::WorldCursorParams</compoundname>
+    <includes refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1WorldCursorParams_1a84546e70dc707ebe36622e061848cbdf" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 GenericEditorAppWindow::WorldCursorParams::pt</definition>
+        <argsstring></argsstring>
+        <name>pt</name>
+        <qualifiedname>GenericEditorAppWindow::WorldCursorParams::pt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="133" column="12" bodyfile="ec_genappwnd.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1WorldCursorParams_1a64ebd8f8be2c1b302f2b5da32b90cc39" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 GenericEditorAppWindow::WorldCursorParams::norm</definition>
+        <argsstring></argsstring>
+        <name>norm</name>
+        <qualifiedname>GenericEditorAppWindow::WorldCursorParams::norm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="133" column="15" bodyfile="ec_genappwnd.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1WorldCursorParams_1abf7ff8d74858ea62ce18c680962c4e06" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::WorldCursorParams::visible</definition>
+        <argsstring></argsstring>
+        <name>visible</name>
+        <qualifiedname>GenericEditorAppWindow::WorldCursorParams::visible</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="134" column="10" bodyfile="ec_genappwnd.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1WorldCursorParams_1ab50643f03f3ecc45953a4af00385255c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::WorldCursorParams::xz_based</definition>
+        <argsstring></argsstring>
+        <name>xz_based</name>
+        <qualifiedname>GenericEditorAppWindow::WorldCursorParams::xz_based</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="134" column="18" bodyfile="ec_genappwnd.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1WorldCursorParams_1aee94cc68efde251038f7917ff6941fb4" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID GenericEditorAppWindow::WorldCursorParams::texId</definition>
+        <argsstring></argsstring>
+        <name>texId</name>
+        <qualifiedname>GenericEditorAppWindow::WorldCursorParams::texId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="135" column="15" bodyfile="ec_genappwnd.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericEditorAppWindow_1_1WorldCursorParams_1a49c853d41f1a35affd47ef34978b2fa0" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GenericEditorAppWindow::WorldCursorParams::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>GenericEditorAppWindow::WorldCursorParams::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="136" column="10" bodyfile="ec_genappwnd.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_genappwnd.h" line="131" column="3" bodyfile="ec_genappwnd.h" bodystart="132" bodyend="137"/>
+    <listofallmembers>
+      <member refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a64ebd8f8be2c1b302f2b5da32b90cc39" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::WorldCursorParams</scope><name>norm</name></member>
+      <member refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a84546e70dc707ebe36622e061848cbdf" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::WorldCursorParams</scope><name>pt</name></member>
+      <member refid="structGenericEditorAppWindow_1_1WorldCursorParams_1a49c853d41f1a35affd47ef34978b2fa0" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::WorldCursorParams</scope><name>size</name></member>
+      <member refid="structGenericEditorAppWindow_1_1WorldCursorParams_1aee94cc68efde251038f7917ff6941fb4" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::WorldCursorParams</scope><name>texId</name></member>
+      <member refid="structGenericEditorAppWindow_1_1WorldCursorParams_1abf7ff8d74858ea62ce18c680962c4e06" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::WorldCursorParams</scope><name>visible</name></member>
+      <member refid="structGenericEditorAppWindow_1_1WorldCursorParams_1ab50643f03f3ecc45953a4af00385255c" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow::WorldCursorParams</scope><name>xz_based</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

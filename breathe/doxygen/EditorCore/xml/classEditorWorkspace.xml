@@ -1,0 +1,969 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classEditorWorkspace" kind="class" language="C++" prot="public">
+    <compoundname>EditorWorkspace</compoundname>
+    <includes refid="ec__workspace_8h" local="no">ec_workspace.h</includes>
+    <innerclass refid="structEditorWorkspace_1_1Workspaces" prot="protected">EditorWorkspace::Workspaces</innerclass>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classEditorWorkspace_1a5f3fbef0133f8fdfe490e0c14b0d7ee9" prot="protected" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::blkPath</definition>
+        <argsstring></argsstring>
+        <name>blkPath</name>
+        <qualifiedname>EditorWorkspace::blkPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="72" column="10" bodyfile="ec_workspace.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1ab0107b0ec377b735fb5c7e3a744f0f30" prot="protected" static="no" mutable="no">
+        <type><ref refid="structEditorWorkspace_1_1Workspaces" kindref="compound">Workspaces</ref> *</type>
+        <definition>Workspaces* EditorWorkspace::wspData</definition>
+        <argsstring></argsstring>
+        <name>wspData</name>
+        <qualifiedname>EditorWorkspace::wspData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="82" column="14" bodyfile="ec_workspace.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classEditorWorkspace_1a285551a732c03b060d787a8ab8d7f2cf" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>EditorWorkspace::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="97" column="10" bodyfile="ec_workspace.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1abf7c36849b69fdaf5a2c655d68f172a9" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::appDir</definition>
+        <argsstring></argsstring>
+        <name>appDir</name>
+        <qualifiedname>EditorWorkspace::appDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="98" column="10" bodyfile="ec_workspace.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a5f5bbc06c9d45934df8d13bb86031036" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::appPath</definition>
+        <argsstring></argsstring>
+        <name>appPath</name>
+        <qualifiedname>EditorWorkspace::appPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="99" column="10" bodyfile="ec_workspace.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a04f410ac20f2318173c9ce96740dc202" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::sdkDir</definition>
+        <argsstring></argsstring>
+        <name>sdkDir</name>
+        <qualifiedname>EditorWorkspace::sdkDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="101" column="10" bodyfile="ec_workspace.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1ad6685c906bfc0ef9c2ec178be274ce45" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::libDir</definition>
+        <argsstring></argsstring>
+        <name>libDir</name>
+        <qualifiedname>EditorWorkspace::libDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="102" column="10" bodyfile="ec_workspace.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a88b88dfe3e0bbb769af749d69b98d867" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::levelsDir</definition>
+        <argsstring></argsstring>
+        <name>levelsDir</name>
+        <qualifiedname>EditorWorkspace::levelsDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="103" column="10" bodyfile="ec_workspace.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a208c7cb3592e46b07e3ddda862abd7be" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::resDir</definition>
+        <argsstring></argsstring>
+        <name>resDir</name>
+        <qualifiedname>EditorWorkspace::resDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="104" column="10" bodyfile="ec_workspace.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a6bcd2734a69b89f10a0e4620d34fe597" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::scriptDir</definition>
+        <argsstring></argsstring>
+        <name>scriptDir</name>
+        <qualifiedname>EditorWorkspace::scriptDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="105" column="10" bodyfile="ec_workspace.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a22640dbcfdaf99f0eaa94d55fdcbb7be" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::assetScriptsDir</definition>
+        <argsstring></argsstring>
+        <name>assetScriptsDir</name>
+        <qualifiedname>EditorWorkspace::assetScriptsDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="106" column="10" bodyfile="ec_workspace.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a0e0aac27f56aea9de6f969f93b55cdd6" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::gameDir</definition>
+        <argsstring></argsstring>
+        <name>gameDir</name>
+        <qualifiedname>EditorWorkspace::gameDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="107" column="10" bodyfile="ec_workspace.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1ab9ea2d64deb35a510b62227c74e97958" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::levelsBinDir</definition>
+        <argsstring></argsstring>
+        <name>levelsBinDir</name>
+        <qualifiedname>EditorWorkspace::levelsBinDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="108" column="10" bodyfile="ec_workspace.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a0124701acda53d8895272b049b842993" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::physmatPath</definition>
+        <argsstring></argsstring>
+        <name>physmatPath</name>
+        <qualifiedname>EditorWorkspace::physmatPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="109" column="10" bodyfile="ec_workspace.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a7a3516ed70686c982a04a5e10ab21568" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::scriptLibrary</definition>
+        <argsstring></argsstring>
+        <name>scriptLibrary</name>
+        <qualifiedname>EditorWorkspace::scriptLibrary</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="110" column="10" bodyfile="ec_workspace.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a857062338ddb1ed2de243dc2df7fccfb" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorWorkspace::collisionName</definition>
+        <argsstring></argsstring>
+        <name>collisionName</name>
+        <qualifiedname>EditorWorkspace::collisionName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="112" column="10" bodyfile="ec_workspace.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a304e9130cfb2263f12983c50aa0866b9" prot="private" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; EditorWorkspace::deDisabled</definition>
+        <argsstring></argsstring>
+        <name>deDisabled</name>
+        <qualifiedname>EditorWorkspace::deDisabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="114" column="7" bodyfile="ec_workspace.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a1a09fcedd63067fe4d2a7ad9fc9ae239" prot="private" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; EditorWorkspace::reDisabled</definition>
+        <argsstring></argsstring>
+        <name>reDisabled</name>
+        <qualifiedname>EditorWorkspace::reDisabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="115" column="7" bodyfile="ec_workspace.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1ace286264a8f555bfb01d9ef499f30e66" prot="private" static="no" mutable="no">
+        <type>Tab&lt; unsigned &gt;</type>
+        <definition>Tab&lt;unsigned&gt; EditorWorkspace::platforms</definition>
+        <argsstring></argsstring>
+        <name>platforms</name>
+        <qualifiedname>EditorWorkspace::platforms</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="117" column="7" bodyfile="ec_workspace.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorWorkspace_1a7057ae053056a71112ab03619d6dbd8f" prot="private" static="no" mutable="no">
+        <type>float</type>
+        <definition>float EditorWorkspace::maxTraceDistance</definition>
+        <argsstring></argsstring>
+        <name>maxTraceDistance</name>
+        <qualifiedname>EditorWorkspace::maxTraceDistance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="119" column="9" bodyfile="ec_workspace.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classEditorWorkspace_1aa2ca6748a572c7a1b4d852bc7d8a46bb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>EditorWorkspace::EditorWorkspace</definition>
+        <argsstring>()</argsstring>
+        <name>EditorWorkspace</name>
+        <qualifiedname>EditorWorkspace::EditorWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="19" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a0b8b0448341c441d5aaa6cff8bf85f2e" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual EditorWorkspace::~EditorWorkspace</definition>
+        <argsstring>()</argsstring>
+        <name>~EditorWorkspace</name>
+        <qualifiedname>EditorWorkspace::~EditorWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="20" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ad7f9d029998cd07c5860ce6b2ead233f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorWorkspace::initWorkspaceBlk</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>initWorkspaceBlk</name>
+        <qualifiedname>EditorWorkspace::initWorkspaceBlk</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="23" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ac5f07db644320e81ddb860960610f409" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorWorkspace::freeWorkspaceBlk</definition>
+        <argsstring>()</argsstring>
+        <name>freeWorkspaceBlk</name>
+        <qualifiedname>EditorWorkspace::freeWorkspaceBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="27" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1af377ff1de4e2f0a8b5c8b3eba4145e28" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorWorkspace::getWspNames</definition>
+        <argsstring>(Tab&lt; String &gt; &amp;list) const</argsstring>
+        <name>getWspNames</name>
+        <qualifiedname>EditorWorkspace::getWspNames</qualifiedname>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="30" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ad3cb62028183620b28a4cd7f1fa4c625" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorWorkspace::load</definition>
+        <argsstring>(const char *workspace_name, bool *app_path_set=NULL)</argsstring>
+        <name>load</name>
+        <qualifiedname>EditorWorkspace::load</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>workspace_name</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>app_path_set</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="33" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a6f194435be8fcb6fbd19fcad86ca4994" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorWorkspace::loadIndirect</definition>
+        <argsstring>(const char *app_blk_path)</argsstring>
+        <name>loadIndirect</name>
+        <qualifiedname>EditorWorkspace::loadIndirect</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>app_blk_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="35" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1aa90d04169cfeeb160f096d39bad7b1ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorWorkspace::save</definition>
+        <argsstring>()</argsstring>
+        <name>save</name>
+        <qualifiedname>EditorWorkspace::save</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="38" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a9b4cdb6462aa3665697a06a83608b68b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorWorkspace::remove</definition>
+        <argsstring>()</argsstring>
+        <name>remove</name>
+        <qualifiedname>EditorWorkspace::remove</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="41" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a74124d65672a97b012400260521b5297" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorWorkspace::setName</definition>
+        <argsstring>(const char *new_name)</argsstring>
+        <name>setName</name>
+        <qualifiedname>EditorWorkspace::setName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>new_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="43" column="15" bodyfile="ec_workspace.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a6b82d4994440b1cd7723c782168b895e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorWorkspace::setAppPath</definition>
+        <argsstring>(const char *new_path)</argsstring>
+        <name>setAppPath</name>
+        <qualifiedname>EditorWorkspace::setAppPath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>new_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="44" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ab59c10e369f4e61cf537614701863818" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getName</definition>
+        <argsstring>() const</argsstring>
+        <name>getName</name>
+        <qualifiedname>EditorWorkspace::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="46" column="21" bodyfile="ec_workspace.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ade230afcd17a762467e0a02cac99d9c4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getAppDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getAppDir</name>
+        <qualifiedname>EditorWorkspace::getAppDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="47" column="21" bodyfile="ec_workspace.h" bodystart="47" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a6008f5d0f63412812b0818c65f6f8de2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getAppPath</definition>
+        <argsstring>() const</argsstring>
+        <name>getAppPath</name>
+        <qualifiedname>EditorWorkspace::getAppPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="48" column="21" bodyfile="ec_workspace.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a907d5666d94c2e71b653f8573e4cbeb3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getSdkDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getSdkDir</name>
+        <qualifiedname>EditorWorkspace::getSdkDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="49" column="21" bodyfile="ec_workspace.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a2c36c6a980a6186866a0b88d36407cba" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getLibDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getLibDir</name>
+        <qualifiedname>EditorWorkspace::getLibDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="50" column="21" bodyfile="ec_workspace.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ac68387922bb14d9b8be9dfe26db82e6d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getLevelsDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getLevelsDir</name>
+        <qualifiedname>EditorWorkspace::getLevelsDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="51" column="21" bodyfile="ec_workspace.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a969fd5192d46fdda4086b77b9282f517" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getResDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getResDir</name>
+        <qualifiedname>EditorWorkspace::getResDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="52" column="21" bodyfile="ec_workspace.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ad4b7a8433e2a23e333b495840aed7319" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getScriptDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getScriptDir</name>
+        <qualifiedname>EditorWorkspace::getScriptDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="53" column="21" bodyfile="ec_workspace.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ae7720875c5d0699db006676063497613" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getAssetScriptDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getAssetScriptDir</name>
+        <qualifiedname>EditorWorkspace::getAssetScriptDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="54" column="21" bodyfile="ec_workspace.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ac40111cfd9e1ee65564b6b3e5f727fc9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getGameDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getGameDir</name>
+        <qualifiedname>EditorWorkspace::getGameDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="55" column="21" bodyfile="ec_workspace.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ab1c425428d3a63143820083fd9013714" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getLevelsBinDir</definition>
+        <argsstring>() const</argsstring>
+        <name>getLevelsBinDir</name>
+        <qualifiedname>EditorWorkspace::getLevelsBinDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="56" column="21" bodyfile="ec_workspace.h" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a5f525757b8be31215183bcbd950a5e7b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getPhysmatPath</definition>
+        <argsstring>() const</argsstring>
+        <name>getPhysmatPath</name>
+        <qualifiedname>EditorWorkspace::getPhysmatPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="57" column="21" bodyfile="ec_workspace.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1adb5299850358f24b758455b8159907f4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getScriptLibrary</definition>
+        <argsstring>() const</argsstring>
+        <name>getScriptLibrary</name>
+        <qualifiedname>EditorWorkspace::getScriptLibrary</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="58" column="21" bodyfile="ec_workspace.h" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1af1b515038fc8c28e04b74af428c11ff7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * EditorWorkspace::getCollisionName</definition>
+        <argsstring>() const</argsstring>
+        <name>getCollisionName</name>
+        <qualifiedname>EditorWorkspace::getCollisionName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="60" column="21" bodyfile="ec_workspace.h" bodystart="60" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ada0b8767e285d97fb16ebf76fcbdb039" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Tab&lt; String &gt; &amp;</type>
+        <definition>const Tab&lt; String &gt; &amp; EditorWorkspace::getDagorEdDisabled</definition>
+        <argsstring>() const</argsstring>
+        <name>getDagorEdDisabled</name>
+        <qualifiedname>EditorWorkspace::getDagorEdDisabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="62" column="20" bodyfile="ec_workspace.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ab2132029f7d151c66c453cd9023e7551" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Tab&lt; String &gt; &amp;</type>
+        <definition>const Tab&lt; String &gt; &amp; EditorWorkspace::getResourceEdDisabled</definition>
+        <argsstring>() const</argsstring>
+        <name>getResourceEdDisabled</name>
+        <qualifiedname>EditorWorkspace::getResourceEdDisabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="63" column="20" bodyfile="ec_workspace.h" bodystart="63" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a864e22684bd0b11c3dc830a8da731793" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt; unsigned &gt; EditorWorkspace::getAdditionalPlatforms</definition>
+        <argsstring>() const</argsstring>
+        <name>getAdditionalPlatforms</name>
+        <qualifiedname>EditorWorkspace::getAdditionalPlatforms</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="65" column="25" bodyfile="ec_workspace.h" bodystart="65" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ad5e998f54ae234a74af207d70a1c442f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float EditorWorkspace::getMaxTraceDistance</definition>
+        <argsstring>() const</argsstring>
+        <name>getMaxTraceDistance</name>
+        <qualifiedname>EditorWorkspace::getMaxTraceDistance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="69" column="16" bodyfile="ec_workspace.h" bodystart="69" bodyend="69"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classEditorWorkspace_1a636f636cb1f62729a5a4b2a1e3d3b27d" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>static unsigned EditorWorkspace::getPlatformFromStr</definition>
+        <argsstring>(const char *platf)</argsstring>
+        <name>getPlatformFromStr</name>
+        <qualifiedname>EditorWorkspace::getPlatformFromStr</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>platf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="66" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a24a29e3f0732d13e27f4afcde0f2bc47" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * EditorWorkspace::getPlatformNameFromId</definition>
+        <argsstring>(unsigned plt)</argsstring>
+        <name>getPlatformNameFromId</name>
+        <qualifiedname>EditorWorkspace::getPlatformNameFromId</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>plt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="67" column="21"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classEditorWorkspace_1a2b0d475e4e5eddeb1bf253d809d2af12" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool EditorWorkspace::loadSpecific</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>loadSpecific</name>
+        <qualifiedname>EditorWorkspace::loadSpecific</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="85" column="16" bodyfile="ec_workspace.h" bodystart="85" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ad224058c8bab092364d123b3dc0bd7cb" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool EditorWorkspace::loadAppSpecific</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>loadAppSpecific</name>
+        <qualifiedname>EditorWorkspace::loadAppSpecific</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="87" column="16" bodyfile="ec_workspace.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1a5772371f4aa9c0166b3d5dcc6fe1671b" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool EditorWorkspace::saveSpecific</definition>
+        <argsstring>(DataBlock &amp;blk)</argsstring>
+        <name>saveSpecific</name>
+        <qualifiedname>EditorWorkspace::saveSpecific</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="92" column="16" bodyfile="ec_workspace.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1aa48484ad61dcdabbdf3d726a6fe342cb" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool EditorWorkspace::createApplicationBlk</definition>
+        <argsstring>(const char *path) const</argsstring>
+        <name>createApplicationBlk</name>
+        <qualifiedname>EditorWorkspace::createApplicationBlk</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="94" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classEditorWorkspace_1aa31b55d7f623996bd03862c9c8f5ef43" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>DataBlock *</type>
+        <definition>DataBlock * EditorWorkspace::findWspBlk</definition>
+        <argsstring>(DataBlock &amp;blk, const char *wsp_name, bool create_new)</argsstring>
+        <name>findWspBlk</name>
+        <qualifiedname>EditorWorkspace::findWspBlk</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>wsp_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>create_new</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="121" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorWorkspace_1ad7f6d3bc68cdcb830d4618596077825c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorWorkspace::loadFromBlk</definition>
+        <argsstring>(DataBlock &amp;blk, bool *app_path_set=NULL)</argsstring>
+        <name>loadFromBlk</name>
+        <qualifiedname>EditorWorkspace::loadFromBlk</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>app_path_set</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="123" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>EditorWorkspace</label>
+        <link refid="classEditorWorkspace"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>wspData</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorWorkspace::Workspaces</label>
+        <link refid="structEditorWorkspace_1_1Workspaces"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_workspace.h" line="16" column="1" bodyfile="ec_workspace.h" bodystart="17" bodyend="124"/>
+    <listofallmembers>
+      <member refid="classEditorWorkspace_1abf7c36849b69fdaf5a2c655d68f172a9" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>appDir</name></member>
+      <member refid="classEditorWorkspace_1a5f5bbc06c9d45934df8d13bb86031036" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>appPath</name></member>
+      <member refid="classEditorWorkspace_1a22640dbcfdaf99f0eaa94d55fdcbb7be" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>assetScriptsDir</name></member>
+      <member refid="classEditorWorkspace_1a5f3fbef0133f8fdfe490e0c14b0d7ee9" prot="protected" virt="non-virtual"><scope>EditorWorkspace</scope><name>blkPath</name></member>
+      <member refid="classEditorWorkspace_1a857062338ddb1ed2de243dc2df7fccfb" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>collisionName</name></member>
+      <member refid="classEditorWorkspace_1aa48484ad61dcdabbdf3d726a6fe342cb" prot="protected" virt="virtual"><scope>EditorWorkspace</scope><name>createApplicationBlk</name></member>
+      <member refid="classEditorWorkspace_1a304e9130cfb2263f12983c50aa0866b9" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>deDisabled</name></member>
+      <member refid="classEditorWorkspace_1aa2ca6748a572c7a1b4d852bc7d8a46bb" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>EditorWorkspace</name></member>
+      <member refid="classEditorWorkspace_1aa31b55d7f623996bd03862c9c8f5ef43" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>findWspBlk</name></member>
+      <member refid="classEditorWorkspace_1ac5f07db644320e81ddb860960610f409" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>freeWorkspaceBlk</name></member>
+      <member refid="classEditorWorkspace_1a0e0aac27f56aea9de6f969f93b55cdd6" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>gameDir</name></member>
+      <member refid="classEditorWorkspace_1a864e22684bd0b11c3dc830a8da731793" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getAdditionalPlatforms</name></member>
+      <member refid="classEditorWorkspace_1ade230afcd17a762467e0a02cac99d9c4" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getAppDir</name></member>
+      <member refid="classEditorWorkspace_1a6008f5d0f63412812b0818c65f6f8de2" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getAppPath</name></member>
+      <member refid="classEditorWorkspace_1ae7720875c5d0699db006676063497613" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getAssetScriptDir</name></member>
+      <member refid="classEditorWorkspace_1af1b515038fc8c28e04b74af428c11ff7" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getCollisionName</name></member>
+      <member refid="classEditorWorkspace_1ada0b8767e285d97fb16ebf76fcbdb039" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getDagorEdDisabled</name></member>
+      <member refid="classEditorWorkspace_1ac40111cfd9e1ee65564b6b3e5f727fc9" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getGameDir</name></member>
+      <member refid="classEditorWorkspace_1ab1c425428d3a63143820083fd9013714" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getLevelsBinDir</name></member>
+      <member refid="classEditorWorkspace_1ac68387922bb14d9b8be9dfe26db82e6d" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getLevelsDir</name></member>
+      <member refid="classEditorWorkspace_1a2c36c6a980a6186866a0b88d36407cba" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getLibDir</name></member>
+      <member refid="classEditorWorkspace_1ad5e998f54ae234a74af207d70a1c442f" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getMaxTraceDistance</name></member>
+      <member refid="classEditorWorkspace_1ab59c10e369f4e61cf537614701863818" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getName</name></member>
+      <member refid="classEditorWorkspace_1a5f525757b8be31215183bcbd950a5e7b" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getPhysmatPath</name></member>
+      <member refid="classEditorWorkspace_1a636f636cb1f62729a5a4b2a1e3d3b27d" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getPlatformFromStr</name></member>
+      <member refid="classEditorWorkspace_1a24a29e3f0732d13e27f4afcde0f2bc47" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getPlatformNameFromId</name></member>
+      <member refid="classEditorWorkspace_1a969fd5192d46fdda4086b77b9282f517" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getResDir</name></member>
+      <member refid="classEditorWorkspace_1ab2132029f7d151c66c453cd9023e7551" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getResourceEdDisabled</name></member>
+      <member refid="classEditorWorkspace_1ad4b7a8433e2a23e333b495840aed7319" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getScriptDir</name></member>
+      <member refid="classEditorWorkspace_1adb5299850358f24b758455b8159907f4" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getScriptLibrary</name></member>
+      <member refid="classEditorWorkspace_1a907d5666d94c2e71b653f8573e4cbeb3" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getSdkDir</name></member>
+      <member refid="classEditorWorkspace_1af377ff1de4e2f0a8b5c8b3eba4145e28" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>getWspNames</name></member>
+      <member refid="classEditorWorkspace_1ad7f9d029998cd07c5860ce6b2ead233f" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>initWorkspaceBlk</name></member>
+      <member refid="classEditorWorkspace_1ab9ea2d64deb35a510b62227c74e97958" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>levelsBinDir</name></member>
+      <member refid="classEditorWorkspace_1a88b88dfe3e0bbb769af749d69b98d867" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>levelsDir</name></member>
+      <member refid="classEditorWorkspace_1ad6685c906bfc0ef9c2ec178be274ce45" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>libDir</name></member>
+      <member refid="classEditorWorkspace_1ad3cb62028183620b28a4cd7f1fa4c625" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>load</name></member>
+      <member refid="classEditorWorkspace_1ad224058c8bab092364d123b3dc0bd7cb" prot="protected" virt="virtual"><scope>EditorWorkspace</scope><name>loadAppSpecific</name></member>
+      <member refid="classEditorWorkspace_1ad7f6d3bc68cdcb830d4618596077825c" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>loadFromBlk</name></member>
+      <member refid="classEditorWorkspace_1a6f194435be8fcb6fbd19fcad86ca4994" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>loadIndirect</name></member>
+      <member refid="classEditorWorkspace_1a2b0d475e4e5eddeb1bf253d809d2af12" prot="protected" virt="virtual"><scope>EditorWorkspace</scope><name>loadSpecific</name></member>
+      <member refid="classEditorWorkspace_1a7057ae053056a71112ab03619d6dbd8f" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>maxTraceDistance</name></member>
+      <member refid="classEditorWorkspace_1a285551a732c03b060d787a8ab8d7f2cf" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>name</name></member>
+      <member refid="classEditorWorkspace_1a0124701acda53d8895272b049b842993" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>physmatPath</name></member>
+      <member refid="classEditorWorkspace_1ace286264a8f555bfb01d9ef499f30e66" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>platforms</name></member>
+      <member refid="classEditorWorkspace_1a1a09fcedd63067fe4d2a7ad9fc9ae239" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>reDisabled</name></member>
+      <member refid="classEditorWorkspace_1a9b4cdb6462aa3665697a06a83608b68b" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>remove</name></member>
+      <member refid="classEditorWorkspace_1a208c7cb3592e46b07e3ddda862abd7be" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>resDir</name></member>
+      <member refid="classEditorWorkspace_1aa90d04169cfeeb160f096d39bad7b1ff" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>save</name></member>
+      <member refid="classEditorWorkspace_1a5772371f4aa9c0166b3d5dcc6fe1671b" prot="protected" virt="virtual"><scope>EditorWorkspace</scope><name>saveSpecific</name></member>
+      <member refid="classEditorWorkspace_1a6bcd2734a69b89f10a0e4620d34fe597" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>scriptDir</name></member>
+      <member refid="classEditorWorkspace_1a7a3516ed70686c982a04a5e10ab21568" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>scriptLibrary</name></member>
+      <member refid="classEditorWorkspace_1a04f410ac20f2318173c9ce96740dc202" prot="private" virt="non-virtual"><scope>EditorWorkspace</scope><name>sdkDir</name></member>
+      <member refid="classEditorWorkspace_1a6b82d4994440b1cd7723c782168b895e" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>setAppPath</name></member>
+      <member refid="classEditorWorkspace_1a74124d65672a97b012400260521b5297" prot="public" virt="non-virtual"><scope>EditorWorkspace</scope><name>setName</name></member>
+      <member refid="classEditorWorkspace_1ab0107b0ec377b735fb5c7e3a744f0f30" prot="protected" virt="non-virtual"><scope>EditorWorkspace</scope><name>wspData</name></member>
+      <member refid="classEditorWorkspace_1a0b8b0448341c441d5aaa6cff8bf85f2e" prot="public" virt="virtual"><scope>EditorWorkspace</scope><name>~EditorWorkspace</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

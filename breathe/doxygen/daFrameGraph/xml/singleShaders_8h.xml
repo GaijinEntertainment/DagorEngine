@@ -1,0 +1,335 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="singleShaders_8h" kind="file" language="C++">
+    <compoundname>singleShaders.h</compoundname>
+    <includes refid="registry_8h" local="no">render/daFrameGraph/registry.h</includes>
+    <includes refid="primitive_8h" local="no">render/daFrameGraph/primitive.h</includes>
+    <incdepgraph>
+      <node id="41">
+        <label>render/daFrameGraph/autoResolutionRequest.h</label>
+        <link refid="autoResolutionRequest_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>render/daFrameGraph/dispatchRequest.h</label>
+        <link refid="dispatchRequest_8h"/>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>render/daFrameGraph/drawRequest.h</label>
+        <link refid="drawRequest_8h"/>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>render/daFrameGraph/externalResources.h</label>
+        <link refid="externalResources_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>render/daFrameGraph/history.h</label>
+        <link refid="history_8h"/>
+      </node>
+      <node id="28">
+        <label>render/daFrameGraph/multiplexing.h</label>
+        <link refid="multiplexing_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>render/daFrameGraph/nameSpaceRequest.h</label>
+        <link refid="nameSpaceRequest_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>render/daFrameGraph/primitive.h</label>
+        <link refid="primitive_8h"/>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>render/daFrameGraph/priority.h</label>
+        <link refid="priority_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>render/daFrameGraph/registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>render/daFrameGraph/sideEffects.h</label>
+        <link refid="sideEffects_8h"/>
+      </node>
+      <node id="1">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>render/daFrameGraph/stage.h</label>
+        <link refid="stage_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>render/daFrameGraph/stateRequest.h</label>
+        <link refid="stateRequest_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>render/daFrameGraph/usage.h</label>
+        <link refid="usage_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>render/daFrameGraph/variableRateShading.h</label>
+        <link refid="variableRateShading_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>render/daFrameGraph/virtualPassRequest.h</label>
+        <link refid="virtualPassRequest_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>render/daFrameGraph/virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtualResourceCreationSemiRequest_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>render/daFrameGraph/virtualResourceHandle.h</label>
+        <link refid="virtualResourceHandle_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>render/daFrameGraph/virtualResourceRequest.h</label>
+        <link refid="virtualResourceRequest_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>render/daFrameGraph/virtualResourceSemiRequest.h</label>
+        <link refid="virtualResourceSemiRequest_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="9">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="33">
+        <label>EASTL/numeric_limits.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="16">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="13">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="30">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="46">
+        <label>drv/3d/dag_consts_base.h</label>
+      </node>
+      <node id="27">
+        <label>drv/3d/dag_tex3d.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_variableRateShading.h</label>
+      </node>
+      <node id="31">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="11">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="26">
+        <label>render/daFrameGraph/detail/access.h</label>
+      </node>
+      <node id="42">
+        <label>render/daFrameGraph/detail/autoResTypeNameId.h</label>
+      </node>
+      <node id="43">
+        <label>render/daFrameGraph/detail/dispatchRequestBase.h</label>
+      </node>
+      <node id="24">
+        <label>render/daFrameGraph/detail/dispatchRequestPolicy.h</label>
+      </node>
+      <node id="48">
+        <label>render/daFrameGraph/detail/drawRequestBase.h</label>
+      </node>
+      <node id="25">
+        <label>render/daFrameGraph/detail/drawRequestPolicy.h</label>
+      </node>
+      <node id="36">
+        <label>render/daFrameGraph/detail/nameSpaceNameId.h</label>
+      </node>
+      <node id="7">
+        <label>render/daFrameGraph/detail/nodeNameId.h</label>
+      </node>
+      <node id="23">
+        <label>render/daFrameGraph/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="44">
+        <label>render/daFrameGraph/detail/shaderNameId.h</label>
+      </node>
+      <node id="20">
+        <label>render/daFrameGraph/detail/virtualResourceHandleBase.h</label>
+      </node>
+      <node id="22">
+        <label>render/daFrameGraph/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="4">
+        <label>shaders/dag_overrideStates.h</label>
+      </node>
+      <node id="17">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="registry_8h" kindref="compound">render/daFrameGraph/registry.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="primitive_8h" kindref="compound">render/daFrameGraph/primitive.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="namespacedafg_1ad35bab11f8356648c11e5bd1744c99da" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ad35bab11f8356648c11e5bd1744c99da" kindref="member">postFx</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name,<sp/><ref refid="classdafg_1_1Registry" kindref="compound">dafg::Registry</ref><sp/>&amp;registry)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>registry.<ref refid="classdafg_1_1Registry_1a08653687e7173c578266de9698b4ddce" kindref="member">draw</ref>(shader_name,<sp/><ref refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a14d20da17f6d27fc43c5f311c17eb912" kindref="member">DrawPrimitive::TRIANGLE_LIST</ref>).primitiveCount(1).instanceCount(1);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="singleShaders.h"/>
+  </compounddef>
+</doxygen>

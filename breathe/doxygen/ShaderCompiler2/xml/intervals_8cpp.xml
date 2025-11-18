@@ -1,0 +1,963 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="intervals_8cpp" kind="file" language="C++">
+    <compoundname>intervals.cpp</compoundname>
+    <includes refid="intervals_8h" local="yes">intervals.h</includes>
+    <includes refid="shTargetContext_8h" local="yes">shTargetContext.h</includes>
+    <includes refid="deSerializationContext_8h" local="yes">deSerializationContext.h</includes>
+    <includes refid="varMap_8h" local="yes">varMap.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includes refid="hashStrings_8h" local="yes">hashStrings.h</includes>
+    <includes local="no">debug/dag_debug.h</includes>
+    <includes local="no">generic/dag_tabUtils.h</includes>
+    <includes local="no">math/dag_math3d.h</includes>
+    <includes refid="nameMap_8h" local="yes">nameMap.h</includes>
+    <incdepgraph>
+      <node id="87">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="80">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="72">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="88">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="63">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+      </node>
+      <node id="91">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="86">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="50">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="68">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="92" relation="include">
+        </childnode>
+        <childnode refid="93" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="18">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="81">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="59">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="90">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="77">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="62">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="3">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="65">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="58">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="67">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="76">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="82">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="24">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="32">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="85">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="83">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="84">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="64">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="70">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="40">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="73">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="79">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="89">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="33">
+        <label>cstdint</label>
+      </node>
+      <node id="27">
+        <label>cstring</label>
+      </node>
+      <node id="23">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="22">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="78">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="39">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="66">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="56">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="31">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="44">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="20">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="92">
+        <label>generic/dag_tabUtils.h</label>
+      </node>
+      <node id="26">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="49">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="53">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="93">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="54">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="71">
+        <label>memory</label>
+      </node>
+      <node id="35">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="74">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="38">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="47">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="36">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="37">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="42">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="34">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="60">
+        <label>shsyn.h</label>
+      </node>
+      <node id="41">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="21">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="75">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="51">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="46">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="7">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="intervals_8cpp_1aadba5cb8f5f04d0596dae7f2b3129a46" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_interval_value_name</definition>
+        <argsstring>(const IntervalValue &amp;value, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_interval_value_name</name>
+        <param>
+          <type>const <ref refid="classIntervalValue" kindref="compound">IntervalValue</ref> &amp;</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.cpp" line="147" column="12" bodyfile="intervals.cpp" bodystart="147" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="intervals_8cpp_1a4fdab97629e0109bb152764c4982b245" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_interval_value_name</definition>
+        <argsstring>(const Interval &amp;ival, int value_idx, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_interval_value_name</name>
+        <param>
+          <type>const <ref refid="classInterval" kindref="compound">Interval</ref> &amp;</type>
+          <declname>ival</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>value_idx</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.cpp" line="151" column="12" bodyfile="intervals.cpp" bodystart="151" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="intervals_8cpp_1aef12bc53dd9c642c4a8f7fa17dd50e0a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_interval_name</definition>
+        <argsstring>(const Interval &amp;ival, const shc::TargetContext &amp;ctx)</argsstring>
+        <name>get_interval_name</name>
+        <param>
+          <type>const <ref refid="classInterval" kindref="compound">Interval</ref> &amp;</type>
+          <declname>ival</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.cpp" line="155" column="12" bodyfile="intervals.cpp" bodystart="155" bodyend="158"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="intervals_8h" kindref="compound">intervals.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="deSerializationContext_8h" kindref="compound">deSerializationContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="varMap_8h" kindref="compound">varMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="hashStrings_8h" kindref="compound">hashStrings.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_math3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="nameMap_8h" kindref="compound">nameMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" kindref="member">IntervalValue::VALUE_NEG_INFINITY</ref><sp/>=<sp/>-MAX_REAL;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" kindref="member">IntervalValue::VALUE_INFINITY</ref><sp/>=<sp/>MAX_REAL;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structIntervalValue_1_1Adapter_1acbecfd698a1ddd7c4a41cc2bf4bbf2bd" kindref="member">IntervalValue::Adapter::getName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="deSerializationContext_8cpp_1af4b7d79883d66472dc6703f57cd64d5a" kindref="member">get_shaders_de_serialization_ctx</ref>()-&gt;<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a473a175102d290dd00e5cb58903fcdd0" kindref="member">getName</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structIntervalValue_1_1Adapter_1a79304a766a1395cb96fe792507fd1317" kindref="member">IntervalValue::Adapter::addName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="deSerializationContext_8cpp_1af4b7d79883d66472dc6703f57cd64d5a" kindref="member">get_shaders_de_serialization_ctx</ref>()-&gt;<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(name);<sp/>}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>interval<sp/>value<sp/>to<sp/>a<sp/>list<sp/><sp/>(return<sp/>false,<sp/>if<sp/>value<sp/>already<sp/>exists)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a6cdad1bb5b4d467af09f6b774ac427d6" kindref="member">Interval::addValue</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/>smaller_than)</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(valueExists(name_id))</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref><sp/>range(<ref refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" kindref="member">IntervalValue::VALUE_NEG_INFINITY</ref>,<sp/>smaller_than);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(valueList.size()<sp/>!=<sp/>0)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>range.setBounds(valueList.back().getBounds().getMax(),<sp/>smaller_than);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!range.isValid())</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>valueList.push_back(<ref refid="classIntervalValue_1a91f13140072340bccf0c4c0207d21852" kindref="member">IntervalValue</ref>(name_id,<sp/>range));</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>*<ref refid="classInterval_1a5956e30eabfc1cecec92f5d20f8df50e" kindref="member">Interval::getValueByNameId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value_name_id)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>valueList.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(valueList[i].<ref refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" kindref="member">getNameId</ref>()<sp/>==<sp/>value_name_id)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;valueList[i];</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a8b941226253191579cf19e6166017b49" kindref="member">Interval::checkExpression</ref>(<ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ShaderVariant::ValueType</ref><sp/>left_op_normalized,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval_1a53c464380c323171203ac354d1e5d010" kindref="member">Interval::BooleanExpr</ref><sp/>expr,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*right_op,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>String<sp/>&amp;error_msg,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="50"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(expr<sp/>==<sp/>EXPR_NOTINIT)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1a30542012bafd43dafa933051e8c289c3" kindref="member">ShaderVariant::ValueRange</ref><sp/>indexRange<sp/>=<sp/>getIndexRange();</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!indexRange.isInRange(left_op_normalized))</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>error_msg.printf(0,<sp/>256,<sp/></highlight><highlight class="stringliteral">&quot;illegal<sp/>normalized<sp/>value<sp/>(%d)<sp/>for<sp/>this<sp/>interval<sp/>(%s)&quot;</highlight><highlight class="normal">,<sp/>left_op_normalized,</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="intervals_8h_1aef12bc53dd9c642c4a8f7fa17dd50e0a" kindref="member">get_interval_name</ref>(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>ctx));</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ShaderVariant::ValueType</ref><sp/>right_op_normalized<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>right_op_id<sp/>=<sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(right_op);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(right_op_id<sp/>!=<sp/>-1)</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>valueList.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(valueList[i].<ref refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" kindref="member">getNameId</ref>()<sp/>==<sp/>right_op_id)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>right_op_normalized<sp/>=<sp/>i;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!indexRange.isInRange(right_op_normalized))</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>error_msg.printf(0,<sp/>256,<sp/></highlight><highlight class="stringliteral">&quot;undefined<sp/>value<sp/>(%s)<sp/>for<sp/>this<sp/>interval<sp/>(%s)&quot;</highlight><highlight class="normal">,<sp/>right_op,<sp/><ref refid="intervals_8h_1aef12bc53dd9c642c4a8f7fa17dd50e0a" kindref="member">get_interval_name</ref>(*</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>ctx));</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(expr)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>EXPR_EQ:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>left_op_normalized<sp/>==<sp/>right_op_normalized;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>EXPR_GREATER:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>left_op_normalized<sp/>&gt;<sp/>right_op_normalized;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>EXPR_GREATER_EQ:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>left_op_normalized<sp/>&gt;=<sp/>right_op_normalized;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>EXPR_SMALLER:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>left_op_normalized<sp/>&lt;<sp/>right_op_normalized;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>EXPR_SMALLER_EQ:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>left_op_normalized<sp/>&lt;=<sp/>right_op_normalized;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>EXPR_NOT_EQ:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>left_op_normalized<sp/>!=<sp/>right_op_normalized;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>new<sp/>interval<sp/>(return<sp/>false,<sp/>if<sp/>interval<sp/>exists)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIntervalList_1aa6fa1dcc75581680d25e7dcaad970cd0" kindref="member">IntervalList::addInterval</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;interval)</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>*oldInterval<sp/>=<sp/>getIntervalByNameId(interval.<ref refid="classInterval_1a748b0a4c7b26f10ca5edfafd46cdb5a5" kindref="member">getNameId</ref>());</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(oldInterval)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>intervals<sp/>not<sp/>identical<sp/>-<sp/>report<sp/>error</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*oldInterval<sp/>!=<sp/>interval)</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>intervals.push_back().create(interval);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="comment">//<sp/>return<sp/>true,<sp/>if<sp/>interval<sp/>exists</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIntervalList_1ae080729097c3ea1fb615ae97984fba16" kindref="member">IntervalList::intervalExists</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>name_id<sp/>!=<sp/>-1<sp/>&amp;&amp;<sp/>getIntervalIndex(name_id)<sp/>!=<sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" kindref="member">INTERVAL_NOT_INIT</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>*IntervalList::getIntervalByNameId(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="115"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>intervals.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(intervals[i]-&gt;<ref refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" kindref="member">getNameId</ref>()<sp/>==<sp/>name_id)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>intervals[i];</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ShaderVariant::ExtType</ref><sp/><ref refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" kindref="member">IntervalList::getIntervalIndex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="123"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>intervals.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(intervals[i]-&gt;<ref refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" kindref="member">getNameId</ref>()<sp/>==<sp/>name_id)</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ShaderVariant::ExtType</ref>)i;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" kindref="member">INTERVAL_NOT_INIT</ref>;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal">String<sp/><ref refid="classIntervalList_1a3ab56d339876fef6b8ce8c228e213bbe" kindref="member">IntervalList::getStringInfo</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="131"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>String<sp/>out;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>intervals.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(out.length())</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.aprintf(2,<sp/></highlight><highlight class="stringliteral">&quot;<sp/>&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>out.aprintf(64,<sp/></highlight><highlight class="stringliteral">&quot;%s(%d,<sp/>%d)&quot;</highlight><highlight class="normal">,<sp/><ref refid="intervals_8h_1aef12bc53dd9c642c4a8f7fa17dd50e0a" kindref="member">get_interval_name</ref>(*intervals[i],<sp/>ctx),<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)intervals[i]-&gt;getIndexRange().getMin(),</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)intervals[i]-&gt;getIndexRange().getMax());</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;intervals=&lt;&quot;</highlight><highlight class="normal"><sp/>+<sp/>out<sp/>+<sp/></highlight><highlight class="stringliteral">&quot;&gt;&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIntervalList_1a616c852d6b16b37ce7381465b0fcb102" kindref="member">IntervalList::clear</ref>()<sp/>{<sp/>clear_and_shrink(intervals);<sp/>}</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="intervals_8h_1aadba5cb8f5f04d0596dae7f2b3129a46" kindref="member">get_interval_value_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalValue" kindref="compound">IntervalValue</ref><sp/>&amp;value,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="148"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a473a175102d290dd00e5cb58903fcdd0" kindref="member">getName</ref>(value.<ref refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" kindref="member">getNameId</ref>());</highlight></codeline>
+<codeline lineno="150"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="intervals_8h_1aadba5cb8f5f04d0596dae7f2b3129a46" kindref="member">get_interval_value_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;ival,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value_idx,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="152"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="intervals_8h_1aadba5cb8f5f04d0596dae7f2b3129a46" kindref="member">get_interval_value_name</ref>(ival.<ref refid="classInterval_1a220f0ead30e4a5cce8fcdef2e7cc3911" kindref="member">getValue</ref>(value_idx),<sp/>ctx);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="intervals_8h_1aef12bc53dd9c642c4a8f7fa17dd50e0a" kindref="member">get_interval_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>&amp;ival,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="156"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a473a175102d290dd00e5cb58903fcdd0" kindref="member">getName</ref>(ival.<ref refid="classInterval_1a748b0a4c7b26f10ca5edfafd46cdb5a5" kindref="member">getNameId</ref>());</highlight></codeline>
+<codeline lineno="158"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="intervals.cpp"/>
+  </compounddef>
+</doxygen>

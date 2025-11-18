@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImpostorRtData" kind="struct" language="C++" prot="protected">
+    <compoundname>ImpostorRtData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImpostorRtData_1a7d258538cf533698aa95a1771419b816" prot="public" static="no" mutable="no">
+        <type><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref></type>
+        <definition>ImpostorParams ImpostorRtData::params</definition>
+        <argsstring></argsstring>
+        <name>params</name>
+        <qualifiedname>ImpostorRtData::params</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="349" column="20" bodyfile="dag_rendInstRes.h" bodystart="349" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorRtData_1a7f440f2623a24310bc56d094428e4a87" prot="public" static="no" mutable="no">
+        <type><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref></type>
+        <definition>ImpostorTextures ImpostorRtData::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>ImpostorRtData::tex</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="350" column="22" bodyfile="dag_rendInstRes.h" bodystart="350" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorRtData_1ab3f8184dab3577eb07915104dd6cd506" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 ImpostorRtData::tiltLimit</definition>
+        <argsstring></argsstring>
+        <name>tiltLimit</name>
+        <qualifiedname>ImpostorRtData::tiltLimit</qualifiedname>
+        <initializer>= Point3(5, 5, 5) * DEG_TO_RAD</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="351" column="12" bodyfile="dag_rendInstRes.h" bodystart="351" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structImpostorRtData_1a6d953a22574a53ccbfa2622d1f86b76e" prot="public" static="yes" mutable="no">
+        <type><ref refid="structImpostorParams" kindref="compound">ImpostorParams</ref></type>
+        <definition>ImpostorParams ImpostorRtData::null_params</definition>
+        <argsstring></argsstring>
+        <name>null_params</name>
+        <qualifiedname>ImpostorRtData::null_params</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="353" column="27" bodyfile="dag_rendInstRes.h" bodystart="353" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorRtData_1ad9e3e56bf7fc0daeccfd5e184c8709d2" prot="public" static="yes" mutable="no">
+        <type><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref></type>
+        <definition>ImpostorTextures ImpostorRtData::null_tex</definition>
+        <argsstring></argsstring>
+        <name>null_tex</name>
+        <qualifiedname>ImpostorRtData::null_tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="354" column="29" bodyfile="dag_rendInstRes.h" bodystart="354" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ImpostorParams</label>
+        <link refid="structImpostorParams"/>
+      </node>
+      <node id="1">
+        <label>ImpostorRtData</label>
+        <link refid="structImpostorRtData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>null_params</edgelabel>
+          <edgelabel>params</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>null_tex</edgelabel>
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ImpostorTextures</label>
+        <link refid="structImpostorTextures"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_rendInstRes.h" line="347" column="3" bodyfile="dag_rendInstRes.h" bodystart="348" bodyend="355"/>
+    <listofallmembers>
+      <member refid="structImpostorRtData_1a6d953a22574a53ccbfa2622d1f86b76e" prot="public" virt="non-virtual"><scope>ImpostorRtData</scope><name>null_params</name></member>
+      <member refid="structImpostorRtData_1ad9e3e56bf7fc0daeccfd5e184c8709d2" prot="public" virt="non-virtual"><scope>ImpostorRtData</scope><name>null_tex</name></member>
+      <member refid="structImpostorRtData_1a7d258538cf533698aa95a1771419b816" prot="public" virt="non-virtual"><scope>ImpostorRtData</scope><name>params</name></member>
+      <member refid="structImpostorRtData_1a7f440f2623a24310bc56d094428e4a87" prot="public" virt="non-virtual"><scope>ImpostorRtData</scope><name>tex</name></member>
+      <member refid="structImpostorRtData_1ab3f8184dab3577eb07915104dd6cd506" prot="public" virt="non-virtual"><scope>ImpostorRtData</scope><name>tiltLimit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

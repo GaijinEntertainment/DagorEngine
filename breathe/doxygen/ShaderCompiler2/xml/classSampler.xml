@@ -1,0 +1,278 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSampler" kind="class" language="C++" prot="public">
+    <compoundname>Sampler</compoundname>
+    <includes refid="samplers_8h" local="no">samplers.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSampler_1a5ecb0ab02f39e897fe6c827fa58c45b3" prot="private" static="no" mutable="no">
+        <type>ShaderTerminal::sampler_decl *</type>
+        <definition>ShaderTerminal::sampler_decl* Sampler::mSamplerDecl</definition>
+        <argsstring></argsstring>
+        <name>mSamplerDecl</name>
+        <qualifiedname>Sampler::mSamplerDecl</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="22" column="32" bodyfile="samplers.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classSampler_1a906ca1aa4ad3d5aaa8dece8d6ccd3878" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class SamplerTable</definition>
+        <argsstring></argsstring>
+        <name>SamplerTable</name>
+        <qualifiedname>Sampler::SamplerTable</qualifiedname>
+        <param>
+          <type><ref refid="classSamplerTable" kindref="compound">SamplerTable</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="25" column="16" bodyfile="samplers.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classSampler_1a22eb540b92f59d38a9de1a9bbccdeaa7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void add_dynamic_sampler_for_stcode</definition>
+        <argsstring>(ShaderSemCode &amp;, ShaderClass &amp;, ShaderTerminal::sampler_decl &amp;, Parser &amp;, VarNameMap &amp;)</argsstring>
+        <name>add_dynamic_sampler_for_stcode</name>
+        <qualifiedname>Sampler::add_dynamic_sampler_for_stcode</qualifiedname>
+        <param>
+          <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+          <defname>sh_sem_code</defname>
+        </param>
+        <param>
+          <type><ref refid="classShaderClass" kindref="compound">ShaderClass</ref> &amp;</type>
+          <defname>sclass</defname>
+        </param>
+        <param>
+          <type>ShaderTerminal::sampler_decl &amp;</type>
+          <defname>smp_decl</defname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <defname>parser</defname>
+        </param>
+        <param>
+          <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+          <defname>var_name_map</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="40" column="15" bodyfile="samplers.cpp" bodystart="207" bodyend="255"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classSampler_1a586820aebf4b1e0ecb83206cbdaff612" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Sampler::mId</definition>
+        <argsstring></argsstring>
+        <name>mId</name>
+        <qualifiedname>Sampler::mId</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="29" column="7" bodyfile="samplers.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSampler_1a96df32fceba596f5d0cee9a8f7bd54e2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Sampler::mNameId</definition>
+        <argsstring></argsstring>
+        <name>mNameId</name>
+        <qualifiedname>Sampler::mNameId</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="30" column="7" bodyfile="samplers.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSampler_1ac5d795f31024d0511b95a04a09148f19" prot="public" static="no" mutable="no">
+        <type>d3d::SamplerInfo</type>
+        <definition>d3d::SamplerInfo Sampler::mSamplerInfo</definition>
+        <argsstring></argsstring>
+        <name>mSamplerInfo</name>
+        <qualifiedname>Sampler::mSamplerInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="31" column="20" bodyfile="samplers.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSampler_1a89bf1bb0bf3459f272eabefc00c51036" prot="public" static="no" mutable="no">
+        <type>ShaderTerminal::arithmetic_expr *</type>
+        <definition>ShaderTerminal::arithmetic_expr* Sampler::mBorderColor</definition>
+        <argsstring></argsstring>
+        <name>mBorderColor</name>
+        <qualifiedname>Sampler::mBorderColor</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="32" column="35" bodyfile="samplers.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSampler_1a56ba538c4e746be9cb37bd12e1ee40e3" prot="public" static="no" mutable="no">
+        <type>ShaderTerminal::arithmetic_expr *</type>
+        <definition>ShaderTerminal::arithmetic_expr* Sampler::mAnisotropicMax</definition>
+        <argsstring></argsstring>
+        <name>mAnisotropicMax</name>
+        <qualifiedname>Sampler::mAnisotropicMax</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="33" column="35" bodyfile="samplers.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSampler_1ab808adf29f17863963a95a8042c56be7" prot="public" static="no" mutable="no">
+        <type>ShaderTerminal::arithmetic_expr *</type>
+        <definition>ShaderTerminal::arithmetic_expr* Sampler::mMipmapBias</definition>
+        <argsstring></argsstring>
+        <name>mMipmapBias</name>
+        <qualifiedname>Sampler::mMipmapBias</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="34" column="35" bodyfile="samplers.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSampler_1aad2d87548f020e74ecda319217e76f05" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Sampler::mIsStaticSampler</definition>
+        <argsstring></argsstring>
+        <name>mIsStaticSampler</name>
+        <qualifiedname>Sampler::mIsStaticSampler</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="35" column="8" bodyfile="samplers.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classSampler_1adabffa3d01ba9a2eda737c20d91b7179" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Sampler::Sampler</definition>
+        <argsstring>(ShaderTerminal::sampler_decl &amp;smp_decl, Parser &amp;parser)</argsstring>
+        <name>Sampler</name>
+        <qualifiedname>Sampler::Sampler</qualifiedname>
+        <param>
+          <type>ShaderTerminal::sampler_decl &amp;</type>
+          <declname>smp_decl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="24" column="3" bodyfile="samplers.cpp" bodystart="15" bodyend="111"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSampler_1aef1f8a2271b1995a5d522b150280339c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Sampler::Sampler</definition>
+        <argsstring>()=default</argsstring>
+        <name>Sampler</name>
+        <qualifiedname>Sampler::Sampler</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="28" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSampler_1aed520a9ce6a9aca8bcb1677674f9b5e0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classSampler" kindref="compound">Sampler</ref> &amp;</type>
+        <definition>Sampler &amp; Sampler::operator=</definition>
+        <argsstring>(const Sampler &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>Sampler::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classSampler" kindref="compound">Sampler</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="37" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classSampler_1a967f78116a3e6c0ca963464b32689ebf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Sampler::Sampler</definition>
+        <argsstring>(const Sampler &amp;)=default</argsstring>
+        <name>Sampler</name>
+        <qualifiedname>Sampler::Sampler</qualifiedname>
+        <param>
+          <type>const <ref refid="classSampler" kindref="compound">Sampler</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="38" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="samplers.h" line="20" column="1" bodyfile="samplers.h" bodystart="21" bodyend="41"/>
+    <listofallmembers>
+      <member refid="classSampler_1a22eb540b92f59d38a9de1a9bbccdeaa7" prot="public" virt="non-virtual"><scope>Sampler</scope><name>add_dynamic_sampler_for_stcode</name></member>
+      <member refid="classSampler_1a56ba538c4e746be9cb37bd12e1ee40e3" prot="public" virt="non-virtual"><scope>Sampler</scope><name>mAnisotropicMax</name></member>
+      <member refid="classSampler_1a89bf1bb0bf3459f272eabefc00c51036" prot="public" virt="non-virtual"><scope>Sampler</scope><name>mBorderColor</name></member>
+      <member refid="classSampler_1a586820aebf4b1e0ecb83206cbdaff612" prot="public" virt="non-virtual"><scope>Sampler</scope><name>mId</name></member>
+      <member refid="classSampler_1aad2d87548f020e74ecda319217e76f05" prot="public" virt="non-virtual"><scope>Sampler</scope><name>mIsStaticSampler</name></member>
+      <member refid="classSampler_1ab808adf29f17863963a95a8042c56be7" prot="public" virt="non-virtual"><scope>Sampler</scope><name>mMipmapBias</name></member>
+      <member refid="classSampler_1a96df32fceba596f5d0cee9a8f7bd54e2" prot="public" virt="non-virtual"><scope>Sampler</scope><name>mNameId</name></member>
+      <member refid="classSampler_1a5ecb0ab02f39e897fe6c827fa58c45b3" prot="private" virt="non-virtual"><scope>Sampler</scope><name>mSamplerDecl</name></member>
+      <member refid="classSampler_1ac5d795f31024d0511b95a04a09148f19" prot="public" virt="non-virtual"><scope>Sampler</scope><name>mSamplerInfo</name></member>
+      <member refid="classSampler_1aed520a9ce6a9aca8bcb1677674f9b5e0" prot="public" virt="non-virtual"><scope>Sampler</scope><name>operator=</name></member>
+      <member refid="classSampler_1adabffa3d01ba9a2eda737c20d91b7179" prot="private" virt="non-virtual"><scope>Sampler</scope><name>Sampler</name></member>
+      <member refid="classSampler_1aef1f8a2271b1995a5d522b150280339c" prot="public" virt="non-virtual"><scope>Sampler</scope><name>Sampler</name></member>
+      <member refid="classSampler_1a967f78116a3e6c0ca963464b32689ebf" prot="public" virt="non-virtual"><scope>Sampler</scope><name>Sampler</name></member>
+      <member refid="classSampler_1a906ca1aa4ad3d5aaa8dece8d6ccd3878" prot="private" virt="non-virtual"><scope>Sampler</scope><name>SamplerTable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

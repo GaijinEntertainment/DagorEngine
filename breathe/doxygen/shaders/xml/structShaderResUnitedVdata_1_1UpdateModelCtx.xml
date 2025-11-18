@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderResUnitedVdata_1_1UpdateModelCtx" kind="struct" language="C++" prot="protected">
+    <compoundname>ShaderResUnitedVdata::UpdateModelCtx</compoundname>
+    <derivedcompoundref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" prot="public" virt="non-virtual">ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA</derivedcompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1UpdateModelCtx_1acd1d0b9217f7a5e41ce50904a1e132e4" prot="public" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderMatVdata&gt; ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx::tmp_smvd[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>tmp_smvd</name>
+        <qualifiedname>ShaderResUnitedVdata::UpdateModelCtx::tmp_smvd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="223" column="9" bodyfile="dag_shaderResUnitedData.h" bodystart="223" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1UpdateModelCtx_1a3477cad80e4d3e440c9e88efe0cd5304" prot="public" static="no" mutable="no">
+        <type>unitedvdata::BufChunkTab</type>
+        <definition>unitedvdata::BufChunkTab ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx::cPrev</definition>
+        <argsstring></argsstring>
+        <name>cPrev</name>
+        <qualifiedname>ShaderResUnitedVdata::UpdateModelCtx::cPrev</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="224" column="30" bodyfile="dag_shaderResUnitedData.h" bodystart="224" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1UpdateModelCtx_1a95a44108651103083d312585b22b6c4b" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx::dviOfs</definition>
+        <argsstring></argsstring>
+        <name>dviOfs</name>
+        <qualifiedname>ShaderResUnitedVdata::UpdateModelCtx::dviOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="225" column="9" bodyfile="dag_shaderResUnitedData.h" bodystart="225" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1UpdateModelCtx_1a3a830b4dad0bc91cfca9a426fb154231" prot="public" static="no" mutable="no">
+        <type>Ptr&lt; RES &gt;</type>
+        <definition>Ptr&lt;RES&gt; ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx::res</definition>
+        <argsstring></argsstring>
+        <name>res</name>
+        <qualifiedname>ShaderResUnitedVdata::UpdateModelCtx::res</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="226" column="9" bodyfile="dag_shaderResUnitedData.h" bodystart="226" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1UpdateModelCtx_1accb356834d2620b746f7097c77f8878c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx::reqLod</definition>
+        <argsstring></argsstring>
+        <name>reqLod</name>
+        <qualifiedname>ShaderResUnitedVdata::UpdateModelCtx::reqLod</qualifiedname>
+        <initializer>= 16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="227" column="14" bodyfile="dag_shaderResUnitedData.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA</label>
+        <link refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx</label>
+        <link refid="structShaderResUnitedVdata_1_1UpdateModelCtx"/>
+      </node>
+    </inheritancegraph>
+    <location file="dag_shaderResUnitedData.h" line="221" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="222" bodyend="228"/>
+    <listofallmembers>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1a3477cad80e4d3e440c9e88efe0cd5304" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::UpdateModelCtx</scope><name>cPrev</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1a95a44108651103083d312585b22b6c4b" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::UpdateModelCtx</scope><name>dviOfs</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1accb356834d2620b746f7097c77f8878c" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::UpdateModelCtx</scope><name>reqLod</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1a3a830b4dad0bc91cfca9a426fb154231" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::UpdateModelCtx</scope><name>res</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1acd1d0b9217f7a5e41ce50904a1e132e4" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::UpdateModelCtx</scope><name>tmp_smvd</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

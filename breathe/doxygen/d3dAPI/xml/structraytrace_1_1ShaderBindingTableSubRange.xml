@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderBindingTableSubRange" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderBindingTableSubRange</compoundname>
+    <basecompoundref refid="structraytrace_1_1ShaderBindingTableOffset" prot="public" virt="non-virtual">raytrace::ShaderBindingTableOffset</basecompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableSubRange_1a8027459f0a0a1c78cbbf03c5ee2b974a" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableSubRange::strideInBytes</definition>
+        <argsstring></argsstring>
+        <name>strideInBytes</name>
+        <qualifiedname>raytrace::ShaderBindingTableSubRange::strideInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Stride from entry to entry. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="917" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="917" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Extends <ref refid="structraytrace_1_1ShaderBindingTableOffset" kindref="compound">ShaderBindingTableOffset</ref> by a stride value for groups with more than one entry. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>raytrace::ShaderBindingTableOffset</label>
+        <link refid="structraytrace_1_1ShaderBindingTableOffset"/>
+      </node>
+      <node id="1">
+        <label>raytrace::ShaderBindingTableSubRange</label>
+        <link refid="structraytrace_1_1ShaderBindingTableSubRange"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="5">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="3">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::ShaderBindingTableOffset</label>
+        <link refid="structraytrace_1_1ShaderBindingTableOffset"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>bindingTableBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::ShaderBindingTableSubRange</label>
+        <link refid="structraytrace_1_1ShaderBindingTableSubRange"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="914" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="915" bodyend="918"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderBindingTableOffset_1a9b939b93f894003ad70c88962eb61984" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSubRange</scope><name>bindingTableBuffer</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableOffset_1a6a671f34b7d1f6c1941a01c3084d7dc6" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSubRange</scope><name>offsetInBytes</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableOffset_1a6d0641b3442b640a24e55183309c2ecc" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSubRange</scope><name>sizeInBytes</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableSubRange_1a8027459f0a0a1c78cbbf03c5ee2b974a" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableSubRange</scope><name>strideInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

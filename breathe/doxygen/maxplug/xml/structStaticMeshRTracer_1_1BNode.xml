@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStaticMeshRTracer_1_1BNode" kind="struct" language="C++" prot="public">
+    <compoundname>StaticMeshRTracer::BNode</compoundname>
+    <basecompoundref refid="structStaticMeshRTracer_1_1Node" prot="public" virt="non-virtual">StaticMeshRTracer::Node</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1BNode_1ace5d09b55c27cfe2c73bf9def4361200" prot="public" static="no" mutable="no">
+        <type><ref refid="structStaticMeshRTracer_1_1Node" kindref="compound">Node</ref> *</type>
+        <definition>Node* StaticMeshRTracer::BNode::sub1</definition>
+        <argsstring></argsstring>
+        <name>sub1</name>
+        <qualifiedname>StaticMeshRTracer::BNode::sub1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="62" column="10" bodyfile="meshtrace.cpp" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStaticMeshRTracer_1_1BNode_1a63b448bca09440625caa7105d92847cc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StaticMeshRTracer::BNode::BNode</definition>
+        <argsstring>()</argsstring>
+        <name>BNode</name>
+        <qualifiedname>StaticMeshRTracer::BNode::BNode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="63" column="5" bodyfile="meshtrace.cpp" bodystart="63" bodyend="63"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>StaticMeshRTracer::BNode</label>
+        <link refid="structStaticMeshRTracer_1_1BNode"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>StaticMeshRTracer::Node</label>
+        <link refid="structStaticMeshRTracer_1_1Node"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>StaticMeshRTracer::BNode</label>
+        <link refid="structStaticMeshRTracer_1_1BNode"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="2" relation="usage">
+          <edgelabel>sub1</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>StaticMeshRTracer::Node</label>
+        <link refid="structStaticMeshRTracer_1_1Node"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>sub0</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="meshtrace.cpp" line="60" column="3" bodyfile="meshtrace.cpp" bodystart="61" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structStaticMeshRTracer_1_1BNode_1a63b448bca09440625caa7105d92847cc" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>BNode</name></member>
+      <member refid="structStaticMeshRTracer_1_1Node_1a1cdd6c99d14a85263e39d5dc16f67d83" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>bsc</name></member>
+      <member refid="structStaticMeshRTracer_1_1Node_1aeb6b2b3da451fc83c0c8fe4a871fba2e" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>bsr2</name></member>
+      <member refid="structStaticMeshRTracer_1_1Node_1a7be0ebe4038132255427b5206630f2dc" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>Node</name></member>
+      <member refid="structStaticMeshRTracer_1_1Node_1a93ce08dede8fa7e7516d2f4c933cada7" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>sub0</name></member>
+      <member refid="structStaticMeshRTracer_1_1BNode_1ace5d09b55c27cfe2c73bf9def4361200" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>sub1</name></member>
+      <member refid="structStaticMeshRTracer_1_1Node_1ae9bd03ab820354496f4ef597d655b8c7" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>traceray</name></member>
+      <member refid="structStaticMeshRTracer_1_1Node_1a875c08cc45d9667379b2a61b1fb58140" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::BNode</scope><name>traceray_back</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

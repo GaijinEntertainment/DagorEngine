@@ -1,0 +1,375 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infantry NavMesh Generation for Vertical Ladders</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Microdetails" href="../microdetails/index.html" />
+    <link rel="prev" title="Climbable Ladders" href="climbable_ladders.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Assets</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../about_assets.html">Introduction to Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../how-to-test-assets-on-maps/index.html">How to Test Assets on Maps</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Ladders</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="climbable_ladders.html">Climbable Ladders</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Infantry NavMesh Generation for Vertical Ladders</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#how-navmesh-generation-for-vertical-ladders-works">How NavMesh Generation for Vertical Ladders Works</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#common-design-errors-for-vertical-ladders">Common Design Errors for Vertical Ladders</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#incorrect-ladder-gameobj">Incorrect Ladder GameObj</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#problematic-ladder-geometry">Problematic Ladder Geometry</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#problematic-environment-geometry">Problematic Environment Geometry</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#code-limitations">Code Limitations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../microdetails/index.html">Microdetails</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../occluder/index.html">Occluder Box</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../procedural-rendinst-painting/index.html">Procedural Rendinst Painting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Ladders</a></li>
+      <li class="breadcrumb-item active">Infantry NavMesh Generation for Vertical Ladders</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/assets/about-assets/ladders/navmesh_gen_vert_ladders.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="infantry-navmesh-generation-for-vertical-ladders">
+<h1>Infantry NavMesh Generation for Vertical Ladders<a class="headerlink" href="#infantry-navmesh-generation-for-vertical-ladders" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This article outlines the principles behind NavMesh generation for vertical
+ladders and discusses common errors that prevent NavMesh from being generated
+for ladders.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Vertical ladders are often problematic for gameplay. Think carefully before
+adding them to a level. However, if there is no alternative, please review this
+article and consider the important nuances of designing ladders from the
+perspective of AI navigation.</p>
+</div>
+</section>
+<section id="how-navmesh-generation-for-vertical-ladders-works">
+<h2>How NavMesh Generation for Vertical Ladders Works<a class="headerlink" href="#how-navmesh-generation-for-vertical-ladders-works" title="Link to this heading"></a></h2>
+<p>The pathfinding for vertical ladders functions as follows. Each ladder has a
+gameObj file like <code class="docutils literal notranslate"><span class="pre">ladder_template.gameObj.blk</span></code>, which contains:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">volumeType:t=&quot;box&quot;</span></code> – The type of primitive displayed in
+<a class="reference internal" href="../../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">boxSz:r=0.5</span></code> – The size of the base primitive.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">isLadder:b=yes</span></code> – A flag indicating that this is a ladder.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ladderStepsCount:i=13</span></code> – The number of steps on the ladder.</p></li>
+</ul>
+<p>This gameObj is used to describe the geometry of the ladder along which a
+character can climb vertically.</p>
+<p><strong>Example</strong> of a composite object: ladder geometry + its gameObj:</p>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_01.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_01.jpg" class="bg-primary align-center" src="../../../_images/navmesh_gen_vert_ladders_01.jpg" style="width: 50%;" />
+</a>
+<hr class="docutils" />
+<p>During NavMesh generation in the location, each such gameObj is identified, and
+the zones near the ends of the gameObj are analyzed: if there are NavMesh
+polygons within a radius of &lt;0.5m from the ends of the gameObj, a link is
+created between the polygons through the vertical ladder.</p>
+<p>This link is used by AI for pathfinding across NavMesh through vertical ladders.</p>
+<p><strong>Examples</strong> of NavMesh link generation through vertical ladders:</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:49%">Conditions met</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:49%">Conditions not met</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_02.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_02.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_02.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_03.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_03.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_03.jpg" style="width: 49%;" />
+</a>
+</section>
+<hr class="docutils" />
+<section id="common-design-errors-for-vertical-ladders">
+<h2>Common Design Errors for Vertical Ladders<a class="headerlink" href="#common-design-errors-for-vertical-ladders" title="Link to this heading"></a></h2>
+<p>Let’s examine design errors that prevent link generation. These are typically
+specific cases where the conditions for NavMesh generation are not met. To
+create a NavMesh link through a vertical ladder, NavMesh polygons must be
+generated within a radius of &lt;0.5m from the ends of the gameObj.</p>
+<section id="incorrect-ladder-gameobj">
+<h3>Incorrect Ladder GameObj<a class="headerlink" href="#incorrect-ladder-gameobj" title="Link to this heading"></a></h3>
+<p>The gameObj dimensions prevent the link from being generated.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>The gameObj has insufficient dimensions</b> to meet the conditions for link generation.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">Adjust the dimensions of the gameObj or set up a proper composite object with a gameObj that satisfies the link generation conditions.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_05.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_05.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_05.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_04.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_04.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_04.jpg" style="width: 62%;" />
+</a>
+<hr class="docutils" />
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>The gameObj has excessive dimensions</b>, preventing the conditions for link generation from being met.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">Adjust the dimensions of the gameObj or set up a proper composite object with a gameObj that satisfies the link generation conditions.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_07.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_07.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_07.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_06.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_06.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_06.jpg" style="width: 62%;" />
+</a>
+<hr class="docutils" />
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>Two ladder composite objects with gameObjs are placed consecutively</b>. Since there is no NavMesh at the junction of the gameObjs, the link cannot be generated.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">Only one gameObj should be used per ladder segment.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_09.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_09.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_09.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_08.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_08.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_08.jpg" style="width: 62%;" />
+</a>
+</section>
+<hr class="docutils" />
+<section id="problematic-ladder-geometry">
+<h3>Problematic Ladder Geometry<a class="headerlink" href="#problematic-ladder-geometry" title="Link to this heading"></a></h3>
+<p>The ladder geometry prevents the NavMesh generation conditions from being met.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>The ladder has additional structural elements</b> that obstruct NavMesh generation at the necessary distance to meet the link conditions.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">To resolve this, experiment with the design – solutions vary depending on the ladder and the adjacent platform. In some cases, moving the elements is enough, while in others, the ladder geometry must be modified or replaced.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_10.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_10.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_10.jpg" style="width: 36%;" />
+</a>
+</section>
+<hr class="docutils" />
+<section id="problematic-environment-geometry">
+<h3>Problematic Environment Geometry<a class="headerlink" href="#problematic-environment-geometry" title="Link to this heading"></a></h3>
+<p>The ladder leads to a location where NavMesh cannot be generated.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>Obstacles block access to the ladder</b>, or other geometry obstructs NavMesh generation.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">It is important to clear the path to the ladder so that NavMesh can be generated nearby. Technically, obstacles do not prevent link generation, but the path will remain blocked for AI until the obstacles are destroyed.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_12.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_12.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_12.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_11.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_11.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_11.jpg" style="width: 62%;" />
+</a>
+<hr class="docutils" />
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>There isn't enough ceiling height for the attic floor</b> to be suitable for NavMesh generation.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">This is often a geometry issue, so it's important to plan for sufficient ceiling height in advance. Incorrect NavMesh generation settings could also be the issue, such as setting the minimum ceiling height too low for NavMesh generation.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_14.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_14.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_14.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_13.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_13.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_13.jpg" style="width: 62%;" />
+</a>
+<hr class="docutils" />
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>Complex geometry on steep slopes is unsuitable</b> for NavMesh generation.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">This is generally a geometry issue, so during the blocking phase, make sure the geometry along paths is suitable for NavMesh generation. Incorrect NavMesh settings, such as an overly restricted slope angle, may also be the cause.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_16.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_16.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_16.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_15.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_15.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_15.jpg" style="width: 62%;" />
+</a>
+<hr class="docutils" />
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>No NavMesh is available for link generation</b>. The ladder is placed so that the player can climb it and clear a railing, but for link generation, NavMesh polygons are required. NavMesh does not generate on railings due to their size, and the end of the gameObj is too far from the nearest NavMesh polygons.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">The solution is to ensure the ladder leads to a properly generated NavMesh polygon. In this case, remove the railing or adjust the ladder length appropriately.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_18.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_18.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_18.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_17.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_17.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_17.jpg" style="width: 62%;" />
+</a>
+<hr class="docutils" />
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>NavMesh will not generate in water deeper than 2m</b>, which prevents the creation of a link.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">The water depth needs to be reduced.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_20.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_20.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_20.jpg" style="width: 36%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_19.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_19.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_19.jpg" style="width: 62%;" />
+</a>
+</section>
+<hr class="docutils" />
+<section id="code-limitations">
+<h3>Code Limitations<a class="headerlink" href="#code-limitations" title="Link to this heading"></a></h3>
+<p>Cases not supported by the code:</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:36%">Problem</th>
+  <th style="background-color: #D4D4D4; border-bottom: 1px solid gray; border-top: 1px solid gray; padding: 10px; text-align: center; width:62%">Solution</th></tr><tr>
+  <td style="border-bottom: 1px solid gray; padding:  5px; text-align: center; vertical-align: middle; width:36%"><b>Links cannot be generated for intermediate platforms</b>. The code does not account for intermediate platforms along the ladder's path. Each platform must have its own ladder for AI navigation. However, since an overabundance of vertical ladders is undesirable, plan more convenient paths in advance.</td>
+  <td style="border-bottom: 1px solid gray; padding: 5px; vertical-align: middle; width:62%">In this case, you can keep the vertical ladder for climbing to the middle level and create ramp-like geometry for reaching the top level.</td></tr><tr>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:36%">Scheme</th>
+  <th style="background-color: #D4D4D4; padding: 10px; text-align:center; width:62%">Example</th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../../_images/navmesh_gen_vert_ladders_21.jpg"><img alt="../../../_images/navmesh_gen_vert_ladders_21.jpg" class="bg-primary" src="../../../_images/navmesh_gen_vert_ladders_21.jpg" style="width: 36%;" />
+</a>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="climbable_ladders.html" class="btn btn-neutral float-left" title="Climbable Ladders" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../microdetails/index.html" class="btn btn-neutral float-right" title="Microdetails" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

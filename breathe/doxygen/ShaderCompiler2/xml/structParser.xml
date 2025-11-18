@@ -1,0 +1,272 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structParser" kind="struct" language="C++" prot="public">
+    <compoundname>Parser</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ShaderTerminal::GeneratedParser</basecompoundref>
+    <includes refid="shlexterm_8h" local="no">shlexterm.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structParser_1a614be73a0324e6dc0862e96430433fb2" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>shc::TargetContext&amp; Parser::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>Parser::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="78" column="22" bodyfile="shlexterm.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structParser_1a451c2b9ea0a5a5ea7ab7007b7abba214" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Parser::Parser</definition>
+        <argsstring>(Lexer &amp;lexer, shc::TargetContext &amp;ctx)</argsstring>
+        <name>Parser</name>
+        <qualifiedname>Parser::Parser</qualifiedname>
+        <param>
+          <type><ref refid="classLexer" kindref="compound">Lexer</ref> &amp;</type>
+          <declname>lexer</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="80" column="3" bodyfile="shlexterm.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1acc9f64bc5ef4a632d01a45e4dbff58c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_shader</definition>
+        <argsstring>(ShaderTerminal::shader_decl *d) override</argsstring>
+        <name>add_shader</name>
+        <qualifiedname>Parser::add_shader</qualifiedname>
+        <param>
+          <type>ShaderTerminal::shader_decl *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="83" column="8" bodyfile="shlexterm.cpp" bodystart="266" bodyend="266"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1acdaa6e84cf27b7f9df473149fbaf034f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_block</definition>
+        <argsstring>(ShaderTerminal::block_decl *d) override</argsstring>
+        <name>add_block</name>
+        <qualifiedname>Parser::add_block</qualifiedname>
+        <param>
+          <type>ShaderTerminal::block_decl *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="84" column="8" bodyfile="shlexterm.cpp" bodystart="267" bodyend="267"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1a9a340f211794af3ea8a31d509f4dbb2c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_global_var</definition>
+        <argsstring>(ShaderTerminal::global_var_decl *d) override</argsstring>
+        <name>add_global_var</name>
+        <qualifiedname>Parser::add_global_var</qualifiedname>
+        <param>
+          <type>ShaderTerminal::global_var_decl *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="85" column="8" bodyfile="shlexterm.cpp" bodystart="268" bodyend="268"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1aa266f29e14a96f32ed09bbc06f786baf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_sampler</definition>
+        <argsstring>(ShaderTerminal::sampler_decl *d) override</argsstring>
+        <name>add_sampler</name>
+        <qualifiedname>Parser::add_sampler</qualifiedname>
+        <param>
+          <type>ShaderTerminal::sampler_decl *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="86" column="8" bodyfile="shlexterm.cpp" bodystart="269" bodyend="269"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1a2630b1ed3f9540ee310e38675aad2617" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_global_interval</definition>
+        <argsstring>(ShaderTerminal::interval &amp;i) override</argsstring>
+        <name>add_global_interval</name>
+        <qualifiedname>Parser::add_global_interval</qualifiedname>
+        <param>
+          <type>ShaderTerminal::interval &amp;</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="87" column="8" bodyfile="shlexterm.cpp" bodystart="270" bodyend="270"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1a8c38d02544d54c4e28e6bd9406e7cf9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_global_assume</definition>
+        <argsstring>(ShaderTerminal::assume_stat &amp;a) override</argsstring>
+        <name>add_global_assume</name>
+        <qualifiedname>Parser::add_global_assume</qualifiedname>
+        <param>
+          <type>ShaderTerminal::assume_stat &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="88" column="8" bodyfile="shlexterm.cpp" bodystart="271" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1a79f315b49d97f3e3a78dd4a373dd5c98" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_global_assume_if_not_assumed</definition>
+        <argsstring>(ShaderTerminal::assume_if_not_assumed_stat &amp;a) override</argsstring>
+        <name>add_global_assume_if_not_assumed</name>
+        <qualifiedname>Parser::add_global_assume_if_not_assumed</qualifiedname>
+        <param>
+          <type>ShaderTerminal::assume_if_not_assumed_stat &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="89" column="8" bodyfile="shlexterm.cpp" bodystart="272" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1abd1c0002b781556b157bb7cbf436b2ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_global_bool</definition>
+        <argsstring>(ShaderTerminal::bool_decl &amp;d) override</argsstring>
+        <name>add_global_bool</name>
+        <qualifiedname>Parser::add_global_bool</qualifiedname>
+        <param>
+          <type>ShaderTerminal::bool_decl &amp;</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="90" column="8" bodyfile="shlexterm.cpp" bodystart="273" bodyend="273"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1a44b1b9672229a1874d0a9fb7353ee454" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Parser::add_hlsl</definition>
+        <argsstring>(ShaderTerminal::hlsl_global_decl_class &amp;d) override</argsstring>
+        <name>add_hlsl</name>
+        <qualifiedname>Parser::add_hlsl</qualifiedname>
+        <param>
+          <type>ShaderTerminal::hlsl_global_decl_class &amp;</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="91" column="8" bodyfile="shlexterm.cpp" bodystart="274" bodyend="274"/>
+      </memberdef>
+      <memberdef kind="function" id="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classLexer" kindref="compound">Lexer</ref> &amp;</type>
+        <definition>Lexer &amp; Parser::get_lexer</definition>
+        <argsstring>()</argsstring>
+        <name>get_lexer</name>
+        <qualifiedname>Parser::get_lexer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="94" column="9" bodyfile="shlexterm.h" bodystart="94" bodyend="94"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Parser</label>
+        <link refid="structParser"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderTerminal::GeneratedParser</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>Parser</label>
+        <link refid="structParser"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderTerminal::GeneratedParser</label>
+      </node>
+      <node id="3">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="shlexterm.h" line="74" column="1" bodyfile="shlexterm.h" bodystart="75" bodyend="95"/>
+    <listofallmembers>
+      <member refid="structParser_1acdaa6e84cf27b7f9df473149fbaf034f" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_block</name></member>
+      <member refid="structParser_1a8c38d02544d54c4e28e6bd9406e7cf9a" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_global_assume</name></member>
+      <member refid="structParser_1a79f315b49d97f3e3a78dd4a373dd5c98" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_global_assume_if_not_assumed</name></member>
+      <member refid="structParser_1abd1c0002b781556b157bb7cbf436b2ce" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_global_bool</name></member>
+      <member refid="structParser_1a2630b1ed3f9540ee310e38675aad2617" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_global_interval</name></member>
+      <member refid="structParser_1a9a340f211794af3ea8a31d509f4dbb2c" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_global_var</name></member>
+      <member refid="structParser_1a44b1b9672229a1874d0a9fb7353ee454" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_hlsl</name></member>
+      <member refid="structParser_1aa266f29e14a96f32ed09bbc06f786baf" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_sampler</name></member>
+      <member refid="structParser_1acc9f64bc5ef4a632d01a45e4dbff58c8" prot="public" virt="non-virtual"><scope>Parser</scope><name>add_shader</name></member>
+      <member refid="structParser_1a614be73a0324e6dc0862e96430433fb2" prot="public" virt="non-virtual"><scope>Parser</scope><name>ctx</name></member>
+      <member refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" prot="public" virt="non-virtual"><scope>Parser</scope><name>get_lexer</name></member>
+      <member refid="structParser_1a451c2b9ea0a5a5ea7ab7007b7abba214" prot="public" virt="non-virtual"><scope>Parser</scope><name>Parser</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

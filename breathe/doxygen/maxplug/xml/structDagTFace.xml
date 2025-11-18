@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagTFace" kind="struct" language="C++" prot="public">
+    <compoundname>DagTFace</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagTFace_1a4bb9b2a320e704ed850d0481a4d5b4b5" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagTFace::t[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>t</name>
+        <qualifiedname>DagTFace::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="188" column="18" bodyfile="dagfmt.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagTFace_1a584efe6d920034789872045b89faf453" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagTFace::DagTFace</definition>
+        <argsstring>()</argsstring>
+        <name>DagTFace</name>
+        <qualifiedname>DagTFace::DagTFace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="189" column="3" bodyfile="dagfmt.h" bodystart="189" bodyend="189"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="186" column="1" bodyfile="dagfmt.h" bodystart="187" bodyend="190"/>
+    <listofallmembers>
+      <member refid="structDagTFace_1a584efe6d920034789872045b89faf453" prot="public" virt="non-virtual"><scope>DagTFace</scope><name>DagTFace</name></member>
+      <member refid="structDagTFace_1a4bb9b2a320e704ed850d0481a4d5b4b5" prot="public" virt="non-virtual"><scope>DagTFace</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

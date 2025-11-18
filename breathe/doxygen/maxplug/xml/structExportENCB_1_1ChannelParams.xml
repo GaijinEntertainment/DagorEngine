@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExportENCB_1_1ChannelParams" kind="struct" language="C++" prot="public">
+    <compoundname>ExportENCB::ChannelParams</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExportENCB_1_1ChannelParams_1abec959e6e10179629f4526fe5ae8da02" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::ChannelParams::channelType</definition>
+        <argsstring></argsstring>
+        <name>channelType</name>
+        <qualifiedname>ExportENCB::ChannelParams::channelType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3290" column="14" bodyfile="expUtil.cpp" bodystart="3290" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1ChannelParams_1ab90931e35df50bdbcd3c351675239dfd" prot="public" static="no" mutable="no">
+        <type>Tab&lt; unsigned &gt;</type>
+        <definition>Tab&lt;unsigned&gt; ExportENCB::ChannelParams::keyNums</definition>
+        <argsstring></argsstring>
+        <name>keyNums</name>
+        <qualifiedname>ExportENCB::ChannelParams::keyNums</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3291" column="9" bodyfile="expUtil.cpp" bodystart="3291" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1ChannelParams_1a1f94159e2528280d9a87f7686874f0ce" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; ExportENCB::ChannelParams::nodeNameIds</definition>
+        <argsstring></argsstring>
+        <name>nodeNameIds</name>
+        <qualifiedname>ExportENCB::ChannelParams::nodeNameIds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3292" column="9" bodyfile="expUtil.cpp" bodystart="3292" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1ChannelParams_1a732d77b08124253d371546578255ad8c" prot="public" static="no" mutable="no">
+        <type>Tab&lt; float &gt;</type>
+        <definition>Tab&lt;float&gt; ExportENCB::ChannelParams::nodeWeights</definition>
+        <argsstring></argsstring>
+        <name>nodeWeights</name>
+        <qualifiedname>ExportENCB::ChannelParams::nodeWeights</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3293" column="9" bodyfile="expUtil.cpp" bodystart="3293" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="3288" column="3" bodyfile="expUtil.cpp" bodystart="3289" bodyend="3294"/>
+    <listofallmembers>
+      <member refid="structExportENCB_1_1ChannelParams_1abec959e6e10179629f4526fe5ae8da02" prot="public" virt="non-virtual"><scope>ExportENCB::ChannelParams</scope><name>channelType</name></member>
+      <member refid="structExportENCB_1_1ChannelParams_1ab90931e35df50bdbcd3c351675239dfd" prot="public" virt="non-virtual"><scope>ExportENCB::ChannelParams</scope><name>keyNums</name></member>
+      <member refid="structExportENCB_1_1ChannelParams_1a1f94159e2528280d9a87f7686874f0ce" prot="public" virt="non-virtual"><scope>ExportENCB::ChannelParams</scope><name>nodeNameIds</name></member>
+      <member refid="structExportENCB_1_1ChannelParams_1a732d77b08124253d371546578255ad8c" prot="public" virt="non-virtual"><scope>ExportENCB::ChannelParams</scope><name>nodeWeights</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

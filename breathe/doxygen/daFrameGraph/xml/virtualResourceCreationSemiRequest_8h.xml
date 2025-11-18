@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="virtualResourceCreationSemiRequest_8h" kind="file" language="C++">
+    <compoundname>virtualResourceCreationSemiRequest.h</compoundname>
+    <includes refid="virtualResourceRequest_8h" local="no">render/daFrameGraph/virtualResourceRequest.h</includes>
+    <includedby refid="registry_8h" local="no">registry.h</includedby>
+    <incdepgraph>
+      <node id="8">
+        <label>render/daFrameGraph/stage.h</label>
+        <link refid="stage_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>render/daFrameGraph/usage.h</label>
+        <link refid="usage_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtualResourceCreationSemiRequest_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>render/daFrameGraph/virtualResourceHandle.h</label>
+        <link refid="virtualResourceHandle_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>render/daFrameGraph/virtualResourceRequest.h</label>
+        <link refid="virtualResourceRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="6">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="14">
+        <label>render/daFrameGraph/detail/dispatchRequestPolicy.h</label>
+      </node>
+      <node id="15">
+        <label>render/daFrameGraph/detail/drawRequestPolicy.h</label>
+      </node>
+      <node id="13">
+        <label>render/daFrameGraph/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="10">
+        <label>render/daFrameGraph/detail/virtualResourceHandleBase.h</label>
+      </node>
+      <node id="12">
+        <label>render/daFrameGraph/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>daFG.h</label>
+        <link refid="daFG_8h"/>
+      </node>
+      <node id="2">
+        <label>registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+      </node>
+      <node id="1">
+        <label>virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtualResourceCreationSemiRequest_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdafg_1_1VirtualResourceCreationSemiRequest" prot="public">dafg::VirtualResourceCreationSemiRequest</innerclass>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="virtualResourceRequest_8h" kindref="compound">render/daFrameGraph/virtualResourceRequest.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classdafg_1_1VirtualResourceCreationSemiRequest" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">[[nodiscard]]<sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest" kindref="compound">VirtualResourceCreationSemiRequest</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>:<sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal"><sp/>detail::VirtualResourceRequestBase</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">Base<sp/>=<sp/>detail::VirtualResourceRequestBase;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">RRP<sp/>=<sp/>detail::ResourceRequestPolicy;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref>;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest" kindref="compound">VirtualResourceCreationSemiRequest</ref>(detail::ResUid<sp/>resId,<sp/>NodeNameId<sp/>node,<sp/>InternalRegistry<sp/>*reg)<sp/>:<sp/>Base{resId,<sp/>node,<sp/>reg}<sp/>{}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="37" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ae9e60614f4bdfb6b403e3ed7852d15b5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;BaseTexture, RRP::None&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ae9e60614f4bdfb6b403e3ed7852d15b5" kindref="member">texture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1Texture2dCreateInfo" kindref="compound">Texture2dCreateInfo</ref><sp/>&amp;info)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::texture(info);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1af1aac8f64a8e29a6ed420d81abdf99d5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;BaseTexture, RRP::None&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1af1aac8f64a8e29a6ed420d81abdf99d5" kindref="member">texture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1Texture3dCreateInfo" kindref="compound">Texture3dCreateInfo</ref><sp/>&amp;info)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::texture(info);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ab77cbff87e41105115fe1205849d7296" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ab77cbff87e41105115fe1205849d7296" kindref="member">buffer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref><sp/>&amp;info)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(info);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a50e5d530e5be674d40e421884f19727c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a50e5d530e5be674d40e421884f19727c" kindref="member">byteAddressBufferUaSr</ref>(uint32_t<sp/>size_in_dwords)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref><sp/>ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>size_in_dwords,<sp/>SBCF_UA_SR_BYTE_ADDRESS,<sp/>0};</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a7e7c2022e45089bbe56a6e0701de708c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a7e7c2022e45089bbe56a6e0701de708c" kindref="member">byteAddressBufferUa</ref>(uint32_t<sp/>size_in_dwords)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref><sp/>ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>size_in_dwords,<sp/>SBCF_UA_BYTE_ADDRESS,<sp/>0};</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="90" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1afbb4494d5f39a28aeaad70027f2ec444" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1afbb4494d5f39a28aeaad70027f2ec444" kindref="member">structuredBufferUaSr</ref>(uint32_t<sp/>element_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref><sp/>ci{</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T),<sp/>element_count,<sp/>SBCF_UA_SR_STRUCTURED,<sp/>0};</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="98" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a7ba8ee8e884e15c1309e2eb9e49bef24" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a7ba8ee8e884e15c1309e2eb9e49bef24" kindref="member">structuredBufferUa</ref>(uint32_t<sp/>element_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref><sp/>ci{</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T),<sp/>element_count,<sp/>SBCF_UA_STRUCTURED,<sp/>0};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ab833ce082f38390c82d647906417ac88" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ab833ce082f38390c82d647906417ac88" kindref="member">indirectBufferUa</ref>(d3d::buffers::Indirect<sp/>indirect_type,<sp/>uint32_t<sp/>call_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref><sp/>ci{</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>call_count<sp/>*<sp/>dword_count_per_call(indirect_type),<sp/>SBCF_UA_INDIRECT,<sp/>0};</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a82069fa6c6a69b1d980c5523ba3bb3e5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a82069fa6c6a69b1d980c5523ba3bb3e5" kindref="member">indirectBuffer</ref>(d3d::buffers::Indirect<sp/>indirect_type,<sp/>uint32_t<sp/>call_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref><sp/>ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>call_count<sp/>*<sp/>dword_count_per_call(indirect_type),<sp/>SBCF_INDIRECT,<sp/>0};</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="128" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a83a989997b5d4d0fe1d3c3ef1c10025a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;T, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a83a989997b5d4d0fe1d3c3ef1c10025a" kindref="member">blob</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>BlobDescription<sp/>desc{</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>.typeTag<sp/>=<sp/>tag_for&lt;T&gt;(),</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>.ctorOverride<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::blob(eastl::move(desc),<sp/>detail::make_rtti&lt;T&gt;());</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="146" refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a8c7058d06c7d22bd7a1ab8f3d3e20694" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest&lt;T, RRP::HasClearValue&gt;</ref><sp/><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a8c7058d06c7d22bd7a1ab8f3d3e20694" kindref="member">blob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>T<sp/>defaultValue)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>BlobDescription<sp/>desc{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>.typeTag<sp/>=<sp/>tag_for&lt;T&gt;(),</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>.ctorOverride<sp/>=</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eastl::make_unique&lt;BlobDescription::CtorT&gt;(eastl::move([defaultValue](</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*ptr)<sp/>{<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>(ptr)<sp/>T{defaultValue};<sp/>})),</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::blob(eastl::move(desc),<sp/>detail::make_rtti&lt;T&gt;());</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="virtualResourceCreationSemiRequest.h"/>
+  </compounddef>
+</doxygen>

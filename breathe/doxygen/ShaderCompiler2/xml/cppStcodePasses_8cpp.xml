@@ -1,0 +1,1210 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="cppStcodePasses_8cpp" kind="file" language="C++">
+    <compoundname>cppStcodePasses.cpp</compoundname>
+    <includes refid="cppStcodePasses_8h" local="yes">cppStcodePasses.h</includes>
+    <includes refid="variantAssembly_8h" local="yes">variantAssembly.h</includes>
+    <incdepgraph>
+      <node id="90">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="50">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="83">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="75">
+        <label>compileResult.h</label>
+        <link refid="compileResult_8h"/>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="72">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="106" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="94" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="91">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="66">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+      </node>
+      <node id="89">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="90" relation="include">
+        </childnode>
+        <childnode refid="91" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="71">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+      </node>
+      <node id="53">
+        <label>hwAssembly.h</label>
+        <link refid="hwAssembly_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="64">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="23">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="84">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="85" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="92" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="65">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="93">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+      </node>
+      <node id="80">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="107">
+        <label>shExpr.h</label>
+        <link refid="shExpr_8h"/>
+      </node>
+      <node id="103">
+        <label>shLocVar.h</label>
+        <link refid="shLocVar_8h"/>
+      </node>
+      <node id="34">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="6">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="101">
+        <label>shMessages.h</label>
+        <link refid="shMessages_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+      </node>
+      <node id="102">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+      </node>
+      <node id="95">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="96" relation="include">
+        </childnode>
+        <childnode refid="93" relation="include">
+        </childnode>
+        <childnode refid="97" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="99" relation="include">
+        </childnode>
+        <childnode refid="102" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="93" relation="include">
+        </childnode>
+        <childnode refid="89" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="68">
+        <label>shTargetStorage.h</label>
+        <link refid="shTargetStorage_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>shVarBool.h</label>
+        <link refid="shVarBool_8h"/>
+      </node>
+      <node id="63">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="94">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="95" relation="include">
+        </childnode>
+        <childnode refid="102" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+        <childnode refid="103" relation="include">
+        </childnode>
+        <childnode refid="104" relation="include">
+        </childnode>
+      </node>
+      <node id="70">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="99">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="96">
+        <label>shaderVariantSrc.h</label>
+        <link refid="shaderVariantSrc_8h"/>
+      </node>
+      <node id="97">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="98" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="99" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="84" relation="include">
+        </childnode>
+        <childnode refid="100" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="78" relation="include">
+        </childnode>
+      </node>
+      <node id="79">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="62">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="85">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="86" relation="include">
+        </childnode>
+        <childnode refid="87" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="88" relation="include">
+        </childnode>
+      </node>
+      <node id="106">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="94" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="107" relation="include">
+        </childnode>
+      </node>
+      <node id="105">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="94" relation="include">
+        </childnode>
+      </node>
+      <node id="60">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="29">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="37">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="88">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="86">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="87">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="12">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="67">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="73">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="45">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="76">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="82">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="92">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="38">
+        <label>cstdint</label>
+      </node>
+      <node id="32">
+        <label>cstring</label>
+      </node>
+      <node id="28">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="27">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="81">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="44">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="69">
+        <label>drv/3d/dag_renderStates.h</label>
+      </node>
+      <node id="61">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="35">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="36">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="49">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="98">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="25">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="31">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="54">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="58">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="59">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="74">
+        <label>memory</label>
+      </node>
+      <node id="40">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="77">
+        <label>memory/dag_memBase.h</label>
+      </node>
+      <node id="104">
+        <label>memory/dag_regionMemAlloc.h</label>
+      </node>
+      <node id="100">
+        <label>shaders/dag_shaderCommon.h</label>
+      </node>
+      <node id="43">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="52">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="41">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="42">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="47">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="39">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="4">
+        <label>shsyn.h</label>
+      </node>
+      <node id="46">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="26">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="24">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="78">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="56">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="51">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="8">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="cppStcodePasses_8h" kindref="compound">cppStcodePasses.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="variantAssembly_8h" kindref="compound">variantAssembly.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderSemantic_8h" kindref="compound">shaderSemantic.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><ref refid="classStcodeBranchedBuildEvalCB_1a45d3f21516dd968b71b689b5bed55f63" kindref="member">StcodeBranchedBuildEvalCB::StcodeBranchedBuildEvalCB</ref>(<ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref><sp/>&amp;a_ctx)<sp/>:</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/>ctx{a_ctx},<sp/>parser{ctx.tgtCtx().sourceParseState().parser}</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;pt<sp/>:<sp/>ctx.parsedSemCode().passes)</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><sp/><sp/>if<sp/>(pt<sp/>&amp;&amp;<sp/>pt-&gt;pass)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uintptr_t<sp/>stmtNode<sp/>:<sp/>pt-&gt;pass-&gt;usedConstStatAstNodes)</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>preshaderStatementsUsedInAnyVariant.insert((const<sp/>state_block_stat<sp/>*)stmtNode);</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[boolNode,<sp/>evalRes]<sp/>:<sp/>pt-&gt;pass-&gt;boolAstNodesEvaluationResults)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[it,<sp/>insterted]<sp/>=<sp/>boolEvalResults.emplace(boolNode,<sp/>evalRes);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!insterted<sp/>&amp;&amp;<sp/>it-&gt;second.isConst)</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(evalRes.isConst);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(evalRes.value<sp/>!=<sp/>it-&gt;second.value)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>it-&gt;second.isConst<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeBranchedBuildEvalCB_1a61be14d856626981fbedc0b09d7ea710" kindref="member">StcodeBranchedBuildEvalCB::eval_external_block</ref>(external_state_block<sp/>&amp;state_block)</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>stageMaybe<sp/>=<sp/><ref refid="namespacesemantic_1a86f59efe30e2fc10075f9f9ee14fbd09" kindref="member">semantic::parse_state_block_stage</ref>(state_block.scope-&gt;text);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>G_ASSERT(stageMaybe);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>ShaderStage<sp/>stage<sp/>=<sp/>*stageMaybe;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>evalIf<sp/>=<sp/>[</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>stage](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>state_block_if_stat<sp/>&amp;s,<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;eval_if_stat)<sp/>-&gt;<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(s.expr);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>evalStats<sp/>=<sp/>[&amp;,<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;stats)<sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;stat<sp/>:<sp/>stats)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stat-&gt;stblock_if_stat)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eval_if_stat(*stat-&gt;stblock_if_stat,<sp/>eval_if_stat);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>evalExternalBlockStat(*stat,<sp/>stage);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>res<sp/>=<sp/><ref refid="classStcodeBranchedBuildEvalCB_1a575c7262124851f831592c6921dfc24d" kindref="member">eval_if</ref>(*s.expr);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res<sp/>!=<sp/>ShaderEvalCB::IF_FALSE)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>evalStats(s.true_stat);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classStcodeBranchedBuildEvalCB_1a7c92b276bd47f975ee1f9b9eff947b5b" kindref="member">eval_else</ref>(*s.expr);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res<sp/>!=<sp/>ShaderEvalCB::IF_TRUE)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>evalStats(s.false_stat);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(s.else_if)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eval_if_stat(*s.else_if,<sp/>eval_if_stat);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classStcodeBranchedBuildEvalCB_1ae9b274d61618116a2b6e982dc28aa29c" kindref="member">eval_endif</ref>(*s.expr);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>stat<sp/>:<sp/>state_block.stblock_stat)</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stat-&gt;stblock_if_stat)</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>evalIf(*stat-&gt;stblock_if_stat,<sp/>evalIf);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>evalExternalBlockStat(*stat,<sp/>stage);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>StcodeBranchedBuildEvalCB::evalExternalBlockStat(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>state_block_stat<sp/>&amp;state_block,<sp/>ShaderStage<sp/>stage)</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">semantic::VariableType</ref>;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!preshaderStatementsUsedInAnyVariant.count(&amp;state_block))</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>ctx.<ref refid="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" kindref="member">cppStcode</ref>().cppStcode.reportStageUsage(stage);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>RegionMemAlloc<sp/>rm_alloc(4<sp/>&lt;&lt;<sp/>20,<sp/>4<sp/>&lt;&lt;<sp/>20);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref><sp/>vt<sp/>=<sp/><ref refid="namespacesemantic_1af126f5a1c2217c70427cbebf8a43a267" kindref="member">semantic::parse_named_const_type</ref>(state_block);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>G_ASSERT(vt<sp/>!=<sp/>VariableType::Unknown);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>parsedDefMaybe<sp/>=<sp/><ref refid="namespacesemantic_1af0b1e07e31a716f1a8699d9ca402b2a0" kindref="member">semantic::parse_named_const_definition</ref>(state_block,<sp/>stage,<sp/>vt,<sp/>ctx,<sp/>&amp;rm_alloc);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>G_ASSERT(parsedDefMaybe);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structsemantic_1_1NamedConstDefInfo" kindref="compound">semantic::NamedConstDefInfo</ref><sp/>&amp;def<sp/>=<sp/>*parsedDefMaybe;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ID_PLACEHOLDER<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!def.<ref refid="structsemantic_1_1NamedConstDefInfo_1a1618a590cbf1c99259813de7cb83c29a" kindref="member">isDynamic</ref>)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ok<sp/>=<sp/>assembly::build_stcode_for_named_const&lt;assembly::StcodeBuildFlagsBits::CPP&gt;(def,<sp/>ID_PLACEHOLDER,<sp/>ctx,<sp/>&amp;rm_alloc,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>G_ASSERT(ok);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(def.<ref refid="structsemantic_1_1NamedConstDefInfo_1aeb9fefcdec41f3f6ad3e13b9b4a41ec1" kindref="member">pairSamplerTmpDecl</ref><sp/>&amp;&amp;<sp/>def.<ref refid="structsemantic_1_1NamedConstDefInfo_1a1618a590cbf1c99259813de7cb83c29a" kindref="member">isDynamic</ref><sp/>&amp;&amp;<sp/>def.<ref refid="structsemantic_1_1NamedConstDefInfo_1aa18633d67a9a9e2c726ad327541a55f7" kindref="member">hardcodedRegister</ref><sp/>==<sp/>-1)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[samplerVarId,<sp/>_1,<sp/>_2]<sp/>=<sp/><ref refid="namespacesemantic_1a69d749806268f5b3b7cafa16cab36787" kindref="member">semantic::lookup_state_var</ref>(*def.<ref refid="structsemantic_1_1NamedConstDefInfo_1aeb9fefcdec41f3f6ad3e13b9b4a41ec1" kindref="member">pairSamplerTmpDecl</ref>-&gt;name,<sp/>ctx);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>samplerConstName{0,<sp/></highlight><highlight class="stringliteral">&quot;%s%s&quot;</highlight><highlight class="normal">,<sp/>def.<ref refid="structsemantic_1_1NamedConstDefInfo_1aa34d1200eefa8c3bfa01ad34fc659012" kindref="member">mangledName</ref>.c_str(),<sp/>def.<ref refid="structsemantic_1_1NamedConstDefInfo_1a753999253bf724e84079f91eda852452" kindref="member">pairSamplerBindSuffix</ref>};</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>assembly::build_stcode_for_pair_sampler&lt;assembly::StcodeBuildFlagsBits::CPP&gt;(samplerConstName.c_str(),<sp/>def.<ref refid="structsemantic_1_1NamedConstDefInfo_1ab6549c450f83058df1a86ae188646adf" kindref="member">pairSamplerName</ref>.c_str(),</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ID_PLACEHOLDER,<sp/>stage,<sp/>samplerVarId,<sp/>def.<ref refid="structsemantic_1_1NamedConstDefInfo_1a4d790db1104a8bf1731013569f5fac4e" kindref="member">pairSamplerIsGlobal</ref>,<sp/>ctx);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeBranchedBuildEvalCB_1a5b8f24b06507d9a86c258e34cf140214" kindref="member">StcodeBranchedBuildEvalCB::eval_shader_locdecl</ref>(local_var_decl<sp/>&amp;s)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>cache<sp/>between<sp/>passes?</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>parseResMaybe<sp/>=<sp/><ref refid="namespacesemantic_1aa7d8cdb06eb014e4ae6ba3205f29b555" kindref="member">semantic::parse_local_var_decl</ref>(s,<sp/>ctx,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!parseResMaybe)</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!parseResMaybe-&gt;var-&gt;isConst)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>assembly::assemble_local_var&lt;assembly::StcodeBuildFlagsBits::CPP&gt;(parseResMaybe-&gt;var,<sp/>parseResMaybe-&gt;expr.get(),<sp/>s.name,<sp/>ctx);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeBranchedBuildEvalCB_1a3c0f44e8ba116d0bfd5db391892a6a4a" kindref="member">StcodeBranchedBuildEvalCB::eval_bool_decl</ref>(bool_decl<sp/>&amp;d)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>valMaybe<sp/>=<sp/>evalBoolStatIfExists(*d.expr);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!valMaybe)</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>val<sp/>=<sp/>*valMaybe;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>ctx.<ref refid="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" kindref="member">cppStcode</ref>().cppStcode.setVarValue(d.name-&gt;text,<sp/>boolToStr(val.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>));</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref><sp/>builder{};</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/>buildConditionString(*d.expr,<sp/>builder);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>expr<sp/>=<sp/>builder.release();</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/>ctx.<ref refid="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" kindref="member">cppStcode</ref>().cppStcode.setVarValue(d.name-&gt;text,<sp/>expr.c_str());</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/>ctx.<ref refid="classshc_1_1VariantContext_1a3a044e9a324c8cb325403fb3d6e610a1" kindref="member">localBoolVars</ref>().<ref refid="classBoolVarTable_1a64619e7effcda65e6b155867dc3d45a4" kindref="member">add</ref>(d,<sp/>parser,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classStcodeBranchedBuildEvalCB_1a575c7262124851f831592c6921dfc24d" kindref="member">StcodeBranchedBuildEvalCB::eval_if</ref>(bool_expr<sp/>&amp;e)</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>val<sp/>=<sp/>evalBoolStat(e);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>val.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref><sp/>?<sp/><ref refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa795199991378708f0bd9307c73262846" kindref="member">IF_TRUE</ref><sp/>:<sp/><ref refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa58399c8728006ad1e82d90527d55d3c6" kindref="member">IF_FALSE</ref>;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref><sp/>builder{};</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>buildConditionString(e,<sp/>builder);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>cond<sp/>=<sp/>builder.release();</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>ctx.<ref refid="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" kindref="member">cppStcode</ref>().cppStcode.addIfClause(cond.c_str());</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa67354fcef9c601179eef2864b8228b76" kindref="member">IF_BOTH</ref>;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeBranchedBuildEvalCB_1a7c92b276bd47f975ee1f9b9eff947b5b" kindref="member">StcodeBranchedBuildEvalCB::eval_else</ref>(bool_expr<sp/>&amp;e)</highlight></codeline>
+<codeline lineno="156"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>val<sp/>=<sp/>evalBoolStat(e);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!val.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/>ctx.<ref refid="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" kindref="member">cppStcode</ref>().cppStcode.addElseClause();</highlight></codeline>
+<codeline lineno="160"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classStcodeBranchedBuildEvalCB_1ae9b274d61618116a2b6e982dc28aa29c" kindref="member">StcodeBranchedBuildEvalCB::eval_endif</ref>(bool_expr<sp/>&amp;e)</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>val<sp/>=<sp/>evalBoolStat(e);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!val.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/>ctx.<ref refid="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" kindref="member">cppStcode</ref>().cppStcode.addBlockClosing();</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>StcodeBranchedBuildEvalCB::buildConditionBoolValue(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>bool_value<sp/>&amp;val,<sp/><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref><sp/>&amp;out)</highlight></codeline>
+<codeline lineno="170"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>res<sp/>=<sp/>evalBoolStat(val);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(boolToStr(res.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>));</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.bool_var)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[e,<sp/>isGlobal,<sp/>hasMultipleDeclarations]<sp/>=<sp/><ref refid="namespacesemantic_1ab76cb307b268e760be1f5a4e21cd2e60" kindref="member">semantic::get_bool_expr</ref>(*val.bool_var,<sp/>parser,<sp/>ctx,<sp/>ctx.<ref refid="classshc_1_1VariantContext_1a02952e27d2d5e304daad76b11cb1f4ad" kindref="member">tgtCtx</ref>());</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(isGlobal<sp/>||<sp/>!hasMultipleDeclarations)</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>buildConditionString(*e,<sp/>out);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(val.bool_var-&gt;text);</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.maybe)</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[e,<sp/>isGlobal,<sp/>_]<sp/>=<sp/><ref refid="namespacesemantic_1ae53a14963271647d198fdd5ecce705a4" kindref="member">semantic::get_bool_maybe</ref>(*val.maybe_bool_var,<sp/>ctx,<sp/>ctx.<ref refid="classshc_1_1VariantContext_1a02952e27d2d5e304daad76b11cb1f4ad" kindref="member">tgtCtx</ref>());</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e)</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(isGlobal)</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>buildConditionString(*e,<sp/>out);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(val.maybe_bool_var-&gt;text);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(boolToStr(</highlight><highlight class="keyword">false</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.interval_ident)</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>do<sp/>I<sp/>have<sp/>this<sp/>lookup<sp/>part<sp/>pulled<sp/>out<sp/>somewhere?</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[vi,<sp/>vt,<sp/>isGlobal]<sp/>=<sp/><ref refid="namespacesemantic_1a69d749806268f5b3b7cafa16cab36787" kindref="member">semantic::lookup_state_var</ref>(*val.interval_ident,<sp/>ctx,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>*intervalList<sp/>=<sp/>&amp;ctx.<ref refid="classshc_1_1VariantContext_1ae3d33ced2be05ff880614e636bfacb94" kindref="member">variant</ref>().<ref refid="structShaderVariant_1_1VariantInfo_1ab612d70412d1f34ce9ab03b291e99f25" kindref="member">intervals</ref>;</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;tgtCtx<sp/>=<sp/>ctx.<ref refid="classshc_1_1VariantContext_1a02952e27d2d5e304daad76b11cb1f4ad" kindref="member">tgtCtx</ref>();</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>e_interval_ident_id<sp/>=<sp/>tgtCtx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a2b43444bc74666574cba61624c72d22e" kindref="member">getNameId</ref>(val.interval_ident-&gt;text);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>intervalIndex<sp/>=<sp/>intervalList-&gt;<ref refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" kindref="member">getIntervalIndex</ref>(e_interval_ident_id);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(intervalIndex<sp/>==<sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" kindref="member">INTERVAL_NOT_INIT</ref>)</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>intervalIndex<sp/>=<sp/>tgtCtx.<ref refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" kindref="member">globVars</ref>().<ref refid="classShaderGlobal_1_1VarTable_1ae086b750cd83e12a1f62a310e8792fb1" kindref="member">getIntervalList</ref>().<ref refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" kindref="member">getIntervalIndex</ref>(e_interval_ident_id);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(intervalIndex<sp/>!=<sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" kindref="member">INTERVAL_NOT_INIT</ref>);</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>intervalList<sp/>=<sp/>&amp;tgtCtx.<ref refid="classshc_1_1TargetContext_1a77a4453b2a7ddead5199305bd6205fa1" kindref="member">globVars</ref>().<ref refid="classShaderGlobal_1_1VarTable_1ae086b750cd83e12a1f62a310e8792fb1" kindref="member">getIntervalList</ref>();</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(vi<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>isGlobal<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classInterval" kindref="compound">Interval</ref><sp/>*interv<sp/>=<sp/>intervalList-&gt;<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(intervalIndex);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>valId<sp/>=<sp/>tgtCtx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a2b43444bc74666574cba61624c72d22e" kindref="member">getNameId</ref>(val.interval_value-&gt;text);</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(valId<sp/>!=<sp/>-1);</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;valueBounds<sp/>=<sp/>interv-&gt;<ref refid="classInterval_1a5956e30eabfc1cecec92f5d20f8df50e" kindref="member">getValueByNameId</ref>(valId)-&gt;<ref refid="classIntervalValue_1a046ff5db1dfb2593d0ea592d1a9ecf4d" kindref="member">getBounds</ref>();</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(valueBounds.getMin()<sp/>!=<sp/><ref refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" kindref="member">IntervalValue::VALUE_INFINITY</ref>);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(valueBounds.getMax()<sp/>!=<sp/><ref refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" kindref="member">IntervalValue::VALUE_NEG_INFINITY</ref>);</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(valueBounds.getMin()<sp/>!=<sp/><ref refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" kindref="member">IntervalValue::VALUE_NEG_INFINITY</ref><sp/>||<sp/>valueBounds.getMax()<sp/>!=<sp/><ref refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" kindref="member">IntervalValue::VALUE_INFINITY</ref>);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/>deref<sp/>=</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>isGlobal<sp/>?<sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;*%s&quot;</highlight><highlight class="normal">,<sp/>val.interval_ident-&gt;text)</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;VAR(%s,<sp/>%s)&quot;</highlight><highlight class="normal">,<sp/>val.interval_ident-&gt;text,<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>::<ref refid="namespacestcode_1a286b6353e9940ecc3c5bd2fe4e520d3a" kindref="member">shadervar_type_to_stcode_type</ref>(ShaderVarType(vt)));</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>makeG<sp/>=<sp/>[&amp;]<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;((float)%s<sp/>&gt;=<sp/>%.8ff)&quot;</highlight><highlight class="normal">,<sp/>deref.c_str(),<sp/>valueBounds.getMax());<sp/>};</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>makeL<sp/>=<sp/>[&amp;]<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;((float)%s<sp/>&lt;<sp/>%.8ff)&quot;</highlight><highlight class="normal">,<sp/>deref.c_str(),<sp/>valueBounds.getMin());<sp/>};</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>makeGe<sp/>=<sp/>[&amp;]<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;((float)%s<sp/>&gt;=<sp/>%.8ff)&quot;</highlight><highlight class="normal">,<sp/>deref.c_str(),<sp/>valueBounds.getMin());<sp/>};</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>makeLe<sp/>=<sp/>[&amp;]<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;((float)%s<sp/>&lt;<sp/>%.8ff)&quot;</highlight><highlight class="normal">,<sp/>deref.c_str(),<sp/>valueBounds.getMax());<sp/>};</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>makeEqNeq<sp/>=<sp/>[&amp;](</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>eq)<sp/>{</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(valueBounds.getMin()<sp/>==<sp/><ref refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" kindref="member">IntervalValue::VALUE_NEG_INFINITY</ref>)</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;%s((float)%s<sp/>&lt;<sp/>%.8ff)&quot;</highlight><highlight class="normal">,<sp/>eq<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;!&quot;</highlight><highlight class="normal">,<sp/>deref.c_str(),<sp/>valueBounds.getMax());</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(valueBounds.getMax()<sp/>==<sp/><ref refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" kindref="member">IntervalValue::VALUE_INFINITY</ref>)</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;%s((float)%s<sp/>&gt;=<sp/>%.8ff)&quot;</highlight><highlight class="normal">,<sp/>eq<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;!&quot;</highlight><highlight class="normal">,<sp/>deref.c_str(),<sp/>valueBounds.getMin());</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(</highlight><highlight class="stringliteral">&quot;%s((float)%s<sp/>&gt;=<sp/>%.8ff<sp/>&amp;&amp;<sp/>(float)%s<sp/>&lt;<sp/>%.8ff)&quot;</highlight><highlight class="normal">,<sp/>eq<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;!&quot;</highlight><highlight class="normal">,<sp/>deref.c_str(),<sp/>valueBounds.getMin(),</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>deref.c_str(),<sp/>valueBounds.getMax());</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(val.cmpop-&gt;op-&gt;num)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_eq:<sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(makeEqNeq(</highlight><highlight class="keyword">true</highlight><highlight class="normal">).c_str());<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_assign:<sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(makeEqNeq(</highlight><highlight class="keyword">true</highlight><highlight class="normal">).c_str());<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_greater:<sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(makeG().c_str());<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_greatereq:<sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(makeGe().c_str());<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_smaller:<sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(makeL().c_str());<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_smallereq:<sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(makeLe().c_str());<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_noteq:<sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(makeEqNeq(</highlight><highlight class="keyword">false</highlight><highlight class="normal">).c_str());<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.texture_name)</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[vi,<sp/>vt,<sp/>isGlobal]<sp/>=<sp/><ref refid="namespacesemantic_1a69d749806268f5b3b7cafa16cab36787" kindref="member">semantic::lookup_state_var</ref>(*val.texture_name,<sp/>ctx);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(vi<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"></highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*op;</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(val.cmpop-&gt;op-&gt;num)</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_eq:</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_assign:<sp/>op<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;==&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_noteq:<sp/>op<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;!=&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(isGlobal)</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;*&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(val.texture_name-&gt;text);</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;VAR(&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(val.texture_name-&gt;text);</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;,<sp/>uint)&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(op);</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;0u&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="292"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight></codeline>
+<codeline lineno="294"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>StcodeBranchedBuildEvalCB::buildConditionBoolNot(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>not_expr<sp/>&amp;e,<sp/><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref><sp/>&amp;out)</highlight></codeline>
+<codeline lineno="295"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.is_not)</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;!&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.value-&gt;expr)</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;(&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/>buildConditionString(*e.value-&gt;expr,<sp/>out);</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;)&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/>buildConditionBoolValue(*e.value,<sp/>out);</highlight></codeline>
+<codeline lineno="306"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight></codeline>
+<codeline lineno="308"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>StcodeBranchedBuildEvalCB::buildConditionBoolAnd(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>and_expr<sp/>&amp;e,<sp/><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref><sp/>&amp;out)</highlight></codeline>
+<codeline lineno="309"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.value)</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/>buildConditionBoolNot(*e.value,<sp/>out);</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"></highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;(&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/>buildConditionBoolAnd(*e.a,<sp/>out);</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;<sp/>&amp;&amp;<sp/>&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/>buildConditionBoolNot(*e.b,<sp/>out);</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;)&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="321"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"></highlight></codeline>
+<codeline lineno="323"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>StcodeBranchedBuildEvalCB::buildConditionString(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>bool_expr<sp/>&amp;e,<sp/><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref><sp/>&amp;out)</highlight></codeline>
+<codeline lineno="324"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><ref refid="classShVarBool" kindref="compound">ShVarBool</ref><sp/>res<sp/>=<sp/>evalBoolStat(e);</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res.<ref refid="classShVarBool_1a56bef58e491d1cb5488cd5be282fe3bc" kindref="member">isConst</ref>)</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(boolToStr(res.<ref refid="classShVarBool_1aa1e84216403109d360db42129c7f698d" kindref="member">value</ref>));</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"></highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(e.value)</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/>buildConditionBoolAnd(*e.value,<sp/>out);</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"></highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;(&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/>buildConditionString(*e.a,<sp/>out);</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;<sp/>||<sp/>&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/>buildConditionBoolAnd(*e.b,<sp/>out);</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/>out.<ref refid="classStcodeBuilder_1afa302f57e7422c4efbe63df807e61e2f" kindref="member">emplaceBack</ref>(</highlight><highlight class="stringliteral">&quot;)&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="343"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="cppStcodePasses.cpp"/>
+  </compounddef>
+</doxygen>

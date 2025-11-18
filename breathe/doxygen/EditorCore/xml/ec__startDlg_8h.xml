@@ -1,0 +1,184 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__startDlg_8h" kind="file" language="C++">
+    <compoundname>ec_startDlg.h</compoundname>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <includes local="no">propPanel/messageQueue.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_startDlg.h</label>
+        <link refid="ec__startDlg_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="3">
+        <label>propPanel/messageQueue.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classEditorStartDialog" prot="public">EditorStartDialog</innerclass>
+    <innerclass refid="classWorkspaceDialog" prot="public">WorkspaceDialog</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600ac7babd329144cc3ab3f18977de8186f0" prot="public">
+          <name>ID_START_DIALOG_COMBO</name>
+          <initializer>= 400</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600a9bfef33518d87af8e076973d74f93c2e" prot="public">
+          <name>ID_START_DIALOG_ERROR_MESSAGE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600ad56c9040903662d54c0301f6345c34dd" prot="public">
+          <name>ID_START_DIALOG_BUTTON_ADD</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600a449143e430c7bded91546972c988ae5c" prot="public">
+          <name>ID_START_DIALOG_BUTTON_EDIT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="12" column="1" bodyfile="ec_startDlg.h" bodystart="13" bodyend="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/messageQueue.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref>;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>dialog<sp/>control<sp/>IDs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14" refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600ac7babd329144cc3ab3f18977de8186f0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600ac7babd329144cc3ab3f18977de8186f0" kindref="member">ID_START_DIALOG_COMBO</ref><sp/>=<sp/>400,</highlight></codeline>
+<codeline lineno="15" refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600a9bfef33518d87af8e076973d74f93c2e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600a9bfef33518d87af8e076973d74f93c2e" kindref="member">ID_START_DIALOG_ERROR_MESSAGE</ref>,</highlight></codeline>
+<codeline lineno="16" refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600ad56c9040903662d54c0301f6345c34dd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600ad56c9040903662d54c0301f6345c34dd" kindref="member">ID_START_DIALOG_BUTTON_ADD</ref>,</highlight></codeline>
+<codeline lineno="17" refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600a449143e430c7bded91546972c988ae5c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__startDlg_8h_1abed82baf7f470b522273a3e37c24c600a449143e430c7bded91546972c988ae5c" kindref="member">ID_START_DIALOG_BUTTON_EDIT</ref>,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="classEditorStartDialog" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classEditorStartDialog" kindref="compound">EditorStartDialog</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::DialogWindow,<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::IDelayedCallbackHandler</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24" refid="classEditorStartDialog_1ac21640bf4857468dd9e5ebad6fc6f505" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classEditorStartDialog_1ac21640bf4857468dd9e5ebad6fc6f505" kindref="member">EditorStartDialog</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*caption,<sp/><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>&amp;<ref refid="classEditorStartDialog_1a4f0fcb95f0ec2cf782267722be2f6d88" kindref="member">wsp</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*wsp_blk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*select_wsp);</highlight></codeline>
+<codeline lineno="25" refid="classEditorStartDialog_1a57078863a417d9c32b061aa314efaec7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classEditorStartDialog_1a57078863a417d9c32b061aa314efaec7" kindref="member">~EditorStartDialog</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="classEditorStartDialog_1ac03896b75077229e433f2b8464afaa90" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1ac03896b75077229e433f2b8464afaa90" kindref="member">editWorkspace</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classEditorStartDialog_1a3952b2032f4dc435cbdb638d87348e37" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="classEditorStartDialog_1a3952b2032f4dc435cbdb638d87348e37" kindref="member">getStartWorkspace</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>startWsp;<sp/>}</highlight></codeline>
+<codeline lineno="30" refid="classEditorStartDialog_1a731531b5b7f68859f745e5932fa63d13" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a731531b5b7f68859f745e5932fa63d13" kindref="member">getWorkspaceIndex</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DialogWindow<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="classEditorStartDialog_1a06052241b1bf3741bb1822088cf3d79a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a06052241b1bf3741bb1822088cf3d79a" kindref="member">onOk</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35" refid="classEditorStartDialog_1ad27a0991f8d6d6ab9f94d9999414661e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1ad27a0991f8d6d6ab9f94d9999414661e" kindref="member">onCancel</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ControlEventHandler<sp/>methods<sp/>from<sp/>CDialogWindow</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classEditorStartDialog_1a5bd9d03c28c9e2f750af415d49667994" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a5bd9d03c28c9e2f750af415d49667994" kindref="member">onChange</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="40" refid="classEditorStartDialog_1a8eda70c74f3577a4dd615b8b834fa78a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a8eda70c74f3577a4dd615b8b834fa78a" kindref="member">onClick</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classEditorStartDialog_1a57dc29e7f4a172964be72e5aef365d56" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a57dc29e7f4a172964be72e5aef365d56" kindref="member">onCustomFillPanel</ref>(PropPanel::ContainerPropertyControl<sp/>&amp;panel)<sp/>{}</highlight></codeline>
+<codeline lineno="43" refid="classEditorStartDialog_1a863f2c0b36001704133b293b8eac82b2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a863f2c0b36001704133b293b8eac82b2" kindref="member">onCustomSettings</ref>(PropPanel::ContainerPropertyControl<sp/>&amp;panel)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="46" refid="classEditorStartDialog_1a4f0fcb95f0ec2cf782267722be2f6d88" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>&amp;<ref refid="classEditorStartDialog_1a4f0fcb95f0ec2cf782267722be2f6d88" kindref="member">wsp</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="classEditorStartDialog_1a935e6c755a01e6aaf7a795e83af3ac3f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a935e6c755a01e6aaf7a795e83af3ac3f" kindref="member">getCustomTop</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>customTop;<sp/>}</highlight></codeline>
+<codeline lineno="49" refid="classEditorStartDialog_1a54152d9fbb8112c00c1b227b7f2b9325" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a54152d9fbb8112c00c1b227b7f2b9325" kindref="member">isWspEditing</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>editWsp;<sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>IDelayedCallbackHandler</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="classEditorStartDialog_1ac703647d83080262eb419accbfba00d9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1ac703647d83080262eb419accbfba00d9" kindref="member">onImguiDelayedCallback</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*user_data)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="classEditorStartDialog_1a4e49e9003393621712a84e1ebf108df1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a4e49e9003393621712a84e1ebf108df1" kindref="member">updateImguiDialog</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classEditorStartDialog_1ab928c6bd3ee0fefa2d9fdd58934a9a98" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1ab928c6bd3ee0fefa2d9fdd58934a9a98" kindref="member">createCustom</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="classEditorStartDialog_1a6b39472605c55a7b145b65012041ee85" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a6b39472605c55a7b145b65012041ee85" kindref="member">onChangeWorkspace</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="classEditorStartDialog_1a131141199fa1b205989eacef2b8d4520" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a131141199fa1b205989eacef2b8d4520" kindref="member">onAddWorkspace</ref>();</highlight></codeline>
+<codeline lineno="61" refid="classEditorStartDialog_1a58007415bf7865b6bd69a8633f10a75c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a58007415bf7865b6bd69a8633f10a75c" kindref="member">onEditWorkspace</ref>();</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="classEditorStartDialog_1aeaa2eaa724c3009335995f4777eadc7e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1aeaa2eaa724c3009335995f4777eadc7e" kindref="member">reloadWsp</ref>();</highlight></codeline>
+<codeline lineno="64" refid="classEditorStartDialog_1a3df08fd42e0f5f2606f976dabef315a2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classEditorStartDialog_1a3df08fd42e0f5f2606f976dabef315a2" kindref="member">updateOkButtonState</ref>();</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>String<sp/>startWsp;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/>String<sp/>blkName;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>editWsp;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>wspInited;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showAddWorkspaceDialog<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>selectedWorkspaceValid<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>customTop;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>initWsp(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>init_combo);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classWorkspaceDialog" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classWorkspaceDialog" kindref="compound">WorkspaceDialog</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::DialogWindow</highlight></codeline>
+<codeline lineno="82"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="84" refid="classWorkspaceDialog_1a57dd9b0307c801a1d62d2be280e1a4f8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classWorkspaceDialog_1a57dd9b0307c801a1d62d2be280e1a4f8" kindref="member">WorkspaceDialog</ref>(<ref refid="classEditorStartDialog" kindref="compound">EditorStartDialog</ref><sp/>*esd,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*caption,<sp/><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>&amp;wsp,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_editing);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DialogWindow<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="classWorkspaceDialog_1ac21db32cb7bdc1fa01854238f286fd00" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classWorkspaceDialog_1ac21db32cb7bdc1fa01854238f286fd00" kindref="member">onOk</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="89" refid="classWorkspaceDialog_1a2a71605eb16aa01f26ff644c43f17601" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classWorkspaceDialog_1a2a71605eb16aa01f26ff644c43f17601" kindref="member">onCancel</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>};</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ControlEventHandler<sp/>methods<sp/>from<sp/>CDialogWindow</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="classWorkspaceDialog_1a976c45081ddfe71bf88e2c4990e8d482" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classWorkspaceDialog_1a976c45081ddfe71bf88e2c4990e8d482" kindref="member">onChange</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="94" refid="classWorkspaceDialog_1a93e6e73bf96a89a7a338d4bc56308c82" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classWorkspaceDialog_1a93e6e73bf96a89a7a338d4bc56308c82" kindref="member">onClick</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="99" refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af6313993ab3f7a5399620a0c0181318c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af6313993ab3f7a5399620a0c0181318c" kindref="member">PID_COMMON_PARAMETERS_GRP</ref>,</highlight></codeline>
+<codeline lineno="100" refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6a3425cee9a85f20430ff486fdd47e1a40" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6a3425cee9a85f20430ff486fdd47e1a40" kindref="member">PID_WSP_NAME</ref>,</highlight></codeline>
+<codeline lineno="101" refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af314f2e75f223eae075ce98084a1dc32" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af314f2e75f223eae075ce98084a1dc32" kindref="member">PID_APP_FOLDER</ref>,</highlight></codeline>
+<codeline lineno="102" refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ad0a4ab187ca58d72447d23b1f9550a41" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ad0a4ab187ca58d72447d23b1f9550a41" kindref="member">PID_NEW_APPLICATION</ref>,</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ae194936d49f58e3e35789ad25b4c5189" kindref="member">PID_CUSTOM_PARAMETERS</ref></highlight></codeline>
+<codeline lineno="104" refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ae194936d49f58e3e35789ad25b4c5189" refkind="member"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106" refid="classWorkspaceDialog_1ade13ffe443a740b59019a954b676db36" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>&amp;<ref refid="classWorkspaceDialog_1ade13ffe443a740b59019a954b676db36" kindref="member">mWsp</ref>;</highlight></codeline>
+<codeline lineno="107" refid="classWorkspaceDialog_1a81a52495576a0d1eb69d369d14baa567" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classWorkspaceDialog_1a81a52495576a0d1eb69d369d14baa567" kindref="member">mEditing</ref>;</highlight></codeline>
+<codeline lineno="108" refid="classWorkspaceDialog_1a989913aaa8bc4e9f3a6c5f14b66a5fee" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classEditorStartDialog" kindref="compound">EditorStartDialog</ref><sp/>*<ref refid="classWorkspaceDialog_1a989913aaa8bc4e9f3a6c5f14b66a5fee" kindref="member">mEsd</ref>;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_startDlg.h"/>
+  </compounddef>
+</doxygen>

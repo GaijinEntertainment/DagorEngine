@@ -1,0 +1,530 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structamd_1_1FSR" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>amd::FSR</compoundname>
+    <includes refid="dag__amdFsr_8h" local="no">dag_amdFsr.h</includes>
+    <innerclass refid="structamd_1_1FSR_1_1ContextArgs" prot="public">amd::FSR::ContextArgs</innerclass>
+    <innerclass refid="structamd_1_1FSR_1_1FrameGenArgsBase" prot="public">amd::FSR::FrameGenArgsBase</innerclass>
+    <innerclass refid="structamd_1_1FSR_1_1UpscalingArgsBase" prot="public">amd::FSR::UpscalingArgsBase</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277" prot="public" static="no" strong="yes">
+        <type>int</type>
+        <name>UpscalingMode</name>
+        <qualifiedname>amd::FSR::UpscalingMode</qualifiedname>
+        <enumvalue id="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277ad15305d7a4e34e02489c74a5ef542f36" prot="public">
+          <name>Off</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277a35fe66b5fe954223b6065053c77662c7" prot="public">
+          <name>NativeAA</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277a571094bb27864b600d8e6b561a137a55" prot="public">
+          <name>Quality</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277ac6589f5236c0c434d0c63dc5f9a856f2" prot="public">
+          <name>Balanced</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277a9446a98ad14416153cc4d45ab8b531bf" prot="public">
+          <name>Performance</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277aa5dbce8b5b2a944b06625b878ccf8bd8" prot="public">
+          <name>UltraPerformance</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="23" column="3" bodyfile="dag_amdFsr.h" bodystart="24" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structamd_1_1FSR_1a9794e6645b2a40dc7c46beb392041436" prot="public" static="no">
+        <type><ref refid="structamd_1_1FSR_1_1UpscalingArgsBase" kindref="compound">UpscalingArgsBase</ref>&lt; <ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> &gt;</type>
+        <definition>using amd::FSR::UpscalingArgs =  UpscalingArgsBase&lt;Texture&gt;</definition>
+        <argsstring></argsstring>
+        <name>UpscalingArgs</name>
+        <qualifiedname>amd::FSR::UpscalingArgs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="98" column="3" bodyfile="dag_amdFsr.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structamd_1_1FSR_1a493724e5791849deff9306e3d17f46e9" prot="public" static="no">
+        <type><ref refid="structamd_1_1FSR_1_1UpscalingArgsBase" kindref="compound">UpscalingArgsBase</ref>&lt; void &gt;</type>
+        <definition>using amd::FSR::UpscalingPlatformArgs =  UpscalingArgsBase&lt;void&gt;</definition>
+        <argsstring></argsstring>
+        <name>UpscalingPlatformArgs</name>
+        <qualifiedname>amd::FSR::UpscalingPlatformArgs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="99" column="3" bodyfile="dag_amdFsr.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structamd_1_1FSR_1ac3facf4b48514ca78a466587bb56ea67" prot="public" static="no">
+        <type><ref refid="structamd_1_1FSR_1_1FrameGenArgsBase" kindref="compound">FrameGenArgsBase</ref>&lt; <ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> &gt;</type>
+        <definition>using amd::FSR::FrameGenArgs =  FrameGenArgsBase&lt;Texture&gt;</definition>
+        <argsstring></argsstring>
+        <name>FrameGenArgs</name>
+        <qualifiedname>amd::FSR::FrameGenArgs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="143" column="3" bodyfile="dag_amdFsr.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structamd_1_1FSR_1ad9b6c1678e50511afa94d98fc7886304" prot="public" static="no">
+        <type><ref refid="structamd_1_1FSR_1_1FrameGenArgsBase" kindref="compound">FrameGenArgsBase</ref>&lt; void &gt;</type>
+        <definition>using amd::FSR::FrameGenPlatformArgs =  FrameGenArgsBase&lt;void&gt;</definition>
+        <argsstring></argsstring>
+        <name>FrameGenPlatformArgs</name>
+        <qualifiedname>amd::FSR::FrameGenPlatformArgs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="144" column="3" bodyfile="dag_amdFsr.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structamd_1_1FSR_1af2a207e0227b261f1d804830e304da80" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277" kindref="member">UpscalingMode</ref></type>
+        <definition>static UpscalingMode amd::FSR::getUpscalingMode</definition>
+        <argsstring>(const DataBlock &amp;video)</argsstring>
+        <name>getUpscalingMode</name>
+        <qualifiedname>amd::FSR::getUpscalingMode</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>video</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="146" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1ac1df069481fa63d8c2e9b551468ccfac" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool amd::FSR::isSupported</definition>
+        <argsstring>()</argsstring>
+        <name>isSupported</name>
+        <qualifiedname>amd::FSR::isSupported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="148" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a2765a71d4e38cb41d1fd1373008e6816" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int amd::FSR::getMaximumNumberOfGeneratedFrames</definition>
+        <argsstring>()</argsstring>
+        <name>getMaximumNumberOfGeneratedFrames</name>
+        <qualifiedname>amd::FSR::getMaximumNumberOfGeneratedFrames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="150" column="14"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structamd_1_1FSR_1ac14a03d136f7dc9355fa73284c2371f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void amd::FSR::applyUpscaling</definition>
+        <argsstring>(const UpscalingArgs &amp;args)</argsstring>
+        <name>applyUpscaling</name>
+        <qualifiedname>amd::FSR::applyUpscaling</qualifiedname>
+        <param>
+          <type>const <ref refid="structamd_1_1FSR_1a9794e6645b2a40dc7c46beb392041436" kindref="member">UpscalingArgs</ref> &amp;</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="152" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1ae363ae6b3e03d9bda3285ada53c3fbe6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void amd::FSR::scheduleGeneratedFrames</definition>
+        <argsstring>(const FrameGenArgs &amp;args)</argsstring>
+        <name>scheduleGeneratedFrames</name>
+        <qualifiedname>amd::FSR::scheduleGeneratedFrames</qualifiedname>
+        <param>
+          <type>const <ref refid="structamd_1_1FSR_1ac3facf4b48514ca78a466587bb56ea67" kindref="member">FrameGenArgs</ref> &amp;</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="153" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a355a4ea45045e541d094a9fe3f21b005" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual amd::FSR::~FSR</definition>
+        <argsstring>()=default</argsstring>
+        <name>~FSR</name>
+        <qualifiedname>amd::FSR::~FSR</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="155" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a6a75b2f92dbd29d1e21eee0a4808c58e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool amd::FSR::isLoaded</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isLoaded</name>
+        <qualifiedname>amd::FSR::isLoaded</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="157" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a5a00e03e2d4e666c14747349daca5df0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool amd::FSR::isUpscalingSupported</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isUpscalingSupported</name>
+        <qualifiedname>amd::FSR::isUpscalingSupported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="159" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1aef4412f08aa97ab2e767c53ba806ec86" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool amd::FSR::isFrameGenerationSupported</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isFrameGenerationSupported</name>
+        <qualifiedname>amd::FSR::isFrameGenerationSupported</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="160" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a12d39700161c7d8d218c059a68b94d51" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool amd::FSR::initUpscaling</definition>
+        <argsstring>(const ContextArgs &amp;args)=0</argsstring>
+        <name>initUpscaling</name>
+        <qualifiedname>amd::FSR::initUpscaling</qualifiedname>
+        <param>
+          <type>const <ref refid="structamd_1_1FSR_1_1ContextArgs" kindref="compound">ContextArgs</ref> &amp;</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="162" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1aa2c48fed5391c9d0615d5de0a4044c36" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void amd::FSR::teardownUpscaling</definition>
+        <argsstring>()=0</argsstring>
+        <name>teardownUpscaling</name>
+        <qualifiedname>amd::FSR::teardownUpscaling</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="163" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a85f06940aa84bdfced14e6cafafa7272" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>Point2</type>
+        <definition>virtual Point2 amd::FSR::getNextJitter</definition>
+        <argsstring>(uint32_t render_width, uint32_t output_width)=0</argsstring>
+        <name>getNextJitter</name>
+        <qualifiedname>amd::FSR::getNextJitter</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>render_width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>output_width</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="165" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a79f2de0fc5bbc44aa0cbb5130218f6f0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277" kindref="member">UpscalingMode</ref></type>
+        <definition>virtual UpscalingMode amd::FSR::getUpscalingMode</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getUpscalingMode</name>
+        <qualifiedname>amd::FSR::getUpscalingMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="167" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a4a0a17f14b9666425e690d49bde9f494" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>IPoint2</type>
+        <definition>virtual IPoint2 amd::FSR::getRenderingResolution</definition>
+        <argsstring>(UpscalingMode mode, const IPoint2 &amp;target_resolution) const =0</argsstring>
+        <name>getRenderingResolution</name>
+        <qualifiedname>amd::FSR::getRenderingResolution</qualifiedname>
+        <param>
+          <type><ref refid="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277" kindref="member">UpscalingMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>target_resolution</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="169" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a728af9ab1dc26926db0b5f44af1ee711" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool amd::FSR::doApplyUpscaling</definition>
+        <argsstring>(const UpscalingPlatformArgs &amp;args, void *command_list) const =0</argsstring>
+        <name>doApplyUpscaling</name>
+        <qualifiedname>amd::FSR::doApplyUpscaling</qualifiedname>
+        <param>
+          <type>const <ref refid="structamd_1_1FSR_1a493724e5791849deff9306e3d17f46e9" kindref="member">UpscalingPlatformArgs</ref> &amp;</type>
+          <declname>args</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>command_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="172" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1ae05183e21d87071613be4dd17ec31772" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>String</type>
+        <definition>virtual String amd::FSR::getVersionString</definition>
+        <argsstring>() const</argsstring>
+        <name>getVersionString</name>
+        <qualifiedname>amd::FSR::getVersionString</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="174" column="18" bodyfile="dag_amdFsr.h" bodystart="174" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a6f39c11ec2c5b8917c74d05a163d0052" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void amd::FSR::enableFrameGeneration</definition>
+        <argsstring>(bool enable)=0</argsstring>
+        <name>enableFrameGeneration</name>
+        <qualifiedname>amd::FSR::enableFrameGeneration</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="176" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1ac7420cbed0b83ff10240b8f57d78b720" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void amd::FSR::suppressFrameGeneration</definition>
+        <argsstring>(bool suppress)=0</argsstring>
+        <name>suppressFrameGeneration</name>
+        <qualifiedname>amd::FSR::suppressFrameGeneration</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>suppress</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="177" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a983edf92ffad23d5f0271a9cb37c7a9b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void amd::FSR::doScheduleGeneratedFrames</definition>
+        <argsstring>(const FrameGenPlatformArgs &amp;args, void *command_list)=0</argsstring>
+        <name>doScheduleGeneratedFrames</name>
+        <qualifiedname>amd::FSR::doScheduleGeneratedFrames</qualifiedname>
+        <param>
+          <type>const <ref refid="structamd_1_1FSR_1ad9b6c1678e50511afa94d98fc7886304" kindref="member">FrameGenPlatformArgs</ref> &amp;</type>
+          <declname>args</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>command_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="178" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1a557bd27118525c89a9d1e9c0d535703c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int amd::FSR::getPresentedFrameCount</definition>
+        <argsstring>()=0</argsstring>
+        <name>getPresentedFrameCount</name>
+        <qualifiedname>amd::FSR::getPresentedFrameCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="179" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1acbe122303df8573f130a58451ed1410d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool amd::FSR::isFrameGenerationActive</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isFrameGenerationActive</name>
+        <qualifiedname>amd::FSR::isFrameGenerationActive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="180" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1ad982ce52553d9ab248bdb31394828965" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool amd::FSR::isFrameGenerationSuppressed</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isFrameGenerationSuppressed</name>
+        <qualifiedname>amd::FSR::isFrameGenerationSuppressed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="181" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_amdFsr.h" line="21" column="1" bodyfile="dag_amdFsr.h" bodystart="22" bodyend="182"/>
+    <listofallmembers>
+      <member refid="structamd_1_1FSR_1ac14a03d136f7dc9355fa73284c2371f8" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>applyUpscaling</name></member>
+      <member refid="structamd_1_1FSR_1a728af9ab1dc26926db0b5f44af1ee711" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>doApplyUpscaling</name></member>
+      <member refid="structamd_1_1FSR_1a983edf92ffad23d5f0271a9cb37c7a9b" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>doScheduleGeneratedFrames</name></member>
+      <member refid="structamd_1_1FSR_1a6f39c11ec2c5b8917c74d05a163d0052" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>enableFrameGeneration</name></member>
+      <member refid="structamd_1_1FSR_1ac3facf4b48514ca78a466587bb56ea67" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>FrameGenArgs</name></member>
+      <member refid="structamd_1_1FSR_1ad9b6c1678e50511afa94d98fc7886304" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>FrameGenPlatformArgs</name></member>
+      <member refid="structamd_1_1FSR_1a2765a71d4e38cb41d1fd1373008e6816" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>getMaximumNumberOfGeneratedFrames</name></member>
+      <member refid="structamd_1_1FSR_1a85f06940aa84bdfced14e6cafafa7272" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>getNextJitter</name></member>
+      <member refid="structamd_1_1FSR_1a557bd27118525c89a9d1e9c0d535703c" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>getPresentedFrameCount</name></member>
+      <member refid="structamd_1_1FSR_1a4a0a17f14b9666425e690d49bde9f494" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>getRenderingResolution</name></member>
+      <member refid="structamd_1_1FSR_1af2a207e0227b261f1d804830e304da80" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>getUpscalingMode</name></member>
+      <member refid="structamd_1_1FSR_1a79f2de0fc5bbc44aa0cbb5130218f6f0" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>getUpscalingMode</name></member>
+      <member refid="structamd_1_1FSR_1ae05183e21d87071613be4dd17ec31772" prot="public" virt="virtual"><scope>amd::FSR</scope><name>getVersionString</name></member>
+      <member refid="structamd_1_1FSR_1a12d39700161c7d8d218c059a68b94d51" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>initUpscaling</name></member>
+      <member refid="structamd_1_1FSR_1acbe122303df8573f130a58451ed1410d" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>isFrameGenerationActive</name></member>
+      <member refid="structamd_1_1FSR_1aef4412f08aa97ab2e767c53ba806ec86" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>isFrameGenerationSupported</name></member>
+      <member refid="structamd_1_1FSR_1ad982ce52553d9ab248bdb31394828965" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>isFrameGenerationSuppressed</name></member>
+      <member refid="structamd_1_1FSR_1a6a75b2f92dbd29d1e21eee0a4808c58e" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>isLoaded</name></member>
+      <member refid="structamd_1_1FSR_1ac1df069481fa63d8c2e9b551468ccfac" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>isSupported</name></member>
+      <member refid="structamd_1_1FSR_1a5a00e03e2d4e666c14747349daca5df0" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>isUpscalingSupported</name></member>
+      <member refid="structamd_1_1FSR_1ae363ae6b3e03d9bda3285ada53c3fbe6" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>scheduleGeneratedFrames</name></member>
+      <member refid="structamd_1_1FSR_1ac7420cbed0b83ff10240b8f57d78b720" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>suppressFrameGeneration</name></member>
+      <member refid="structamd_1_1FSR_1aa2c48fed5391c9d0615d5de0a4044c36" prot="public" virt="pure-virtual"><scope>amd::FSR</scope><name>teardownUpscaling</name></member>
+      <member refid="structamd_1_1FSR_1a9794e6645b2a40dc7c46beb392041436" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>UpscalingArgs</name></member>
+      <member refid="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>UpscalingMode</name></member>
+      <member refid="structamd_1_1FSR_1a493724e5791849deff9306e3d17f46e9" prot="public" virt="non-virtual"><scope>amd::FSR</scope><name>UpscalingPlatformArgs</name></member>
+      <member refid="structamd_1_1FSR_1a355a4ea45045e541d094a9fe3f21b005" prot="public" virt="virtual"><scope>amd::FSR</scope><name>~FSR</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

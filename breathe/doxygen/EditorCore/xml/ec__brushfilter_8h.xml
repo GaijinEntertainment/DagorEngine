@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__brushfilter_8h" kind="file" language="C++">
+    <compoundname>ec_brushfilter.h</compoundname>
+    <includes refid="ec__interface_8h" local="no">EditorCore/ec_interface.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_brushfilter.h</label>
+        <link refid="ec__brushfilter_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="3">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="8">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="4">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="7">
+        <label>propPanel/control/menu.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classBrushEventFilter" prot="public">BrushEventFilter</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__interface_8h" kindref="compound">EditorCore/ec_interface.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBrush" kindref="compound">Brush</ref>;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="classBrushEventFilter" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="21" refid="classBrushEventFilter_1ae4ba73258e9d7a7c042b083feaa86c94" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBrushEventFilter_1ae4ba73258e9d7a7c042b083feaa86c94" kindref="member">BrushEventFilter</ref>();</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="classBrushEventFilter_1ae1e7797113909b7f4e5f80591b74445d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1ae1e7797113909b7f4e5f80591b74445d" kindref="member">isActive</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>active;<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classBrushEventFilter_1ae599f65dff5400f41b52120852418424" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1ae599f65dff5400f41b52120852418424" kindref="member">setBrush</ref>(<ref refid="classBrush" kindref="compound">Brush</ref><sp/>*brush)<sp/>{<sp/>curBrush<sp/>=<sp/>brush;<sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classBrushEventFilter_1a199795d223a111050cd6d302317239ac" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classBrush" kindref="compound">Brush</ref><sp/>*<ref refid="classBrushEventFilter_1a199795d223a111050cd6d302317239ac" kindref="member">getBrush</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>curBrush;<sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="classBrushEventFilter_1a405e4804729ac13b424725f58f6377d8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a405e4804729ac13b424725f58f6377d8" kindref="member">activate</ref>()<sp/>{<sp/>active<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classBrushEventFilter_1a46a0eeae0ff09bf59b874f8346a6019b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a46a0eeae0ff09bf59b874f8346a6019b" kindref="member">deactivate</ref>()<sp/>{<sp/>active<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classBrushEventFilter_1ac7e91008ad06a02ee79f090d57d56f16" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1ac7e91008ad06a02ee79f090d57d56f16" kindref="member">renderBrush</ref>();</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*******************************************************</highlight></codeline>
+<codeline lineno="46"><highlight class="comment"></highlight></codeline>
+<codeline lineno="47"></codeline>
+<codeline lineno="50" refid="classBrushEventFilter_1a5f3829fbeb298682327f31c4c8fed17b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a5f3829fbeb298682327f31c4c8fed17b" kindref="member">handleMouseMove</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classBrushEventFilter_1a866a69f1561c3a8fb6c5d7c2192d1279" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a866a69f1561c3a8fb6c5d7c2192d1279" kindref="member">handleMouseLBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="classBrushEventFilter_1a11cc9976d27245e67d27f2a6d497a4cf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a11cc9976d27245e67d27f2a6d497a4cf" kindref="member">handleMouseLBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classBrushEventFilter_1a9582e177037c55763a4ddc5cdf949995" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a9582e177037c55763a4ddc5cdf949995" kindref="member">handleMouseRBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classBrushEventFilter_1a0ae9874443d9dad4b23c61621dc36d90" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a0ae9874443d9dad4b23c61621dc36d90" kindref="member">handleMouseRBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="classBrushEventFilter_1ae1a0eed537c6df7e9ed055955eb421d6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1ae1a0eed537c6df7e9ed055955eb421d6" kindref="member">handleMouseCBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="73" refid="classBrushEventFilter_1a049b7309366eec8d92b93595dd37d1f3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a049b7309366eec8d92b93595dd37d1f3" kindref="member">handleMouseCBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="classBrushEventFilter_1ae7caa0cde7f7ad728cdcc1fab473e348" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1ae7caa0cde7f7ad728cdcc1fab473e348" kindref="member">handleMouseWheel</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>wheel_d,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="76" refid="classBrushEventFilter_1a0d3e93b2e4097257b1a96a9583802016" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a0d3e93b2e4097257b1a96a9583802016" kindref="member">handleMouseDoubleClick</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*******************************************************</highlight></codeline>
+<codeline lineno="82"><highlight class="comment"></highlight></codeline>
+<codeline lineno="83" refid="classBrushEventFilter_1a67a245c7c1da12b141f7b1cdc25d79a5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1a67a245c7c1da12b141f7b1cdc25d79a5" kindref="member">handleViewportPaint</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="84" refid="classBrushEventFilter_1acb7d1472c67ab1f1b8209f5b3c04b009" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBrushEventFilter_1acb7d1472c67ab1f1b8209f5b3c04b009" kindref="member">handleViewChange</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><ref refid="classBrush" kindref="compound">Brush</ref><sp/>*curBrush;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>active;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_brushfilter.h"/>
+  </compounddef>
+</doxygen>

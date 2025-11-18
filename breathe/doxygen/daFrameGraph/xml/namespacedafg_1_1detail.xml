@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedafg_1_1detail" kind="namespace" language="C++">
+    <compoundname>dafg::detail</compoundname>
+    <innerclass refid="structdafg_1_1detail_1_1IPointImpl" prot="public">dafg::detail::IPointImpl</innerclass>
+    <innerclass refid="structdafg_1_1detail_1_1IPointImpl_3_012_01_4" prot="public">dafg::detail::IPointImpl&lt; 2 &gt;</innerclass>
+    <innerclass refid="structdafg_1_1detail_1_1IPointImpl_3_013_01_4" prot="public">dafg::detail::IPointImpl&lt; 3 &gt;</innerclass>
+    <innerclass refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" prot="public">dafg::detail::VirtualAttachmentRequest</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="autoResolutionRequest.h" line="17" column="1"/>
+  </compounddef>
+</doxygen>

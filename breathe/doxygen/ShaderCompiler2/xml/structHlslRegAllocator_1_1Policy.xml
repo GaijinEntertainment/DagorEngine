@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structHlslRegAllocator_1_1Policy" kind="struct" language="C++" prot="public">
+    <compoundname>HlslRegAllocator::Policy</compoundname>
+    <includes refid="hlslRegisters_8h" local="no">hlslRegisters.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t HlslRegAllocator::Policy::base</definition>
+        <argsstring></argsstring>
+        <name>base</name>
+        <qualifiedname>HlslRegAllocator::Policy::base</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="116" column="14" bodyfile="hlslRegisters.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t HlslRegAllocator::Policy::cap</definition>
+        <argsstring></argsstring>
+        <name>cap</name>
+        <qualifiedname>HlslRegAllocator::Policy::cap</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="116" column="20" bodyfile="hlslRegisters.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structHlslRegAllocator_1_1Policy_1a154a28ad78232541a89745ff80487d41" prot="public" static="no" mutable="no">
+        <type>allocator_scan_routine_t</type>
+        <definition>allocator_scan_routine_t HlslRegAllocator::Policy::scanner</definition>
+        <argsstring></argsstring>
+        <name>scanner</name>
+        <qualifiedname>HlslRegAllocator::Policy::scanner</qualifiedname>
+        <initializer>= <ref refid="classHlslRegAllocator_1ab7e50b1fbb35f345fa3e8790fcc327b4" kindref="member">DEFAULT_SCAN</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hlslRegisters.h" line="117" column="30" bodyfile="hlslRegisters.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="1">
+        <label>HlslRegAllocator::Policy</label>
+        <link refid="structHlslRegAllocator_1_1Policy"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>scanner</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="hlslRegisters.h" line="114" column="3" bodyfile="hlslRegisters.h" bodystart="115" bodyend="118"/>
+    <listofallmembers>
+      <member refid="structHlslRegAllocator_1_1Policy_1ae4ef40d32b4e10529d049c78e85b1287" prot="public" virt="non-virtual"><scope>HlslRegAllocator::Policy</scope><name>base</name></member>
+      <member refid="structHlslRegAllocator_1_1Policy_1aab4b4af9a4900829c130764cbbbaa202" prot="public" virt="non-virtual"><scope>HlslRegAllocator::Policy</scope><name>cap</name></member>
+      <member refid="structHlslRegAllocator_1_1Policy_1a154a28ad78232541a89745ff80487d41" prot="public" virt="non-virtual"><scope>HlslRegAllocator::Policy</scope><name>scanner</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

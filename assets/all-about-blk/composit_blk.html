@@ -1,0 +1,1577 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>.composit.blk</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title=".config.blk and .settings.blk" href="config_and_settings_blk.html" />
+    <link rel="prev" title="application.blk" href="application_blk.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="application_blk.html"><code class="docutils literal notranslate"><span class="pre">application.blk</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#what-is-a-composite-object">What is a Composite Object?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#contents-of-composit-blk-files">Contents of <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code> Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-of-declaring-a-single-object">Example of Declaring a Single Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-of-declaring-a-random-node">Example of Declaring a Random Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-of-declaring-multiple-objects">Example of Declaring Multiple Objects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-of-declaring-random-transforms">Example of Declaring Random Transforms</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#available-parameters-for-randomization">Available Parameters for Randomization</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#random-transforms-for-multiple-composites-simultaneously">Random Transforms for Multiple Composites Simultaneously</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#structure-of-file-with-random-transforms-and-naming-conventions">Structure of File with Random Transforms and Naming Conventions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#why-use-includes-in-nested-composites">Why Use Includes in Nested Composites?</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#example-of-node-hierarchy-in-composites">Example of Node Hierarchy in Composites</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#practical-example-of-node-hierarchy-use">Practical Example of Node Hierarchy Use</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#game-objects">Game Objects</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#example-node-description">Example Node Description</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#creation-process">Creation Process</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#other-types-of-game-objects">Other Types of Game Objects</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#chain-destruction-and-composite-nodes">Chain Destruction and Composite Nodes</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#chain-destruction">Chain Destruction</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#object-placement-rules">Object Placement Rules</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#id1">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#hierarchy-of-composites">Hierarchy of Composites</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#problems-with-poor-hierarchy">Problems with Poor Hierarchy</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#proper-hierarchy">Proper Hierarchy</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#nuances-about-composites">Nuances about Composites</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#additional-notes-on-naming-conventions">Additional Notes on Naming Conventions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#object-placement-on-terrain-and-relative-to-each-other">Object Placement on Terrain and Relative to Each Other</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#object-placement-precision">Object Placement Precision</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#id2">Examples</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#special-parameters">Special Parameters</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#war-thunder">War Thunder</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#danetgame-based-games">daNetGame-based Games</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#creating-a-standard-composite-object">Creating a Standard Composite Object</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#manual-creation">Manual Creation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#using-the-daeditor">Using the daEditor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#using-the-dag2rires-script">Using the dag2riRes Script</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#using-the-composite-editor-in-asset-viewer">Using the Composite Editor in Asset Viewer</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#using-the-dag4blend-add-on-in-blender">Using the dag4blend Add-on in Blender</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#creating-random-composites-in-3ds-max">Creating Random Composites in 3ds Max</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="config_and_settings_blk.html"><code class="docutils literal notranslate"><span class="pre">.config.blk</span></code> and <code class="docutils literal notranslate"><span class="pre">.settings.blk</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folder_blk.html"><code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_blk.html"><code class="docutils literal notranslate"><span class="pre">.skeleton.blk</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="spline_blk.html"><code class="docutils literal notranslate"><span class="pre">spline.blk</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/all-about-blk/composit_blk.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="composit-blk">
+<h1><code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code><a class="headerlink" href="#composit-blk" title="Link to this heading"></a></h1>
+<section id="what-is-a-composite-object">
+<h2>What is a Composite Object?<a class="headerlink" href="#what-is-a-composite-object" title="Link to this heading"></a></h2>
+<p>A composite object is not an object, but a text file in the BLK format, which
+contains a list of reference objects and some of their parameters. These files
+are named according to specific conventions and always include one of the
+following suffixes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_cmp.composit.blk</span></code>: Simple composite object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_random.composit.blk</span></code>: Composite object with randomness (replacing objects or
+making objects disappear).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_gameobj.composit.blk</span></code>: Composite object containing game objects.</p></li>
+</ul>
+<p>The primary purpose of composite objects is to simplify the work of level
+designers. For example, they can assemble a house with interior elements without
+manually placing each element every time.</p>
+<p>From the game’s perspective, there is no difference between objects placed
+individually or by a composite object. In the game, all objects from the
+composite file are loaded as independent objects.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The game engine does not recognize composite objects; they are solely
+for convenience in arranging and editing sets of objects on a map. Only the
+objects themselves (render instances, prefabs, etc.) are exported into the game
+level. Composite files (<code class="docutils literal notranslate"><span class="pre">.blk</span></code> files) are not used beyond the editor.</p>
+</div>
+</section>
+<section id="contents-of-composit-blk-files">
+<h2>Contents of <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code> Files<a class="headerlink" href="#contents-of-composit-blk-files" title="Link to this heading"></a></h2>
+<p>Composite objects consist of an enumeration of objects with certain parameters:</p>
+<ul class="simple">
+<li><p>Object names.</p></li>
+<li><p>Placement coordinates.</p></li>
+<li><p>Probability of including an object (or replacing it with another or with an
+empty space).</p></li>
+</ul>
+</section>
+<section id="example-of-declaring-a-single-object">
+<h2>Example of Declaring a Single Object<a class="headerlink" href="#example-of-declaring-a-single-object" title="Link to this heading"></a></h2>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name:rendInst&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>In this example:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">className:t=&quot;composit&quot;</span></code>: Indicates that this <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file will be treated as a
+composite by the engine.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">node{}</span></code>: Represents an individual building block of our composite object
+(node). Ensure all curly braces are correctly matched; a missing or extra
+brace will break the composite.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name:t=&quot;obj_name:rendInst&quot;</span></code>: Specifies the name and type of the node. Here,
+“obj_name” is a render instance.</p></li>
+</ul>
+<p>If there are no “duplicates” (objects with the same name but different types),
+you can simply specify the name without a type:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name&quot;</span>
+</pre></div>
+</div>
+<p>This simple naming indicates the object’s placement at specified coordinates
+without additional parameters like disappearance or replacement.</p>
+<p>By all means, you shouldn’t have any cases when type specification is necessary:
+it is required only when there are full namesakes of different types, for
+example “asset:rendinst” (<code class="docutils literal notranslate"><span class="pre">asset.lod00.dag</span></code>), “asset:composit”
+(<code class="docutils literal notranslate"><span class="pre">asset.composit.blk</span></code>) and “asset:prefab” (<code class="docutils literal notranslate"><span class="pre">asset.dag</span></code>), which should not be
+done at all.</p>
+<p>If there are no namesakes, it is sufficient to record without specifying the
+type: <code class="docutils literal notranslate"><span class="pre">name:t=&quot;obj_name&quot;</span></code>.</p>
+<p>This is a simple object name. Simple in the sense that we can’t do anything with
+it (set the probability of disappearance, substitution by another object, etc.).
+We just say that there is such an object at such coordinates. If this string is
+missing or <code class="docutils literal notranslate"><span class="pre">name:t=&quot;&quot;</span></code>, then the node will be “empty” – no asset will be drawn
+in it.</p>
+<p>We can set here either a rendInst, a composite or a game object (discussed
+below). Composite doesn’t care what it refers to – it’s just a text file with a
+list of objects placed in certain places. Names are given without extensions.
+That is, instead of <code class="docutils literal notranslate"><span class="pre">table_a.lod00.dag</span></code>, you should just specify <code class="docutils literal notranslate"><span class="pre">table_a</span></code>. Or,
+instead of <code class="docutils literal notranslate"><span class="pre">table_a_plates_cmp.composit.blk</span></code>, we set <code class="docutils literal notranslate"><span class="pre">table_a_plates_cmp</span></code>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For the tools, the <strong>asset that was found earlier is prioritized</strong>. For example,
+from two objects in the same directory <code class="docutils literal notranslate"><span class="pre">table_a.composit.blk</span></code> and
+<code class="docutils literal notranslate"><span class="pre">table_a.lod00.dag</span></code> the engine will call <code class="docutils literal notranslate"><span class="pre">table_a.composit.blk</span></code> (in alphabetical
+order <code class="docutils literal notranslate"><span class="pre">.composit</span></code> will be found before <code class="docutils literal notranslate"><span class="pre">.lod</span></code>), but if the composite, for
+example, is in the subdirectory <code class="docutils literal notranslate"><span class="pre">composits/</span></code>, then the first will be the
+<code class="docutils literal notranslate"><span class="pre">.lod</span></code>. Thus, simply rearranging resources in a new way can break a
+compositor referring to “namesakes” without an explicitly specified type.</p>
+<p>For this reason, it is often an error when a composite refers to a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> of
+the same name. That is, a <code class="docutils literal notranslate"><span class="pre">table_a</span></code> rendinst is specified inside
+<code class="docutils literal notranslate"><span class="pre">table_a.composit.blk</span></code>. The engine will not call the <code class="docutils literal notranslate"><span class="pre">table_a</span></code> rendInst – it
+will call the  <code class="docutils literal notranslate"><span class="pre">table_a</span></code> composite. Because of this, we get into recursion
+(when an object refers to itself an infinite number of times).</p>
+<p>So always call composites by content. For example,
+<code class="docutils literal notranslate"><span class="pre">is_table_a_dinner_chairs_cmp.composit.blk</span></code> (a dining table with chairs), or
+<code class="docutils literal notranslate"><span class="pre">is_book_case_shelf_0_7m_a_cmp.composit.blk</span></code> (a 0.7-meter shelf for a bookcase).</p>
+<p>However, there are still situations when you want to set the same names. For
+example, we already have <code class="docutils literal notranslate"><span class="pre">table_a</span></code> (rendinst) in multiple places. And, after two
+years, it became necessary to put plates on it.</p>
+<p>We can make a composite <code class="docutils literal notranslate"><span class="pre">table_a_plates_cmp.composit.blk</span></code>, in which to add
+plates and replace it in these multiple places (and then overwrite it with
+future edits).</p>
+</div>
+<p>This is the matrix of the object:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a matrix, not an indication of the object’s rotation in degrees or
+scales in percent. <strong>Do not try to pick up parameters through a text editor</strong>.
+They should be generated by a script or obtained when creating a composite
+object in one of the editors. Only the last block of the matrix is the position
+of the object in space, in meters. This block can be edited through a text
+editor.</p>
+</div>
+<p>If no matrix is specified at all, it will be equal to the one above. Zero
+offsets and rotation, unit size.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The matrix specifies the transforms relative to the <strong>parent</strong> of our node.
+In the example above, the parent is the composite itself, i.e. the offset is
+specified relative to the pivot of the entire composite. However, this is not
+always the case. More on this later.</p>
+</div>
+</section>
+<section id="example-of-declaring-a-random-node">
+<h2>Example of Declaring a Random Node<a class="headerlink" href="#example-of-declaring-a-random-node" title="Link to this heading"></a></h2>
+<p>If we want one of several variants to be placed in the specified coordinates
+instead of one particular asset, then we need to specify the node differently.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name1&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name2&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>Here, instead of always having the same asset, we randomly choose one of the two
+with equal probability. There can also be other parameters inside <code class="docutils literal notranslate"><span class="pre">node{}</span></code>, such
+as a matrix. Only <code class="docutils literal notranslate"><span class="pre">&quot;name:t&quot;</span></code> cannot be specified at the same time as <code class="docutils literal notranslate"><span class="pre">ent{}</span></code>.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">ent</span><span class="ni">{}</span>
+</pre></div>
+</div>
+<p>This is how an <strong>entity block</strong> is allocated – there can be several of them
+inside a node, but only one at a time will be output.</p>
+<p>Accordingly, if we specify only one <code class="docutils literal notranslate"><span class="pre">ent{}</span></code> block, we will get exactly the same
+result as in the first example. There is always only one option to choose from.</p>
+<p>Inside there is already familiar to us parameter <code class="docutils literal notranslate"><span class="pre">name:t</span></code>, which works exactly
+the same way as in nodes. In addition, a new parameter <code class="docutils literal notranslate"><span class="pre">weight:r</span></code> has been
+added. If the parameter was not specified, it would be equal to <code class="docutils literal notranslate"><span class="pre">1</span></code> by default.</p>
+<p>The higher its value <strong>is compared to the weight of other nodes</strong>, the higher
+the probability that random will choose this option. The weight can be written
+in any “dimension” – 0.0001 or 1000 – it is not the number itself that matters,
+but how much it is greater/lower than the weight of its neighbors. We specify
+the values that are easier to perceive.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unlike nodes, entities do not have their own matrix and other parameters. Only
+the name and weight. The rest of the parameters are taken from the node in which
+they are located.</p>
+</div>
+<p>The syntax allows you to separate entity parameters not only by semicolon, but
+also by jumping to the new line. The two methods in the example below are
+equivalent. Tabulation is used only to improve readability, in fact it will work
+without indentation, and all blocks are separated only by curly braces.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">ent</span><span class="ni">{</span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span><span class="ni">}</span>
+
+<span class="se">ent</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name&quot;</span>
+  <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>When creating a random node in a text editor, the second option may be more
+convenient if the entity name is very long.</p>
+<p>What should we do if we want to sometimes not spawn anything? Add the empty
+entity mentioned earlier. As we remember, an empty name or no <code class="docutils literal notranslate"><span class="pre">name:t</span></code> parameter
+will give us an empty node:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name1&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name2&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">2</span><span class="gp">;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>Now half the time nothing is drawn, because the weight of the empty node is
+equal to the total weight of the other entities.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you have built a composite that randomizes a single node (e.g. a chair to a
+similar one) – it’s a must to give it a name <code class="docutils literal notranslate"><span class="pre">*_random.composit.blk</span></code> – a simple
+composite object.</p>
+</div>
+<p>It will work without it. But this composite will be arranged by a human, and the
+search needs a meaningful name that explains what is inside without having to
+open each <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file and check the contents.</p>
+</section>
+<section id="example-of-declaring-multiple-objects">
+<h2>Example of Declaring Multiple Objects<a class="headerlink" href="#example-of-declaring-multiple-objects" title="Link to this heading"></a></h2>
+<p>Let’s reinforce our knowledge by going through the same steps multiple times. In
+practice, it’s unnecessary to use different node formats side by side (as it can
+complicate readability), but each method works.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+
+<span class="ge">/* Standard object declaration. Without a specified matrix, it will have zero</span>
+<span class="ge">   rotation, zero offset, and a scale of `1`: */</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name0&quot;</span>
+<span class="ni">}</span>
+
+<span class="ge">/* Random entity with a single option behaves the same as the block above.</span>
+<span class="ge">   The &quot;default&quot; matrix is identical to its absence: */</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name1&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+<span class="ni">}</span>
+
+<span class="ge">// One of the objects or nothing is chosen with equal probability:</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name2&quot;</span>              <span class="ge">// parameters can be separated by line breaks</span>
+    <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span>
+  <span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name3&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span> <span class="ge">// or by semicolons</span>
+  <span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;&quot;</span><span class="gp">;</span> <span class="no">weight</span><span class="nt">:r=</span><span class="m">1</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="example-of-declaring-random-transforms">
+<h2>Example of Declaring Random Transforms<a class="headerlink" href="#example-of-declaring-random-transforms" title="Link to this heading"></a></h2>
+<p>As we discussed earlier, using a different format is required to select from
+multiple entities. The process is similar for random object placement – rather
+than a matrix, we use special parameters.</p>
+<section id="available-parameters-for-randomization">
+<h3>Available Parameters for Randomization<a class="headerlink" href="#available-parameters-for-randomization" title="Link to this heading"></a></h3>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="no">offset_x</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">offset_y</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">offset_z</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">rot_x</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">rot_y</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">rot_z</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">scale</span><span class="nt">:p2=</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">yScale</span><span class="nt">:p2=</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>All the parameters are optional but cannot be used simultaneously with a
+matrix. If a matrix is specified, any of these will be ignored.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">offset_*:p2</span></code>: Specifies the object’s position along the corresponding axes in
+meters. Replace the <code class="docutils literal notranslate"><span class="pre">*</span></code> with the axis letter. The first value is the absolute
+offset, and the second is the allowed deviation in both directions after that.
+For example, a value of <code class="docutils literal notranslate"><span class="pre">3,</span> <span class="pre">0.5</span></code> means the final coordinate will be between
+2.5 and 3.5 meters. If unspecified, it defaults to <code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">0</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rot_*:p2</span></code>: Similarly specifies rotation in degrees. To set any random
+rotation around an axis, just input <code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">180</span></code> – random values will cover a full
+rotation around the axis (from −180° to 180°). Defaults to <code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">0</span></code> if
+unspecified.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">yScale:p2</span></code>: Unlike rotation and offset, scaling on all axes cannot be
+randomized independently. The exception is the Y-axis, which points upward in
+Dagor. The first value is the initial scale, and the second is the deviation.
+Defaults to <code class="docutils literal notranslate"><span class="pre">1,</span> <span class="pre">0</span></code> if unspecified.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scale:p2</span></code>: Uniform scaling on all axes. Defaults to <code class="docutils literal notranslate"><span class="pre">1,</span> <span class="pre">0</span></code> and can be used
+alongside Y-axis scaling.</p></li>
+</ul>
+</section>
+<section id="random-transforms-for-multiple-composites-simultaneously">
+<h3>Random Transforms for Multiple Composites Simultaneously<a class="headerlink" href="#random-transforms-for-multiple-composites-simultaneously" title="Link to this heading"></a></h3>
+<p>The example above is inconvenient when controlling multiple composites
+simultaneously, such as creating randomly slightly open windows using multiple
+rendering instances for visual variety. Each shutter could be assigned its
+random rotation parameter, but making adjustments would be cumbersome. To change
+the angle, you’d have to go through all references to these shutters in every
+composite – slow and prone to error. To avoid this, parameters can be placed in
+a separate <code class="docutils literal notranslate"><span class="pre">.blk</span></code>.</p>
+</section>
+<section id="structure-of-file-with-random-transforms-and-naming-conventions">
+<h3>Structure of File with Random Transforms and Naming Conventions<a class="headerlink" href="#structure-of-file-with-random-transforms-and-naming-conventions" title="Link to this heading"></a></h3>
+<p>Technically, the composite will accept any name, but since people will work with
+them, the file name should be meaningful. Common suffixes are <code class="docutils literal notranslate"><span class="pre">_rot.blk</span></code> for
+rotations, <code class="docutils literal notranslate"><span class="pre">_offset.blk</span></code> for offsets, or <code class="docutils literal notranslate"><span class="pre">_transform.blk</span></code> for both in a general
+file. If some objects have left and right versions with different rotation
+directions, add the suffixes <code class="docutils literal notranslate"><span class="pre">_l</span></code> and <code class="docutils literal notranslate"><span class="pre">_r</span></code> accordingly.</p>
+<p>For example, for left window shutters, it makes sense to create a file
+<code class="docutils literal notranslate"><span class="pre">_shutter_rot_l.blk</span></code> with:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">rot_y</span><span class="nt">:p2=</span><span class="m">85</span><span class="gp">,</span> <span class="m">5</span>
+<span class="no">rot_z</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0.8</span>
+</pre></div>
+</div>
+<p>And for the right ones, <code class="docutils literal notranslate"><span class="pre">_shutter_rot_r.blk</span></code> with the corresponding rotations
+for the right side. This file can then be included in the composite of the
+shutter, for example,
+<code class="docutils literal notranslate"><span class="pre">name_city_house_window_shutter_1200x1900_a_l_cmp.composit.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;name_city_house_window_shutter_1200x1900_a_l&quot;</span>
+  <span class="se">include</span> <span class="nf">&quot;_shutter_rot_l.blk&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p>The path to the <code class="docutils literal notranslate"><span class="pre">_shutter_rot_l.blk</span></code> file is absolute. In the example above,
+the including file is in the same directory as the composite. If you place
+this file elsewhere, specify the full path in the command line format.</p></li>
+<li><p>We are effectively substituting the shutter’s
+<code class="docutils literal notranslate"><span class="pre">name_city_house_window_shutter_1200x1900_a_l.lod00.dag</span></code> file with a composite
+that has a random rotation,
+<code class="docutils literal notranslate"><span class="pre">name_city_house_window_shutter_1200x1900_a_l_cmp.composit.blk</span></code>. This means we
+include this <code class="docutils literal notranslate"><span class="pre">_shutter_rot_l.blk</span></code> in the composite of a single shutter –
+nothing else is there. This is the composite that will later be placed in the
+windows, instead of the shutter itself.</p></li>
+</ul>
+</div>
+</section>
+<section id="why-use-includes-in-nested-composites">
+<h3>Why Use Includes in Nested Composites?<a class="headerlink" href="#why-use-includes-in-nested-composites" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Priority of the Matrix</strong>: Remember, the matrix has a higher priority. If the
+node is not at the “zero” of the composite, the only way to change its
+position is through random offset parameters along the unused axes.</p></li>
+<li><p><strong>Avoid Doing This in the “Outer” Composite, Though It Works:</strong></p></li>
+</ul>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;name_city_house_window_shutter_1200x1900_a_l&quot;</span>
+  <span class="se">include</span> <span class="nf">&quot;_shutter_rot_l.blk&quot;</span>
+  <span class="no">offset_y</span><span class="nt">:p2=</span><span class="m">0.7</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">offset_x</span><span class="nt">:p2=</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">offset_z</span><span class="nt">:p2=</span><span class="m">2</span><span class="gp">,</span> <span class="m">0</span>
+<span class="ni">}</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;name_city_house_window_shutter_1200x1900_a_l&quot;</span>
+  <span class="se">include</span> <span class="nf">&quot;_shutter_rot_l.blk&quot;</span>
+  <span class="no">offset_y</span><span class="nt">:p2=</span><span class="m">0.7</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">offset_x</span><span class="nt">:p2=</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span>
+  <span class="no">offset_z</span><span class="nt">:p2=</span><span class="m">-2</span><span class="gp">,</span> <span class="m">0</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>This will work and move the shutter to the specified coordinates, but all
+editors currently operate with matrices by default – exporting transforms this
+way won’t be possible. Positioning with this way is only feasible through
+blind manual <code class="docutils literal notranslate"><span class="pre">.blk</span></code> editing – not the most convenient or fastest method.</p>
+<ul class="simple">
+<li><p><strong>Potential for Duplicate Transformations</strong>: Without seeing the contents of
+the included <code class="docutils literal notranslate"><span class="pre">.blk</span></code>, it’s easy to duplicate non-visible transformations, which
+can lead to bugs. Each <code class="docutils literal notranslate"><span class="pre">include</span></code> is replaced on the fly with the contents of
+the specified file. If a parameter is specified twice, only the first instance
+will be applied.</p></li>
+</ul>
+<p>Here’s how inattentiveness can break things:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;name_city_house_window_shutter_1200x1900_a_l&quot;</span>
+  <span class="no">rot_y</span><span class="nt">:p2=</span><span class="m">90</span><span class="gp">,</span> <span class="m">0</span>                <span class="ge">// First transformation specified before include, shutter will</span>
+  <span class="se">include</span> <span class="nf">&quot;_shutter_rot_l.blk&quot;</span>  <span class="ge">// always stick at 90°, ignoring Y randomization</span>
+<span class="ni">}</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;name_city_house_window_shutter_1200x1900_a_l&quot;</span>
+  <span class="se">include</span> <span class="nf">&quot;_shutter_rot_l.blk&quot;</span>
+  <span class="no">rot_y</span><span class="nt">:p2=</span><span class="m">90</span><span class="gp">,</span> <span class="m">0</span>  <span class="ge">// Second declaration of a parameter already present in the include,</span>
+                  <span class="ge">// attempting to rotate an additional 90° on Y will be ignored.</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="example-of-node-hierarchy-in-composites">
+<h2>Example of Node Hierarchy in Composites<a class="headerlink" href="#example-of-node-hierarchy-in-composites" title="Link to this heading"></a></h2>
+<p>Inside the <code class="docutils literal notranslate"><span class="pre">node{}</span></code> block, there can be more than just a list of its parameters.
+Another <code class="docutils literal notranslate"><span class="pre">node{}</span></code> can be placed inside. In this case, the inner node is
+considered a child, and its transforms are calculated not from zero but from the
+parent’s matrix.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+  <span class="se">node</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;obj_name0&quot;</span>
+    <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]]</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>In the example above, <code class="docutils literal notranslate"><span class="pre">&quot;obj_name0&quot;</span></code> is written inside another <code class="docutils literal notranslate"><span class="pre">node{}</span></code>, meaning
+it inherits the offset. The upper node is an “empty” one with an offset of one
+meter along the Y-axis. The node with the object has an offset of <code class="docutils literal notranslate"><span class="pre">1</span></code> meter
+along the Z-axis in its matrix, but remember that matrices combine. Relative to
+the composite’s center, it will be offset along both Y and Z. We can set other
+coordinates for it, add another block with different objects next to it, etc.</p>
+<p>It’s not frequently used, but it’s possible. Composites are exported from
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a> this way – all nodes
+are parented to an empty node with a default matrix. In text form, such
+composites are harder to perceive, and until recently, we didn’t have the
+ability to visually edit composites, so practical use is still rare.</p>
+<section id="practical-example-of-node-hierarchy-use">
+<h3>Practical Example of Node Hierarchy Use<a class="headerlink" href="#practical-example-of-node-hierarchy-use" title="Link to this heading"></a></h3>
+<p>Let’s imagine we have two tables 0.7 meters tall and two cups. We want one of
+the tables to be randomly selected in the composite and rotated. The cups should
+also be chosen randomly, placed near one side, and shifted only along the
+table’s length. They should also rotate and, perhaps, sometimes not appear at
+all. We can implement this as follows:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">rot_y</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">10</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;table_a&quot;</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;table_b&quot;</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="se">node</span><span class="ni">{</span>
+    <span class="no">offset_y</span><span class="nt">:p2=</span><span class="m">0.7</span><span class="gp">,</span> <span class="m">0</span>
+    <span class="no">offset_z</span><span class="nt">:p2=</span><span class="m">0.2</span><span class="gp">,</span> <span class="m">0.05</span>
+    <span class="no">offset_x</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">0.25</span>
+    <span class="no">rot_y</span><span class="nt">:p2=</span><span class="m">0</span><span class="gp">,</span> <span class="m">180</span>
+    <span class="se">ent</span><span class="ni">{</span>
+      <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;cup_a&quot;</span><span class="gp">;</span>
+    <span class="ni">}</span>
+    <span class="se">ent</span><span class="ni">{</span>
+      <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;cup_b&quot;</span><span class="gp">;</span>
+    <span class="ni">}</span>
+    <span class="se">ent</span><span class="ni">{</span>
+      <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;&quot;</span><span class="gp">;</span>
+    <span class="ni">}</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>Breaking it down:</p>
+<ul class="simple">
+<li><p>The parent node has a random rotation from −10° to 10°. One of the tables is
+drawn with equal probability since each entity has a weight of one, as we
+didn’t manually set a different value.</p></li>
+<li><p>The cup node is nested inside the table node, meaning its offset occurs
+relative to the table, considering its rotation. Afterward, an absolute offset
+of 0.7 meters upward is added – the cup should always be on the tabletop, no
+randomization needed. But since we want to randomize other transforms, we
+can’t use a matrix, so we set it this way.</p></li>
+<li><p>We then shift closer to the edge by 0.2 meters to place it off-center and add
+a bit of randomness – from 0.15 to 0.25, so it doesn’t fall off at the
+extremes.</p></li>
+<li><p>Along the table’s length, the distance is more significant – let it randomize
+equally in both directions. The absolute offset is not set, and the deviation
+is from −0.25 to 0.25 meters.</p></li>
+<li><p>Finally, we add a completely random rotation – from −180° to 180°.</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/composit_blk_01.jpg"><img alt="Randomized rotation" class="align-center" src="../../_images/composit_blk_01.jpg" style="width: 30em;" />
+</a>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For one-time use, this approach is faster than the old method, where a separate
+subcomposite was created for each random element. One for selecting cups and
+their rotation. Another for choosing the table. Then one for placing the cup on
+the table with an offset. And finally, the top-level one, which slightly rotates
+the table with the cup on it. But here – just one. However, if cups are to be
+placed, for example, on shelves or in cabinets, it makes more sense to store
+them in their own subcomposite so you don’t have to add a third cup to the
+table, cabinet, and shelf composites one by one. If cups are only found on these
+tables for some reason, then yes, don’t create unnecessary entities.</p>
+<p>Thus, the correct application of this approach is for parts of a whole, which
+shouldn’t be found with the same set of transforms. For example, randomly
+opening car doors, the hood, or the whole/intact/missing windshield in their
+coordinates relative to the body can be done this way. Similarly, cabinet doors,
+unless it’s a modular system with the possibility of attachment at different
+coordinates.</p>
+<p>If composite parts might be needed elsewhere, move them to a subcomposite to
+simplify reuse and potential future edits. If a node with certain transforms and
+randomness is only required once, for example, as part of a unique object, the
+single composite approach is preferable.</p>
+</div>
+</section>
+</section>
+<section id="game-objects">
+<h2>Game Objects<a class="headerlink" href="#game-objects" title="Link to this heading"></a></h2>
+<section id="overview">
+<h3>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h3>
+<p>Game objects, or <code class="docutils literal notranslate"><span class="pre">gameObj</span></code>, are interactive elements within the game that are
+dynamic and have a direct impact on gameplay. Examples of such objects include
+health kits, ammunition, weapons, and other equipment. These objects are
+automatically generated from an object known as <code class="docutils literal notranslate"><span class="pre">loot_box</span></code>.</p>
+<p>Typically, these objects are placed on various horizontal surfaces such as
+tables, chairs, shelves, and cabinets.</p>
+</section>
+<section id="example-node-description">
+<h3>Example Node Description<a class="headerlink" href="#example-node-description" title="Link to this heading"></a></h3>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;loot_box:gameObj&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">0.3</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0.3</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0.3</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0.6</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>In this block <code class="docutils literal notranslate"><span class="pre">name:t=&quot;loot_box:gameObj&quot;</span></code> specifies the object name along with
+its type. The format is mandatory.</p>
+<p>As discussed earlier, while omitting the type might work if there are no
+conflicting assets of different types, it is crucial to specify the type when
+editing the composite in text format. This ensures clarity and prevents
+errors.</p>
+</section>
+<section id="creation-process">
+<h3>Creation Process<a class="headerlink" href="#creation-process" title="Link to this heading"></a></h3>
+<p>Unfortunately, these nodes are not generated automatically through
+<a class="reference internal" href="../../dagor-tools/dag2rires/dag2rires.html"><span class="std std-doc">dag2riRes</span></a> or the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>. They must be
+manually scripted.</p>
+<p>You can (and should) place a cube named <code class="docutils literal notranslate"><span class="pre">loot_box</span></code> at the desired locations in
+your scene/editor and then export them into a composite. The placement process
+is identical to that of regular render instances. However, all these cubes will
+initially be recorded as:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;loot_box&quot;</span>
+</pre></div>
+</div>
+<p>Therefore, after exporting, you will need to manually update each of these
+objects within the composite, assigning them the correct parameters as described
+above.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>After adding game objects to a composite, it is <strong>mandatory</strong> to name it using
+the format <code class="docutils literal notranslate"><span class="pre">*_gameobj.composit.blk</span></code> to distinguish it as a simple composite
+object.</p>
+</div>
+</section>
+<section id="other-types-of-game-objects">
+<h3>Other Types of Game Objects<a class="headerlink" href="#other-types-of-game-objects" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">loot_box</span></code> is not the only type of game object that needs to be placed in the
+environment. Other commonly used game objects include <code class="docutils literal notranslate"><span class="pre">indoor_wall</span></code>,
+<code class="docutils literal notranslate"><span class="pre">wall_hole</span></code>, and <code class="docutils literal notranslate"><span class="pre">envi_probe</span></code> for accurate indoor lighting and reflections,
+vertical ladders, light sources, such as flickering lights, and many more.</p>
+</section>
+</section>
+<section id="chain-destruction-and-composite-nodes">
+<h2>Chain Destruction and Composite Nodes<a class="headerlink" href="#chain-destruction-and-composite-nodes" title="Link to this heading"></a></h2>
+<section id="chain-destruction">
+<h3>Chain Destruction<a class="headerlink" href="#chain-destruction" title="Link to this heading"></a></h3>
+<p>We can assign certain assets the <em>parent</em> type within the game’s parameters (not
+within the models – this is done in our internal <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files). All objects
+without an assigned <em>parent</em> are considered <em>children</em>. When a <em>parent</em> is
+destroyed, all <em>children</em> whose collisions intersect the bounding box of the
+<em>parent</em> will also be destroyed.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The system operates strictly as follows: <strong>One <em>parent</em> destroys all <em>children</em>
+whose collisions intersect its bounding box.</strong></p>
+<p>This means:</p>
+<ul class="simple">
+<li><p><em>Children</em> cannot destroy <em>parents</em>.</p></li>
+<li><p><em>Children</em> <strong>cannot</strong> destroy other <em>children</em>. Only those <em>children</em> whose
+collisions intersect the bounding box of the <em>parent</em> will be destroyed.</p></li>
+<li><p>No subsequent chain of destruction will occur; the system is rigid and does
+not support additional logic beyond these rules.</p></li>
+</ul>
+</div>
+<section id="examples">
+<h4>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h4>
+<p>Let’s take an example, where we have an urn as a <em>parent</em>:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_02.jpg"><img alt="Urn as a parent" class="align-center" src="../../_images/composit_blk_02.jpg" style="width: 20em;" />
+</a>
+<p>and an amphora as a <em>child</em>:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_03.jpg"><img alt="Amphora as a child" class="align-center" src="../../_images/composit_blk_03.jpg" style="width: 20em;" />
+</a>
+<p><strong>Placement Scenario 1:</strong> All correct. The <em>child’s</em> collision (the “spike”
+at the bottom) enters the bounding box of the <em>parent</em> urn. Destroy the
+<em>parent</em>, and the amphora will also be destroyed.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_04.jpg"><img alt="Placement Scenario 1" class="align-center" src="../../_images/composit_blk_04.jpg" style="width: 20em;" />
+</a>
+<p><strong>Placement Scenario 2:</strong> Ambiguous. If we want to destroy the amphora
+through the urn, it’s correct – the side collision of the amphora enters the
+urn’s bounding box. But if we don’t want that (since the amphora is just
+standing next to the urn, not on it), it’s incorrect. The amphora will be
+destroyed because of the urn.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_05.jpg"><img alt="Placement Scenario 2" class="align-center" src="../../_images/composit_blk_05.jpg" style="width: 20em;" />
+</a>
+<p><strong>Placement Scenario 3:</strong> Incorrect. The <em>parent</em> urn is hanging in the air.
+Destroy it, and the amphora will collapse too. But if we destroy the amphora,
+the <em>parent</em> urn will remain hanging.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_06.jpg"><img alt="Placement Scenario 3" class="align-center" src="../../_images/composit_blk_06.jpg" style="width: 20em;" />
+</a>
+<p><strong>Placement Scenario 4:</strong> Incorrect. When the <em>parent</em> urn is destroyed, only
+the middle amphora will be destroyed because its collision enters the <em>parent’s</em>
+bounding box. The top amphora will remain hanging in the air.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_07.jpg"><img alt="Placement Scenario 4" class="align-center" src="../../_images/composit_blk_07.jpg" style="width: 20em;" />
+</a>
+<p><strong>Placement Scenario 5:</strong> As an exception, <em>parents</em> can destroy other <em>parents</em>
+following the same rules (and only within the immediate “circle” – collision
+contact with the first destroyed <em>parent</em> is required). A special parameter must
+be manually defined in the properties (in the same <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files) to enable this.
+It is not a default behavior for all <em>parents</em>, but a specific feature.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_08.jpg"><img alt="Placement Scenario 5" class="align-center" src="../../_images/composit_blk_08.jpg" style="width: 50em;" />
+</a>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Do not overuse this feature, as it is difficult to predict how and where objects
+will be positioned in the game. For instance, we once allowed this <em>parent</em>
+barrel to destroy other <em>parents</em>. It successfully took down a <em>parent</em> tent and
+<em>parent</em> ammunition crates, as shown above.</p>
+</div>
+</section>
+</section>
+<section id="object-placement-rules">
+<h3>Object Placement Rules<a class="headerlink" href="#object-placement-rules" title="Link to this heading"></a></h3>
+<p><strong>Why Discuss Destruction in this Section?</strong></p>
+<p>Because developers often forget that <strong>the game knows nothing about
+composites.</strong> This has already been emphasized multiple times at the beginning,
+and let’s discuss it again.</p>
+<p>Only the objects and their matrices are exported into the game. A vast hierarchy
+of a house with decorators, down to the last random composite vase, will be
+exported into the game as a hundred objects with matrices. <strong>No composites will
+exist in the game!</strong></p>
+<p>Similarly, objects cannot just destroy their neighbors arbitrarily. Only
+<em>parents</em> destroy <em>children</em> (and sometimes other <em>parents</em>).</p>
+<p>Thus, do not create composites where objects are stacked mindlessly on top of
+each other! <strong>A composite is not magic.</strong> It’s merely a list of objects – it
+won’t assist with destruction mechanics!</p>
+<section id="id1">
+<h4>Examples<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<p><strong>Placement Scenario 1:</strong> Canned cans on a cupboard shelf. Logically, the only
+<em>parent</em> here is the cupboard. Destroy it – everything inside it wil be
+destroyed. It turns out that the cans lie on top of each other and they are not
+<em>parents</em>. If we shoot the bottom can – the top one will remain hanging in the
+air.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_09.jpg"><img alt="Placement Scenario 1" class="align-center" src="../../_images/composit_blk_09.jpg" style="width: 50em;" />
+</a>
+<p><strong>Placement Scenario 2:</strong> On top of the closet are individual <em>non-parent</em>
+objects: an upside-down shoebox lid, the shoe box itself inside the shoe box lid
+and a shoe inside that shoe box. According to the rules this is incorrect,
+because you can try and shoot the lid from under the box, and the box from under
+the shoe. But here the thicknesses and dimensions are so small that this can be
+neglected. This is an acceptable violation that in most cases will never be
+noticed.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_10.jpg"><img alt="Placement Scenario 2" class="align-center" src="../../_images/composit_blk_10.jpg" style="width: 50em;" />
+</a>
+<p><strong>Placement Scenario 3:</strong> The issue has already been resolved, so here is an old
+screenshot that doesn’t quite capture the correct angle. In the center, we can
+observe a typical problem where the <em>child</em> object (a basin) hasn’t been
+properly aligned with its <em>parent</em> (a wardrobe), which at this point has already
+been destroyed. However, our focus here is on the arrangement to the right – the
+artistic stacking of basins on top of the wardrobe. It looks impressive, but it
+will be 100% noticeable when the lower basins start getting destroyed before the
+upper ones.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_11.jpg"><img alt="Placement Scenario 3" class="align-center" src="../../_images/composit_blk_11.jpg" style="width: 50em;" />
+</a>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Summary:</strong></p>
+<ol class="arabic simple">
+<li><p>Avoid stacking objects on top of each other without clearly defining which is
+the <em>parent</em> and which is the <em>child</em>.</p></li>
+<li><p><em>Child</em> objects should only be placed on their <em>parent</em> in a single layer.
+Any objects that do not collide with the <em>parent’s</em> bounding box will not be
+destroyed correctly.</p></li>
+<li><p>If you need to create a complex composition that cannot be achieved with the
+current setup due to these limitations, request permission to create a unique
+rendering composition that will break apart using a destruction mechanism.</p></li>
+</ol>
+</div>
+</section>
+</section>
+<section id="hierarchy-of-composites">
+<h3>Hierarchy of Composites<a class="headerlink" href="#hierarchy-of-composites" title="Link to this heading"></a></h3>
+<section id="problems-with-poor-hierarchy">
+<h4>Problems with Poor Hierarchy<a class="headerlink" href="#problems-with-poor-hierarchy" title="Link to this heading"></a></h4>
+<p>A common issue when creating composites is that all objects are often placed
+within a single large composite. The rationale behind this approach is
+understandable – it’s easier to arrange everything in one scene, export it, and
+forget about it.</p>
+<p>However, the problem is that work with composites never truly ends there. Errors
+are inevitable, and revisions are guaranteed. At some point, these revisions
+will occur directly in the composite’s <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, not in the original scene
+where everything was initially arranged. Once this happens, the original scene
+becomes obsolete, and all work shifts to the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file.</p>
+<p>This can lead to significant issues. For example, consider a composite:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_12.jpg"><img alt="Interior" class="align-center" src="../../_images/composit_blk_12.jpg" style="width: 50em;" />
+</a>
+<p>Imagine that every object here is not part of a subcomposite but is instead
+manually placed within this composite (for the sake of example, though this is
+not actually the case).</p>
+<p>Let’s examine the typical problems that might arise using this setup. Take this
+cabinet with vases:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_13.jpg"><img alt="Cabinet with vases" class="align-center" src="../../_images/composit_blk_13.jpg" style="width: 20em;" />
+</a>
+<p>Notice that it’s placed in several locations:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_14.jpg"><img alt="Cabinet with vases at several places" class="align-center" src="../../_images/composit_blk_14.jpg" style="width: 50em;" />
+</a>
+<p>The designer, seeking efficiency, may simply copy and paste the entire setup
+elsewhere in the scene. The result is identical arrangements throughout the
+house, with perhaps one or two vases changed to give the illusion of randomness.</p>
+<p>We’ve previously discussed chain destruction. Now, imagine you didn’t quite
+align one of the vases with the cabinet, and it ends up hanging in the air when
+the cabinet below is destroyed.</p>
+<p>This introduces several problems:</p>
+<ul class="simple">
+<li><p>Remember, this setup has been copied across multiple locations in the house.</p></li>
+<li><p>Some vases may also be standing independently, scattered on the floor, for
+instance.</p></li>
+</ul>
+<p>You’ll need to painstakingly search through the composite, identify each vase,
+and adjust their positions individually.</p>
+<p>Now, consider needing to place this cabinet with vases outside, with the
+landscape involved. Either the vases will clip through the cabinet, or they’ll
+float above it while the cabinet sits on the ground.</p>
+<p>Procedural rotations and shifts are nearly impossible in such a scenario. Keep
+in mind that these adjustments often can’t be automated and need to be manually
+tweaked after tools like <em>daEditor</em> or <em>dag2riRes</em>. In a large composite, this
+becomes utterly impractical.</p>
+<p>Additionally, performing simple randomization, such as swapping one cabinet for
+another, becomes highly inconvenient. You’ll have to sift through hundreds of
+lines.</p>
+<p>The root cause of these problems is the unreadability of the composite. It’s
+nearly impossible to quickly make any adjustments in such a tangled mess. In
+extreme cases, an entire house’s furnishings (minus the house itself) might be
+crammed into a single composite, like this:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_15.jpg"><img alt="Entire house's furniture" class="align-center" src="../../_images/composit_blk_15.jpg" style="width: 50em;" />
+</a>
+<p>Typically, we don’t assign tasks to “create a composite for a single house.”
+More often, the tasks involve “creating 15 houses with full furnishings,”
+handled by 5-8 different team members. Each person ends up spending an enormous
+amount of time individually setting up unique render instances for their houses,
+instead of leveraging low-level random composites created by a dedicated team
+member—a method that could save everyone hours of work.</p>
+<p>It’s understandable that every artist wants to create something unique, perhaps
+to tell a story or guide the player towards a specific thought, like “this is
+where the homeowner loved to admire their favorite vase on this cabinet.” But no
+one will notice these details because in an online shooter the environment needs
+to:</p>
+<ul class="simple">
+<li><p>Fit seamlessly into the overall scene;</p></li>
+<li><p>Not interfere with gameplay.</p></li>
+</ul>
+<p>What players will notice is a poorly placed object that disrupts their aim due
+to collision issues. You will notice the massive headache when you try to find
+that object in a composite with hundreds of lines. And your colleagues will
+notice the time wasted on manually arranging objects instead of using pre-made
+sets.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Summary of Problems</strong></p>
+<ul class="simple">
+<li><p>Uncontrolled propagation of errors.</p></li>
+<li><p>Inability to align object groups with terrain.</p></li>
+<li><p>Lack of variety.</p></li>
+<li><p>Excessive time spent manually adding variety to the scene.</p></li>
+<li><p>Unreadable composite files, making it extremely difficult to understand what
+is located where and what it controls.</p></li>
+<li><p>Inability to reuse composites, preventing the use of ready-made asset groups
+in neighboring houses.</p></li>
+</ul>
+</div>
+<p>To avoid these issues, it’s crucial to adhere to strict composite hierarchy
+rules.</p>
+</section>
+<section id="proper-hierarchy">
+<h4>Proper Hierarchy<a class="headerlink" href="#proper-hierarchy" title="Link to this heading"></a></h4>
+<p>The hierarchy of composites should be broken down to the smallest procedural
+modification of an object. Let’s use the example of vases and cabinets:</p>
+<ol class="arabic simple">
+<li><p><strong>Create composites for each small procedural modification of an object:</strong></p>
+<ul class="simple">
+<li><p>Procedural rotations/shifts (e.g., rotating vases around their axis).</p></li>
+<li><p>Object randomization (e.g., swapping cabinets or vases for similar ones).</p></li>
+</ul>
+</li>
+<li><p><strong>From the composites created in step 1, build composites for object
+groups.</strong></p>
+<ul class="simple">
+<li><p>Create several variations of vases arranged on a cabinet.</p></li>
+<li><p>Combine these variations into a single random composite like “random vase
+arrangement on cabinet”.</p></li>
+</ul>
+</li>
+<li><p><strong>From the composites created in step 2, create a random composite for
+“cabinets with random vase arrangements”.</strong></p></li>
+<li><p><strong>From the composites created in step 3, assemble a composite for furnishing
+a large object, such as “random cabinets with vases placed around the
+object”.</strong></p></li>
+<li><p><strong>Finally, include the composite from step 3 in the overall “house”
+composite, along with similar composites for “windows-doors”, “exterior
+decor”, “interior decor”, etc.</strong></p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unfortunately, there is no universal composite structure – it all depends on
+what you’re creating. If you need a random composite for a single cabinet, you
+might only need one level of hierarchy – a random composite for that cabinet,
+where you can specify shifts, rotations, and randomization.</p>
+<p>But if you’re creating a furniture and dishware store, you may need 3-6 levels
+of composite hierarchy.</p>
+<p>The key is to start with the lowest level of composites and work your way up
+step by step. This approach ensures everything remains as editable and fixable
+as possible. You’ll be able to resolve any placement issues across all game maps
+by simply tweaking a few numbers in one small, unobtrusive file.</p>
+</div>
+</section>
+</section>
+</section>
+<section id="nuances-about-composites">
+<h2>Nuances about Composites<a class="headerlink" href="#nuances-about-composites" title="Link to this heading"></a></h2>
+<section id="additional-notes-on-naming-conventions">
+<h3>Additional Notes on Naming Conventions<a class="headerlink" href="#additional-notes-on-naming-conventions" title="Link to this heading"></a></h3>
+<p>As previously mentioned multiple times throughout this chapter, including at the
+beginning, let’s clarify a few key points:</p>
+<ol class="arabic simple">
+<li><p><strong>Composites vs. Render Instances:</strong> Unlike render instances, composites
+don’t take up space in the game client (they simply aren’t included).
+Therefore, it’s not a significant issue if you copy successful composites
+from other maps and rename them for your own purposes. This approach helps
+you avoid potential problems if the original composite’s creator decides to
+modify it, which could disrupt your setup.</p></li>
+<li><p><strong>Detailed Naming:</strong> Always name composites as descriptively as possible,
+including all relevant prefixes and suffixes designated for both composites
+and render instances. This is crucial because, for example, you might create
+a composite intended for interior use but fail to include the <code class="docutils literal notranslate"><span class="pre">is_</span></code> prefix. A
+colleague might then mistakenly use it outdoors and add landscape alignment,
+causing the composite to sink into the ground in all your buildings.</p></li>
+<li><p><strong>Proper Use of Composites:</strong> Those placing existing composites should also
+pay close attention to their intended use. If a composite is clearly marked
+for interior use, <strong>do not</strong> place it outside. Instead, duplicate it, give it
+a new name, and avoid any issues.</p></li>
+<li><p><strong>Random Composites:</strong> If the composite involves randomization, include the
+numbers of the randomized objects in the name. For example,
+<code class="docutils literal notranslate"><span class="pre">is_table_abc_random.composit.blk</span></code>.</p></li>
+<li><p><strong>Content Ownership:</strong> Clearly indicate the thematic ownership of a composite
+in its name. For instance, if you’re creating a composite of ancient vases,
+name it accordingly so that colleagues don’t unknowingly place it in a
+futuristic setting.</p></li>
+</ol>
+</section>
+<section id="object-placement-on-terrain-and-relative-to-each-other">
+<h3>Object Placement on Terrain and Relative to Each Other<a class="headerlink" href="#object-placement-on-terrain-and-relative-to-each-other" title="Link to this heading"></a></h3>
+<p>You might have noticed that when exporting composites from the editor, they
+often include an additional parameter, <code class="docutils literal notranslate"><span class="pre">place_type:i=1</span></code>, in the nodes. For
+example:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;fachwerk_horse_cart_a_cmp&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">0.999018</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">-0.0443057</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0.0443057</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0.999018</span><span class="ni">]</span> <span class="ni">[</span><span class="m">-6.7688</span><span class="gp">,</span> <span class="m">0.0028134</span><span class="gp">,</span> <span class="m">-1.22241</span><span class="ni">]]</span>
+  <span class="no">place_type</span><span class="nt">:i=</span><span class="m">1</span>
+<span class="ni">}</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;haystack_i&quot;</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">0.020657</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0.999787</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">-0.999787</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0.020657</span><span class="ni">]</span> <span class="ni">[</span><span class="m">6.92909</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">-1.47888</span><span class="ni">]]</span>
+  <span class="no">place_type</span><span class="nt">:i=</span><span class="m">3</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>These values can range from 1 to 6 (or potentially even higher).</p>
+<p>This occurs because you exported objects that were placed on the terrain
+according to specific rules.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_16.jpg"><img alt="Object properties" class="align-center" src="../../_images/composit_blk_16.jpg" style="width: 20em;" />
+</a>
+<p><strong>Placement Types:</strong></p>
+<ul>
+<li><p><strong>place pivot: <code class="docutils literal notranslate"><span class="pre">place_type:i=1:</span></code></strong> Vertical placement of the object’s pivot on
+the terrain (pivot in Dagger is at 0.0.0). Suitable for large, tall objects
+that extend deep into the ground (buildings, poles, large piles of
+debris)—essentially anything unaffected by terrain height variations.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_17.jpg"><img alt="place_type:i=1" class="align-center" src="../../_images/composit_blk_17.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p><strong>place pivot and use normal: <code class="docutils literal notranslate"><span class="pre">place_type:i=2:</span></code></strong> Placement of the pivot on the
+terrain, using the normal at the pivot point (if the terrain is uneven, the
+object will tilt according to the normal). Best for smaller items that need to
+conform to the terrain’s shape (e.g., barrels, buckets, bicycles, cans). Large
+objects might not align correctly if their pivot is on the edge of a slope,
+causing part of the object to float in the air. Use this only for small
+assets.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_18.jpg"><img alt="place_type:i=2" class="align-center" src="../../_images/composit_blk_18.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p><strong>place 3-point (bbox): <code class="docutils literal notranslate"><span class="pre">place_type:i=3:</span></code></strong> Placement using three points of the
+object’s bounding box. The bounding box is built based on the object’s maximum
+geometry limits, and the object is placed on the ground at three of its
+extreme points, accounting for terrain height variations. This method is more
+precise than type 2 but slightly more demanding on the editor. It’s needed for
+large objects that must conform to terrain undulations (e.g., haystacks, piles
+of boards, ladders, carts, vehicles).</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_19.jpg"><img alt="place_type:i=3" class="align-center" src="../../_images/composit_blk_19.jpg" style="width: 20em;" />
+</a>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the object extends below zero (e.g., piles, foundations), it may be pushed
+up because the placement is based on the bounding box, which is built on the
+outermost geometry points. For such objects, use types 1 or 2.</p>
+</div>
+</li>
+<li><p><strong>place foundation (bbox): <code class="docutils literal notranslate"><span class="pre">place_type:i=4:</span></code></strong> Vertical placement on the
+terrain so that the entire base of the bounding box is <strong>not above</strong> the
+terrain. The object may partially extend below the terrain but will never
+float above it.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_20.jpg"><img alt="place_type:i=4" class="align-center" src="../../_images/composit_blk_20.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p><strong>place on water (floatable): <code class="docutils literal notranslate"><span class="pre">place_type:i=5:</span></code></strong> Vertical placement on a water
+plane (yes, water has a plane).</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_21.jpg"><img alt="place_type:i=5" class="align-center" src="../../_images/composit_blk_21.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p><strong>place pivot with rendInst collision: <code class="docutils literal notranslate"><span class="pre">place_type:i=6:</span></code></strong> Vertical placement
+of the render instance’s pivot on the collision of another render instance.</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_22.jpg"><img alt="place_type:i=6" class="align-center" src="../../_images/composit_blk_22.jpg" style="width: 20em;" />
+</a>
+<p>Works well on simple objects:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_23.jpg"><img alt="place_type:i=6" class="align-center" src="../../_images/composit_blk_23.jpg" style="width: 20em;" />
+</a>
+<p>but struggles with complex ones as it may not correctly identify the collision
+surface:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_24.jpg"><img alt="place_type:i=6" class="align-center" src="../../_images/composit_blk_24.jpg" style="width: 40em;" />
+</a>
+</li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>When exporting composites from the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>, ensure you set the
+placement types for each component of the future composite (e.g., every barrel,
+bucket, and vehicle).</p>
+<p>When exporting composites from a *ds Max scene, manually assign these
+parameters to the appropriate objects in the final composite.</p>
+<p>Do not export composites without these parameters and then apply them to the
+entire composite afterward (e.g., setting the entire exterior decoration
+composite of a house to <code class="docutils literal notranslate"><span class="pre">place_type:i=3</span></code>). This often leads to bugs, as it’s
+unclear what is used as the pivot or bounding box.</p>
+<p>Always assign the correct placement types to the objects intended for them.</p>
+</div>
+</section>
+</section>
+<section id="object-placement-precision">
+<h2>Object Placement Precision<a class="headerlink" href="#object-placement-precision" title="Link to this heading"></a></h2>
+<p>In any game, objects are placed on a grid according to their pivot point (recall
+that the pivot for Dagger is at 0.0.0). This means that objects cannot be placed
+with greater precision than the smallest unit allowed by the grid, which we can
+refer to as the <em>Dagger millimeter</em>.</p>
+<p>As a result, objects placed in non-zero positions will align perfectly only when
+the composite has no rotation or offset.</p>
+<p>For instance, a house with DP (dynamic positioning) components will remain
+perfectly aligned regardless of rotation or displacement because both the
+house’s base and its DP components are exported relative to zero at the correct
+positions. They are exported this way to ensure optimal placement.</p>
+<p>However, objects like windows, doors, or paintings that are hung on walls made
+of debris or bricks may “drift” when the composite is rotated or moved,
+especially paintings. But don’t worry.</p>
+<p>In War Thunder, the placement grid isn’t precise enough for this to cause
+significant issues – we have large margins for error. In daNetGame-based games,
+this “drifting” only happens in the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a> and
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>. When the location
+is exported, a much higher level of precision is used than in the tools, so
+objects generally align correctly. While you should check the final placement,
+you don’t need to worry that it will be “just as bad” as it appears in the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>.</p>
+<section id="id2">
+<h3>Examples<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<ul>
+<li><p><strong>Editor View</strong>:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_25.jpg"><img alt="Editor view" class="align-center" src="../../_images/composit_blk_25.jpg" style="width: 50em;" />
+</a>
+</li>
+<li><p><strong>In-Game View:</strong></p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_26.jpg"><img alt="In-game view" class="align-center" src="../../_images/composit_blk_26.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</section>
+<section id="special-parameters">
+<h3>Special Parameters<a class="headerlink" href="#special-parameters" title="Link to this heading"></a></h3>
+<p>Composites have several parameters designed for specific, limited-use cases.</p>
+<section id="war-thunder">
+<h4>War Thunder<a class="headerlink" href="#war-thunder" title="Link to this heading"></a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">quantizeTm:b=yes</span></code> parameter should be applied outside the nodes
+(immediately after the line <code class="docutils literal notranslate"><span class="pre">className:t=&quot;composit&quot;</span></code>) when combining the
+geometry of a render instance with the collision of a prefab in a composite.</p>
+<p>These object types have different positioning precision on the map (prefabs are
+less precise). Additionally, prefabs have even less precision when it comes to
+rotation. Therefore, when combining these two objects, the collision almost
+always fails to align with the visual geometry.</p>
+<p>This parameter forces the prefab to align exactly with the coordinates of the
+render instance.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;composit&quot;</span>
+<span class="no">quantizeTm</span><span class="nt">:b=</span><span class="si">yes</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+  <span class="se">node</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;sheer_cliff_a&quot;</span>
+    <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+  <span class="ni">}</span>
+  <span class="se">node</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;sheer_cliff_a_prefab_collision:prefab&quot;</span>
+    <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="danetgame-based-games">
+<h4>daNetGame-based Games<a class="headerlink" href="#danetgame-based-games" title="Link to this heading"></a></h4>
+<p><strong>Random Object Seeds</strong>: In daNetGame-based game, all objects within a
+composite, for example, share the same color scheme. This means you won’t find a
+house with windows and doors of varying colors – the colors differ as you move
+across the map, but each house’s windows and doors will always share a uniform
+color.</p>
+<p>This is intentional – each composite is assigned exactly one seed (a randomly
+chosen value, essentially). This seed is applied from the top-level composite
+down to the most nested object.</p>
+<p>This approach has pros and cons. For instance, all the furniture, toys, and
+dishes inside a house will be uniformly colored. This makes it impossible to
+create something like a fabric shop, where you’d expect fabrics of different
+colors, because all the fabrics will share one color. Similarly, identical
+furniture items will show the same level of wear.</p>
+<p>This can be addressed using the <code class="docutils literal notranslate"><span class="pre">ignoreParentInstSeed:b=yes</span></code> parameter, which is
+applied to the specific object (or composite) that should have a different seed
+from the parent composite.</p>
+<p>For example, if you want each piece of fabric in a store to have a different
+color, you need to apply this seed to <strong>each fabric node</strong> within the composite,
+not to the overall “arranged fabrics” composite. Otherwise, the entire composite
+will have a different seed, but the objects within it will share a single seed.</p>
+<p><strong>Correct Example</strong>: The shoe and its box will have different seeds and
+therefore different colors.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;is_high_heel_shoe_a&quot;</span>
+  <span class="no">ignoreParentInstSeed</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">0.0888685</span><span class="gp">,</span> <span class="m">0.939605</span><span class="gp">,</span> <span class="m">0.205868</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0.49344</span><span class="gp">,</span> <span class="m">-0.244331</span><span class="gp">,</span> <span class="m">0.902145</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0.896062</span><span class="gp">,</span> <span class="m">0.0213662</span><span class="gp">,</span> <span class="m">-0.484326</span><span class="ni">]</span> <span class="ni">[</span><span class="m">-2.40811</span><span class="gp">,</span> <span class="m">1.9364</span><span class="gp">,</span> <span class="m">-31.9424</span><span class="ni">]]</span>
+<span class="ni">}</span>
+<span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;is_high_heel_shoebox_a_opened&quot;</span>
+  <span class="no">ignoreParentInstSeed</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">0.0765914</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">-0.997063</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0.997063</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0.0765914</span><span class="ni">]</span> <span class="ni">[</span><span class="m">-4.67105</span><span class="gp">,</span> <span class="m">2.93796</span><span class="gp">,</span> <span class="m">-24.8412</span><span class="ni">]]</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p><strong>Incorrect Example</strong>: Although the entire composite of items will have a
+different seed from the main composite, all items within it will share the same
+seed.</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;city_1_department_store_shops_stuff_cmp&quot;</span>
+  <span class="no">ignoreParentInstSeed</span><span class="nt">:b=</span><span class="si">yes</span>
+  <span class="no">tm</span><span class="nt">:m=</span><span class="ni">[[</span><span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">1</span><span class="ni">]</span> <span class="ni">[</span><span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="gp">,</span> <span class="m">0</span><span class="ni">]]</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Summary</strong></p>
+<p>Apply this parameter to specific render instances or composites that need to
+have a different seed from the main composite.</p>
+<p><strong>Do not</strong> apply it to the entire composite expecting everything inside to
+become randomized – it won’t. All nested objects will still share a common seed,
+even if it differs from the main composite’s seed.</p>
+</div>
+</section>
+</section>
+<section id="checklist">
+<h3>Checklist<a class="headerlink" href="#checklist" title="Link to this heading"></a></h3>
+<p>Before considering composites as finished, you should verify the following:</p>
+<ul>
+<li><p><strong>Correct display of the composite object in <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a></strong>: Ensure
+nothing is misplaced or missing, and everything appears as intended.</p></li>
+<li><p><strong>Correct generation of variable objects using the “Generate Random Seed”
+button in the right panel</strong>: Check that nothing overlaps or disappears
+unexpectedly, and no extra objects are loaded.</p></li>
+<li><p><strong>No errors in the Asset Viewer log</strong>: Monitor the console for red error lines
+related to asset display issues in the composite due to incorrect naming,
+missing textures, or other unfinished work.</p>
+<p>The composite log typically only indicates that an object isn’t displaying.
+You’ll need to open the problematic object itself to see what the log says
+about it.</p>
+</li>
+</ul>
+</section>
+</section>
+<section id="creating-a-standard-composite-object">
+<h2>Creating a Standard Composite Object<a class="headerlink" href="#creating-a-standard-composite-object" title="Link to this heading"></a></h2>
+<p>Having discussed the structure and theory behind composite objects, let’s now
+delve into the actual creation process. There are several methods available for
+creating a composite object, each with its own advantages and disadvantages:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#manual-creation"><strong>Manual Creation</strong></a></p></li>
+<li><p><a class="reference internal" href="#using-the-daeditor"><strong>Using the daEditor</strong></a></p></li>
+<li><p><a class="reference internal" href="#using-the-dag2rires-script"><strong>Using the dag2riRes Script</strong></a></p></li>
+<li><p><a class="reference internal" href="#using-the-composite-editor-in-asset-viewer"><strong>Using the Composite Editor in Asset Viewer</strong></a></p></li>
+<li><p><a class="reference internal" href="#using-the-dag4blend-add-on-in-blender"><strong>Using the dag4blend Add-on in Blender</strong></a></p></li>
+<li><p><a class="reference internal" href="#creating-random-composites-in-3ds-max"><strong>Creating Random Composites in 3ds Max</strong></a></p></li>
+</ul>
+<section id="manual-creation">
+<h3>Manual Creation<a class="headerlink" href="#manual-creation" title="Link to this heading"></a></h3>
+<p>There isn’t much to elaborate on here. You simply create a file with the
+extension <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code> and manually define a series of nodes, specifying the
+object names and their coordinates.</p>
+<p>This method is only practical when you need to add parts of a single object
+without any offsets, such as the walls of a house, its indoor furnishings,
+decals, decor, and ground (everything being geometry or subcomposites centered
+at the house’s “zero” point).</p>
+<p><strong>Pros:</strong></p>
+<ul class="simple">
+<li><p>All composite object parameters are accessible in a single text file.</p></li>
+<li><p>No need for the original scene file; you only need a new or existing
+<code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code> file.</p></li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul class="simple">
+<li><p><strong>Blind Work:</strong> You can’t see the result while working, making it challenging
+to align objects correctly.</p></li>
+<li><p><strong>Matrix Definitions:</strong> Manually defining matrices is virtually impossible –
+let the computer handle that.</p></li>
+</ul>
+<p>This method is typically used as part of a pipeline to refine non-random
+composite objects generated by other means.</p>
+</section>
+<section id="using-the-daeditor">
+<h3>Using the daEditor<a class="headerlink" href="#using-the-daeditor" title="Link to this heading"></a></h3>
+<p>This method is simple:</p>
+<ol class="arabic">
+<li><p>Place the necessary objects in the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a> as desired.</p></li>
+<li><p>Select the objects, starting with the central one (which will later become
+the composite’s center).</p></li>
+<li><p>In the <strong>Landscape</strong> tab, select the <strong>Export as Composit</strong> option:</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_27.jpg"><img alt="Using daEditor" class="align-center" src="../../_images/composit_blk_27.jpg" style="width: 30em;" />
+</a>
+</li>
+</ol>
+<p><strong>Pros:</strong></p>
+<ul class="simple">
+<li><p>Easy to apply.</p></li>
+<li><p>Unlike the manual method, it simplifies editing object transforms – matrices
+are automatically calculated.</p></li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul class="simple">
+<li><p><strong>Composite Center:</strong> You can’t control the composite’s center. When selecting
+multiple objects with a frame, it’s impossible to predict which one will
+become the “zero” point. When selecting objects sequentially, the first
+selected object becomes the “zero” coordinate, which isn’t always convenient.
+You can’t set a center outside of an object.</p></li>
+<li><p><strong>Random Transformations:</strong> Only fixed matrices and specific assets are
+allowed; you can’t set random transformations or objects.</p></li>
+</ul>
+<p>A workaround is to add an additional object at the desired center, start
+selecting from it, and then delete this placeholder after exporting the final
+composite. However, this isn’t particularly convenient.</p>
+<p>This method is typically used to create simple object sets (e.g., piles of
+debris, rows of barrels, log stacks). Adding randomness requires further
+refinement by other methods.</p>
+</section>
+<section id="using-the-dag2rires-script">
+<h3>Using the dag2riRes Script<a class="headerlink" href="#using-the-dag2rires-script" title="Link to this heading"></a></h3>
+<p>Using the <a class="reference internal" href="../../dagor-tools/dag2rires/dag2rires.html"><span class="std std-doc">dag2riRes</span></a> script is
+another relatively simple method. While the description may seem complex, after
+trying it out, the steps will become logical and clear, requiring minimal effort
+from the developer. The key is to follow the steps in order, as missing one will
+force you to start over.</p>
+<p>The idea behind this method is to assemble the composite from objects in 3ds
+Max, export them as a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file, and then use the script to convert <code class="docutils literal notranslate"><span class="pre">.dag</span></code>
+into <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code>. The script also allows you to split all objects exported
+into one <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file into individual <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files.</p>
+<p><strong>Pros:</strong></p>
+<ul class="simple">
+<li><p><strong>Real-Time Preview:</strong> Move nodes directly in the viewport with instant
+feedback.</p></li>
+<li><p><strong>Snapping Option:</strong> Allows for more precise placement of objects if needed.</p></li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul class="simple">
+<li><p><strong>No Randomization:</strong> You can’t define random transformations or entities.</p></li>
+<li><p><strong>No Include Statements:</strong> Unable to include general transformations.</p></li>
+</ul>
+<p><strong>Workflow:</strong></p>
+<ol class="arabic simple">
+<li><p>Import all the base Levels of Details (LODs) of models into one scene that
+you plan to use in the composite.</p></li>
+<li><p>Attach each model into a single object (if they were split across multiple
+objects in their scenes).</p></li>
+<li><p>Name each model as its corresponding <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file, minus the <code class="docutils literal notranslate"><span class="pre">.lod00.dag</span></code>
+suffix (e.g., if the DAG is <code class="docutils literal notranslate"><span class="pre">table_a.lod00.dag</span></code>, name the model <code class="docutils literal notranslate"><span class="pre">table_a</span></code>).</p></li>
+<li><p>Reset the model’s pivot to <code class="docutils literal notranslate"><span class="pre">0.0.0</span></code>, and zero out rotation and scale. Failing
+to do so will result in incorrect matrix calculations in the final composite
+(non-zeroed parameters will affect the matrices).</p>
+<ul class="simple">
+<li><p>For example, if the pivot isn’t at <code class="docutils literal notranslate"><span class="pre">0.0.0</span></code> but remains a meter along the
+X-axis, the model will shift that distance in the composite.</p></li>
+</ul>
+</li>
+<li><p>Assign a three-digit postfix to each object: <code class="docutils literal notranslate"><span class="pre">*_000</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">table_a</span></code> becomes
+<code class="docutils literal notranslate"><span class="pre">table_a_000</span></code>).</p>
+<ul class="simple">
+<li><p>When cloning, ensure the three-digit postfix remains intact: <code class="docutils literal notranslate"><span class="pre">table_a_001</span></code>,
+<code class="docutils literal notranslate"><span class="pre">table_a_002</span></code>, etc.</p></li>
+</ul>
+</li>
+<li><p>The object that will serve as the composite’s center should have the postfix
+<code class="docutils literal notranslate"><span class="pre">*_origin</span></code> instead of <code class="docutils literal notranslate"><span class="pre">_000</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">table_origin</span></code>).</p></li>
+<li><p>Position the objects as desired, cloning them within the scene as references
+or instances. Ensure the rotation, position, and scale match your intended
+adjustments.</p></li>
+<li><p>Export the final layout as a single <code class="docutils literal notranslate"><span class="pre">.dag</span></code> into the directory with the
+<a class="reference internal" href="../../dagor-tools/dag2rires/dag2rires.html"><span class="std std-doc">dag2riRes</span></a> script. It’s easier to
+keep the DAG name consistent to avoid confusion later.</p></li>
+<li><p>Run the script, which will generate a <code class="docutils literal notranslate"><span class="pre">composit.res.blk</span></code> file alongside the
+<code class="docutils literal notranslate"><span class="pre">.dag</span></code> (more details below).</p></li>
+<li><p>Rename and move the <code class="docutils literal notranslate"><span class="pre">composit.res.blk</span></code> file to the desired location. Ensure
+the composite name is correct – refer to the beginning of the document for
+naming conventions.</p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If several nodes in the 3ds Max scene are linked into a hierarchy before export,
+the script will treat the entire hierarchy as a single node named after the root
+object.</p>
+</div>
+<p><strong>Running the <a class="reference internal" href="../../dagor-tools/dag2rires/dag2rires.html"><span class="std std-doc">dag2riRes</span></a> Script</strong></p>
+<ol class="arabic">
+<li><p>Open FAR or the command line.</p></li>
+<li><p>Navigate to the <code class="docutils literal notranslate"><span class="pre">_Dag2riRes/</span></code> directory.</p></li>
+<li><p>Enter the following command:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>dag2riRes-dev.exe -s:&lt;name.dag&gt; -d:simple_dags -no_tex
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">&lt;name.dag&gt;</span></code> is your <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file’s name. You can assign any name.</p>
+</li>
+</ol>
+<p><strong>Naming Reminder:</strong> make sure to name the final composite correctly! Not just
+the name but also the postfixes.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">*_cmp.composit.blk</span></code>: Simple composite object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*_random.composit.blk</span></code>: Composite object with randomization (object
+substitution, object disappearance).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*_gameobj.composit.blk</span></code>: Composite object containing game objects.</p></li>
+</ul>
+</section>
+<section id="using-the-composite-editor-in-asset-viewer">
+<h3>Using the Composite Editor in Asset Viewer<a class="headerlink" href="#using-the-composite-editor-in-asset-viewer" title="Link to this heading"></a></h3>
+<p>Using the <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer-comp-editor/asset_viewer_comp_editor.html"><span class="std std-doc">Composite Editor in Asset
+Viewer</span></a>
+is a relatively new option, still under development, so some basic features
+might be missing at the time of writing and will be added over time.</p>
+<p><strong>Pros:</strong></p>
+<ul class="simple">
+<li><p><strong>Highly Visual:</strong> You can see the results of your work in real-time in the
+viewport.</p></li>
+<li><p><strong>Works with <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code>:</strong> Allows editing existing composites without
+needing the original 3ds Max scene.</p></li>
+<li><p><strong>Randomization:</strong> Nodes can be created with random entity selection.</p></li>
+<li><p><strong>Transform Randomization:</strong> Nodes can be created with random transforms.</p></li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul class="simple">
+<li><p><strong>In Development:</strong> Performance issues when editing large composites
+(thousands of nodes), especially noticeable in daNetGame-based games due to
+frequent use of multiple nested structures.</p></li>
+<li><p><strong>No Multi-Node Selection:</strong> Can only move nodes one by one.</p></li>
+<li><p><strong>No Undo:</strong> If you move a node and change your mind, you must either manually
+revert it or reload from disk, losing all unsaved changes.</p></li>
+<li><p><strong>Limited Gizmo:</strong> Only available in world coordinates – can’t move an asset
+along one of its own axes in the viewport.</p></li>
+<li><p><strong>No Include Support:</strong> Currently, there is no support for <code class="docutils literal notranslate"><span class="pre">include</span></code>
+statements.</p></li>
+<li><p><strong>Interface Development:</strong> Some elements might not be intuitive.</p></li>
+</ul>
+<p>In addition to adding <code class="docutils literal notranslate"><span class="pre">includes</span></code>, it allows you to fully create a hierarchy of
+composites.</p>
+</section>
+<section id="using-the-dag4blend-add-on-in-blender">
+<h3>Using the dag4blend Add-on in Blender<a class="headerlink" href="#using-the-dag4blend-add-on-in-blender" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../../dagor-tools/addons/blender/dag4blend-comp-editor/dag4blend_comp_editor.html"><span class="std std-doc">dag4blend Composite
+Editor</span></a>
+is a part of the
+<a class="reference internal" href="../../dagor-tools/addons/blender/dag4blend/dag4blend.html"><span class="std std-doc">dag4blend</span></a> add-on,
+which was previously a simple importer-exporter. It’s a new option, also under
+development.</p>
+<p><strong>Pros:</strong></p>
+<ul class="simple">
+<li><p><strong>Composite Import:</strong> You can import composites without needing the original
+<code class="docutils literal notranslate"><span class="pre">.blend</span></code> scene. All you need is the <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code> file and the asset <code class="docutils literal notranslate"><span class="pre">.dag</span></code>
+files (applicable only to the version with geometry import).</p></li>
+<li><p><strong>High Visual Clarity:</strong> The workflow is highly visual, making it easier to
+see and manage your changes.</p></li>
+<li><p><strong>Convenient Workflow:</strong> Features like snapping, multi-node selection, and
+more make it significantly easier to work with, similar to the ease of use in
+3ds Max.</p></li>
+<li><p><strong>Random Entity Nodes:</strong> You can directly create nodes that include random
+entity selection.</p></li>
+<li><p><strong>Random Transform Nodes:</strong> You can directly create nodes with randomized
+transforms.</p></li>
+<li><p><strong>Subcomposite Editing:</strong> You can decompose and edit any subcomposite at its
+final position within the parent composite, allowing you to see the exact
+final node placements.</p></li>
+<li><p><strong>Composite-to-DAG Conversion:</strong> Offers the ability to convert composites into
+<code class="docutils literal notranslate"><span class="pre">.dag</span></code> files.</p></li>
+<li><p><strong>Game Object Conversion:</strong> Allows converting <code class="docutils literal notranslate"><span class="pre">gameObj</span></code> nodes into meshes and
+converting a mesh’s bounding box into a <code class="docutils literal notranslate"><span class="pre">gameObj</span></code> node, which simplifies the
+placement of elements like indoor walls, wall holes, environmental probes,
+etc.</p></li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul class="simple">
+<li><p><strong>No Include Support:</strong> Currently, there is no support for <code class="docutils literal notranslate"><span class="pre">include</span></code>
+statements.</p></li>
+<li><p><strong>Limited Random Node Preview:</strong> The visibility of entities within random
+nodes must be manually toggled; they are not randomized automatically.</p></li>
+<li><p><strong>Game Object Preview:</strong> The preview for <code class="docutils literal notranslate"><span class="pre">gameObj</span></code>s must be manually
+configured; otherwise, they appear as empty nodes.</p></li>
+<li><p><strong>No Random Transform Preview:</strong> There is no preview available for randomized
+transforms.</p></li>
+<li><p><strong>Axis Confusion:</strong> <a class="reference external" href="https://docs.blender.org/manual/en/latest/scene_layout/object/editing/transform/control/axis_locking.html">Blender uses the Z-axis as the upward
+direction</a>,
+whereas the Dagor Engine uses the Y-axis. This difference must be considered
+when defining parameters for random transforms.</p></li>
+</ul>
+</section>
+<section id="creating-random-composites-in-3ds-max">
+<h3>Creating Random Composites in 3ds Max<a class="headerlink" href="#creating-random-composites-in-3ds-max" title="Link to this heading"></a></h3>
+<p>When planning to use random objects in nodes, it’s best to prepare for this in
+advance, during the composite assembly in 3ds Max. This is crucial to avoid
+randomization issues later. If you skip this step, you might find a chair
+clipping through a table, or a table through a dresser in the final composite.</p>
+<p>For instance, suppose you want to create a random composite of chairs placed
+around a table, with the chairs being of different sizes and shapes. You would
+combine them into one object and name it after the final random composite (e.g.,
+<code class="docutils literal notranslate"><span class="pre">chairs_abc_random</span></code> for a composite named <code class="docutils literal notranslate"><span class="pre">chairs_abc_random.composit.blk</span></code>).</p>
+<a class="reference internal image-reference" href="../../_images/composit_blk_28.jpg"><img alt="Using 3ds Max" class="align-center" src="../../_images/composit_blk_28.jpg" style="width: 30em;" />
+</a>
+<p>You should use this combined geometry during placement to see the boundaries of
+the objects that will be randomized in the node.</p>
+<p>To configure the randomization itself, further refinement of the composite by
+other methods is necessary.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="application_blk.html" class="btn btn-neutral float-left" title="application.blk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="config_and_settings_blk.html" class="btn btn-neutral float-right" title=".config.blk and .settings.blk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,210 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacefunctional" kind="namespace" language="C++">
+    <compoundname>functional</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacefunctional_1a240fedd61c46bb47cb5069b35d695c28" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void functional::prepareArgs</definition>
+        <argsstring>(FunctionId func, ArgList &amp;args)</argsstring>
+        <name>prepareArgs</name>
+        <qualifiedname>functional::prepareArgs</qualifiedname>
+        <param>
+          <type>FunctionId</type>
+          <declname>func</declname>
+        </param>
+        <param>
+          <type>ArgList &amp;</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="14" column="6" bodyfile="shFunc.cpp" bodystart="14" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1a6bb1f21ee705490aea79c22b53a4e120" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int functional::prepareArgs</definition>
+        <argsstring>(FunctionId func, FuncArgument *args, int)</argsstring>
+        <name>prepareArgs</name>
+        <qualifiedname>functional::prepareArgs</qualifiedname>
+        <param>
+          <type>FunctionId</type>
+          <declname>func</declname>
+        </param>
+        <param>
+          <type>FuncArgument *</type>
+          <declname>args</declname>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="20" column="5" bodyfile="shFunc.cpp" bodystart="20" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1aa594d50c22c9b99ea76669b7576bb30c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int functional::getOpCount</definition>
+        <argsstring>(FunctionId func)</argsstring>
+        <name>getOpCount</name>
+        <qualifiedname>functional::getOpCount</qualifiedname>
+        <param>
+          <type>FunctionId</type>
+          <declname>func</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="90" column="5" bodyfile="shFunc.cpp" bodystart="90" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1a65d63b3afe8706ef5499a148b0b8990c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType functional::getValueType</definition>
+        <argsstring>(FunctionId func)</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>functional::getValueType</qualifiedname>
+        <param>
+          <type>FunctionId</type>
+          <declname>func</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="119" column="19" bodyfile="shFunc.cpp" bodystart="119" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1abaff07d64e2df75e9aed4e6c18a9032c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool functional::getValueTypeIsInteger</definition>
+        <argsstring>(FunctionId func)</argsstring>
+        <name>getValueTypeIsInteger</name>
+        <qualifiedname>functional::getValueTypeIsInteger</qualifiedname>
+        <param>
+          <type>FunctionId</type>
+          <declname>func</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="147" column="6" bodyfile="shFunc.cpp" bodystart="147" bodyend="175"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1a2954029e81e3fb6a9e3273d4589f8079" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Color4</type>
+        <definition>static Color4 functional::anim_frame</definition>
+        <argsstring>(float arg0, float arg1, float arg2, float arg3)</argsstring>
+        <name>anim_frame</name>
+        <qualifiedname>functional::anim_frame</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>arg0</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>arg1</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>arg2</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>arg3</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="177" column="15" bodyfile="shFunc.cpp" bodystart="177" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1a2153022a95eca248919a3d3f489a6995" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool functional::evaluate</definition>
+        <argsstring>(FunctionId func, Color4 &amp;res, const ArgList &amp;args)</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>functional::evaluate</qualifiedname>
+        <param>
+          <type>FunctionId</type>
+          <declname>func</declname>
+        </param>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const ArgList &amp;</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="195" column="6" bodyfile="shFunc.cpp" bodystart="195" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1a7398fb0db52b383c5dce91d1b119e7c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool functional::getFuncId</definition>
+        <argsstring>(const char *name, FunctionId &amp;ret_func)</argsstring>
+        <name>getFuncId</name>
+        <qualifiedname>functional::getFuncId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>FunctionId &amp;</type>
+          <declname>ret_func</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="232" column="6" bodyfile="shFunc.cpp" bodystart="232" bodyend="275"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacefunctional_1a140dff130db36adf98e3b1b90472b2c4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool functional::isAlwaysDynamic</definition>
+        <argsstring>(FunctionId id)</argsstring>
+        <name>isAlwaysDynamic</name>
+        <qualifiedname>functional::isAlwaysDynamic</qualifiedname>
+        <param>
+          <type>FunctionId</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shFunc.cpp" line="278" column="6" bodyfile="shFunc.cpp" bodystart="278" bodyend="288"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shFunc.cpp" line="11" column="1"/>
+  </compounddef>
+</doxygen>

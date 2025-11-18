@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intrinsics</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Global constants" href="global-constants.html" />
+    <link rel="prev" title="Common directives" href="directives.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Shading Language (DSHL) docs</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic-concepts.html">Basic Concepts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="channels.html">Channels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shaders.html">Shaders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="materials.html">Materials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="directives.html">Common directives</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Intrinsics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#float-time-phase-float-period-float-offset">float time_phase(float period, float offset)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-sin-float-x">float sin(float x)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-cos-float-x">float cos(float x)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-pow-float-x-float-y">float pow(float x, float y)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float4-vecpow-float4-v-float-a">float4 vecpow(float4 v, float a)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-sqrt-float-x">float sqrt(float x)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-min-float-x-float-y">float min(float x, float y)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-max-float-x-float-y">float max(float x, float y)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-fsel-float-a-float-b-float-c">float fsel(float a, float b, float c)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float4-srgbread-float4-v">float4 sRGBread(float4 v)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float4-get-dimensions-texture-t-int-mip">float4 get_dimensions(texture t, int mip)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float-get-size-buffer-b">float get_size(buffer b)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#float4-get-viewport">float4 get_viewport()</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#int-exists-tex-texture-t">int exists_tex(texture t)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#int-exists-buf-buffer-b">int exists_buf(buffer b)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="global-constants.html">Global constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pipeline-states.html">Pipeline state configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="keywords.html">Keywords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stream_output.html">Stream output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Shading Language (DSHL) docs</a></li>
+      <li class="breadcrumb-item active">Intrinsics</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-dshl/index/intrinsics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="intrinsics">
+<h1>Intrinsics<a class="headerlink" href="#intrinsics" title="Link to this heading"></a></h1>
+<p>Apart from common HLSL functions, DSHL supports special <em>intrinsic</em> functions,
+which are handled by the shader compiler.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These functions are evaluated at runtime by the stcode system (unless they are known at compile time),
+so they cannot be used outside the <a class="reference internal" href="shaders.html#preshader"><span class="std std-ref">Preshader</span></a> section.</p>
+</div>
+<section id="float-time-phase-float-period-float-offset">
+<h2>float time_phase(float period, float offset)<a class="headerlink" href="#float-time-phase-float-period-float-offset" title="Link to this heading"></a></h2>
+<p>Computes global time phase (number in range <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1)</span></code>) for specified period and offset.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">frac((shadersGlobalTime</span> <span class="pre">+</span> <span class="pre">offset)</span> <span class="pre">/</span> <span class="pre">period)</span></code> or <code class="docutils literal notranslate"><span class="pre">shadersGlobalTime</span></code> in case <code class="docutils literal notranslate"><span class="pre">period</span> <span class="pre">==</span> <span class="pre">0</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">shadersGlobalTime</span></code> is just the time from the start of the game (in seconds).</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { current_time@f1 = time_phase(0, 0); }
+</pre></div>
+</div>
+</section>
+<section id="float-sin-float-x">
+<h2>float sin(float x)<a class="headerlink" href="#float-sin-float-x" title="Link to this heading"></a></h2>
+<p>Computes <code class="docutils literal notranslate"><span class="pre">sin</span></code> function.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { foo@f1 = sin(3.14); }
+</pre></div>
+</div>
+</section>
+<section id="float-cos-float-x">
+<h2>float cos(float x)<a class="headerlink" href="#float-cos-float-x" title="Link to this heading"></a></h2>
+<p>Computes <code class="docutils literal notranslate"><span class="pre">cos</span></code> function.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { foo@f1 = cos(3.14); }
+</pre></div>
+</div>
+</section>
+<section id="float-pow-float-x-float-y">
+<h2>float pow(float x, float y)<a class="headerlink" href="#float-pow-float-x-float-y" title="Link to this heading"></a></h2>
+<p>Raises <code class="docutils literal notranslate"><span class="pre">x</span></code> to the power of <code class="docutils literal notranslate"><span class="pre">y</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { foo@f1 = pow(1.2, 3.4); }
+</pre></div>
+</div>
+</section>
+<section id="float4-vecpow-float4-v-float-a">
+<h2>float4 vecpow(float4 v, float a)<a class="headerlink" href="#float4-vecpow-float4-v-float-a" title="Link to this heading"></a></h2>
+<p>Raises each component of vector <code class="docutils literal notranslate"><span class="pre">v</span></code> to the power of <code class="docutils literal notranslate"><span class="pre">a</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>local float4 v = (1, 2, 3, 4);
+local float a = 3.33;
+(ps) { foo@f1 = vecpow(v, a); }
+</pre></div>
+</div>
+</section>
+<section id="float-sqrt-float-x">
+<h2>float sqrt(float x)<a class="headerlink" href="#float-sqrt-float-x" title="Link to this heading"></a></h2>
+<p>Computes the square root of <code class="docutils literal notranslate"><span class="pre">x</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { foo@f1 = sqrt(1.3); }
+</pre></div>
+</div>
+</section>
+<section id="float-min-float-x-float-y">
+<h2>float min(float x, float y)<a class="headerlink" href="#float-min-float-x-float-y" title="Link to this heading"></a></h2>
+<p>Finds the minimum of two values.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { foo@f1 = min(-1, 1); }
+</pre></div>
+</div>
+</section>
+<section id="float-max-float-x-float-y">
+<h2>float max(float x, float y)<a class="headerlink" href="#float-max-float-x-float-y" title="Link to this heading"></a></h2>
+<p>Finds the maximum of two values.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { foo@f1 = max(-1, 1); }
+</pre></div>
+</div>
+</section>
+<section id="float-fsel-float-a-float-b-float-c">
+<h2>float fsel(float a, float b, float c)<a class="headerlink" href="#float-fsel-float-a-float-b-float-c" title="Link to this heading"></a></h2>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">(a</span> <span class="pre">&gt;=</span> <span class="pre">0.0f)</span> <span class="pre">?</span> <span class="pre">b</span> <span class="pre">:</span> <span class="pre">c</span></code></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { foo@f1 = fsel(1, 2, 3); }
+</pre></div>
+</div>
+</section>
+<section id="float4-srgbread-float4-v">
+<h2>float4 sRGBread(float4 v)<a class="headerlink" href="#float4-srgbread-float4-v" title="Link to this heading"></a></h2>
+<p>Raises RGB components of <code class="docutils literal notranslate"><span class="pre">v</span></code> to the power of <code class="docutils literal notranslate"><span class="pre">2.2</span></code>.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">float4(pow(v.r,</span> <span class="pre">2.2f),</span> <span class="pre">pow(v.g,</span> <span class="pre">2.2f),</span> <span class="pre">pow(v.b,</span> <span class="pre">2.2f),</span> <span class="pre">v.a)</span></code></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { srgb_color@f3 = sRGBread(some_color); }
+// alpha will be discarded when casting to float3
+</pre></div>
+</div>
+</section>
+<section id="float4-get-dimensions-texture-t-int-mip">
+<h2>float4 get_dimensions(texture t, int mip)<a class="headerlink" href="#float4-get-dimensions-texture-t-int-mip" title="Link to this heading"></a></h2>
+<p>Fetches texture <code class="docutils literal notranslate"><span class="pre">t</span></code> information on mip level <code class="docutils literal notranslate"><span class="pre">mip</span></code>.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">float4(width,</span> <span class="pre">height,</span> <span class="pre">depth_or_array_slices,</span> <span class="pre">mip_levels)</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">depth_or_array_slices</span></code> stores depth for volumetric textures or number of array slices for texture arrays.</p>
+<p>For cube textures, <code class="docutils literal notranslate"><span class="pre">depth_or_array_slices</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>texture ssao_tex;
+(ps) { ssao_size@f4 = get_dimensions(ssao_tex, 0); }
+</pre></div>
+</div>
+</section>
+<section id="float-get-size-buffer-b">
+<h2>float get_size(buffer b)<a class="headerlink" href="#float-get-size-buffer-b" title="Link to this heading"></a></h2>
+<p>Fetches the size of buffer <code class="docutils literal notranslate"><span class="pre">b</span></code> in elements.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">float(buffer_size_in_elements)</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>buffer some_buf;
+(ps) { buf_size@f1 = get_size(some_buf); }
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">get_size</span></code> of <code class="docutils literal notranslate"><span class="pre">(RW)ByteAddressBuffer</span></code> will return the number of DWORDs (4 byte chunks) in a buffer.
+This is contrary to <code class="docutils literal notranslate"><span class="pre">(RW)ByteAddressBuffer::GetDimensions</span></code> pure HLSL function, which returns the number of bytes.</p>
+</div>
+</section>
+<section id="float4-get-viewport">
+<h2>float4 get_viewport()<a class="headerlink" href="#float4-get-viewport" title="Link to this heading"></a></h2>
+<p>Fetches viewport information.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">float4(top_left_x,</span> <span class="pre">top_left_y,</span> <span class="pre">width,</span> <span class="pre">height)</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(ps) { viewport@f4 = get_viewport(); }
+</pre></div>
+</div>
+</section>
+<section id="int-exists-tex-texture-t">
+<h2>int exists_tex(texture t)<a class="headerlink" href="#int-exists-tex-texture-t" title="Link to this heading"></a></h2>
+<p>At runtime, checks if the texture <code class="docutils literal notranslate"><span class="pre">t</span></code> exists (is bound to the shader from C++ side).
+You can think of it as a run time equivalent of <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">!=</span> <span class="pre">NULL</span></code> preshader check.
+Return value can be saved to a variable and used for uniform HLSL branching.</p>
+<p>Usage:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>texture example_texture;
+
+  (ps) {
+    example_texture@tex2d = example_texture;
+    example_texture_exists@i1 = exists_tex(example_texture);
+  }
+
+  hlsl(ps) {
+    if (example_texture_exists) { /* ... */ }
+  }
+</pre></div>
+</div>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">1</span></code> if texture exists, <code class="docutils literal notranslate"><span class="pre">0</span></code> otherwise.</p>
+</section>
+<section id="int-exists-buf-buffer-b">
+<h2>int exists_buf(buffer b)<a class="headerlink" href="#int-exists-buf-buffer-b" title="Link to this heading"></a></h2>
+<p>Similar to <code class="docutils literal notranslate"><span class="pre">exists_tex</span></code>.
+At runtime, checks if the buffer <code class="docutils literal notranslate"><span class="pre">b</span></code> exists (is bound to the shader from C++ side).
+You can think of it as a run time equivalent of <code class="docutils literal notranslate"><span class="pre">b</span> <span class="pre">!=</span> <span class="pre">NULL</span></code> preshader check.
+Return value can be saved to a variable and used for uniform HLSL branching.</p>
+<p>Usage:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>buffer example_buffer;
+
+(ps) {
+  example_buffer@buf = example_buffer hlsl {
+    StructuredBuffer&lt;float&gt; example_buffer@buf;
+  };
+  example_buffer_exists@i1 = exists_buf(example_buffer);
+}
+
+hlsl(ps) {
+  if (example_buffer_exists) { /* ... */ }
+}
+</pre></div>
+</div>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">1</span></code> if buffer exists, <code class="docutils literal notranslate"><span class="pre">0</span></code> otherwise.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="directives.html" class="btn btn-neutral float-left" title="Common directives" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="global-constants.html" class="btn btn-neutral float-right" title="Global constants" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

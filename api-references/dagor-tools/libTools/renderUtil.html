@@ -1,0 +1,539 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>renderUtil</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Util" href="util.html" />
+    <link rel="prev" title="libTools" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../EditorCore/EditorCore.html">EditorCore</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">libTools</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">renderUtil</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv415DynRenderBuffer"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer9VertexTabE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::VertexTab</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer7FaceTabE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::FaceTab</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8edBufferE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::edBuffer</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8channelsE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::channels</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer5edMatE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::edMat</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8edShaderE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::edShader</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8texVarIdE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::texVarId</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer20texSamplerstateVarIdE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::texSamplerstateVarId</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer7edVertsE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::edVerts</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer7edFacesE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::edFaces</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer14vertexMaxCountE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::vertexMaxCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer12faceMaxCountE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::faceMaxCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer13flushToBufferE9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::flushToBuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8addFacesE9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::addFaces()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer5flushEv"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::flush()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer7addVertEP6Vertexi"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::addVert()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6addIndEPiii"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::addInd()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer12createBufferEii"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::createBuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8clearBufEv"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::clearBuf()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer10drawCustomEN3dag9ConstSpanI6VertexEEN3dag9ConstSpanIiEE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawCustom()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer14drawNetSurfaceEii"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawNetSurface()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8drawQuadERK6Point3RK6Point3RK6Point3RK6Point38E3DCOLORff"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawQuad()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer8drawLineERK6Point3RK6Point34real8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawLine()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer10drawSquareERK6Point34real8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawSquare()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer15drawDebugSphereERK6Point34real4real8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawDebugSphere()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer14drawWireSphereERK6Point34real4real8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawWireSphere()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer10drawSphereERK7TMatrix8E3DCOLORi"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawSphere()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer7drawBoxERK7TMatrix8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawBox()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer11drawWireBoxERK7TMatrix4real8E3DCOLOR"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::drawWireBox()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer12SafetyBoundsE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::SafetyBounds</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer12SafetyBounds24SAFETY_MAX_BUFFER_VERTEXE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::SafetyBounds::SAFETY_MAX_BUFFER_VERTEX</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer12SafetyBounds23SAFETY_MAX_BUFFER_FACESE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::SafetyBounds::SAFETY_MAX_BUFFER_FACES</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer15DynRenderBufferEPKc"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::DynRenderBuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBufferD0Ev"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::~DynRenderBuffer()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK15DynRenderBuffer14getVertexCountEv"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::getVertexCount()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4NK15DynRenderBuffer13getIndexCountEv"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::getIndexCount()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6VertexE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::Vertex</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6Vertex3posE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::Vertex::pos</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6Vertex5colorE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::Vertex::color</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6Vertex2tcE"><code class="docutils literal notranslate"><span class="pre">DynRenderBuffer::Vertex::tc</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="util.html">Util</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../maxplug/maxplug.html">3ds Max Plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ShaderCompiler2/ShaderCompiler2.html">ShaderCompiler2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">libTools</a></li>
+      <li class="breadcrumb-item active">renderUtil</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-tools/libTools/renderUtil.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="renderutil">
+<h1>renderUtil<a class="headerlink" href="#renderutil" title="Link to this heading"></a></h1>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv415DynRenderBuffer">
+<span id="_CPPv315DynRenderBuffer"></span><span id="_CPPv215DynRenderBuffer"></span><span id="DynRenderBuffer"></span><span class="target" id="classDynRenderBuffer"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DynRenderBuffer</span></span></span><a class="headerlink" href="#_CPPv415DynRenderBuffer" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dynRenderBuf.h&gt;</em></div>
+<p>Used to render various geometry by means of built-in shader buffer (see #DynamicShadersBuffer). At first the data are accumulated in internal class’s buffer, then after calling <a class="reference internal" href="#classDynRenderBuffer_1a9c49c875157585af7100095d5595a783"><span class="std std-ref">flushToBuffer()</span></a> they are moved to shader buffer. After call to <a class="reference internal" href="#classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e"><span class="std std-ref">flush()</span></a> the data are displayed on the screen. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-data-render-methods.">Data render methods.</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer9VertexTabE">
+<span id="_CPPv3N15DynRenderBuffer9VertexTabE"></span><span id="_CPPv2N15DynRenderBuffer9VertexTabE"></span><span id="DynRenderBuffer::VertexTab"></span><span class="target" id="classDynRenderBuffer_1ae0b25206cecc8348b8fe20a4b880904f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">Tab</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6VertexE" title="DynRenderBuffer::Vertex"><span class="n"><span class="pre">Vertex</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VertexTab</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer9VertexTabE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer7FaceTabE">
+<span id="_CPPv3N15DynRenderBuffer7FaceTabE"></span><span id="_CPPv2N15DynRenderBuffer7FaceTabE"></span><span id="DynRenderBuffer::FaceTab"></span><span class="target" id="classDynRenderBuffer_1a53e68086ba4d92c3a8efdf324bf8ab58"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">Tab</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FaceTab</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer7FaceTabE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8edBufferE">
+<span id="_CPPv3N15DynRenderBuffer8edBufferE"></span><span id="_CPPv2N15DynRenderBuffer8edBufferE"></span><span id="DynRenderBuffer::edBuffer__DynamicShadersBufferP"></span><span class="target" id="classDynRenderBuffer_1aee549e685bc46dc59897fa1f3a8d7418"></span><span class="n"><span class="pre">DynamicShadersBuffer</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">edBuffer</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8edBufferE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8channelsE">
+<span id="_CPPv3N15DynRenderBuffer8channelsE"></span><span id="_CPPv2N15DynRenderBuffer8channelsE"></span><span id="DynRenderBuffer::channels__CompiledShaderChannelIdA"></span><span class="target" id="classDynRenderBuffer_1a3c9d08ef22b1948557719e930f181c53"></span><span class="n"><span class="pre">CompiledShaderChannelId</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channels</span></span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8channelsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer5edMatE">
+<span id="_CPPv3N15DynRenderBuffer5edMatE"></span><span id="_CPPv2N15DynRenderBuffer5edMatE"></span><span id="DynRenderBuffer::edMat__Ptr:ShaderMaterial:"></span><span class="target" id="classDynRenderBuffer_1ab8cead55bc2746a029e7facc3555817f"></span><span class="n"><span class="pre">Ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../../dagor-render/index/shaders/shader_material_system.html#_CPPv414ShaderMaterial" title="ShaderMaterial"><span class="n"><span class="pre">ShaderMaterial</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">edMat</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer5edMatE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8edShaderE">
+<span id="_CPPv3N15DynRenderBuffer8edShaderE"></span><span id="_CPPv2N15DynRenderBuffer8edShaderE"></span><span id="DynRenderBuffer::edShader__Ptr:ShaderElement:"></span><span class="target" id="classDynRenderBuffer_1a31466cf92bcd967bf3ed0a219a5199d5"></span><span class="n"><span class="pre">Ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../../dagor-render/index/shaders/shader_material_system.html#_CPPv413ShaderElement" title="ShaderElement"><span class="n"><span class="pre">ShaderElement</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">edShader</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8edShaderE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8texVarIdE">
+<span id="_CPPv3N15DynRenderBuffer8texVarIdE"></span><span id="_CPPv2N15DynRenderBuffer8texVarIdE"></span><span id="DynRenderBuffer::texVarId__i"></span><span class="target" id="classDynRenderBuffer_1a6408062726a977c665eac004278e9d06"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texVarId</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8texVarIdE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer20texSamplerstateVarIdE">
+<span id="_CPPv3N15DynRenderBuffer20texSamplerstateVarIdE"></span><span id="_CPPv2N15DynRenderBuffer20texSamplerstateVarIdE"></span><span id="DynRenderBuffer::texSamplerstateVarId__i"></span><span class="target" id="classDynRenderBuffer_1a55fe9b1745f8caecd0fae532a36b532f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texSamplerstateVarId</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer20texSamplerstateVarIdE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer7edVertsE">
+<span id="_CPPv3N15DynRenderBuffer7edVertsE"></span><span id="_CPPv2N15DynRenderBuffer7edVertsE"></span><span id="DynRenderBuffer::edVerts__VertexTab"></span><span class="target" id="classDynRenderBuffer_1add403a026a7ccb1f02ef9c735567ce88"></span><a class="reference internal" href="#_CPPv4N15DynRenderBuffer9VertexTabE" title="DynRenderBuffer::VertexTab"><span class="n"><span class="pre">VertexTab</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">edVerts</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer7edVertsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer7edFacesE">
+<span id="_CPPv3N15DynRenderBuffer7edFacesE"></span><span id="_CPPv2N15DynRenderBuffer7edFacesE"></span><span id="DynRenderBuffer::edFaces__FaceTab"></span><span class="target" id="classDynRenderBuffer_1a15069e46e9e58a4991c06f65cc4ef43c"></span><a class="reference internal" href="#_CPPv4N15DynRenderBuffer7FaceTabE" title="DynRenderBuffer::FaceTab"><span class="n"><span class="pre">FaceTab</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">edFaces</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer7edFacesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer14vertexMaxCountE">
+<span id="_CPPv3N15DynRenderBuffer14vertexMaxCountE"></span><span id="_CPPv2N15DynRenderBuffer14vertexMaxCountE"></span><span id="DynRenderBuffer::vertexMaxCount__unsigned"></span><span class="target" id="classDynRenderBuffer_1a6939f7710ee787874c73fc5261e028f0"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vertexMaxCount</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer14vertexMaxCountE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer12faceMaxCountE">
+<span id="_CPPv3N15DynRenderBuffer12faceMaxCountE"></span><span id="_CPPv2N15DynRenderBuffer12faceMaxCountE"></span><span id="DynRenderBuffer::faceMaxCount__unsigned"></span><span class="target" id="classDynRenderBuffer_1a03a1cbc381087aa4e526c3cbd766c449"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">faceMaxCount</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer12faceMaxCountE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer13flushToBufferE9TEXTUREID">
+<span id="_CPPv3N15DynRenderBuffer13flushToBufferE9TEXTUREID"></span><span id="_CPPv2N15DynRenderBuffer13flushToBufferE9TEXTUREID"></span><span id="DynRenderBuffer::flushToBuffer__TEXTUREID"></span><span class="target" id="classDynRenderBuffer_1a9c49c875157585af7100095d5595a783"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flushToBuffer</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../../dagor-render/index/resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tid</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer13flushToBufferE9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>The function begins process of rendering shader geometry and calls <a class="reference internal" href="#classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da"><span class="std std-ref">addFaces()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tid</strong> – <strong>[in]</strong> - ID of texture used for rendering </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8addFacesE9TEXTUREID">
+<span id="_CPPv3N15DynRenderBuffer8addFacesE9TEXTUREID"></span><span id="_CPPv2N15DynRenderBuffer8addFacesE9TEXTUREID"></span><span id="DynRenderBuffer::addFaces__TEXTUREID"></span><span class="target" id="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addFaces</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../../dagor-render/index/resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tid</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8addFacesE9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd><p>The function moves data from internal buffer to shader buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tid</strong> – <strong>[in]</strong> - ID of texture used for rendering </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer5flushEv">
+<span id="_CPPv3N15DynRenderBuffer5flushEv"></span><span id="_CPPv2N15DynRenderBuffer5flushEv"></span><span id="DynRenderBuffer::flush"></span><span class="target" id="classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flush</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer5flushEv" title="Link to this definition"></a><br /></dt>
+<dd><p>The function outputs shader buffer to screen and ends process of rendering shader geometry (see #ShaderMesh::end_render()). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer7addVertEP6Vertexi">
+<span id="_CPPv3N15DynRenderBuffer7addVertEP6Vertexi"></span><span id="_CPPv2N15DynRenderBuffer7addVertEP6Vertexi"></span><span id="DynRenderBuffer::addVert__VertexP.i"></span><span class="target" id="classDynRenderBuffer_1aa6bd7bdabb6e9093a9c74d7dac4389aa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addVert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6VertexE" title="DynRenderBuffer::Vertex"><span class="n"><span class="pre">Vertex</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">v</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">numv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer7addVertEP6Vertexi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer6addIndEPiii">
+<span id="_CPPv3N15DynRenderBuffer6addIndEPiii"></span><span id="_CPPv2N15DynRenderBuffer6addIndEPiii"></span><span id="DynRenderBuffer::addInd__iP.i.i"></span><span class="target" id="classDynRenderBuffer_1ad19410a722ccd54a996c6b9ffc4f412f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addInd</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">i</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">numi</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer6addIndEPiii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer12createBufferEii">
+<span id="_CPPv3N15DynRenderBuffer12createBufferEii"></span><span id="_CPPv2N15DynRenderBuffer12createBufferEii"></span><span id="DynRenderBuffer::createBuffer__i.i"></span><span class="target" id="classDynRenderBuffer_1a75b927add07e3e7d45c637a5f9a7035c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">createBuffer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_verts</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_faces</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer12createBufferEii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-data-accumulation-methods.">Data accumulation methods.</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8clearBufEv">
+<span id="_CPPv3N15DynRenderBuffer8clearBufEv"></span><span id="_CPPv2N15DynRenderBuffer8clearBufEv"></span><span id="DynRenderBuffer::clearBuf"></span><span class="target" id="classDynRenderBuffer_1a71f15c53c55126010b65763ff472eb6a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clearBuf</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8clearBufEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear buffer. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer10drawCustomEN3dag9ConstSpanI6VertexEEN3dag9ConstSpanIiEE">
+<span id="_CPPv3N15DynRenderBuffer10drawCustomEN3dag9ConstSpanI6VertexEEN3dag9ConstSpanIiEE"></span><span id="_CPPv2N15DynRenderBuffer10drawCustomEN3dag9ConstSpanI6VertexEEN3dag9ConstSpanIiEE"></span><span id="DynRenderBuffer::drawCustom__dag::ConstSpan:Vertex:.dag::ConstSpan:i:"></span><span class="target" id="classDynRenderBuffer_1a744dd7c269a872d21c637bd0954cdb98"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawCustom</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6VertexE" title="DynRenderBuffer::Vertex"><span class="n"><span class="pre">Vertex</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">vertex_tab</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">face_tab</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer10drawCustomEN3dag9ConstSpanI6VertexEEN3dag9ConstSpanIiEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Put arbitrary geometry in buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vertex_tab</strong> – <strong>[in]</strong> - array of vertexes </p></li>
+<li><p><strong>face_tab</strong> – <strong>[in]</strong> - array of vertex indexes </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer14drawNetSurfaceEii">
+<span id="_CPPv3N15DynRenderBuffer14drawNetSurfaceEii"></span><span id="_CPPv2N15DynRenderBuffer14drawNetSurfaceEii"></span><span id="DynRenderBuffer::drawNetSurface__i.i"></span><span class="target" id="classDynRenderBuffer_1a1da9df1c6e374999a0301ef90b03a2f7"></span><a class="reference internal" href="#_CPPv4N15DynRenderBuffer6VertexE" title="DynRenderBuffer::Vertex"><span class="n"><span class="pre">Vertex</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">drawNetSurface</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer14drawNetSurfaceEii" title="Link to this definition"></a><br /></dt>
+<dd><p>starts filling data for net surface; reserves space for w*h vertices and inits indices; returns pointer to first vertex, vertices are arranged as (0,0), (1,0) … (w-1,0), (0, 1), (1,1), etc. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8drawQuadERK6Point3RK6Point3RK6Point3RK6Point38E3DCOLORff">
+<span id="_CPPv3N15DynRenderBuffer8drawQuadERK6Point3RK6Point3RK6Point3RK6Point38E3DCOLORff"></span><span id="_CPPv2N15DynRenderBuffer8drawQuadERK6Point3RK6Point3RK6Point3RK6Point38E3DCOLORff"></span><span id="DynRenderBuffer::drawQuad__Point3CR.Point3CR.Point3CR.Point3CR.E3DCOLOR.float.float"></span><span class="target" id="classDynRenderBuffer_1a5e59edcfe33fbf07188e437d00d2cd0f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawQuad</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p2</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p3</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">u</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8drawQuadERK6Point3RK6Point3RK6Point3RK6Point38E3DCOLORff" title="Link to this definition"></a><br /></dt>
+<dd><p>Put quad in buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0, p1, p2, p3</strong> – <strong>[in]</strong> - coordinates of vertexes </p></li>
+<li><p><strong>color</strong> – <strong>[in]</strong> - quad color </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer8drawLineERK6Point3RK6Point34real8E3DCOLOR">
+<span id="_CPPv3N15DynRenderBuffer8drawLineERK6Point3RK6Point34real8E3DCOLOR"></span><span id="_CPPv2N15DynRenderBuffer8drawLineERK6Point3RK6Point34real8E3DCOLOR"></span><span id="DynRenderBuffer::drawLine__Point3CR.Point3CR.real.E3DCOLOR"></span><span class="target" id="classDynRenderBuffer_1abbd2775baf08c1348a58a601499ae092"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawLine</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">from</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">to</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer8drawLineERK6Point3RK6Point34real8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd><p>Place rectangular line on surface perpendicular to camera line of view and put it in buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from</strong> – <strong>[in]</strong> - start coordinates of the line </p></li>
+<li><p><strong>to</strong> – <strong>[in]</strong> - end coordinates of the line </p></li>
+<li><p><strong>width</strong> – <strong>[in]</strong> - line width </p></li>
+<li><p><strong>color</strong> – <strong>[in]</strong> - line color </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer10drawSquareERK6Point34real8E3DCOLOR">
+<span id="_CPPv3N15DynRenderBuffer10drawSquareERK6Point34real8E3DCOLOR"></span><span id="_CPPv2N15DynRenderBuffer10drawSquareERK6Point34real8E3DCOLOR"></span><span id="DynRenderBuffer::drawSquare__Point3CR.real.E3DCOLOR"></span><span class="target" id="classDynRenderBuffer_1a1f4ad17530fe37f5405858408302480c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawSquare</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">radius</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer10drawSquareERK6Point34real8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd><p>Place square on surface perpendicular to camera line of view and put it in buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – <strong>[in]</strong> - coordinates of square center </p></li>
+<li><p><strong>radius</strong> – <strong>[in]</strong> - half length of square side </p></li>
+<li><p><strong>color</strong> – <strong>[in]</strong> - square color </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer15drawDebugSphereERK6Point34real4real8E3DCOLOR">
+<span id="_CPPv3N15DynRenderBuffer15drawDebugSphereERK6Point34real4real8E3DCOLOR"></span><span id="_CPPv2N15DynRenderBuffer15drawDebugSphereERK6Point34real4real8E3DCOLOR"></span><span id="DynRenderBuffer::drawDebugSphere__Point3CR.real.real.E3DCOLOR"></span><span class="target" id="classDynRenderBuffer_1a2d2e264f9f50f4608f91b1bc57e3e7c1"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawDebugSphere</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">pos</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">radius</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer15drawDebugSphereERK6Point34real4real8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd><p>Place ring on surface perpendicular to camera line of view and put it in buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> – <strong>[in]</strong> - coordinates of ring center </p></li>
+<li><p><strong>radius</strong> – <strong>[in]</strong> - ring radius </p></li>
+<li><p><strong>width</strong> – <strong>[in]</strong> - ring width </p></li>
+<li><p><strong>color</strong> – <strong>[in]</strong> - ring color </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer14drawWireSphereERK6Point34real4real8E3DCOLOR">
+<span id="_CPPv3N15DynRenderBuffer14drawWireSphereERK6Point34real4real8E3DCOLOR"></span><span id="_CPPv2N15DynRenderBuffer14drawWireSphereERK6Point34real4real8E3DCOLOR"></span><span id="DynRenderBuffer::drawWireSphere__Point3CR.real.real.E3DCOLOR"></span><span class="target" id="classDynRenderBuffer_1a71be935d43c313bf9b430b4567d51dff"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawWireSphere</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">pos</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">radius</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer14drawWireSphereERK6Point34real4real8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer10drawSphereERK7TMatrix8E3DCOLORi">
+<span id="_CPPv3N15DynRenderBuffer10drawSphereERK7TMatrix8E3DCOLORi"></span><span id="_CPPv2N15DynRenderBuffer10drawSphereERK7TMatrix8E3DCOLORi"></span><span id="DynRenderBuffer::drawSphere__TMatrixCR.E3DCOLOR.i"></span><span class="target" id="classDynRenderBuffer_1a54869d2b4a7e4ea545d42bb2763f271d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawSphere</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tm</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">segs</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer10drawSphereERK7TMatrix8E3DCOLORi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer7drawBoxERK7TMatrix8E3DCOLOR">
+<span id="_CPPv3N15DynRenderBuffer7drawBoxERK7TMatrix8E3DCOLOR"></span><span id="_CPPv2N15DynRenderBuffer7drawBoxERK7TMatrix8E3DCOLOR"></span><span id="DynRenderBuffer::drawBox__TMatrixCR.E3DCOLOR"></span><span class="target" id="classDynRenderBuffer_1ad05d397609a53d5afcf4e419e041e5a3"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawBox</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tm</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer7drawBoxERK7TMatrix8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd><p>Put parallelepiped (box) in buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tm</strong> – <strong>[in]</strong> - the matrix that defines coordinates, dimensions and rotation of the parallelepiped. Parallelepiped is the result of matrix multiplication, where one matrix represents cube with side equal 1 metre and other matrix is tm matrix. </p></li>
+<li><p><strong>color</strong> – <strong>[in]</strong> - parallelepiped color </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer11drawWireBoxERK7TMatrix4real8E3DCOLOR">
+<span id="_CPPv3N15DynRenderBuffer11drawWireBoxERK7TMatrix4real8E3DCOLOR"></span><span id="_CPPv2N15DynRenderBuffer11drawWireBoxERK7TMatrix4real8E3DCOLOR"></span><span id="DynRenderBuffer::drawWireBox__TMatrixCR.real.E3DCOLOR"></span><span class="target" id="classDynRenderBuffer_1a400b1044499a611f0ab4b4e61ef4ff13"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawWireBox</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../maxplug/maxplug.html#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tm</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer11drawWireBoxERK7TMatrix4real8E3DCOLOR" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer12SafetyBoundsE">
+<span id="_CPPv3N15DynRenderBuffer12SafetyBoundsE"></span><span id="_CPPv2N15DynRenderBuffer12SafetyBoundsE"></span><span class="target" id="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SafetyBounds</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer12SafetyBoundsE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer12SafetyBounds24SAFETY_MAX_BUFFER_VERTEXE">
+<span id="_CPPv3N15DynRenderBuffer12SafetyBounds24SAFETY_MAX_BUFFER_VERTEXE"></span><span id="_CPPv2N15DynRenderBuffer12SafetyBounds24SAFETY_MAX_BUFFER_VERTEXE"></span><span class="target" id="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350ab777b2e0a13f647f211e5092f3082c2d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SAFETY_MAX_BUFFER_VERTEX</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer12SafetyBounds24SAFETY_MAX_BUFFER_VERTEXE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer12SafetyBounds23SAFETY_MAX_BUFFER_FACESE">
+<span id="_CPPv3N15DynRenderBuffer12SafetyBounds23SAFETY_MAX_BUFFER_FACESE"></span><span id="_CPPv2N15DynRenderBuffer12SafetyBounds23SAFETY_MAX_BUFFER_FACESE"></span><span class="target" id="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350a2962bfc5d7b5b930fcbaab4dad626183"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SAFETY_MAX_BUFFER_FACES</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer12SafetyBounds23SAFETY_MAX_BUFFER_FACESE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer15DynRenderBufferEPKc">
+<span id="_CPPv3N15DynRenderBuffer15DynRenderBufferEPKc"></span><span id="_CPPv2N15DynRenderBuffer15DynRenderBufferEPKc"></span><span id="DynRenderBuffer::DynRenderBuffer__cCP"></span><span class="target" id="classDynRenderBuffer_1aafbe66e2a77e2212ea09bb506751ccc9"></span><span class="sig-name descname"><span class="n"><span class="pre">DynRenderBuffer</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">class_name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;editor_helper&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer15DynRenderBufferEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>class_name</strong> – <strong>[in]</strong> - name of shader used for rendering </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBufferD0Ev">
+<span id="_CPPv3N15DynRenderBufferD0Ev"></span><span id="_CPPv2N15DynRenderBufferD0Ev"></span><span id="DynRenderBuffer::~DynRenderBuffer"></span><span class="target" id="classDynRenderBuffer_1ae3b22f3f1a04d04166a42a32887c68b6"></span><span class="sig-name descname"><span class="n"><span class="pre">~DynRenderBuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N15DynRenderBufferD0Ev" title="Link to this definition"></a><br /></dt>
+<dd><p>Destructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK15DynRenderBuffer14getVertexCountEv">
+<span id="_CPPv3NK15DynRenderBuffer14getVertexCountEv"></span><span id="_CPPv2NK15DynRenderBuffer14getVertexCountEv"></span><span id="DynRenderBuffer::getVertexCountC"></span><span class="target" id="classDynRenderBuffer_1a6a13606b9c85dbbb5d1d5a82f0c8a85c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getVertexCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK15DynRenderBuffer14getVertexCountEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get vertex count. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>number of vertices in buffer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK15DynRenderBuffer13getIndexCountEv">
+<span id="_CPPv3NK15DynRenderBuffer13getIndexCountEv"></span><span id="_CPPv2NK15DynRenderBuffer13getIndexCountEv"></span><span id="DynRenderBuffer::getIndexCountC"></span><span class="target" id="classDynRenderBuffer_1a0cd272fcefd60f648608c7e1067b10ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getIndexCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK15DynRenderBuffer13getIndexCountEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get vertex index count. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>number of vertex indexes in buffer </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer6VertexE">
+<span id="_CPPv3N15DynRenderBuffer6VertexE"></span><span id="_CPPv2N15DynRenderBuffer6VertexE"></span><span id="DynRenderBuffer::Vertex"></span><span class="target" id="structDynRenderBuffer_1_1Vertex"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Vertex</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer6VertexE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dynRenderBuf.h&gt;</em></div>
+<p><a class="reference internal" href="#structDynRenderBuffer_1_1Vertex"><span class="std std-ref">Vertex</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer6Vertex3posE">
+<span id="_CPPv3N15DynRenderBuffer6Vertex3posE"></span><span id="_CPPv2N15DynRenderBuffer6Vertex3posE"></span><span id="DynRenderBuffer::Vertex::pos__Point3"></span><span class="target" id="structDynRenderBuffer_1_1Vertex_1a6622ce7e12633ed4e25739b37490aad0"></span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pos</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer6Vertex3posE" title="Link to this definition"></a><br /></dt>
+<dd><p>Spatial coordinates. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer6Vertex5colorE">
+<span id="_CPPv3N15DynRenderBuffer6Vertex5colorE"></span><span id="_CPPv2N15DynRenderBuffer6Vertex5colorE"></span><span id="DynRenderBuffer::Vertex::color__E3DCOLOR"></span><span class="target" id="structDynRenderBuffer_1_1Vertex_1ad422a1dee49850cd77f98e92e95c43c2"></span><span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer6Vertex5colorE" title="Link to this definition"></a><br /></dt>
+<dd><p>Color. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N15DynRenderBuffer6Vertex2tcE">
+<span id="_CPPv3N15DynRenderBuffer6Vertex2tcE"></span><span id="_CPPv2N15DynRenderBuffer6Vertex2tcE"></span><span id="DynRenderBuffer::Vertex::tc__Point2"></span><span class="target" id="structDynRenderBuffer_1_1Vertex_1a090b53e8f616bba0bbc9c80d12d372b9"></span><span class="n"><span class="pre">Point2</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tc</span></span></span><a class="headerlink" href="#_CPPv4N15DynRenderBuffer6Vertex2tcE" title="Link to this definition"></a><br /></dt>
+<dd><p>Texture coordinates. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="libTools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="util.html" class="btn btn-neutral float-right" title="Util" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

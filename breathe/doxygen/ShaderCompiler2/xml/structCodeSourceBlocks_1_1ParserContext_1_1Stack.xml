@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCodeSourceBlocks_1_1ParserContext_1_1Stack" kind="struct" language="C++" prot="protected">
+    <compoundname>CodeSourceBlocks::ParserContext::Stack</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1a7367bb5b39f1b70970719bb9f0fd2b6a" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="codeBlocks_8cpp_1a3576598958ffbec7449b2f04dae218b5" kindref="member">fragment_t</ref> &gt; *</type>
+        <definition>Tab&lt;fragment_t&gt;* CodeSourceBlocks::ParserContext::Stack::prog</definition>
+        <argsstring></argsstring>
+        <name>prog</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::Stack::prog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="76" column="9" bodyfile="codeBlocks.cpp" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1aa9b63fbdbc4a719895feb7b0759b956f" prot="public" static="no" mutable="no">
+        <type><ref refid="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3c" kindref="member">ExprValue</ref></type>
+        <definition>ExprValue CodeSourceBlocks::ParserContext::Stack::condEval</definition>
+        <argsstring></argsstring>
+        <name>condEval</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::Stack::condEval</qualifiedname>
+        <initializer>= <ref refid="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3ca6267ef339fe3b5e7cc5d6160917ca593" kindref="member">ExprValue::NonConst</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="77" column="15" bodyfile="codeBlocks.cpp" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1a471c03a75f1ad796c5108af238787678" prot="public" static="no" mutable="no">
+        <type>signed char</type>
+        <definition>signed char CodeSourceBlocks::ParserContext::Stack::state</definition>
+        <argsstring></argsstring>
+        <name>state</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::Stack::state</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="78" column="17" bodyfile="codeBlocks.cpp" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1ac0f00facf3a3f9b8c55fe5f7ebf5511b" prot="public" static="no" mutable="no">
+        <type>signed char</type>
+        <definition>signed char CodeSourceBlocks::ParserContext::Stack::has1</definition>
+        <argsstring></argsstring>
+        <name>has1</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::Stack::has1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="78" column="23" bodyfile="codeBlocks.cpp" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1a90eadf6f7898284629bab16a4822dd86" prot="public" static="no" mutable="no">
+        <type>signed char</type>
+        <definition>signed char CodeSourceBlocks::ParserContext::Stack::hasA</definition>
+        <argsstring></argsstring>
+        <name>hasA</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::Stack::hasA</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="78" column="28" bodyfile="codeBlocks.cpp" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="codeBlocks.cpp" line="74" column="3" bodyfile="codeBlocks.cpp" bodystart="75" bodyend="79"/>
+    <listofallmembers>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1aa9b63fbdbc4a719895feb7b0759b956f" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext::Stack</scope><name>condEval</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1ac0f00facf3a3f9b8c55fe5f7ebf5511b" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext::Stack</scope><name>has1</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1a90eadf6f7898284629bab16a4822dd86" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext::Stack</scope><name>hasA</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1a7367bb5b39f1b70970719bb9f0fd2b6a" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext::Stack</scope><name>prog</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1_1Stack_1a471c03a75f1ad796c5108af238787678" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext::Stack</scope><name>state</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

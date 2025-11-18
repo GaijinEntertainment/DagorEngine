@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBoolVarTable" kind="class" language="C++" prot="public">
+    <compoundname>BoolVarTable</compoundname>
+    <includes refid="boolVar_8h" local="no">boolVar.h</includes>
+    <innerclass refid="structBoolVarTable_1_1QueryResult" prot="public">BoolVarTable::QueryResult</innerclass>
+    <innerclass refid="structBoolVarTable_1_1Record" prot="public">BoolVarTable::Record</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classBoolVarTable_1a8b771bc10455de253e1d7964d1c4afb8" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; eastl::string, <ref refid="structBoolVarTable_1_1Record" kindref="compound">Record</ref> &gt;</type>
+        <definition>ska::flat_hash_map&lt;eastl::string, Record&gt; BoolVarTable::vars</definition>
+        <argsstring></argsstring>
+        <name>vars</name>
+        <qualifiedname>BoolVarTable::vars</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="33" column="22" bodyfile="boolVar.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBoolVarTable_1aa243a27b286114ac9c13696f251acfa3" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BoolVarTable::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>BoolVarTable::id</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="34" column="7" bodyfile="boolVar.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBoolVarTable_1ab6a4684e27b8ba71256220713f0df661" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BoolVarTable::BoolVarTable</definition>
+        <argsstring>(int base_id=0)</argsstring>
+        <name>BoolVarTable</name>
+        <qualifiedname>BoolVarTable::BoolVarTable</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>base_id</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="37" column="12" bodyfile="boolVar.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classBoolVarTable_1a64619e7effcda65e6b155867dc3d45a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BoolVarTable::add</definition>
+        <argsstring>(ShaderTerminal::bool_decl &amp;var, Parser &amp;parser, bool ignore_dup=false)</argsstring>
+        <name>add</name>
+        <qualifiedname>BoolVarTable::add</qualifiedname>
+        <param>
+          <type>ShaderTerminal::bool_decl &amp;</type>
+          <declname>var</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>ignore_dup</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="47" column="8" bodyfile="boolVar.cpp" bodystart="18" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classBoolVarTable_1aa2ac76555ab4ebd484716222f8b42218" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structBoolVarTable_1_1QueryResult" kindref="compound">QueryResult</ref></type>
+        <definition>BoolVarTable::QueryResult BoolVarTable::tryGetExpr</definition>
+        <argsstring>(ShaderTerminal::SHTOK_ident &amp;ident) const</argsstring>
+        <name>tryGetExpr</name>
+        <qualifiedname>BoolVarTable::tryGetExpr</qualifiedname>
+        <param>
+          <type>ShaderTerminal::SHTOK_ident &amp;</type>
+          <declname>ident</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="48" column="15" bodyfile="boolVar.cpp" bodystart="43" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classBoolVarTable_1a5d384ee723e73907548b63a279a16b1e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BoolVarTable::maxId</definition>
+        <argsstring>() const</argsstring>
+        <name>maxId</name>
+        <qualifiedname>BoolVarTable::maxId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="49" column="7" bodyfile="boolVar.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classBoolVarTable_1ac38dde72add5ea8074fcc01cbbb8d339" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class TCb</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void BoolVarTable::iterateBoolVars</definition>
+        <argsstring>(TCb &amp;&amp;cb) const</argsstring>
+        <name>iterateBoolVars</name>
+        <qualifiedname>BoolVarTable::iterateBoolVars</qualifiedname>
+        <param>
+          <type>TCb &amp;&amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="53" column="8" bodyfile="boolVar.h" bodystart="53" bodyend="57"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="boolVar.h" line="23" column="1" bodyfile="boolVar.h" bodystart="24" bodyend="58"/>
+    <listofallmembers>
+      <member refid="classBoolVarTable_1a64619e7effcda65e6b155867dc3d45a4" prot="public" virt="non-virtual"><scope>BoolVarTable</scope><name>add</name></member>
+      <member refid="classBoolVarTable_1ab6a4684e27b8ba71256220713f0df661" prot="public" virt="non-virtual"><scope>BoolVarTable</scope><name>BoolVarTable</name></member>
+      <member refid="classBoolVarTable_1aa243a27b286114ac9c13696f251acfa3" prot="private" virt="non-virtual"><scope>BoolVarTable</scope><name>id</name></member>
+      <member refid="classBoolVarTable_1ac38dde72add5ea8074fcc01cbbb8d339" prot="public" virt="non-virtual"><scope>BoolVarTable</scope><name>iterateBoolVars</name></member>
+      <member refid="classBoolVarTable_1a5d384ee723e73907548b63a279a16b1e" prot="public" virt="non-virtual"><scope>BoolVarTable</scope><name>maxId</name></member>
+      <member refid="classBoolVarTable_1aa2ac76555ab4ebd484716222f8b42218" prot="public" virt="non-virtual"><scope>BoolVarTable</scope><name>tryGetExpr</name></member>
+      <member refid="classBoolVarTable_1a8b771bc10455de253e1d7964d1c4afb8" prot="private" virt="non-virtual"><scope>BoolVarTable</scope><name>vars</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="transcodeCommon_8h" kind="file" language="C++">
+    <compoundname>transcodeCommon.h</compoundname>
+    <includedby refid="namedConst_8cpp" local="yes">namedConst.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="1">
+        <label>transcodeCommon.h</label>
+        <link refid="transcodeCommon_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="transcodeCommon_8h_1acde82066018b6d43c845230d169ad995" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int get_imm_regs_count</definition>
+        <argsstring>(const char *src, int len)</argsstring>
+        <name>get_imm_regs_count</name>
+        <param>
+          <type>const char *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeCommon.h" line="4" column="12" bodyfile="transcodeCommon.h" bodystart="4" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="transcodeCommon_8h_1a0549534803d55a373d2f105530c1d820" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int find_string</definition>
+        <argsstring>(const char *src, int len, const char *pattern)</argsstring>
+        <name>find_string</name>
+        <param>
+          <type>const char *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>pattern</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeCommon.h" line="20" column="12" bodyfile="transcodeCommon.h" bodystart="20" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="transcodeCommon_8h_1a5aa45abedf53b44475528f06870d7d1a" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::vector&lt; uint8_t &gt;</type>
+        <definition>static eastl::vector&lt; uint8_t &gt; get_binary_buffer_with_header</definition>
+        <argsstring>(void *data, unsigned int data_size, void *header, unsigned int header_size)</argsstring>
+        <name>get_binary_buffer_with_header</name>
+        <param>
+          <type>void *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>data_size</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>header</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>header_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="transcodeCommon.h" line="27" column="22" bodyfile="transcodeCommon.h" bodystart="27" bodyend="34"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_imm_regs_count(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*src,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len)</highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>pos<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>source<sp/>=<sp/>eastl::string_view(src,<sp/>len);</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(;;)</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><sp/><sp/>pos<sp/>=<sp/>source.find(</highlight><highlight class="stringliteral">&quot;srt_immediate_data.data[&quot;</highlight><highlight class="normal">,<sp/>pos);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(pos<sp/>==<sp/>eastl::string_view::npos)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><sp/><sp/>pos++;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/>count++;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>count;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_string(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*src,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*pattern)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>source<sp/>=<sp/>eastl::string_view(src,<sp/>len);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pos<sp/>=<sp/>source.find(pattern,<sp/>0);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(pos<sp/>==<sp/>eastl::string_view::npos)<sp/>?<sp/>-1<sp/>:<sp/>pos;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>eastl::vector&lt;uint8_t&gt;<sp/>get_binary_buffer_with_header(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>data_size,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*header,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>header_size)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>eastl::vector&lt;uint8_t&gt;<sp/>result(data_size<sp/>+<sp/>header_size<sp/>+<sp/>4);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>memcpy(result.data()<sp/>+<sp/>4,<sp/>header,<sp/>header_size);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>memcpy(result.data()<sp/>+<sp/>header_size<sp/>+<sp/>4,<sp/>data,<sp/>data_size);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>*(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*)result.data()<sp/>=<sp/>data_size;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>result;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="transcodeCommon.h"/>
+  </compounddef>
+</doxygen>

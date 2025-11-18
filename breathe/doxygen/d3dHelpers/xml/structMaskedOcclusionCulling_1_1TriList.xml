@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMaskedOcclusionCulling_1_1TriList" kind="struct" language="C++" prot="public">
+    <compoundname>MaskedOcclusionCulling::TriList</compoundname>
+    <includes refid="dag__maskedOcclusionCulling_8h" local="no">dag_maskedOcclusionCulling.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1TriList_1a1d15adf084a9c7bb692805c70f6393f7" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int MaskedOcclusionCulling::TriList::mNumTriangles</definition>
+        <argsstring></argsstring>
+        <name>mNumTriangles</name>
+        <qualifiedname>MaskedOcclusionCulling::TriList::mNumTriangles</qualifiedname>
+        <briefdescription>
+<para>Maximum number of triangles that may be stored in mPtr. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="198" column="18" bodyfile="dag_maskedOcclusionCulling.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1TriList_1a7cef0921a3b22b8422adb85701bfc521" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int MaskedOcclusionCulling::TriList::mTriIdx</definition>
+        <argsstring></argsstring>
+        <name>mTriIdx</name>
+        <qualifiedname>MaskedOcclusionCulling::TriList::mTriIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Index of next triangle to be written, clear before calling BinTriangles to start from the beginning of the list </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="199" column="18" bodyfile="dag_maskedOcclusionCulling.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1TriList_1ab537aa0e4a4bc54091d78f2aed411e70" prot="public" static="no" mutable="no">
+        <type>float *</type>
+        <definition>float* MaskedOcclusionCulling::TriList::mPtr</definition>
+        <argsstring></argsstring>
+        <name>mPtr</name>
+        <qualifiedname>MaskedOcclusionCulling::TriList::mPtr</qualifiedname>
+        <briefdescription>
+<para>Scratchpad buffer allocated by the host application. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="201" column="11" bodyfile="dag_maskedOcclusionCulling.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Used to specify storage area for a binlist, containing triangles. This struct is used for binning and multithreading. The host application is responsible for allocating memory for the binlists. </para>
+    </detaileddescription>
+    <location file="dag_maskedOcclusionCulling.h" line="196" column="3" bodyfile="dag_maskedOcclusionCulling.h" bodystart="197" bodyend="202"/>
+    <listofallmembers>
+      <member refid="structMaskedOcclusionCulling_1_1TriList_1a1d15adf084a9c7bb692805c70f6393f7" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::TriList</scope><name>mNumTriangles</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1TriList_1ab537aa0e4a4bc54091d78f2aed411e70" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::TriList</scope><name>mPtr</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1TriList_1a7cef0921a3b22b8422adb85701bfc521" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::TriList</scope><name>mTriIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

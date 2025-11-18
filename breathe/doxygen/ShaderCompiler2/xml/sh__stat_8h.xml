@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="sh__stat_8h" kind="file" language="C++">
+    <compoundname>sh_stat.h</compoundname>
+    <includedby refid="main_8cpp" local="yes">main.cpp</includedby>
+    <includedby refid="shCompiler_8cpp" local="yes">shCompiler.cpp</includedby>
+    <includedby refid="sh__stat_8cpp" local="yes">sh_stat.cpp</includedby>
+    <includedby refid="shaderVariantSrc_8cpp" local="yes">shaderVariantSrc.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="3">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="4">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="1">
+        <label>sh_stat.h</label>
+        <link refid="sh__stat_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShaderCompilerStat_1_1DroppedVariants" prot="public">ShaderCompilerStat::DroppedVariants</innerclass>
+    <innerclass refid="structShaderCompilerStat_1_1ShaderStatistics" prot="public">ShaderCompilerStat::ShaderStatistics</innerclass>
+    <innernamespace refid="namespaceShaderCompilerStat">ShaderCompilerStat</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"></highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__SH_STAT_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__SH_STAT_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_atomic_types.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="namespaceShaderCompilerStat" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderCompilerStat" kindref="compound">ShaderCompilerStat</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderCompilerStat_1a3fec6c24aa67c9a0223e5e084285470b" kindref="member">totalVariants</ref>;</highlight></codeline>
+<codeline lineno="18" refid="structShaderCompilerStat_1_1DroppedVariants" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderCompilerStat_1_1DroppedVariants" kindref="compound">DroppedVariants</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20" refid="structShaderCompilerStat_1_1DroppedVariants_1a1d249da750ea3b7894177b34c8b22487" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1DroppedVariants_1a1d249da750ea3b7894177b34c8b22487" kindref="member">dueToAssumeVar</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1DroppedVariants" kindref="compound">DroppedVariants</ref><sp/><ref refid="namespaceShaderCompilerStat_1afcb4b728593b30eea62cd542f7496368" kindref="member">droppedVariants</ref>;</highlight></codeline>
+<codeline lineno="23" refid="namespaceShaderCompilerStat_1a340a1c254f203e96131e622ecdaf17e7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderCompilerStat_1a983c8037ae29bbf6a3ec0a21c34df598" kindref="member">hlslCompileCount</ref>,<sp/><ref refid="namespaceShaderCompilerStat_1a340a1c254f203e96131e622ecdaf17e7" kindref="member">hlslCacheHitCount</ref>,<sp/><ref refid="namespaceShaderCompilerStat_1a295e64377cae808b0d8df8af7a6e3f44" kindref="member">hlslEqResultCount</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>dag::AtomicInteger&lt;int&gt;<sp/><ref refid="namespaceShaderCompilerStat_1aa075abe041ad03cfb185adebfabe378f" kindref="member">hlslExternalCacheHitCount</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="structShaderCompilerStat_1_1ShaderStatistics" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderCompilerStat_1_1ShaderStatistics" kindref="compound">ShaderStatistics</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28" refid="structShaderCompilerStat_1_1ShaderStatistics_1aa5c9044a71066bb641116a3de3fa8923" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1aa5c9044a71066bb641116a3de3fa8923" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="29" refid="structShaderCompilerStat_1_1ShaderStatistics_1a605ba93dab49b3166db203ae22e315ca" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a605ba93dab49b3166db203ae22e315ca" kindref="member">entry</ref>;</highlight></codeline>
+<codeline lineno="30" refid="structShaderCompilerStat_1_1ShaderStatistics_1a103b80d70da4e9d99992abfa7ea967aa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a103b80d70da4e9d99992abfa7ea967aa" kindref="member">hlslVariants</ref>;</highlight></codeline>
+<codeline lineno="31" refid="structShaderCompilerStat_1_1ShaderStatistics_1a54562683de52ae284d9a1df43d980948" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a54562683de52ae284d9a1df43d980948" kindref="member">minInstructions</ref>;</highlight></codeline>
+<codeline lineno="32" refid="structShaderCompilerStat_1_1ShaderStatistics_1acd791c9885a64db14bf6fa4241d4c87e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1acd791c9885a64db14bf6fa4241d4c87e" kindref="member">maxInstructions</ref>;</highlight></codeline>
+<codeline lineno="33" refid="structShaderCompilerStat_1_1ShaderStatistics_1a2b74e9a938f0db2c8a44f08085ffd3b3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a2b74e9a938f0db2c8a44f08085ffd3b3" kindref="member">totalInstructions</ref>;</highlight></codeline>
+<codeline lineno="34" refid="structShaderCompilerStat_1_1ShaderStatistics_1ac8efe77c5772b0ab9f9741335324e560" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1ac8efe77c5772b0ab9f9741335324e560" kindref="member">minTextureInstructions</ref>;</highlight></codeline>
+<codeline lineno="35" refid="structShaderCompilerStat_1_1ShaderStatistics_1a34a456387b3403c07afae5a1c41a8e27" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a34a456387b3403c07afae5a1c41a8e27" kindref="member">maxTextureInstructions</ref>;</highlight></codeline>
+<codeline lineno="36" refid="structShaderCompilerStat_1_1ShaderStatistics_1a6da71ee2fb7a65af38aa98411ddba516" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a6da71ee2fb7a65af38aa98411ddba516" kindref="member">totalTextureInstructions</ref>;</highlight></codeline>
+<codeline lineno="37" refid="structShaderCompilerStat_1_1ShaderStatistics_1a2c1bcf5a679936e44ea077d14449c9c2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a2c1bcf5a679936e44ea077d14449c9c2" kindref="member">minArithmeticInstructions</ref>;</highlight></codeline>
+<codeline lineno="38" refid="structShaderCompilerStat_1_1ShaderStatistics_1a7e4fd8beef72b6de324b05322e48b2a8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a7e4fd8beef72b6de324b05322e48b2a8" kindref="member">maxArithmeticInstructions</ref>;</highlight></codeline>
+<codeline lineno="39" refid="structShaderCompilerStat_1_1ShaderStatistics_1abad71e21182d1caaf1bbd1e39e9d6651" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1abad71e21182d1caaf1bbd1e39e9d6651" kindref="member">totalArithmeticInstructions</ref>;</highlight></codeline>
+<codeline lineno="40" refid="structShaderCompilerStat_1_1ShaderStatistics_1a1576b005c2468f7209614cd9fd67bd72" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a1576b005c2468f7209614cd9fd67bd72" kindref="member">minFlowInstructions</ref>;</highlight></codeline>
+<codeline lineno="41" refid="structShaderCompilerStat_1_1ShaderStatistics_1af21186d7913714102f8c05e42b7ae785" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1af21186d7913714102f8c05e42b7ae785" kindref="member">maxFlowInstructions</ref>;</highlight></codeline>
+<codeline lineno="42" refid="structShaderCompilerStat_1_1ShaderStatistics_1af17d0f518e1bd974a4ec88614f2beb3e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1af17d0f518e1bd974a4ec88614f2beb3e" kindref="member">totalFlowInstructions</ref>;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="structShaderCompilerStat_1_1ShaderStatistics_1ae53298f5bf809034577ec1024fd9a309" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1ae53298f5bf809034577ec1024fd9a309" kindref="member">ShaderStatistics</ref>()</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a103b80d70da4e9d99992abfa7ea967aa" kindref="member">hlslVariants</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a54562683de52ae284d9a1df43d980948" kindref="member">minInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1acd791c9885a64db14bf6fa4241d4c87e" kindref="member">maxInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a2b74e9a938f0db2c8a44f08085ffd3b3" kindref="member">totalInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1ac8efe77c5772b0ab9f9741335324e560" kindref="member">minTextureInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a34a456387b3403c07afae5a1c41a8e27" kindref="member">maxTextureInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a6da71ee2fb7a65af38aa98411ddba516" kindref="member">totalTextureInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a2c1bcf5a679936e44ea077d14449c9c2" kindref="member">minArithmeticInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a7e4fd8beef72b6de324b05322e48b2a8" kindref="member">maxArithmeticInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1abad71e21182d1caaf1bbd1e39e9d6651" kindref="member">totalArithmeticInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1a1576b005c2468f7209614cd9fd67bd72" kindref="member">minFlowInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1af21186d7913714102f8c05e42b7ae785" kindref="member">maxFlowInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderCompilerStat_1_1ShaderStatistics_1af17d0f518e1bd974a4ec88614f2beb3e" kindref="member">totalFlowInstructions</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>Tab&lt;ShaderStatistics&gt;<sp/><ref refid="namespaceShaderCompilerStat_1a7356b1efb5e0167af1ddb433a0372e67" kindref="member">shaderStatisticsList</ref>;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderCompilerStat_1a1b8f5d565699cdda335f64e632a89ad5" kindref="member">reset</ref>();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderCompilerStat_1ae602f997edcc4efccbe26bb20d960ae4" kindref="member">printReport</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*dir);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderCompilerStat_1af13618154cfa1ad6730602881bb9fcd5" kindref="member">collectTargetStats</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="68" refid="namespaceShaderCompilerStat_1a1030d3430aa370a25543c3af4afd1b06" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderCompilerStat_1a1030d3430aa370a25543c3af4afd1b06" kindref="member">getUniqueCompilationCount</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderCompilerStat_1a983c8037ae29bbf6a3ec0a21c34df598" kindref="member">hlslCompileCount</ref><sp/>-<sp/><ref refid="namespaceShaderCompilerStat_1a340a1c254f203e96131e622ecdaf17e7" kindref="member">hlslCacheHitCount</ref><sp/>-<sp/><ref refid="namespaceShaderCompilerStat_1aa075abe041ad03cfb185adebfabe378f" kindref="member">hlslExternalCacheHitCount</ref>.load();<sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderCompilerStat</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="sh_stat.h"/>
+  </compounddef>
+</doxygen>

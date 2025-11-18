@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExpNoteTrack" kind="struct" language="C++" prot="public">
+    <compoundname>ExpNoteTrack</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExpNoteTrack_1a31827c104864c59ca1919105ef1262e5" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structExpKeyLabel" kindref="compound">ExpKeyLabel</ref> &gt;</type>
+        <definition>Tab&lt;ExpKeyLabel&gt; ExpNoteTrack::kl</definition>
+        <argsstring></argsstring>
+        <name>kl</name>
+        <qualifiedname>ExpNoteTrack::kl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1142" column="7" bodyfile="expUtil.cpp" bodystart="1142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpNoteTrack_1aca4fd2209bceca907aa8805e09714508" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* ExpNoteTrack::node</definition>
+        <argsstring></argsstring>
+        <name>node</name>
+        <qualifiedname>ExpNoteTrack::node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1143" column="9" bodyfile="expUtil.cpp" bodystart="1143" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structExpNoteTrack_1abeef890eac519e699e38853558fc67bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExpNoteTrack::ExpNoteTrack</definition>
+        <argsstring>(INode *n)</argsstring>
+        <name>ExpNoteTrack</name>
+        <qualifiedname>ExpNoteTrack::ExpNoteTrack</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1145" column="3" bodyfile="expUtil.cpp" bodystart="1145" bodyend="1145"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="1140" column="1" bodyfile="expUtil.cpp" bodystart="1141" bodyend="1154"/>
+    <listofallmembers>
+      <member refid="structExpNoteTrack_1abeef890eac519e699e38853558fc67bc" prot="public" virt="non-virtual"><scope>ExpNoteTrack</scope><name>ExpNoteTrack</name></member>
+      <member refid="structExpNoteTrack_1a31827c104864c59ca1919105ef1262e5" prot="public" virt="non-virtual"><scope>ExpNoteTrack</scope><name>kl</name></member>
+      <member refid="structExpNoteTrack_1aca4fd2209bceca907aa8805e09714508" prot="public" virt="non-virtual"><scope>ExpNoteTrack</scope><name>node</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

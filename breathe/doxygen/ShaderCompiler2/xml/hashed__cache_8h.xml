@@ -1,0 +1,197 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="hashed__cache_8h" kind="file" language="C++">
+    <compoundname>hashed_cache.h</compoundname>
+    <includes local="no">hash/BLAKE3/blake3.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>hashed_cache.h</label>
+        <link refid="hashed__cache_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="hashed__cache_8h_1acabc69d91b42248e0aa114e214fd4a59" prot="public" static="no">
+        <name>USE_SHA1_HASH</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="4" column="9" bodyfile="hashed_cache.h" bodystart="4" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1ad6074dd11ab3c97c8135c43aab03ae95" prot="public" static="no">
+        <name>HASH_SIZE</name>
+        <initializer>32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="17" column="9" bodyfile="hashed_cache.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1a570b3b725357770701d8b56ea8518aea" prot="public" static="no">
+        <name>HASH_CONTEXT</name>
+        <initializer>blake3_hasher</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="19" column="9" bodyfile="hashed_cache.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1aff56e6812dd2a8d0b940648e0fa81ad0" prot="public" static="no">
+        <name>HASH_UPDATE</name>
+        <initializer>blake3_hasher_update</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="20" column="9" bodyfile="hashed_cache.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1adcd60db457233e4a407009f6d4ceea48" prot="public" static="no">
+        <name>HASH_INIT</name>
+        <initializer>blake3_hasher_init</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="21" column="9" bodyfile="hashed_cache.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1a8fb0342e9d1a05b36d12bd79eee1b769" prot="public" static="no">
+        <name>HASH_FINISH</name>
+        <initializer><ref refid="hashed__cache_8h_1a29925a351805092051163c0c63066713" kindref="member">blake3_finalize_32</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="22" column="9" bodyfile="hashed_cache.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1af6dcd12177a796015d8c3fefb0cbc208" prot="public" static="no">
+        <name>HASH_TEMP_STRING</name>
+        <initializer>  &quot;%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="35" column="9" bodyfile="hashed_cache.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1a3b3a37e25c4d802885e54d4dba344be3" prot="public" static="no">
+        <name>HASH_LIST_STRING</name>
+        <initializer>  &quot;%02x/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="37" column="9" bodyfile="hashed_cache.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="hashed__cache_8h_1a15a19082058efde09fbefa1a13bb96e3" prot="public" static="no">
+        <name>HASH_LIST</name>
+        <param><defname>a</defname></param>
+        <initializer>  (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5], (a)[6], (a)[7], (a)[8], (a)[9], (a)[10], (a)[11], (a)[12], (a)[13], (a)[14],    \
+    (a)[15], (a)[16], (a)[17], (a)[18], (a)[19], (a)[20], (a)[21], (a)[22], (a)[23], (a)[24], (a)[25], (a)[26], (a)[27], (a)[28], \
+    (a)[29], (a)[30], (a)[31]</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="40" column="9" bodyfile="hashed_cache.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="hashed__cache_8h_1a29925a351805092051163c0c63066713" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void blake3_finalize_32</definition>
+        <argsstring>(const blake3_hasher *h, unsigned char *hash)</argsstring>
+        <name>blake3_finalize_32</name>
+        <param>
+          <type>const blake3_hasher *</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>unsigned char *</type>
+          <declname>hash</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashed_cache.h" line="18" column="13" bodyfile="hashed_cache.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="hashed__cache_8h_1acabc69d91b42248e0aa114e214fd4a59" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USE_SHA1_HASH<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_SHA1_HASH</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;hash/sha1.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_SIZE<sp/><sp/><sp/><sp/>20</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_CONTEXT<sp/>sha1_context</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_UPDATE<sp/><sp/>sha1_update</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_INIT<sp/><sp/><sp/><sp/>sha1_starts</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_FINISH<sp/><sp/>sha1_finish</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;hash/BLAKE3/blake3.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="hashed__cache_8h_1ad6074dd11ab3c97c8135c43aab03ae95" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_SIZE<sp/><sp/><sp/><sp/>32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="hashed__cache_8h_1a29925a351805092051163c0c63066713" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="hashed__cache_8h_1a29925a351805092051163c0c63066713" kindref="member">blake3_finalize_32</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>blake3_hasher<sp/>*h,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*hash)<sp/>{<sp/>blake3_hasher_finalize(h,<sp/>hash,<sp/><ref refid="hashed__cache_8h_1ad6074dd11ab3c97c8135c43aab03ae95" kindref="member">HASH_SIZE</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="19" refid="hashed__cache_8h_1a570b3b725357770701d8b56ea8518aea" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_CONTEXT<sp/>blake3_hasher</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="hashed__cache_8h_1aff56e6812dd2a8d0b940648e0fa81ad0" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_UPDATE<sp/><sp/>blake3_hasher_update</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="hashed__cache_8h_1adcd60db457233e4a407009f6d4ceea48" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_INIT<sp/><sp/><sp/><sp/>blake3_hasher_init</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="hashed__cache_8h_1a8fb0342e9d1a05b36d12bd79eee1b769" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_FINISH<sp/><sp/>blake3_finalize_32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>HASH_SIZE<sp/>==<sp/>20</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_TEMP_STRING<sp/>&quot;%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_LIST_STRING<sp/>&quot;%02x/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_LIST(a)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="30"><highlight class="preprocessor"><sp/><sp/>(a)[0],<sp/>(a)[1],<sp/>(a)[2],<sp/>(a)[3],<sp/>(a)[4],<sp/>(a)[5],<sp/>(a)[6],<sp/>(a)[7],<sp/>(a)[8],<sp/>(a)[9],<sp/>(a)[10],<sp/>(a)[11],<sp/>(a)[12],<sp/>(a)[13],<sp/>(a)[14],<sp/>\</highlight></codeline>
+<codeline lineno="31"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(a)[15],<sp/>(a)[16],<sp/>(a)[17],<sp/>(a)[18],<sp/>(a)[19]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="hashed__cache_8h_1af6dcd12177a796015d8c3fefb0cbc208" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_TEMP_STRING<sp/>\</highlight></codeline>
+<codeline lineno="36"><highlight class="preprocessor"><sp/><sp/>&quot;%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="hashed__cache_8h_1a3b3a37e25c4d802885e54d4dba344be3" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_LIST_STRING<sp/>\</highlight></codeline>
+<codeline lineno="38"><highlight class="preprocessor"><sp/><sp/>&quot;%02x/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="hashed__cache_8h_1a15a19082058efde09fbefa1a13bb96e3" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HASH_LIST(a)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="41"><highlight class="preprocessor"><sp/><sp/>(a)[0],<sp/>(a)[1],<sp/>(a)[2],<sp/>(a)[3],<sp/>(a)[4],<sp/>(a)[5],<sp/>(a)[6],<sp/>(a)[7],<sp/>(a)[8],<sp/>(a)[9],<sp/>(a)[10],<sp/>(a)[11],<sp/>(a)[12],<sp/>(a)[13],<sp/>(a)[14],<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="42"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(a)[15],<sp/>(a)[16],<sp/>(a)[17],<sp/>(a)[18],<sp/>(a)[19],<sp/>(a)[20],<sp/>(a)[21],<sp/>(a)[22],<sp/>(a)[23],<sp/>(a)[24],<sp/>(a)[25],<sp/>(a)[26],<sp/>(a)[27],<sp/>(a)[28],<sp/>\</highlight></codeline>
+<codeline lineno="43"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(a)[29],<sp/>(a)[30],<sp/>(a)[31]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="hashed_cache.h"/>
+  </compounddef>
+</doxygen>

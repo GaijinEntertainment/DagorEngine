@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classExpUtilDesc" kind="class" language="C++" prot="public">
+    <compoundname>ExpUtilDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classExpUtilDesc_1a70fbbba20e3d4617914c934b1de1dd16" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ExpUtilDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>ExpUtilDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="287" column="7" bodyfile="expUtil.cpp" bodystart="287" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1aead6b212dbacc7f6d36fbf5fe6e71e99" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * ExpUtilDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>ExpUtilDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="288" column="8" bodyfile="expUtil.cpp" bodystart="288" bodyend="288"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1ad8cdf87251328a5844bbfc9c79b990e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * ExpUtilDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>ExpUtilDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="289" column="15" bodyfile="expUtil.cpp" bodystart="289" bodyend="289"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1a038a23f5c921694dddec5c65fbc0549c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * ExpUtilDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>ExpUtilDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="293" column="15" bodyfile="expUtil.cpp" bodystart="293" bodyend="293"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1a80ef9d9ae06fa6b17f1e800ca959b8ec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID ExpUtilDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>ExpUtilDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="295" column="13" bodyfile="expUtil.cpp" bodystart="295" bodyend="295"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1aaeb3796da747df25bcfeb848fe6562c3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID ExpUtilDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>ExpUtilDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="296" column="12" bodyfile="expUtil.cpp" bodystart="296" bodyend="296"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1a70a21596779bfa6a54e5564b3dbaf153" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * ExpUtilDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>ExpUtilDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="297" column="15" bodyfile="expUtil.cpp" bodystart="297" bodyend="297"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1a0cfc9bdb1c39c731c1b6dacc1cf9c3a6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ExpUtilDesc::NeedsToSave</definition>
+        <argsstring>() override</argsstring>
+        <name>NeedsToSave</name>
+        <qualifiedname>ExpUtilDesc::NeedsToSave</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="298" column="8" bodyfile="expUtil.cpp" bodystart="298" bodyend="298"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1a157ee72a2f76c7c084954f522397f32c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult ExpUtilDesc::Save</definition>
+        <argsstring>(ISave *) override</argsstring>
+        <name>Save</name>
+        <qualifiedname>ExpUtilDesc::Save</qualifiedname>
+        <param>
+          <type>ISave *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="299" column="12" bodyfile="expUtil.cpp" bodystart="317" bodyend="385"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpUtilDesc_1a27345f23ca5dc87d5fb162400d843948" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult ExpUtilDesc::Load</definition>
+        <argsstring>(ILoad *) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>ExpUtilDesc::Load</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="300" column="12" bodyfile="expUtil.cpp" bodystart="387" bodyend="455"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>ExpUtilDesc</label>
+        <link refid="classExpUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>ExpUtilDesc</label>
+        <link refid="classExpUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="284" column="1" bodyfile="expUtil.cpp" bodystart="285" bodyend="301"/>
+    <listofallmembers>
+      <member refid="classExpUtilDesc_1a70a21596779bfa6a54e5564b3dbaf153" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>Category</name></member>
+      <member refid="classExpUtilDesc_1aaeb3796da747df25bcfeb848fe6562c3" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>ClassID</name></member>
+      <member refid="classExpUtilDesc_1ad8cdf87251328a5844bbfc9c79b990e4" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>ClassName</name></member>
+      <member refid="classExpUtilDesc_1aead6b212dbacc7f6d36fbf5fe6e71e99" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>Create</name></member>
+      <member refid="classExpUtilDesc_1a70fbbba20e3d4617914c934b1de1dd16" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>IsPublic</name></member>
+      <member refid="classExpUtilDesc_1a27345f23ca5dc87d5fb162400d843948" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>Load</name></member>
+      <member refid="classExpUtilDesc_1a0cfc9bdb1c39c731c1b6dacc1cf9c3a6" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>NeedsToSave</name></member>
+      <member refid="classExpUtilDesc_1a038a23f5c921694dddec5c65fbc0549c" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classExpUtilDesc_1a157ee72a2f76c7c084954f522397f32c" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>Save</name></member>
+      <member refid="classExpUtilDesc_1a80ef9d9ae06fa6b17f1e800ca959b8ec" prot="public" virt="non-virtual"><scope>ExpUtilDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1302 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverCapabilitiesBase" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesBase</compoundname>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesAndroid" prot="public" virt="non-virtual">DeviceDriverCapabilitiesAndroid</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesIOS" prot="public" virt="non-virtual">DeviceDriverCapabilitiesIOS</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesLinux" prot="public" virt="non-virtual">DeviceDriverCapabilitiesLinux</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesMacOSX" prot="public" virt="non-virtual">DeviceDriverCapabilitiesMacOSX</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesNintendoSwitch" prot="public" virt="non-virtual">DeviceDriverCapabilitiesNintendoSwitch</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesPS4" prot="public" virt="non-virtual">DeviceDriverCapabilitiesPS4</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesTVOS" prot="public" virt="non-virtual">DeviceDriverCapabilitiesTVOS</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesWindows" prot="public" virt="non-virtual">DeviceDriverCapabilitiesWindows</derivedcompoundref>
+    <derivedcompoundref refid="structDeviceDriverCapabilitiesXboxOne" prot="public" virt="non-virtual">DeviceDriverCapabilitiesXboxOne</derivedcompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ae16465605571449cdaa401557c4730fc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasAnisotropicFilter</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports anisotropic filtering of textures.</para>
+<para>Devices without support will silently treat any value for anisotropic filtering as 1.0. \platformtable{hasAnisotropicFilter,c,a,c,a,c,c,c,r,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="634" column="8" bodyfile="dag_consts.h" bodystart="634" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1aa0f3c5d16e0868323a12940250cd1a39" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasDepthReadOnly</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports constant depth stencil targets that allow simultaneous sampling as a shader resource. \platformtable{hasDepthReadOnly,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="639" column="8" bodyfile="dag_consts.h" bodystart="639" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a20407785ef1e8f4efde8f5f5ba093569" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasStructuredBuffers</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports structured buffer types. \platformtable{hasStructuredBuffers,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="644" column="8" bodyfile="dag_consts.h" bodystart="644" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ac092d99b3a894db094a2c80af9e33ca8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports locking of structured buffers with the no-overwrite method. \platformtable{hasNoOverwriteOnShaderResourceBuffers,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="649" column="8" bodyfile="dag_consts.h" bodystart="649" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1abdaed640d68bcbc1b926f133d9d2465a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasForcedSamplerCount</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports forced multi-sample count during raster phase. \platformtable{hasForcedSamplerCount,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="654" column="8" bodyfile="dag_consts.h" bodystart="654" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a97d97eed28fac297ea5042de79ea48a5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasVolMipMap</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports mipmaps for vol (eg 3D) textures. \platformtable{hasVolMipMap,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="659" column="8" bodyfile="dag_consts.h" bodystart="659" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ae421f36c3e5e3382c12c9189b6ebc0b0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasAsyncCompute</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCompute</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasAsyncCompute</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports <ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461aa3edb1e5ae6cc778cb3f3cf45d34fef7" kindref="member">GpuPipeline::ASYNC_COMPUTE</ref> as selected pipeline when applicable. \someNYI \platformtable{hasAsyncCompute,c,a,r,r,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="665" column="8" bodyfile="dag_consts.h" bodystart="665" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a7717801667587b0dc2e2744030722791" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasOcclusionQuery</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports occlusion queries. \platformtable{hasOcclusionQuery,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="670" column="8" bodyfile="dag_consts.h" bodystart="670" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a5c94dd02ee82ff737873cdd9f9404be0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasConstBufferOffset</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports values other than 0 for <computeroutput>consts_offset</computeroutput> of <ref refid="namespaced3d_1abc19a5aac5646eca18c9c4823c560f7a" kindref="member">d3d::set_const_buffer</ref> \platformtable{hasConstBufferOffset,c,a,c,a,c,c,c,c,c,c,r} \someNYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="676" column="8" bodyfile="dag_consts.h" bodystart="676" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1abda4bbbdebdb5c18b289e9053895e193" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasDepthBoundsTest</definition>
+        <argsstring></argsstring>
+        <name>hasDepthBoundsTest</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasDepthBoundsTest</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports depth bounds testing. See <ref refid="namespaced3d_1abb10954f6395f127f5f5dc08fe491415" kindref="member">d3d::set_depth_bounds</ref> for details of depth bounds testing. \platformtable{hasDepthBoundsTest,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="681" column="8" bodyfile="dag_consts.h" bodystart="681" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1afe2a9e7878afb130d24e36d28f7355d6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasConditionalRender</definition>
+        <argsstring></argsstring>
+        <name>hasConditionalRender</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasConditionalRender</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports conditional rendering. \platformtable{hasConditionalRender,c,a,c,a,c,c,r,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="686" column="8" bodyfile="dag_consts.h" bodystart="686" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a45e3ac7640df3354d5baef8e7fa1c4c7" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasResourceCopyConversion</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports copy of textures of different but compatible formats. \platformtable{hasResourceCopyConversion,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="691" column="8" bodyfile="dag_consts.h" bodystart="691" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a014bd49e2e0103c34524f0da355be4ea" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasAsyncCopy</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports asynchronously issued copy operations. \platformtable{hasAsyncCopy,c,a,c,a,c,c,c,c,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="696" column="8" bodyfile="dag_consts.h" bodystart="696" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1acf749555446d427feee38076de754d83" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports reading from multi-sampled depth stencil targets. \platformtable{hasReadMultisampledDepth,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="701" column="8" bodyfile="dag_consts.h" bodystart="701" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a2ca9ae722f66c5f6f0c3b76cd0424c07" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasInstanceID</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasInstanceID</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports instance id system variable in shaders. \platformtable{hasInstanceID,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="706" column="8" bodyfile="dag_consts.h" bodystart="706" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a903377bb582a3da6b2b8c276d6cbc463" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasConservativeRassterization</definition>
+        <argsstring></argsstring>
+        <name>hasConservativeRassterization</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasConservativeRassterization</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports conservative rastering. \someNYI \platformtable{hasConservativeRassterization,c,c,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="712" column="8" bodyfile="dag_consts.h" bodystart="712" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a3cdee766ed89fafff0f7804eaa4c2ab1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasQuadTessellation</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports quad tessellation. \someNYI \platformtable{hasQuadTessellation,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="718" column="8" bodyfile="dag_consts.h" bodystart="718" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a575b7ccfb7413bbb1246e526bc2608ab" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasGather4</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports gather intrinsic in shaders. \platformtable{hasGather4,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="723" column="8" bodyfile="dag_consts.h" bodystart="723" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a743899e2f26692b8e09a379c35379894" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasAlphaCoverage</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports the alpha to coverage raster feature. <xrefsect id="todo_1_todo000004"><xreftitle>Todo</xreftitle><xrefdescription><para>Candidate for removal if situation for PS4/5 is clarified, there it seems to be not implemented. \someNYI \platformtable{hasAlphaCoverage,c,a,c,a,c,c,c,c,c,c,c} </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="730" column="8" bodyfile="dag_consts.h" bodystart="730" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ac087fa09d2db1f17bff24b8fa09ccb64" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasWellSupportedIndirect</definition>
+        <argsstring></argsstring>
+        <name>hasWellSupportedIndirect</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasWellSupportedIndirect</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports indirect drawing. \platformtable{hasWellSupportedIndirect,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="735" column="8" bodyfile="dag_consts.h" bodystart="735" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ad952e7b7a5b7b522dceed7748323a9cf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasBindless</definition>
+        <argsstring></argsstring>
+        <name>hasBindless</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasBindless</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports the bindless API and resource access in shaders. <xrefsect id="todo_1_todo000005"><xreftitle>Todo</xreftitle><xrefdescription><para>May need to split into multiple caps as some drivers do not support buffers. </para>
+</xrefdescription></xrefsect><xrefsect id="bug_1_bug000001"><xreftitle>Bug</xreftitle><xrefdescription><para>\nswitch is experimental support and so is not a constant cap yet. \platformtable{hasBindless,c,a,c,a,c,c,r,r,r,r,r} </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="742" column="8" bodyfile="dag_consts.h" bodystart="742" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a70f1d993da596178f563efe1b9d1a0d3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasNVApi</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief has detected that the Nvidia driver API is available for the render device. \platformtable{hasNVApi,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="747" column="8" bodyfile="dag_consts.h" bodystart="747" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a7ecec7232a1c179b81acf6a1837ca525" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasATIApi</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief has detected that the \ati driver API is available for the render device. \platformtable{hasATIApi,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="752" column="8" bodyfile="dag_consts.h" bodystart="752" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a361352040deb2285dfcb2b47a1acca29" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasVariableRateShading</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports basic per draw shading rates. \someNYI \platformtable{hasVariableRateShading,c,c,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="758" column="8" bodyfile="dag_consts.h" bodystart="758" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1aaf2ce88f773e67be7d02c2f7ccf2b70b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports shading rate textures as a source of shading rate information. \someNYI \platformtable{hasVariableRateShadingTexture,c,c,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="764" column="8" bodyfile="dag_consts.h" bodystart="764" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a7ce9b3abe5faade3dcff505c9eac93eb" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports shader generated shading rates. \someNYI \platformtable{hasVariableRateShadingShaderOutput,c,c,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="770" column="8" bodyfile="dag_consts.h" bodystart="770" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a5d97ef345373aa5c4378dc310c328bf8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports combiners for variable rate shading to select the final shading rate. \someNYI \platformtable{hasVariableRateShadingCombiners,c,c,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="776" column="8" bodyfile="dag_consts.h" bodystart="776" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a435cca220d7b33031869f4bf83e3c212" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports variable rate shading blocks with sizes of 4 in X and Y direction. \someNYI \platformtable{hasVariableRateShadingBy4,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="782" column="8" bodyfile="dag_consts.h" bodystart="782" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a80623316c230f4bcd411685bfa56dacd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasStreamOutput</definition>
+        <argsstring></argsstring>
+        <name>hasStreamOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasStreamOutput</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports stream output. \someNYI \platformtable{ hasStreamOutput, c, a, c, a, c, c, c, c, c, c, r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="789" column="8" bodyfile="dag_consts.h" bodystart="789" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a047263b73dcac68b784f2640c9c6e6c8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasAliasedTextures</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports creation of aliased textures. \someNYI \platformtable{hasAliasedTextures,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="795" column="8" bodyfile="dag_consts.h" bodystart="795" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a43f7898db5a17c29a9acb8767d66353c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>hasResourceHeaps</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasResourceHeaps</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports the resource heap API. \someNYI \platformtable{hasResourceHeaps,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="801" column="8" bodyfile="dag_consts.h" bodystart="801" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ae5831194a86c0c053c638a41ae7e51c0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports overlapping buffer copies. \platformtable{hasBufferOverlapCopy,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="806" column="8" bodyfile="dag_consts.h" bodystart="806" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a98747b0ded147a7dd1d42851c0e813bf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief uses region based copies when overlapping copies are executed. \platformtable{hasBufferOverlapRegionsCopy,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="811" column="8" bodyfile="dag_consts.h" bodystart="811" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a5d1ae04840c96746888e1c476d4544e4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnlyForcedSampleCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports forced multisample count without render targets and only outputting to UAVs. \someNYI \platformtable{hasUAVOnlyForcedSampleCount,c,a,c,a,c,c,c,r,r,r,r} <xrefsect id="bug_1_bug000002"><xreftitle>Bug</xreftitle><xrefdescription><para>There is no way of querying the number of samples that are supported. So the Vulkan driver, for example, assumes 1, 2, 4 and 8 samples to be required. </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="819" column="8" bodyfile="dag_consts.h" bodystart="819" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1af3cfbb31804f081b404e6c40b51597e8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports 64 bit integers shader resource types. \platformtable{hasShader64BitIntegerResources,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="824" column="8" bodyfile="dag_consts.h" bodystart="824" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a088d0cfbb513e08dd419ae745e40640b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief is not emulating render sup-passes. \platformtable{hasNativeRenderPassSubPasses,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="829" column="8" bodyfile="dag_consts.h" bodystart="829" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a1256aefcb50fe90f33131b96e4ab8604" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasTiled2DResources</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports tiled 2D textures. \platformtable{hasTiled2DResources,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="834" column="8" bodyfile="dag_consts.h" bodystart="834" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ad941e8c9ddcc176912cdaf700baacedc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasTiled3DResources</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports tiled 3D textures; \platformtable{hasTiled3DResources,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="839" column="8" bodyfile="dag_consts.h" bodystart="839" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a35c0a7730631d8d76e0a6c743c013687" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports safe read and write access for not mapped tiles of tiled resources. Such reads return 0 and writes are ignored. \platformtable{hasTiledSafeResourcesAccess,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="845" column="8" bodyfile="dag_consts.h" bodystart="845" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1af2bdf1eeee49a8ce966d270d0cda8912" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports memory aliasing of multiple tiles. \platformtable{hasTiledMemoryAliasing,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="850" column="8" bodyfile="dag_consts.h" bodystart="850" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a5b72be5df4ac92123cb5fdadc8c5fd26" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasDLSS</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports Nvidia DLSS. DLSS stand for Deep Learning Super Sampling. \platformtable{hasDLSS,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="856" column="8" bodyfile="dag_consts.h" bodystart="856" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a85f03c7770a69873ee823471624e2eb0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasXESS</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports Intel XESS. XESS stands for Xe Super Sampling. \platformtable{hasXESS,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="862" column="8" bodyfile="dag_consts.h" bodystart="862" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ac55b9335193037fe5418fe78360b6007" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasDrawID</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports draw id in shaders. \platformtable{hasDrawID,c,a,c,a,c,c,c,c,r,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="867" column="8" bodyfile="dag_consts.h" bodystart="867" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ac81371eb952342553cb264f9a693e299" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasMeshShader</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports the mesh shader pipeline.</para>
+<para>The mesh shader pipeline is a one or two shader stage that replaces the vertex shader based pre raster portion of the graphics pipeline. Mesh shaders are compute shaders that generate vertices and indices which form primitives like triangles or lines. \platformtable{hasMeshShader,c,a,c,a,r,c,c,c,r,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="874" column="8" bodyfile="dag_consts.h" bodystart="874" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a502c6dc246d193bbc994f965b66557be" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasBasicViewInstancing</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports basic view instancing.</para>
+<para>View instancing may be implemented with replicating render commands for each view. \platformtable{hasBasicViewInstancing,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="880" column="8" bodyfile="dag_consts.h" bodystart="880" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a823d60c14bb74e8026a6f1f6cc86add4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief has some optimizations for view instanced rendering. \platformtable{hasOptimizedViewInstancing,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="885" column="8" bodyfile="dag_consts.h" bodystart="885" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a77ded90a2500a44d0a83d80ce2098067" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief has hardware acceleration to natively support view instanced rendering. \platformtable{hasAcceleratedViewInstancing,c,a,c,a,c,c,c,c,c,c,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="890" column="8" bodyfile="dag_consts.h" bodystart="890" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasRenderPassDepthResolve</definition>
+        <argsstring></argsstring>
+        <name>hasRenderPassDepthResolve</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasRenderPassDepthResolve</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief can resolve multi-sampled depth stencil render targets in a render pass. \platformtable{hasRenderPassDepthResolve,c,a,c,a,r,r,r,r,r,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="895" column="8" bodyfile="dag_consts.h" bodystart="895" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1abb3185b7ae25ba49f1f8acf86cf3c10c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasStereoExpansion</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports stereo render expansion. \platformtable{hasStereoExpansion,c,a,c,c,c,c,c,c,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="900" column="8" bodyfile="dag_consts.h" bodystart="900" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a77e1bec0aeab74ee052cd9e631c8a5eb" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief architecture is known to be a tile renderer.</para>
+<para>Tile renderers bin raster work into tiles and execute rastering and pixel shaders tile by tile to reduce bandwidth to off chip memory (RAM). Certain optimizations favor regular rasterers over tiled rasterers and vice versa. \platformtable{hasTileBasedArchitecture,c,a,c,a,c,c,c,r,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="907" column="8" bodyfile="dag_consts.h" bodystart="907" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a1714da16235832e261182e86645e3e33" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasLazyMemory</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports lazily allocated memory.</para>
+<para>Supported on most TBDR GPUs, allocates memory by on-chip tile/framebuffer memory for transient render targets. \platformtable{hasLazyMemory,c,a,c,a,c,c,c,r,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="913" column="8" bodyfile="dag_consts.h" bodystart="913" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a337e032527346eef4e0b46025419c508" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasIndirectSupport</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief set when hw doesn&apos;t support indirect calls</para>
+<para>This is at least true on some of the older iOS hardware (A8) which can&apos;t do either drawIndirect nor dispatchIndirect \platformtable{hasIndirectSupport,c,c,c,c,r,r,c,c,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="919" column="8" bodyfile="dag_consts.h" bodystart="919" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a351b50cc43e2279a4a7ccde48e885d90" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasCompareSampler</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief set when hw doesn&apos;t support comparison samplers</para>
+<para>This is at least true on some of the older iOS hardware (A8) which can only do constexp inline samplers and we don&apos;t wanna open this can of worm \platformtable{hasCompareSampler,c,c,c,c,r,r,c,c,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="926" column="8" bodyfile="dag_consts.h" bodystart="926" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a7588b357693368f73ca7b1c8c3a2fe2c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasShaderFloat16Support</definition>
+        <argsstring></argsstring>
+        <name>hasShaderFloat16Support</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasShaderFloat16Support</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports 16-bit floating-point types in shaders for arithmetic operations. \someNYI \platformtable{&quot;hasShaderFloat16Support&quot;,c,a,c,a,c,c,r,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="932" column="8" bodyfile="dag_consts.h" bodystart="932" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1aa3d398f37cc15f74274507f0bf19e4a6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasUAVOnEveryStage</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnEveryStage</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasUAVOnEveryStage</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports UAV access in every shader stage, without this cap UAV is only available in pixel and compute shaders. \someNYI \platformtable{&quot;hasUAVOnEveryStage&quot;,c,a,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="938" column="8" bodyfile="dag_consts.h" bodystart="938" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasRayAccelerationStructure</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports acceleration structures for ray tracing / ray queries, will be true if hasRayAccelerationStructure, hasRayQuery and / or hasRayDispatch is supported. The vertex format of VSDT_FLOAT3 is guaranteed, for additional formats d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build needs to be used to check for support. \someNYI \platformtable{hasRayAccelerationStructure,c,c,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="946" column="8" bodyfile="dag_consts.h" bodystart="946" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ae925b799a026c8c5845bf5e5b10cc3c7" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasRayQuery</definition>
+        <argsstring></argsstring>
+        <name>hasRayQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasRayQuery</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports ray queries (&quot;inline ray tracing&quot;) in any shader stage. \someNYI \platformtable{hasRayQuery,c,c,c,a,r,r,c,r,r,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="952" column="8" bodyfile="dag_consts.h" bodystart="952" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a8897412ad54b5e792d30b5b13df45e48" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasRayDispatch</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports ray dispatch with its own ray tracing shader stage. \someNYI \platformtable{hasRayDispatch,c,c,c,a,c,c,c,r,c,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="958" column="8" bodyfile="dag_consts.h" bodystart="958" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a63c165f96d513681e2fe122901b9b29c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasIndirectRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasIndirectRayDispatch</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports indirect dispatch for dispatch rays. \someNYI \platformtable{hasIndirectRayDispatch,c,c,c,a,r,r,c,r,r,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="964" column="8" bodyfile="dag_consts.h" bodystart="964" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a10ea248bb571bbd8677237f662877f79" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasEmulatedRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasEmulatedRaytracing</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasEmulatedRaytracing</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief uses emulation withing gapi for ray tracing features. \someNYI \platformtable{hasEmulatedRaytracing,c,c,c,c,r,c,c,c,r,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="970" column="8" bodyfile="dag_consts.h" bodystart="970" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a466ed11695907ffdb48bbede3b80cc38" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>hasGeometryIndexInRayAccelerationStructure</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports geometry index information in acceleration structures in ray tracing / ray query shaders. \someNYI \platformtable{hasGeometryIndexInRayAccelerationStructure,c,c,c,a,r,r,c,r,r,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="976" column="8" bodyfile="dag_consts.h" bodystart="976" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a16cd5a96afd2c679e04d854619cdd189" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders</definition>
+        <argsstring></argsstring>
+        <name>hasSkipPrimitiveTypeInRayTracingShaders</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports masking flags in shaders to ignore triangle or procedural geometry during traversal. \someNYI \platformtable{hasSkipPrimitiveTypeInRayTracingShaders,c,c,c,a,r,r,c,r,r,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="982" column="8" bodyfile="dag_consts.h" bodystart="982" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a2ad251d9ab91c67940961cc658de268d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasBaseVertexSupport</definition>
+        <argsstring></argsstring>
+        <name>hasBaseVertexSupport</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasBaseVertexSupport</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief is false when HW does not support draw cals with non-zero baseVertex</para>
+<para>This feature is not supported by older iOS hardware (such as A8 chips) \platformtable{hasBaseVertexSupport,c,c,c,c,r,r,c,c,r,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="988" column="8" bodyfile="dag_consts.h" bodystart="988" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1abf96cd9a616dde8f7f438bebaa99e0dc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported</definition>
+        <argsstring></argsstring>
+        <name>castingFullyTypedFormatsSupported</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief castingFullyTypedFormatsSupported supports casting (aliasing) fully typed formats between each other (same as op3.CastingFullyTypedFormatSupported in DX12) \someNYI \platformtable{castingFullyTypedFormatsSupported,c,c,c,c,r,r,c,r,r,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="995" column="8" bodyfile="dag_consts.h" bodystart="995" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1ac174acf81286aa4aa23a94972a785c35" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRayTracePipelineExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1001" column="8" bodyfile="dag_consts.h" bodystart="1001" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a446ec37dfad1d989b6cc6e999fdac555" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasWaveOps</definition>
+        <argsstring></argsstring>
+        <name>hasWaveOps</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasWaveOps</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>supports waveOps </para>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief supports wave ops<itemizedlist>
+<listitem><para>&quot;xbone&quot;, &quot;scarlett&quot;, &quot;ps4&quot;, &quot;ps5&quot;, &quot;ios&quot;, &quot;tvos&quot;, &quot;nswitch&quot;, &quot;android&quot;, &quot;mac&quot;, &quot;linux&quot;, &quot;win32&quot; should be one of the following \platformtable{hasWaveOps,c,a,c,a,c,c,r,r,c,r,r} </para>
+</listitem></itemizedlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1008" column="8" bodyfile="dag_consts.h" bodystart="1008" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a652988c1f8556fb13029d4e187c0bfb9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasPersistentShaderHandles</definition>
+        <argsstring></argsstring>
+        <name>hasPersistentShaderHandles</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasPersistentShaderHandles</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief hasPersistentShaderHandles indicates that shader handles of pipeline objects, that are used for shader binding tables, are persistent and are the same for derived pipelines and pipelines that use the same shader from the same shader library. \platformtable{hasPersistentShaderHandles,c,c,c,a,r,r,c,r,r,r,r} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1014" column="8" bodyfile="dag_consts.h" bodystart="1014" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesBase_1a442fe87d834a1c836ba3ea5c4cc908fd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverCapabilitiesBase::hasDualSourceBlending</definition>
+        <argsstring></argsstring>
+        <name>hasDualSourceBlending</name>
+        <qualifiedname>DeviceDriverCapabilitiesBase::hasDualSourceBlending</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\capbrief hasDualSourceBlending indicates that dual source blending is available (only for one render target). \someNYI \platformtable{hasDualSourceBlending,c,a,c,a,c,c,c,r,c,c,c} </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1020" column="8" bodyfile="dag_consts.h" bodystart="1020" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>A boolean bitfield that describes which optional features that are available with the used device / driver combination. <simplesect kind="note"><para>See derived types for platform specific constant overrides. </para>
+</simplesect>
+<simplesect kind="remark"><para>To add new capability indicators, you need to follow those steps:<orderedlist>
+<listitem><para>Add the new cap indicator boolean bit to the end of this structure.</para>
+</listitem><listitem><para>For platforms where this cap is always be available or not available, add a static constexpr boolean with the same name with the platform specific derived structures. This will hide the boolean bitfield for the target platform and the constant will be used instead.</para>
+</listitem><listitem><para>Add the documentation to all the platform specific constant overrides. Use existing documentation as a basis. Here are the basics:<itemizedlist>
+<listitem><para>Use \briefconstcap{&quot;const value&quot;, <ref refid="structDeviceDriverCapabilitiesBase" kindref="compound">DeviceDriverCapabilitiesBase</ref>::&quot;cap name&quot;} to generate the basic description for the overriding value.<itemizedlist>
+<listitem><para>&quot;const value&quot; should be replaced with the constant value of this override.</para>
+</listitem><listitem><para>&quot;cap name&quot; should be the name of the cap.</para>
+</listitem></itemizedlist>
+</para>
+</listitem><listitem><para>Use \NYI to indicate that the driver could support this feature, but do not implemented it yet.</para>
+</listitem></itemizedlist>
+</para>
+</listitem><listitem><para>Add documentation to the cap indicator boolean bit of this struct.<itemizedlist>
+<listitem><para>Use \capbrief &quot;brief cap description&quot; to generate the brief description of this cap. This alias will start the brief with the standard introducing phrase &quot;Indicates that the device driver&quot;.</para>
+</listitem><listitem><para>Use \platformtable{&quot;cap name&quot;,&quot;xbone&quot;,&quot;scarlett&quot;,&quot;ps4&quot;,&quot;ps5&quot;,&quot;ios&quot;,&quot;tvos&quot;,&quot;nswitch&quot;,&quot;android&quot;,&quot;mac&quot;,&quot;linux&quot;,&quot;win32&quot;} to generate the platform value table.<itemizedlist>
+<listitem><para>&quot;cap name&quot; should be the name of the cap.</para>
+</listitem><listitem><para>&quot;xbone&quot;, &quot;scarlett&quot;, &quot;ps4&quot;, &quot;ps5&quot;, &quot;ios&quot;, &quot;tvos&quot;, &quot;nswitch&quot;, &quot;android&quot;, &quot;mac&quot;, &quot;linux&quot;, &quot;win32&quot; should be one of the following values:<itemizedlist>
+<listitem><para>c for constant, the actual value is pulled from the description generated by \briefconstcap for the cosponsoring platform.</para>
+</listitem><listitem><para>a for alias, this works only for &quot;scarlett&quot; and &quot;ps5&quot;, for others this is the same as c. It uses the value of &quot;xbone&quot; and &quot;ps4&quot;, for &quot;scarlett&quot; and &quot;ps5&quot; respectively. This is needed when a const value is specified for &quot;xbone&quot; or &quot;ps4&quot; platform and inherited by the &quot;scarlett&quot; or &quot;ps5&quot; platform, to correctly display the inherited value.</para>
+</listitem><listitem><para>r for runtime determined. This is for platforms where there is no constant override and it is determined by the active driver of the platform.</para>
+</listitem></itemizedlist>
+</para>
+</listitem><listitem><para>Ensure that there are no spaces around the platform specific values (c, a or r), otherwise the alias expansion will result in broken statements and documentation.</para>
+</listitem></itemizedlist>
+</para>
+</listitem><listitem><para>Use \someNYI to indicate that there are drivers that could support this feature, but do not implement it yet. </para>
+</listitem></itemizedlist>
+</para>
+</listitem></orderedlist>
+</para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesAndroid</label>
+        <link refid="structDeviceDriverCapabilitiesAndroid"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesIOS</label>
+        <link refid="structDeviceDriverCapabilitiesIOS"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>DeviceDriverCapabilitiesLinux</label>
+        <link refid="structDeviceDriverCapabilitiesLinux"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>DeviceDriverCapabilitiesMacOSX</label>
+        <link refid="structDeviceDriverCapabilitiesMacOSX"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>DeviceDriverCapabilitiesNintendoSwitch</label>
+        <link refid="structDeviceDriverCapabilitiesNintendoSwitch"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>DeviceDriverCapabilitiesPS4</label>
+        <link refid="structDeviceDriverCapabilitiesPS4"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>DeviceDriverCapabilitiesPS5</label>
+        <link refid="structDeviceDriverCapabilitiesPS5"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>DeviceDriverCapabilitiesScarlett</label>
+        <link refid="structDeviceDriverCapabilitiesScarlett"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>DeviceDriverCapabilitiesTVOS</label>
+        <link refid="structDeviceDriverCapabilitiesTVOS"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>DeviceDriverCapabilitiesWindows</label>
+        <link refid="structDeviceDriverCapabilitiesWindows"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>DeviceDriverCapabilitiesXboxOne</label>
+        <link refid="structDeviceDriverCapabilitiesXboxOne"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="dag_consts.h" line="627" column="1" bodyfile="dag_consts.h" bodystart="628" bodyend="1022"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverCapabilitiesBase_1abf96cd9a616dde8f7f438bebaa99e0dc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>castingFullyTypedFormatsSupported</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a77ded90a2500a44d0a83d80ce2098067" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a047263b73dcac68b784f2640c9c6e6c8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasAliasedTextures</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a743899e2f26692b8e09a379c35379894" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasAlphaCoverage</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ae16465605571449cdaa401557c4730fc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ae421f36c3e5e3382c12c9189b6ebc0b0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasAsyncCompute</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a014bd49e2e0103c34524f0da355be4ea" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasAsyncCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a7ecec7232a1c179b81acf6a1837ca525" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasATIApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a2ad251d9ab91c67940961cc658de268d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasBaseVertexSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a502c6dc246d193bbc994f965b66557be" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ad952e7b7a5b7b522dceed7748323a9cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasBindless</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ae5831194a86c0c053c638a41ae7e51c0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a98747b0ded147a7dd1d42851c0e813bf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a351b50cc43e2279a4a7ccde48e885d90" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasCompareSampler</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1afe2a9e7878afb130d24e36d28f7355d6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasConditionalRender</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a903377bb582a3da6b2b8c276d6cbc463" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasConservativeRassterization</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a5c94dd02ee82ff737873cdd9f9404be0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasConstBufferOffset</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1abda4bbbdebdb5c18b289e9053895e193" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1aa0f3c5d16e0868323a12940250cd1a39" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasDepthReadOnly</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a5b72be5df4ac92123cb5fdadc8c5fd26" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasDLSS</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ac55b9335193037fe5418fe78360b6007" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasDrawID</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a442fe87d834a1c836ba3ea5c4cc908fd" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasDualSourceBlending</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a10ea248bb571bbd8677237f662877f79" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasEmulatedRaytracing</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1abdaed640d68bcbc1b926f133d9d2465a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a575b7ccfb7413bbb1246e526bc2608ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasGather4</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a466ed11695907ffdb48bbede3b80cc38" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasGeometryIndexInRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a63c165f96d513681e2fe122901b9b29c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasIndirectRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a337e032527346eef4e0b46025419c508" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasIndirectSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a2ca9ae722f66c5f6f0c3b76cd0424c07" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasInstanceID</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a1714da16235832e261182e86645e3e33" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasLazyMemory</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ac81371eb952342553cb264f9a693e299" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasMeshShader</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ac174acf81286aa4aa23a94972a785c35" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasNativeRayTracePipelineExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a088d0cfbb513e08dd419ae745e40640b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ac092d99b3a894db094a2c80af9e33ca8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a70f1d993da596178f563efe1b9d1a0d3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasNVApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a7717801667587b0dc2e2744030722791" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasOcclusionQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a823d60c14bb74e8026a6f1f6cc86add4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a652988c1f8556fb13029d4e187c0bfb9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasPersistentShaderHandles</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a3cdee766ed89fafff0f7804eaa4c2ab1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasQuadTessellation</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a8897412ad54b5e792d30b5b13df45e48" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ae925b799a026c8c5845bf5e5b10cc3c7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasRayQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1acf749555446d427feee38076de754d83" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a45e3ac7640df3354d5baef8e7fa1c4c7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a43f7898db5a17c29a9acb8767d66353c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasResourceHeaps</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1af3cfbb31804f081b404e6c40b51597e8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a7588b357693368f73ca7b1c8c3a2fe2c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a16cd5a96afd2c679e04d854619cdd189" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasSkipPrimitiveTypeInRayTracingShaders</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1abb3185b7ae25ba49f1f8acf86cf3c10c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasStereoExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a80623316c230f4bcd411685bfa56dacd" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasStreamOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a20407785ef1e8f4efde8f5f5ba093569" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasStructuredBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a77e1bec0aeab74ee052cd9e631c8a5eb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a1256aefcb50fe90f33131b96e4ab8604" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasTiled2DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ad941e8c9ddcc176912cdaf700baacedc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasTiled3DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1af2bdf1eeee49a8ce966d270d0cda8912" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a35c0a7730631d8d76e0a6c743c013687" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1aa3d398f37cc15f74274507f0bf19e4a6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasUAVOnEveryStage</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a5d1ae04840c96746888e1c476d4544e4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a361352040deb2285dfcb2b47a1acca29" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasVariableRateShading</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a435cca220d7b33031869f4bf83e3c212" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a5d97ef345373aa5c4378dc310c328bf8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a7ce9b3abe5faade3dcff505c9eac93eb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1aaf2ce88f773e67be7d02c2f7ccf2b70b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a97d97eed28fac297ea5042de79ea48a5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasVolMipMap</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a446ec37dfad1d989b6cc6e999fdac555" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasWaveOps</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ac087fa09d2db1f17bff24b8fa09ccb64" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a85f03c7770a69873ee823471624e2eb0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesBase</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

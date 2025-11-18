@@ -1,0 +1,657 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asset Viewer</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Asset Viewer Composite Editor" href="../asset-viewer-comp-editor/index.html" />
+    <link rel="prev" title="Asset Viewer" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Asset Viewer</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Asset Viewer</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Asset Viewer</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#navigation">Navigation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#working-with-assets">Working with Assets</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#control-panel">Control Panel</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#properties-panel">Properties Panel</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#viewport-settings-panel">Viewport Settings Panel</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#customizing-scene-statistics-display">Customizing Scene Statistics Display</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#customizing-the-grid">Customizing the Grid</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#viewport-rotation-gizmo">Viewport Rotation Gizmo</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#building-assets">Building Assets</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#general-considerations">General Considerations</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#selecting-and-exporting-assets">Selecting and Exporting Assets</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#nuances">Nuances</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#package-name-conflicts">Package Name Conflicts</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#hq-texture-pack-build">HQ Texture Pack Build</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#logging-errors-in-the-console">Logging Errors in the Console</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../asset-viewer-comp-editor/index.html">Asset Viewer Composite Editor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../collision-generation/index.html">Collision Generation for Assets in Asset Viewer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Asset Viewer</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Asset Viewer</a></li>
+      <li class="breadcrumb-item active">Asset Viewer</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/asset-viewer/asset-viewer/asset_viewer.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="asset-viewer">
+<h1>Asset Viewer<a class="headerlink" href="#asset-viewer" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The Asset Viewer is one of the two main tools for working with assets, and in
+some cases, for creating them. It offers a vast array of parameters and
+capabilities. In this article, we’ll cover the basic principles for new users.</p>
+</section>
+<section id="navigation">
+<h2>Navigation<a class="headerlink" href="#navigation" title="Link to this heading"></a></h2>
+<p>The navigation within Asset Viewer closely mirrors the controls in 3ds Max. The
+key combinations and shortcuts are directly carried over. You can get a hint
+window with navigation shortcuts within Asset Viewer by clicking on the <strong>Eye</strong>
+icon in the control panel:</p>
+<a class="reference internal image-reference" href="../../../_images/av_01.jpg"><img alt="Navigation info" class="align-center" src="../../../_images/av_01.jpg" style="width: 33em;" />
+</a>
+</section>
+<section id="working-with-assets">
+<h2>Working with Assets<a class="headerlink" href="#working-with-assets" title="Link to this heading"></a></h2>
+<p>The interface is organized into three main panels:</p>
+<ol class="arabic">
+<li><p><strong>Control Panel</strong></p>
+<a class="reference internal image-reference" href="../../../_images/av_02.jpg"><img alt="Control panel" class="align-center" src="../../../_images/av_02.jpg" style="width: 33em;" />
+</a>
+</li>
+<li><p><strong>Properties Panel</strong></p>
+<a class="reference internal image-reference" href="../../../_images/av_03.jpg"><img alt="Properties panel" class="align-center" src="../../../_images/av_03.jpg" style="width: 20em;" />
+</a>
+</li>
+<li><p><strong>Viewport Settings Panel</strong></p>
+<a class="reference internal image-reference" href="../../../_images/av_04.jpg"><img alt="Viewport settings panel" class="align-center" src="../../../_images/av_04.jpg" style="width: 50em;" />
+</a>
+</li>
+</ol>
+</section>
+<section id="control-panel">
+<h2>Control Panel<a class="headerlink" href="#control-panel" title="Link to this heading"></a></h2>
+<p>The most frequently used features in this panel are the <strong>Sun</strong> and the
+<strong>Console</strong> buttons.</p>
+<a class="reference internal image-reference" href="../../../_images/av_05.jpg"><img alt="Control panel" class="align-center" src="../../../_images/av_05.jpg" style="width: 33em;" />
+</a>
+<p><strong>Console</strong>: this is your go-to tool. If something isn’t displaying correctly,
+don’t just report “it doesn’t work” – check the console first. You’ll be
+surprised how often it flags issues like duplicates and LOD (level of detail)
+errors.</p>
+<p><strong>Sun</strong>: a set of environment management settings (including service textures).
+Let’s dive deeper into its parameters:</p>
+<ul>
+<li><p><strong>Settings</strong></p>
+<a class="reference internal image-reference" href="../../../_images/av_06.jpg"><img alt="Sun settings" class="align-center" src="../../../_images/av_06.jpg" style="width: 33em;" />
+</a>
+</li>
+<li><p><strong>Debug Settings</strong></p>
+<ul>
+<li><p>You can choose different model display modes to check for issues.</p></li>
+<li><p>Most commonly used are per-channel modes (diffuse, normal, smoothness, and
+metallness) and albedo_ao, to check black-and-white range conformity.</p>
+<a class="reference internal image-reference" href="../../../_images/av_07.jpg"><img alt="Debug settings" class="align-center" src="../../../_images/av_07.jpg" style="width: 33em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Environment Textures</strong></p>
+<ul>
+<li><p><strong>envi snapshot</strong>: assign a texture that applies lighting properties from a
+specific location (first, create this texture in that location).</p></li>
+<li><p><strong>background texture</strong>: add a custom background in <code class="docutils literal notranslate"><span class="pre">.dds</span></code> format (works when
+an environment texture is connected).</p></li>
+<li><p><strong>paint details texture</strong>: required for daNetGame-based games, which
+supports multiple paint textures. To see the correct color of an object,
+connect its paint texture here. War Thunder only uses one texture, which
+loads automatically in Asset Viewer.</p></li>
+<li><p><strong>background texture stretch</strong>: background texture tiling.</p></li>
+<li><p><strong>reflection texture</strong>: reflection texture, you can connect a cubemap, but
+it only works with an environment texture.</p></li>
+<li><p><strong>Level BLK (for microdetails texture)</strong>: necessary for War Thunder, where
+microdetails vary by map. If your assets appear black or with incorrect
+microdetails in the <a class="reference internal" href="../../daeditor/daeditor/daeditor.html"><span class="std std-doc">daEditor</span></a>, connect
+the <code class="docutils literal notranslate"><span class="pre">level.blk</span></code> file for the appropriate <code class="docutils literal notranslate"><span class="pre">level.blk</span></code> files are located at
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/gameBase/levels</span></code>. In daNetGame-based games,
+microdetails load automatically, so no manual setup is needed.</p>
+<a class="reference internal image-reference" href="../../../_images/av_08.jpg"><img alt="Environment textures" class="align-center" src="../../../_images/av_08.jpg" style="width: 33em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Sky/Weather Settings</strong> (lighting and time of day settings)</p>
+<ul>
+<li><p>Limited in scope and rarely used, but be sure to set a weather preset during
+the initial setup (it’s off by default).</p>
+<a class="reference internal image-reference" href="../../../_images/av_09.jpg"><img alt="Sky/Weather settings" class="align-center" src="../../../_images/av_09.jpg" style="width: 33em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Ambient Wind Settings</strong></p>
+<ul>
+<li><p><strong>Direction</strong>: wind direction</p></li>
+<li><p><strong>Strength (Beaufort)</strong>: wind speed in Beaufort.</p></li>
+<li><p><strong>Noise strength (Multiplier of strength)</strong>: multiplier of wind gust
+strength.</p></li>
+<li><p><strong>Noise speed (Beaufort)</strong>: wind gust speed.</p></li>
+<li><p><strong>Noise scale (Meters)</strong>: multiplier of wind gust size.</p></li>
+<li><p><strong>Noise perpendicular</strong>: direction of wind gust movement.</p>
+<a class="reference internal image-reference" href="../../../_images/av_10.jpg"><img alt="Ambient wind settings" class="align-center" src="../../../_images/av_10.jpg" style="width: 33em;" />
+</a>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Wind effects are only applied to assets with <code class="docutils literal notranslate"><span class="pre">tree</span></code> in their name. Although
+not all assets have advanced wind, all vegetation assets created after 2022
+include wind effects.</p>
+</div>
+</li>
+<li><p><strong>Several Display Settings</strong></p>
+<ul>
+<li><p>Usually, the settings shown in the image below are enabled.</p></li>
+<li><p>Previously, disabling all post-effects and enabling no <code class="docutils literal notranslate"><span class="pre">postfx</span></code> was the only
+way to view a more accurate polygon count:</p>
+<ul class="simple">
+<li><p>In War Thunder, this provided a clear display with honest polygon counts.</p></li>
+<li><p>In daNetGame-based games, the image was unreadable, but the polygon count
+was accurate.</p></li>
+</ul>
+</li>
+<li><p>Now, this is unnecessary, as the asset statistics are sufficient without
+these workarounds.</p></li>
+<li><p><strong>Shadow Quality</strong>: adjusts shadow quality (rarely needed).</p></li>
+<li><p><strong>Render Envi Entity</strong>: allows to load a background asset into Asset Viewer
+and display everything else alongside it. Useful, e.g. for checking how your
+tank looks in a hangar or comparing the size of two assets.</p>
+<a class="reference internal image-reference" href="../../../_images/av_11.jpg"><img alt="Display and the rest settings" class="align-center" src="../../../_images/av_11.jpg" style="width: 33em;" />
+</a>
+</li>
+</ul>
+</li>
+</ul>
+<p>The other parameters are typically not needed.</p>
+</section>
+<section id="properties-panel">
+<h2>Properties Panel<a class="headerlink" href="#properties-panel" title="Link to this heading"></a></h2>
+<p>Let’s look at its key parameters:</p>
+<ul>
+<li><p><strong>Common Parameters</strong></p>
+<ul>
+<li><p>Object type (rendinst, prefab, texture, decal, etc.).</p></li>
+<li><p>Object name.</p>
+<a class="reference internal image-reference" href="../../../_images/av_12.jpg"><img alt="Properties panel common parameters" class="align-center" src="../../../_images/av_12.jpg" style="width: 20em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Object Specific Parameters</strong></p>
+<ul>
+<li><p>Rotate object horizontally.</p></li>
+<li><p>Rotate object vertically.</p></li>
+<li><p><strong>PN-triangulation</strong>: geometry tessellation with <code class="docutils literal notranslate"><span class="pre">rendinst_clipmap</span></code>
+material. The closer the camera, the more detailed the object becomes.
+However, since this doesn’t affect rounding, it’s not very useful.</p></li>
+<li><p>LOD distances (you can switch and view LODs).</p>
+<ul class="simple">
+<li><p>You can also switch LODs with hotkeys – numbers (starting from zero) force
+a specific LOD. This works on the numpad as well. <code class="docutils literal notranslate"><span class="pre">Backspace</span></code> and <code class="docutils literal notranslate"><span class="pre">NumDel</span></code>
+return to automatic LOD selection. A number that’s too large (3+ in the
+example) will select the last existing LOD.</p></li>
+<li><p>In automatic mode, you can move away from the object (tracking distance by
+camera position) and observe the LOD transition quality. By displaying the
+distance from the camera to the center and manually switching LODs, you
+can fine-tune the distances.</p></li>
+</ul>
+</li>
+<li><p><strong>generate per-instance seed</strong>: properties for composites.</p>
+<a class="reference internal image-reference" href="../../../_images/av_13.jpg"><img alt="Object specific parameters" class="align-center" src="../../../_images/av_13.jpg" style="width: 20em;" />
+</a>
+</li>
+</ul>
+</li>
+<li><p><strong>Set of Used Textures and LODs</strong></p>
+<ul>
+<li><p>Here, you can track all the textures used by the asset as a whole and by
+each LOD.</p></li>
+<li><p>Always consider that the more textures an asset uses, the heavier it is to
+process. You should ask yourself, “Do I really need this many textures?”</p></li>
+<li><p>Additionally, the number of textures should typically decrease with LODs –
+polygons with assigned materials are removed.</p>
+<a class="reference internal image-reference" href="../../../_images/av_14.jpg"><img alt="Object specific parameters" class="align-center" src="../../../_images/av_14.jpg" style="width: 20em;" />
+</a>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <strong>Properties</strong> panel can slightly slow down the loading of assets,
+especially with heavy rendinsts containing many submaterials. If you only
+need to check that each element of a large pack loads without errors (e.g.,
+missing LODs), you might want to temporarily disable <strong>Properties</strong> for
+faster asset switching. The hotkey to toggle the panel is <code class="docutils literal notranslate"><span class="pre">P</span></code>. You can also
+toggle it via <strong>View &gt; Properties</strong> in the menu.</p>
+</div>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="viewport-settings-panel">
+<h2>Viewport Settings Panel<a class="headerlink" href="#viewport-settings-panel" title="Link to this heading"></a></h2>
+<p>By right-clicking on the highlighted yellow rectangle, you can access the
+following options:</p>
+<a class="reference internal image-reference" href="../../../_images/av_15.jpg"><img alt="Viewport settings" class="align-center" src="../../../_images/av_15.jpg" style="width: 20em;" />
+</a>
+<p>From here, you can explore shortcuts for projection views, model grids, ground
+grids, and how to enable statistics (<strong>Stats &gt; Show Stats</strong>). You can also
+toggle the display of statistics with or without a black background (<strong>Stats &gt;
+Opaque Stats</strong>).</p>
+<a class="reference internal image-reference" href="../../../_images/av_16.jpg"><img alt="Stats display" class="align-center" src="../../../_images/av_16.jpg" style="width: 33em;" />
+</a>
+<p>Polygon count is shown by default after all post-effects are applied; the camera
+position is displayed as [X, Y, Z] coordinates relative to the scene’s center.
+While these metrics might not be crucial for asset creators, you can customize
+them to better suit your needs.</p>
+<section id="customizing-scene-statistics-display">
+<h3>Customizing Scene Statistics Display<a class="headerlink" href="#customizing-scene-statistics-display" title="Link to this heading"></a></h3>
+<p>You can access the statistics settings in two ways:</p>
+<ol class="arabic">
+<li><p>Right-click on the viewport window and select <strong>Stats &gt; Stats settings</strong>.</p>
+<a class="reference internal image-reference" href="../../../_images/av_17.jpg"><img alt="Stats settings" class="align-center" src="../../../_images/av_17.jpg" style="width: 33em;" />
+</a>
+</li>
+<li><p>From the <strong>Settings</strong> menu, choose <strong>Stats Settings</strong>.</p>
+<a class="reference internal image-reference" href="../../../_images/av_18.jpg"><img alt="Stats settings" class="align-center" src="../../../_images/av_18.jpg" style="width: 20em;" />
+</a>
+<p>In this menu, you can select which information is important to you.</p>
+<a class="reference internal image-reference" href="../../../_images/av_19.jpg"><img alt="Stats settings" class="align-center" src="../../../_images/av_19.jpg" style="width: 20em;" />
+</a>
+</li>
+</ol>
+<p>The settings are organized into a two-tier hierarchy, grouped into categories.
+Disabling a top-level category will disable all its nested options. At the very
+top, you’ll find the <strong>Show stats</strong> option, which is the same as the one in the
+previously mentioned context menu.</p>
+<p>Here, you can select the information that matters most to you:</p>
+<ul class="simple">
+<li><p><strong>Stat 3d</strong>: is not particularly useful for asset work; it’s more relevant for
+rendering engineers. You might want to keep <code class="docutils literal notranslate"><span class="pre">cpu</span> <span class="pre">frame</span></code> enabled for
+performance tracking.</p></li>
+<li><p><strong>Camera</strong>: it is more useful. Knowing the camera position can be handy when
+working on composites, but more often, you’ll need to track the distance from
+the camera to the center of the scene. This is where the pivot of the rendinst
+is located, simplifying the process of adjusting LOD distances – you won’t
+need to manually calculate the vector from zero to the camera’s coordinates.
+<code class="docutils literal notranslate"><span class="pre">camera</span> <span class="pre">FOV</span></code> helps ensure that the field of view matches the in-game setting
+and that you’re adjusting LOD distances with the correct camera setup.</p></li>
+<li><p><strong>Asset Stats</strong>: provides the most useful information for asset creators,
+including:</p>
+<ul>
+<li><p>Number of visible triangles in the asset.</p></li>
+<li><p>Statistics on physics collisions: the number of meshes, triangles (referred
+to as faces, but assets are always triangulated), boxes, convex shapes, and
+vertices.</p></li>
+<li><p>Similar information for trace collisions. Since there’s no distinction
+between these in War Thunder, you can disable one of the options – they’ll
+show identical values anyway.</p></li>
+<li><p>Number of materials in the rendered geometry.</p></li>
+<li><p>Number of textures used.</p></li>
+<li><p>The index of the currently displayed LOD.</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Asset statistics are still under development and have known issues:</p>
+<ul class="simple">
+<li><p>Tested on render instances; there may be bugs with dynamic models – take the
+information with a grain of caution.</p></li>
+<li><p>If an asset lacks a specific parameter, the statistics will show the last
+known value, such as the number of materials and textures on collisions that
+are actually zero.</p></li>
+<li><p>Composites in Asset Viewer are displayed without collisions, so statistics
+will show zeros for both physics and trace collisions.</p></li>
+<li><p>In War Thunder, there’s no distinction between phys and trace collisions, but
+the statistics are output as they are in daNetGame-based games – twice.</p></li>
+</ul>
+</div>
+</section>
+<section id="customizing-the-grid">
+<h3>Customizing the Grid<a class="headerlink" href="#customizing-the-grid" title="Link to this heading"></a></h3>
+<p>In addition to statistics, you can also customize the grid parameters.</p>
+<a class="reference internal image-reference" href="../../../_images/av_20.jpg"><img alt="Customizing the grid" class="align-center" src="../../../_images/av_20.jpg" style="width: 33em;" />
+</a>
+<a class="reference internal image-reference" href="../../../_images/av_21.jpg"><img alt="Customizing the grid" class="align-center" src="../../../_images/av_21.jpg" style="width: 20em;" />
+</a>
+<p>Beyond toggling grid visibility, you can configure snapping parameters (used in
+the <a class="reference internal" href="../asset-viewer-comp-editor/asset_viewer_comp_editor.html"><span class="std std-doc">Composite
+Editor</span></a>), height
+offset, cell size and count, as well as the colors and thickness of the grid
+lines.</p>
+</section>
+<section id="viewport-rotation-gizmo">
+<h3>Viewport Rotation Gizmo<a class="headerlink" href="#viewport-rotation-gizmo" title="Link to this heading"></a></h3>
+<p>Unlike the grid and statistics, the viewport rotation gizmo only has visibility
+settings.</p>
+<a class="reference internal image-reference" href="../../../_images/av_22.jpg"><img alt="Viewport rotation gizmo" class="align-center" src="../../../_images/av_22.jpg" style="width: 20em;" />
+</a>
+<p>When enabled, it appears in the top-right corner of the viewport(s). Beyond
+simply displaying the axes, it can also be used for quick navigation:</p>
+<ul>
+<li><p>You can use it as a virtual trackball to rotate the viewport – just hover over
+the gizmo and start rotating by holding down the left mouse button.</p></li>
+<li><p>Clicking on an axis letter with the left mouse button automatically rotates
+the camera along that axis. Unlike hotkeys for projections, this rotation
+doesn’t switch to an orthographic view; it retains the perspective view.</p>
+<a class="reference internal image-reference" href="../../../_images/av_23.jpg"><img alt="Viewport rotation gizmo" class="align-center" src="../../../_images/av_23.jpg" style="width: 20em;" />
+</a>
+</li>
+</ul>
+</section>
+</section>
+<section id="building-assets">
+<h2>Building Assets<a class="headerlink" href="#building-assets" title="Link to this heading"></a></h2>
+<p>The game doesn’t directly handle files like <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files, textures, etc.; it
+operates on binary files where these resources are compiled. To check your work
+in-game, you need to <em>build</em> these resources into the binary files.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>To learn more about what <em>building</em> entails and why it’s necessary, see
+<a class="reference internal" href="../../building-resources/building_resources.html"><span class="std std-doc">Building Resources</span></a>.</p>
+</div>
+<section id="general-considerations">
+<h3>General Considerations<a class="headerlink" href="#general-considerations" title="Link to this heading"></a></h3>
+<p>It’s important to remember that when you export assets into <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files, they
+are processed by <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> and converted into various types of in-game
+objects.</p>
+<p>For example, if you export a house with four LODs and an overlay texture, it
+might look like this:</p>
+<ul class="simple">
+<li><p><strong>LOD00</strong>: Geometry + Materials; Apex settings</p></li>
+<li><p><strong>LOD01</strong>: Geometry + Materials</p></li>
+<li><p><strong>LOD02</strong>: Geometry + Materials; Collision</p></li>
+<li><p><strong>LOD03</strong>: Geometry + Materials</p></li>
+<li><p><strong>Overlay Texture</strong></p></li>
+</ul>
+<p>In the Asset Viewer and the game itself, these components will be transformed
+into the following object types:</p>
+<ul class="simple">
+<li><p><strong>Render Instance</strong>: all LODs with geometry and materials</p></li>
+<li><p><strong>_Apex Object</strong>: a sliced asset processed by Apex</p></li>
+<li><p><strong>_Collision Object</strong>: collision data from <code class="docutils literal notranslate"><span class="pre">LOD02</span></code></p></li>
+<li><p><strong>Texture</strong>: the overlay texture</p></li>
+</ul>
+<p>When building your changes to view them in the game, it’s crucial to keep track
+of what exactly you have modified. If your changes only affect a specific type
+of object (e.g., the render instance), it’s more efficient to build only that
+object type.</p>
+<p>However, if your changes impact multiple object types, it’s usually easier to
+build the entire directory containing the modified asset. This approach prevents
+the need to sequentially build each object type one by one.</p>
+</section>
+<section id="selecting-and-exporting-assets">
+<h3>Selecting and Exporting Assets<a class="headerlink" href="#selecting-and-exporting-assets" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p>Choose either an individual asset or the directory containing the asset you
+wish to export. Your choice depends on what exactly you want to export.</p>
+<p>For example:</p>
+<ul>
+<li><p>If only the collision data of a specific asset has been modified, select
+the <strong>collision object</strong> type.</p></li>
+<li><p>If only the asset itself (geometry, materials) has been modified, select
+the <strong>render instance</strong> type.</p></li>
+<li><p>If both the asset (geometry, materials) and its collision data have been
+modified, you have two options:</p>
+<ul>
+<li><p>Select the <strong>render instance</strong> first, followed by its <strong>collision
+object</strong> (as separate asset types within Asset Viewer).</p></li>
+<li><p>Or, select the entire directory containing the asset and its collision
+data, which allows you to handle everything at once.</p>
+<a class="reference internal image-reference" href="../../../_images/av_24.jpg"><img alt="Selecting and exporting assets" class="align-center" src="../../../_images/av_24.jpg" style="width: 50em;" />
+</a>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Right-click on the selecting asset or directory.</p>
+<p>For an individual asset, you’ll be given a single action option – exporting
+the package for that specific asset (e.g., <code class="docutils literal notranslate"><span class="pre">terrain_decorations.grp</span></code>).</p>
+<p>For a subdirectory, you’ll have several export options:</p>
+<ul class="simple">
+<li><p><strong>Export resources</strong> (including subdirectories) – this covers render
+instances, destructibles, collisions, etc., excluding textures.</p></li>
+<li><p><strong>Export textures</strong> (including subdirectories).</p></li>
+<li><p><strong>Export everything</strong> (including subdirectories).</p></li>
+</ul>
+<p>If you haven’t changed textures, for instance, select only the <strong>gameres</strong>
+option. Conversely, if you’ve modified everything, choose to export
+everything.</p>
+<a class="reference internal image-reference" href="../../../_images/av_25.jpg"><img alt="Selecting and exporting assets" class="align-center" src="../../../_images/av_25.jpg" style="width: 50em;" />
+</a>
+<p>You can monitor the build log in the console. When building resources using
+Asset Viewer, the build speed is significantly slower compared to using
+daBuild.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Be mindful of what you select before building.</p>
+<p>Exporting an asset won’t automatically include its textures located nearby.
+Similarly, exporting a directory containing an asset won’t automatically
+include textures located in a different directory, even if the asset
+references them.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="nuances">
+<h3>Nuances<a class="headerlink" href="#nuances" title="Link to this heading"></a></h3>
+<section id="package-name-conflicts">
+<h4>Package Name Conflicts<a class="headerlink" href="#package-name-conflicts" title="Link to this heading"></a></h4>
+<ul>
+<li><p><strong>War Thunder</strong>. Package name conflicts are not a significant issue.</p></li>
+<li><p><strong>daNetGame-based</strong>. These conflicts are common. Package names often repeat
+across different packages. For example, the directory <code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code> (and its
+corresponding package) exists in both the <code class="docutils literal notranslate"><span class="pre">manmade_common</span></code>, <code class="docutils literal notranslate"><span class="pre">city_1</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">city_2</span></code> packages. When you select the <code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code> directory and choose
+<strong>export all with subdirectories</strong> (or select an asset and choose <strong>export
+pack indoor_stuff.grp</strong>), all <code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code> packages across these packages
+will be built.</p>
+<p>This will result in the build of not just the single modified item, but
+potentially hundreds of objects. If a full resource rebuild was done recently,
+unchanged packages will be skipped. However, if a full rebuild hasn’t been
+done in a while, this process could take considerable time.</p>
+</li>
+</ul>
+</section>
+<section id="hq-texture-pack-build">
+<h4>HQ Texture Pack Build<a class="headerlink" href="#hq-texture-pack-build" title="Link to this heading"></a></h4>
+<p>Initially, Asset Viewer couldn’t handle the assembly of HQ texture packs. Now it
+can. When triggering a build from the texture’s context menu, ensure you select
+the option that includes HQ textures. Note that in the context menu for
+directories, there’s no separation – both base and HQ texture packs will always
+be assembled.</p>
+<a class="reference internal image-reference" href="../../../_images/av_26.jpg"><img alt="Selecting and exporting assets" class="align-center" src="../../../_images/av_26.jpg" style="width: 33em;" />
+</a>
+</section>
+<section id="logging-errors-in-the-console">
+<h4>Logging Errors in the Console<a class="headerlink" href="#logging-errors-in-the-console" title="Link to this heading"></a></h4>
+<p>By default, all asset-related errors (loggers) will be output to the console. If
+you need to control these locally, you can add the following block to your
+<code class="docutils literal notranslate"><span class="pre">application.blk</span></code>:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">logerr_to_con</span><span class="ni">{</span>
+  <span class="se">assetViewer</span><span class="ni">{</span>
+    <span class="no">include_re</span><span class="nt">:t=</span>... // only loggers matching this regex will be shown
+    <span class="no">exclude_re</span><span class="nt">:t=</span>... // loggers matching this regex will be excluded
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">logerr_to_con</span><span class="ni">{</span>
+  <span class="se">assetViewer</span><span class="ni">{</span>
+    <span class="no">exclude_re</span><span class="nt">:t=</span><span class="nf">&quot;(warning: node &lt;occluder_box&gt; from)|(Shader &#39;land_mesh_combined&#39; not found in bin dump)|(has mesh with 0 faces)|(degenerate tri)|(degenerate mesh node)&quot;</span> <span class="ge">// loggers matching this regex will be excluded</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Asset Viewer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../asset-viewer-comp-editor/index.html" class="btn btn-neutral float-right" title="Asset Viewer Composite Editor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

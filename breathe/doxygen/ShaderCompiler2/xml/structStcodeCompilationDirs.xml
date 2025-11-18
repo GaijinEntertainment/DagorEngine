@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeCompilationDirs" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeCompilationDirs</compoundname>
+    <includes refid="cppStcode_8h" local="no">cppStcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeCompilationDirs_1a5ba78da158a47f4c09f42d1dee19f95a" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeCompilationDirs::stcodeDir</definition>
+        <argsstring></argsstring>
+        <name>stcodeDir</name>
+        <qualifiedname>StcodeCompilationDirs::stcodeDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcode.h" line="25" column="17" bodyfile="cppStcode.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeCompilationDirs_1a414d7c0f7073b5fab26492df9136ca5e" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeCompilationDirs::stcodeCompilationCacheDirUnmangled</definition>
+        <argsstring></argsstring>
+        <name>stcodeCompilationCacheDirUnmangled</name>
+        <qualifiedname>StcodeCompilationDirs::stcodeCompilationCacheDirUnmangled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcode.h" line="26" column="17" bodyfile="cppStcode.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcode.h" line="23" column="1" bodyfile="cppStcode.h" bodystart="24" bodyend="27"/>
+    <listofallmembers>
+      <member refid="structStcodeCompilationDirs_1a414d7c0f7073b5fab26492df9136ca5e" prot="public" virt="non-virtual"><scope>StcodeCompilationDirs</scope><name>stcodeCompilationCacheDirUnmangled</name></member>
+      <member refid="structStcodeCompilationDirs_1a5ba78da158a47f4c09f42d1dee19f95a" prot="public" virt="non-virtual"><scope>StcodeCompilationDirs</scope><name>stcodeDir</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

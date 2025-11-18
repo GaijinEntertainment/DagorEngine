@@ -1,0 +1,313 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animation Export</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Collisions" href="../collisions/index.html" />
+    <link rel="prev" title="Animations" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Animations</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Animation Export</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#common-guideline">Common Guideline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#asset-transfer-between-projects">Asset Transfer Between Projects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#limitations">Limitations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#project-specific-custom-object-properties">Project-Specific Custom Object Properties</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#animation-description-in-animtree-blk">Animation Description in <code class="docutils literal notranslate"><span class="pre">animtree.blk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#animation-export-description-in-blk">Animation Export Description in <code class="docutils literal notranslate"><span class="pre">.blk</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Animations</a></li>
+      <li class="breadcrumb-item active">Animation Export</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/animations/animation_export.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="animation-export">
+<h1>Animation Export<a class="headerlink" href="#animation-export" title="Link to this heading"></a></h1>
+<section id="common-guideline">
+<h2>Common Guideline<a class="headerlink" href="#common-guideline" title="Link to this heading"></a></h2>
+<p>Animations are stored in <code class="docutils literal notranslate"><span class="pre">.a2d</span></code> files. To export an animation from 3ds Max,
+follow these steps:</p>
+<ol class="arabic">
+<li><p><strong>Ensure Visibility:</strong> All layers containing bones, as well as the bones
+themselves, must be unhidden and visible.</p></li>
+<li><p><strong>Export Settings:</strong> Specify the starting and ending frames for the animation
+in the export settings. <strong>Automatic frame detection does not work</strong>.</p></li>
+<li><p><strong>Add Note Tracks:</strong> In the <strong>Track View &gt; Dope Sheet</strong>, add a Note Track
+to any of the animated bones.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information on adding and editing Note Tracks, see
+<a class="reference external" href="https://help.autodesk.com/view/3DSMAX/2024/ENU/?guid=GUID-658E12E7-CE32-48BF-A3CE-A289356F48A3">Add Note Track</a>.</p>
+</div>
+<p>Add two keys to the Note Track:</p>
+<ul class="simple">
+<li><p>At frame 0: set a key with the label <code class="docutils literal notranslate"><span class="pre">start</span></code>.</p></li>
+<li><p>At the last frame: set a key with the label <code class="docutils literal notranslate"><span class="pre">end</span></code>.</p></li>
+</ul>
+<p>These keys correspond to the <code class="docutils literal notranslate"><span class="pre">key_start</span></code> and <code class="docutils literal notranslate"><span class="pre">key_end</span></code> parameters in the
+<code class="docutils literal notranslate"><span class="pre">animtree.blk</span></code> file of the unit. You can change the labels as needed.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="../../dagor-tools/blk/blk.html"><span class="std std-doc">BLK File Format</span></a>.</p>
+</div>
+</li>
+<li><p><strong>Bone Consistency:</strong> The number of bones and their linking order must match
+between the target model (the one the animation will be applied to) and the
+bones exported to the <code class="docutils literal notranslate"><span class="pre">.a2d</span></code> file.</p></li>
+</ol>
+</section>
+<section id="asset-transfer-between-projects">
+<h2>Asset Transfer Between Projects<a class="headerlink" href="#asset-transfer-between-projects" title="Link to this heading"></a></h2>
+<p>When transferring assets between projects, <strong>shader discrepancies</strong> may occur,
+resulting in errors. To address this:</p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">F4</span></code> to edit the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files in FAR (configured for studio-specific
+settings) and ensure shader compatibility.</p></li>
+<li><p>Note that the <code class="docutils literal notranslate"><span class="pre">dynamic_simple</span></code> shader is universally available across studio
+projects and is recommended during the initial stages of asset transfer.</p></li>
+</ul>
+<p><strong>Custom Properties</strong> in 3ds Max cannot be adjusted post-transfer.
+Unfortunately, importing <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files may cause skin data to break. However, you
+can modify the properties using <code class="docutils literal notranslate"><span class="pre">Alt</span></code>+<code class="docutils literal notranslate"><span class="pre">F4</span></code> in FAR.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Be cautious with the syntax: <strong>errors in syntax will not trigger warnings, and
+unsaved changes will be discarded</strong>.</p>
+</div>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Bone Limit:</strong> A maximum of 200 bones per node with skin is supported. While
+theoretically extendable to 255, current shader limitations cap the limit at
+200.</p></li>
+<li><p><strong>Triangle Limit:</strong> A maximum of 65,534 triangles per node is allowed.</p></li>
+</ul>
+</section>
+<section id="project-specific-custom-object-properties">
+<h2>Project-Specific Custom Object Properties<a class="headerlink" href="#project-specific-custom-object-properties" title="Link to this heading"></a></h2>
+<p>Different projects may have unique requirements for <strong>Custom Object Properties</strong>
+to ensure proper generation of virtual assets. For example:</p>
+<ul>
+<li><p><strong>Enlisted:</strong> Each skinned object must include the following properties:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">animated_node</span><span class="nt">:b=</span><span class="si">yes</span>
+<span class="no">collidable</span><span class="nt">:b=</span><span class="si">no</span>
+<span class="no">massType</span><span class="nt">:t=</span><span class="nf">&quot;none&quot;</span>
+</pre></div>
+</div>
+<p>Omitting these properties will result in general errors during dynamic model
+generation.</p>
+</li>
+<li><p><strong>CRSED:</strong> Such requirements do not apply.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you have questions regarding this section, reach out to the author directly
+at <svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-mail sd-text-info" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1.75 2A1.75 1.75 0 000 3.75v.736a.75.75 0 000 .027v7.737C0 13.216.784 14 1.75 14h12.5A1.75 1.75 0 0016 12.25v-8.5A1.75 1.75 0 0014.25 2H1.75zM14.5 4.07v-.32a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25v.32L8 7.88l6.5-3.81zm-13 1.74v6.441c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25V5.809L8.38 9.397a.75.75 0 01-.76 0L1.5 5.809z"></path></svg> <a class="reference external" href="mailto:a&#46;vlasov&#37;&#52;&#48;gaijin&#46;team">a<span>&#46;</span>vlasov<span>&#64;</span>gaijin<span>&#46;</span>team</a>.</p>
+</div>
+</li>
+</ul>
+</section>
+<section id="animation-description-in-animtree-blk">
+<h2>Animation Description in <code class="docutils literal notranslate"><span class="pre">animtree.blk</span></code><a class="headerlink" href="#animation-description-in-animtree-blk" title="Link to this heading"></a></h2>
+<p>Animations must be described in the <code class="docutils literal notranslate"><span class="pre">animtree.blk</span></code> of the corresponding block.
+For War Thunder-based projects, this involves two blocks:</p>
+<ol class="arabic">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">AnimBlendNodeLeaf{}</span></code> block:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">AnimBlendNodeLeaf</span><span class="ni">{</span>
+  <span class="no">a2d</span><span class="nt">:t=</span><span class="nf">&quot;animation_file.a2d&quot;</span>  <span class="ge">// Animation file name</span>
+
+  <span class="se">continuous</span><span class="ni">{</span>
+    <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;animation_name&quot;</span>   <span class="ge">// Animation name</span>
+    <span class="no">key_start</span><span class="nt">:t=</span><span class="nf">&quot;start&quot;</span>       <span class="ge">// Start key</span>
+    <span class="no">key_end</span><span class="nt">:t=</span><span class="nf">&quot;end&quot;</span>           <span class="ge">// End key</span>
+    <span class="no">time</span><span class="nt">:r=</span><span class="m">1</span>                  <span class="ge">// Playback duration</span>
+    <span class="no">own_timer</span><span class="nt">:b=</span><span class="si">yes</span>
+    <span class="no">eoa_irq</span><span class="nt">:b=</span><span class="si">yes</span>
+    <span class="no">addMoveDirH</span><span class="nt">:r=</span><span class="m">-90</span>         <span class="ge">// Direction of unit movement</span>
+    <span class="no">addMoveDist</span><span class="nt">:r=</span><span class="m">1.33</span>        <span class="ge">// Distance covered per playback time</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">hub{}</span></code> block:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">hub</span><span class="ni">{</span>
+  <span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;animation_file&quot;</span>  <span class="ge">// Animation name</span>
+  <span class="no">const</span><span class="nt">:b=</span><span class="si">yes</span>              <span class="ge">// Indicates whether the animation loops</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Remember that the <code class="docutils literal notranslate"><span class="pre">animtree.blk</span></code> is also an exportable resource. To see it in
+the game, you must perform a <code class="docutils literal notranslate"><span class="pre">daBuild</span></code>.</p>
+</section>
+<section id="animation-export-description-in-blk">
+<h2>Animation Export Description in <code class="docutils literal notranslate"><span class="pre">.blk</span></code><a class="headerlink" href="#animation-export-description-in-blk" title="Link to this heading"></a></h2>
+<p>The export description for animations in <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">file</span><span class="nt">:t=</span><span class="no">some</span>.a2d
+
+<span class="no">opt</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Conservative optimization</span>
+<span class="no">posEps</span><span class="nt">:r=</span><span class="m">0.01</span>
+<span class="no">rotEps</span><span class="nt">:r=</span><span class="m">0.2</span>
+<span class="no">sclEps</span><span class="nt">:r=</span><span class="m">0.1</span>
+</pre></div>
+</div>
+<p>For <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> files:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">virtual_res_blk</span><span class="ni">{</span>
+  <span class="no">find</span><span class="nt">:t=</span><span class="nf">&quot;^(.*)\.a2d$&quot;</span>
+  <span class="no">className</span><span class="nt">:t=</span><span class="nf">&quot;a2d&quot;</span>
+  <span class="se">contents</span><span class="ni">{</span>
+    <span class="no">opt</span><span class="nt">:b=</span><span class="si">yes</span>  <span class="ge">// Conservative optimization</span>
+    <span class="no">posEps</span><span class="nt">:r=</span><span class="m">0.01</span>
+    <span class="no">rotEps</span><span class="nt">:r=</span><span class="m">0.2</span>
+    <span class="no">sclEps</span><span class="nt">:r=</span><span class="m">0.1</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Animations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../collisions/index.html" class="btn btn-neutral float-right" title="Collisions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

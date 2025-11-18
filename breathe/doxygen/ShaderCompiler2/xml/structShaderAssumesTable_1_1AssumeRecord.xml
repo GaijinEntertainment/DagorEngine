@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderAssumesTable_1_1AssumeRecord" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderAssumesTable::AssumeRecord</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderAssumesTable_1_1AssumeRecord_1a84af6f364d654186757c96e75c7ab687" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ShaderAssumesTable::AssumeRecord::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <qualifiedname>ShaderAssumesTable::AssumeRecord::val</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="16" column="11" bodyfile="shAssumes.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderAssumesTable_1_1AssumeRecord_1af127f0fc1239fd33a8efd69f46a3c24e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderAssumesTable::AssumeRecord::isFallback</definition>
+        <argsstring></argsstring>
+        <name>isFallback</name>
+        <qualifiedname>ShaderAssumesTable::AssumeRecord::isFallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="17" column="10" bodyfile="shAssumes.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shAssumes.h" line="14" column="3" bodyfile="shAssumes.h" bodystart="15" bodyend="18"/>
+    <listofallmembers>
+      <member refid="structShaderAssumesTable_1_1AssumeRecord_1af127f0fc1239fd33a8efd69f46a3c24e" prot="public" virt="non-virtual"><scope>ShaderAssumesTable::AssumeRecord</scope><name>isFallback</name></member>
+      <member refid="structShaderAssumesTable_1_1AssumeRecord_1a84af6f364d654186757c96e75c7ab687" prot="public" virt="non-virtual"><scope>ShaderAssumesTable::AssumeRecord</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

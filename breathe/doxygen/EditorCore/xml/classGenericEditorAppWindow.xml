@@ -1,0 +1,1421 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGenericEditorAppWindow" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>GenericEditorAppWindow</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::IMenuEventHandler</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">IUndoRedoWndClient</basecompoundref>
+    <includes refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includes>
+    <innerclass refid="classGenericEditorAppWindow_1_1AppEventHandler" prot="public">GenericEditorAppWindow::AppEventHandler</innerclass>
+    <innerclass refid="structGenericEditorAppWindow_1_1OrtMultiScrData" prot="public">GenericEditorAppWindow::OrtMultiScrData</innerclass>
+    <innerclass refid="structGenericEditorAppWindow_1_1OrtScrCells" prot="public">GenericEditorAppWindow::OrtScrCells</innerclass>
+    <innerclass refid="structGenericEditorAppWindow_1_1WorldCursorParams" prot="protected">GenericEditorAppWindow::WorldCursorParams</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a0a1c542dc2d3e23ef695f0c41c96df6c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* GenericEditorAppWindow::defaultThemeName</definition>
+        <argsstring></argsstring>
+        <name>defaultThemeName</name>
+        <qualifiedname>GenericEditorAppWindow::defaultThemeName</qualifiedname>
+        <initializer>= &quot;light&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="77" column="31" bodyfile="ec_genappwnd.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1ac9620f24e1f833fa402e12e39bcef9af" prot="protected" static="no" mutable="no">
+        <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+        <definition>IWndManager* GenericEditorAppWindow::mManager</definition>
+        <argsstring></argsstring>
+        <name>mManager</name>
+        <qualifiedname>GenericEditorAppWindow::mManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="118" column="15" bodyfile="ec_genappwnd.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a36c5a81c9d4d615aa1757a861d59cc8d" prot="protected" static="no" mutable="no">
+        <type><ref refid="classGizmoEventFilter" kindref="compound">GizmoEventFilter</ref> *</type>
+        <definition>GizmoEventFilter* GenericEditorAppWindow::gizmoEH</definition>
+        <argsstring></argsstring>
+        <name>gizmoEH</name>
+        <qualifiedname>GenericEditorAppWindow::gizmoEH</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="120" column="20" bodyfile="ec_genappwnd.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a344b20544182c69125c3d10f480346c3" prot="protected" static="no" mutable="no">
+        <type><ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref> *</type>
+        <definition>BrushEventFilter* GenericEditorAppWindow::brushEH</definition>
+        <argsstring></argsstring>
+        <name>brushEH</name>
+        <qualifiedname>GenericEditorAppWindow::brushEH</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="121" column="20" bodyfile="ec_genappwnd.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a32377bfdb3c7f79be67bdd5b49aa9893" prot="protected" static="no" mutable="no">
+        <type><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> *</type>
+        <definition>IGenEventHandler* GenericEditorAppWindow::appEH</definition>
+        <argsstring></argsstring>
+        <name>appEH</name>
+        <qualifiedname>GenericEditorAppWindow::appEH</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="122" column="20" bodyfile="ec_genappwnd.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1ad29231f72421437d40be066acf0fc4ff" prot="protected" static="no" mutable="no">
+        <type>char</type>
+        <definition>char GenericEditorAppWindow::sceneFname[260]</definition>
+        <argsstring>[260]</argsstring>
+        <name>sceneFname</name>
+        <qualifiedname>GenericEditorAppWindow::sceneFname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="124" column="8" bodyfile="ec_genappwnd.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a4fa76a442cf61a0aebd1edcbe4de19ed" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::shouldLoadFile</definition>
+        <argsstring></argsstring>
+        <name>shouldLoadFile</name>
+        <qualifiedname>GenericEditorAppWindow::shouldLoadFile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="125" column="8" bodyfile="ec_genappwnd.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a06286b771cb6f914804976435a4c186f" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::shouldUpdateViewports</definition>
+        <argsstring></argsstring>
+        <name>shouldUpdateViewports</name>
+        <qualifiedname>GenericEditorAppWindow::shouldUpdateViewports</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="127" column="8" bodyfile="ec_genappwnd.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a01f2d9fd814a9d28d10b74ca141b85ec" prot="protected" static="no" mutable="no">
+        <type>UndoSystem *</type>
+        <definition>UndoSystem* GenericEditorAppWindow::undoSystem</definition>
+        <argsstring></argsstring>
+        <name>undoSystem</name>
+        <qualifiedname>GenericEditorAppWindow::undoSystem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="129" column="14" bodyfile="ec_genappwnd.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1ab37c9cde44e7119a46fafcab01b1392c" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structGenericEditorAppWindow_1_1WorldCursorParams" kindref="compound">GenericEditorAppWindow::WorldCursorParams</ref></type>
+        <definition>struct GenericEditorAppWindow::WorldCursorParams GenericEditorAppWindow::cursor</definition>
+        <argsstring></argsstring>
+        <name>cursor</name>
+        <qualifiedname>GenericEditorAppWindow::cursor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="137" column="10"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a102842c408a5fd15914119374f203ede" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structGenericEditorAppWindow_1_1WorldCursorParams" kindref="compound">GenericEditorAppWindow::WorldCursorParams</ref></type>
+        <definition>struct GenericEditorAppWindow::WorldCursorParams GenericEditorAppWindow::cursorLast</definition>
+        <argsstring></argsstring>
+        <name>cursorLast</name>
+        <qualifiedname>GenericEditorAppWindow::cursorLast</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="137" column="21"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a46b43dfd321a61e78719dfd104b85310" prot="protected" static="no" mutable="no">
+        <type><ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref></type>
+        <definition>GeneralEditorData GenericEditorAppWindow::ged</definition>
+        <argsstring></argsstring>
+        <name>ged</name>
+        <qualifiedname>GenericEditorAppWindow::ged</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="139" column="21" bodyfile="ec_genappwnd.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a699845f962a3b58120d3af19f274896c" prot="protected" static="no" mutable="no">
+        <type><ref refid="classGridObject" kindref="compound">GridObject</ref></type>
+        <definition>GridObject GenericEditorAppWindow::grid</definition>
+        <argsstring></argsstring>
+        <name>grid</name>
+        <qualifiedname>GenericEditorAppWindow::grid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="140" column="14" bodyfile="ec_genappwnd.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a2dec13849028fc0e59049b3f72c7153d" prot="protected" static="no" mutable="no">
+        <type>CoolConsole *</type>
+        <definition>CoolConsole* GenericEditorAppWindow::console</definition>
+        <argsstring></argsstring>
+        <name>console</name>
+        <qualifiedname>GenericEditorAppWindow::console</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="142" column="15" bodyfile="ec_genappwnd.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a51bf07aee3b79e4510b3a6f5088aa3e6" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::quietMode</definition>
+        <argsstring></argsstring>
+        <name>quietMode</name>
+        <qualifiedname>GenericEditorAppWindow::quietMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="143" column="8" bodyfile="ec_genappwnd.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a91183b4e805edc90e33339017f8c7f3c" prot="protected" static="no" mutable="no">
+        <type>String</type>
+        <definition>String GenericEditorAppWindow::themeName</definition>
+        <argsstring></argsstring>
+        <name>themeName</name>
+        <qualifiedname>GenericEditorAppWindow::themeName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="146" column="10" bodyfile="ec_genappwnd.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a5cf79c6c0088df89711c56ef2169a691" prot="protected" static="no" mutable="no">
+        <type><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref></type>
+        <definition>ScreenshotConfig GenericEditorAppWindow::screenshotCfg</definition>
+        <argsstring></argsstring>
+        <name>screenshotCfg</name>
+        <qualifiedname>GenericEditorAppWindow::screenshotCfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="149" column="20" bodyfile="ec_genappwnd.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a4bdd8e9e617f3f86c0504d4795038ea7" prot="protected" static="no" mutable="no">
+        <type><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref></type>
+        <definition>ScreenshotConfig GenericEditorAppWindow::cubeScreenshotCfg</definition>
+        <argsstring></argsstring>
+        <name>cubeScreenshotCfg</name>
+        <qualifiedname>GenericEditorAppWindow::cubeScreenshotCfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="150" column="20" bodyfile="ec_genappwnd.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a7d96afc5eadd1363a16b9a57e39215ea" prot="protected" static="no" mutable="no">
+        <type><ref refid="structGenericEditorAppWindow_1_1OrtMultiScrData" kindref="compound">OrtMultiScrData</ref></type>
+        <definition>OrtMultiScrData GenericEditorAppWindow::mScrData</definition>
+        <argsstring></argsstring>
+        <name>mScrData</name>
+        <qualifiedname>GenericEditorAppWindow::mScrData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="152" column="19" bodyfile="ec_genappwnd.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a55b48c88d8bf54f71e31a9969d0cac92" prot="protected" static="no" mutable="no">
+        <type><ref refid="structGenericEditorAppWindow_1_1OrtScrCells" kindref="compound">OrtScrCells</ref></type>
+        <definition>OrtScrCells GenericEditorAppWindow::mScrCells</definition>
+        <argsstring></argsstring>
+        <name>mScrCells</name>
+        <qualifiedname>GenericEditorAppWindow::mScrCells</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="153" column="15" bodyfile="ec_genappwnd.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a2d63f83875291a90fde7401c02cea08e" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::isRenderingOrtScreenshot_</definition>
+        <argsstring></argsstring>
+        <name>isRenderingOrtScreenshot_</name>
+        <qualifiedname>GenericEditorAppWindow::isRenderingOrtScreenshot_</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="155" column="8" bodyfile="ec_genappwnd.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a1d2930bb76f5dd7cec2a6f425f7ac1df" prot="private" static="no" mutable="no">
+        <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref></type>
+        <definition>EditorWorkspace GenericEditorAppWindow::mWSpace</definition>
+        <argsstring></argsstring>
+        <name>mWSpace</name>
+        <qualifiedname>GenericEditorAppWindow::mWSpace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="210" column="19" bodyfile="ec_genappwnd.h" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGenericEditorAppWindow_1a33709e764717993fdab330d12de91b6e" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; PropPanel::IMenu &gt;</type>
+        <definition>eastl::unique_ptr&lt;PropPanel::IMenu&gt; GenericEditorAppWindow::mainMenu</definition>
+        <argsstring></argsstring>
+        <name>mainMenu</name>
+        <qualifiedname>GenericEditorAppWindow::mainMenu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="211" column="21" bodyfile="ec_genappwnd.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a92711446a1be65eeaa374b223e7bf56b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GenericEditorAppWindow::GenericEditorAppWindow</definition>
+        <argsstring>(const char *open_fname, IWndManager *manager)</argsstring>
+        <name>GenericEditorAppWindow</name>
+        <qualifiedname>GenericEditorAppWindow::GenericEditorAppWindow</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>open_fname</declname>
+        </param>
+        <param>
+          <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+          <declname>manager</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">open_fname</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- path to the project to open on application start </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a1ab117d5cd92e26cc3a05e1561dc66cd" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual GenericEditorAppWindow::~GenericEditorAppWindow</definition>
+        <argsstring>()</argsstring>
+        <name>~GenericEditorAppWindow</name>
+        <qualifiedname>GenericEditorAppWindow::~GenericEditorAppWindow</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="44" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1abfab14b0b5958856fde4cf20308a6e27" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool GenericEditorAppWindow::canClose</definition>
+        <argsstring>()</argsstring>
+        <name>canClose</name>
+        <qualifiedname>GenericEditorAppWindow::canClose</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether application window may be closed (that is the editor may be exited). <simplesect kind="return"><para><bold>true</bold> if application window may be closed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="49" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a0e19a8333220fa263987db12169bdc69" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::startWith</definition>
+        <argsstring>(const char *select_workspace=nullptr)</argsstring>
+        <name>startWith</name>
+        <qualifiedname>GenericEditorAppWindow::startWith</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>select_workspace</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Show dialog window on application start, where one may select start up action:. <linebreak/>
+ - Create new project <linebreak/>
+ - Open existing project <linebreak/>
+ - Open recent project </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="56" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a900c291337072cbfcf9504cb0c941a05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::updateUndoRedoMenu</definition>
+        <argsstring>() override</argsstring>
+        <name>updateUndoRedoMenu</name>
+        <qualifiedname>GenericEditorAppWindow::updateUndoRedoMenu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>update Undo / Redo menu items. update undo / redo menu text - set names for undo / redo operations. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="60" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1abb9838e90a9c58a764d02e536356deed" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::saveViewportsParams</definition>
+        <argsstring>(DataBlock &amp;blk) const</argsstring>
+        <name>saveViewportsParams</name>
+        <qualifiedname>GenericEditorAppWindow::saveViewportsParams</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Save viewports parameters to BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to save (see DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="64" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ada620ddec015ae39e8efc0a49390af35" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::loadViewportsParams</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>loadViewportsParams</name>
+        <qualifiedname>GenericEditorAppWindow::loadViewportsParams</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load viewports parameters from BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to load (see DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="68" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a1437b6e34922cf098f05e6b998aa51c0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::setQuietMode</definition>
+        <argsstring>(bool mode)</argsstring>
+        <name>setQuietMode</name>
+        <qualifiedname>GenericEditorAppWindow::setQuietMode</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="70" column="8" bodyfile="ec_genappwnd.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a6cd29fbebb31832994ae019fa15be10f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String GenericEditorAppWindow::getThemeFileName</definition>
+        <argsstring>() const</argsstring>
+        <name>getThemeFileName</name>
+        <qualifiedname>GenericEditorAppWindow::getThemeFileName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="73" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1abd5bf99dbfbbad41e3c19b23f68fa61b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::saveThemeSettings</definition>
+        <argsstring>(DataBlock &amp;blk) const</argsstring>
+        <name>saveThemeSettings</name>
+        <qualifiedname>GenericEditorAppWindow::saveThemeSettings</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="74" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ac4b85fceba620b107dd30a830f40342d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::loadThemeSettings</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>loadThemeSettings</name>
+        <qualifiedname>GenericEditorAppWindow::loadThemeSettings</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="75" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ab83fe16ee4b983143e14a403447632da" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::saveScreenshotSettings</definition>
+        <argsstring>(DataBlock &amp;blk) const</argsstring>
+        <name>saveScreenshotSettings</name>
+        <qualifiedname>GenericEditorAppWindow::saveScreenshotSettings</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="80" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a098822830293b9efefbf87f96613202f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::loadScreenshotSettings</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>loadScreenshotSettings</name>
+        <qualifiedname>GenericEditorAppWindow::loadScreenshotSettings</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="81" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1aceb5e19ec47a679053b070655bafff5b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::isRenderingOrtScreenshot</definition>
+        <argsstring>()</argsstring>
+        <name>isRenderingOrtScreenshot</name>
+        <qualifiedname>GenericEditorAppWindow::isRenderingOrtScreenshot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="83" column="8" bodyfile="ec_genappwnd.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a0804579f14ee0b41eea6068f430d91e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GenericEditorAppWindow::isOrthogonalPreview</definition>
+        <argsstring>()</argsstring>
+        <name>isOrthogonalPreview</name>
+        <qualifiedname>GenericEditorAppWindow::isOrthogonalPreview</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="84" column="8" bodyfile="ec_genappwnd.h" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ad8141654ef753d7dbd69c057a43dc949" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+        <definition>EditorWorkspace &amp; GenericEditorAppWindow::getWorkspace</definition>
+        <argsstring>()</argsstring>
+        <name>getWorkspace</name>
+        <qualifiedname>GenericEditorAppWindow::getWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="86" column="19" bodyfile="ec_genappwnd.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ae943950daa6421c529c536b45ba1a78b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool GenericEditorAppWindow::handleNewProject</definition>
+        <argsstring>(bool edit=false)=0</argsstring>
+        <name>handleNewProject</name>
+        <qualifiedname>GenericEditorAppWindow::handleNewProject</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>edit</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="158" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ac1d52213899b36eb7c7abd19792b2766" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool GenericEditorAppWindow::handleOpenProject</definition>
+        <argsstring>(bool edit=false)=0</argsstring>
+        <name>handleOpenProject</name>
+        <qualifiedname>GenericEditorAppWindow::handleOpenProject</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>edit</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="159" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a6611222e501ed9cf38513e3f0a6dc0b7" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::getDocTitleText</definition>
+        <argsstring>(String &amp;text)</argsstring>
+        <name>getDocTitleText</name>
+        <qualifiedname>GenericEditorAppWindow::getDocTitleText</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="161" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a9e14923cc50728676bca31863d048018" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::setDocTitle</definition>
+        <argsstring>()</argsstring>
+        <name>setDocTitle</name>
+        <qualifiedname>GenericEditorAppWindow::setDocTitle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="162" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1af9c07507ad6cade190a00fe98eec7ac2" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool GenericEditorAppWindow::createNewProject</definition>
+        <argsstring>(const char *filename)=0</argsstring>
+        <name>createNewProject</name>
+        <qualifiedname>GenericEditorAppWindow::createNewProject</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="164" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a9606a8429088848785de92ff8be1452a" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool GenericEditorAppWindow::loadProject</definition>
+        <argsstring>(const char *filename)=0</argsstring>
+        <name>loadProject</name>
+        <qualifiedname>GenericEditorAppWindow::loadProject</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="165" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a30c6ccd753e8a6ed4a702bd0a3ec635d" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool GenericEditorAppWindow::saveProject</definition>
+        <argsstring>(const char *filename)=0</argsstring>
+        <name>saveProject</name>
+        <qualifiedname>GenericEditorAppWindow::saveProject</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="166" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a82535fdc0a61c6deb90e43217a668e1b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool GenericEditorAppWindow::canCloseScene</definition>
+        <argsstring>(const char *title)</argsstring>
+        <name>canCloseScene</name>
+        <qualifiedname>GenericEditorAppWindow::canCloseScene</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>title</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="168" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a66a359b64f4334baf6c5010ec4e40ca8" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::init</definition>
+        <argsstring>(const char *select_workspace=nullptr)</argsstring>
+        <name>init</name>
+        <qualifiedname>GenericEditorAppWindow::init</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>select_workspace</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="171" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a9ca733b8e7f7cb6297a0b8824543f8bb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IMenu *</type>
+        <definition>PropPanel::IMenu * GenericEditorAppWindow::getMainMenu</definition>
+        <argsstring>()</argsstring>
+        <name>getMainMenu</name>
+        <qualifiedname>GenericEditorAppWindow::getMainMenu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="173" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a7634fe4505a78eec0471c80a31bc1848" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::fillMenu</definition>
+        <argsstring>(PropPanel::IMenu *menu)</argsstring>
+        <name>fillMenu</name>
+        <qualifiedname>GenericEditorAppWindow::fillMenu</qualifiedname>
+        <param>
+          <type>PropPanel::IMenu *</type>
+          <declname>menu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="175" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a6c618145000e5cc52e1a32ab60e59b62" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::updateMenu</definition>
+        <argsstring>(PropPanel::IMenu *menu)</argsstring>
+        <name>updateMenu</name>
+        <qualifiedname>GenericEditorAppWindow::updateMenu</qualifiedname>
+        <param>
+          <type>PropPanel::IMenu *</type>
+          <declname>menu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="176" column="16" bodyfile="ec_genappwnd.h" bodystart="176" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a5cc36fa87697c6802f446809efc405ea" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::addExitCommand</definition>
+        <argsstring>(PropPanel::IMenu *menu)</argsstring>
+        <name>addExitCommand</name>
+        <qualifiedname>GenericEditorAppWindow::addExitCommand</qualifiedname>
+        <param>
+          <type>PropPanel::IMenu *</type>
+          <declname>menu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="178" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a9df04b4d70bb8ae9f8af09aceaf24ba4" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::onChangeFov</definition>
+        <argsstring>()</argsstring>
+        <name>onChangeFov</name>
+        <qualifiedname>GenericEditorAppWindow::onChangeFov</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="180" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ac6255e1857420439250b584d60d3d2b5" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::onShowConsole</definition>
+        <argsstring>()</argsstring>
+        <name>onShowConsole</name>
+        <qualifiedname>GenericEditorAppWindow::onShowConsole</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="181" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a0014a607e0a7c3ebd12a64fe7403ac21" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::fillCommonToolbar</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;tb)</argsstring>
+        <name>fillCommonToolbar</name>
+        <qualifiedname>GenericEditorAppWindow::fillCommonToolbar</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>tb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="183" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ad3eb05a7e7aebb2b4da009673301a456" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>String</type>
+        <definition>virtual String GenericEditorAppWindow::getScreenshotNameMask</definition>
+        <argsstring>(bool cube) const =0</argsstring>
+        <name>getScreenshotNameMask</name>
+        <qualifiedname>GenericEditorAppWindow::getScreenshotNameMask</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>cube</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="186" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a35349cb9a421931e07708388a420ef99" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void GenericEditorAppWindow::screenshotRender</definition>
+        <argsstring>(bool skip_debug_objects)=0</argsstring>
+        <name>screenshotRender</name>
+        <qualifiedname>GenericEditorAppWindow::screenshotRender</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>skip_debug_objects</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="187" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ad965053e07324da4026f04d14182fd72" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String GenericEditorAppWindow::getScreenshotName</definition>
+        <argsstring>(bool cube) const</argsstring>
+        <name>getScreenshotName</name>
+        <qualifiedname>GenericEditorAppWindow::getScreenshotName</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>cube</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="189" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a6ecc336bc22b9d7f26d6c4c4b50113cd" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::setScreenshotOptions</definition>
+        <argsstring>(ScreenshotDlgMode mode)</argsstring>
+        <name>setScreenshotOptions</name>
+        <qualifiedname>GenericEditorAppWindow::setScreenshotOptions</qualifiedname>
+        <param>
+          <type><ref refid="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2e" kindref="member">ScreenshotDlgMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="190" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1ab81049b1882c112ba1db30e16535a54e" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::closeScreenshotSettingsDialog</definition>
+        <argsstring>()</argsstring>
+        <name>closeScreenshotSettingsDialog</name>
+        <qualifiedname>GenericEditorAppWindow::closeScreenshotSettingsDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="191" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1adb55fd276993ec466e1ef9140ca1e0aa" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Texture *</type>
+        <definition>Texture * GenericEditorAppWindow::renderInTex</definition>
+        <argsstring>(int w, int h, const TMatrix *tm, bool skip_debug_objects=false, bool should_make_orthogonal_screenshot=false, bool should_use_z_buffer=true, float world_x0=0.f, float world_x1=0.f, float world_z0=0.f, float world_z1=0.f)</argsstring>
+        <name>renderInTex</name>
+        <qualifiedname>GenericEditorAppWindow::renderInTex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>const TMatrix *</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>skip_debug_objects</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>should_make_orthogonal_screenshot</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>should_use_z_buffer</declname>
+          <defval>true</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>world_x0</declname>
+          <defval>0.f</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>world_x1</declname>
+          <defval>0.f</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>world_z0</declname>
+          <defval>0.f</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>world_z1</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="193" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a0e927cef6deed4bcfd09fa635901c392" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::createScreenshot</definition>
+        <argsstring>()</argsstring>
+        <name>createScreenshot</name>
+        <qualifiedname>GenericEditorAppWindow::createScreenshot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="197" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1aed7e8d9f462237464647f4cb4e3a5cc5" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::createCubeScreenshot</definition>
+        <argsstring>()</argsstring>
+        <name>createCubeScreenshot</name>
+        <qualifiedname>GenericEditorAppWindow::createCubeScreenshot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="198" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a4c47af15931690f2afe56a14e44862ab" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::createOrthogonalScreenshot</definition>
+        <argsstring>(const char *dest_folder=NULL, const float *x0z0x1z1=NULL)</argsstring>
+        <name>createOrthogonalScreenshot</name>
+        <qualifiedname>GenericEditorAppWindow::createOrthogonalScreenshot</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>dest_folder</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>const float *</type>
+          <declname>x0z0x1z1</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="199" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a0d3abfc125e55b84acc3ab15b3477f19" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::saveOrthogonalScreenshot</definition>
+        <argsstring>(const char *fn, int mip_level, float _x, float _z, float tile_in_meters)</argsstring>
+        <name>saveOrthogonalScreenshot</name>
+        <qualifiedname>GenericEditorAppWindow::saveOrthogonalScreenshot</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mip_level</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_x</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_z</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>tile_in_meters</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="200" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a02b9d6d0c87cb6aded6c75ec6238db1b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GenericEditorAppWindow::renderOrtogonalCells</definition>
+        <argsstring>()</argsstring>
+        <name>renderOrtogonalCells</name>
+        <qualifiedname>GenericEditorAppWindow::renderOrtogonalCells</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="201" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a1cb085d15baf4b3e038cdeac15df3ae8" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int GenericEditorAppWindow::getMaxRTSize</definition>
+        <argsstring>()</argsstring>
+        <name>getMaxRTSize</name>
+        <qualifiedname>GenericEditorAppWindow::getMaxRTSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="202" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classGenericEditorAppWindow_1a72a4c486d62e44173d9c2ae2f4501d6d" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int GenericEditorAppWindow::onMenuItemClick</definition>
+        <argsstring>(unsigned id) override</argsstring>
+        <name>onMenuItemClick</name>
+        <qualifiedname>GenericEditorAppWindow::onMenuItemClick</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_genappwnd.h" line="205" column="7"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Editor&apos;s main window. In EditorCore based editors main window is usually derived from <ref refid="classGenericEditorAppWindow" kindref="compound">GenericEditorAppWindow</ref> and <ref refid="classIEditorCoreEngine" kindref="compound">IEditorCoreEngine</ref> classes. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>GenericEditorAppWindow</label>
+        <link refid="classGenericEditorAppWindow"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>IUndoRedoWndClient</label>
+      </node>
+      <node id="2">
+        <label>PropPanel::IMenuEventHandler</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="12">
+        <label>BrushEventFilter</label>
+        <link refid="classBrushEventFilter"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>GeneralEditorData</label>
+        <link refid="classGeneralEditorData"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>curEH</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>tbManager</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>GenericEditorAppWindow</label>
+        <link refid="classGenericEditorAppWindow"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>mManager</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>gizmoEH</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>brushEH</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>appEH</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>cursor</edgelabel>
+          <edgelabel>cursorLast</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>ged</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>grid</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>cubeScreenshotCfg</edgelabel>
+          <edgelabel>screenshotCfg</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>mScrData</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>mScrCells</edgelabel>
+        </childnode>
+      </node>
+      <node id="15">
+        <label>GenericEditorAppWindow::OrtMultiScrData</label>
+        <link refid="structGenericEditorAppWindow_1_1OrtMultiScrData"/>
+      </node>
+      <node id="16">
+        <label>GenericEditorAppWindow::OrtScrCells</label>
+        <link refid="structGenericEditorAppWindow_1_1OrtScrCells"/>
+      </node>
+      <node id="13">
+        <label>GenericEditorAppWindow::WorldCursorParams</label>
+        <link refid="structGenericEditorAppWindow_1_1WorldCursorParams"/>
+      </node>
+      <node id="5">
+        <label>GizmoEventFilter</label>
+        <link refid="classGizmoEventFilter"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>gizmo</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>ged</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>grid</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>GizmoEventFilter::GizmoParams</label>
+        <link refid="structGizmoEventFilter_1_1GizmoParams"/>
+        <childnode refid="8" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+      </node>
+      <node id="11">
+        <label>GridObject</label>
+        <link refid="classGridObject"/>
+      </node>
+      <node id="6">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="8">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="3">
+        <label>IUndoRedoWndClient</label>
+      </node>
+      <node id="4">
+        <label>IWndManager</label>
+        <link refid="classIWndManager"/>
+      </node>
+      <node id="2">
+        <label>PropPanel::IMenuEventHandler</label>
+      </node>
+      <node id="14">
+        <label>ScreenshotConfig</label>
+        <link refid="structScreenshotConfig"/>
+      </node>
+      <node id="10">
+        <label>ToolBarManager</label>
+        <link refid="classToolBarManager"/>
+        <childnode refid="8" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_genappwnd.h" line="37" column="1" bodyfile="ec_genappwnd.h" bodystart="38" bodyend="212"/>
+    <listofallmembers>
+      <member refid="classGenericEditorAppWindow_1a5cc36fa87697c6802f446809efc405ea" prot="protected" virt="virtual"><scope>GenericEditorAppWindow</scope><name>addExitCommand</name></member>
+      <member refid="classGenericEditorAppWindow_1a32377bfdb3c7f79be67bdd5b49aa9893" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>appEH</name></member>
+      <member refid="classGenericEditorAppWindow_1a344b20544182c69125c3d10f480346c3" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>brushEH</name></member>
+      <member refid="classGenericEditorAppWindow_1abfab14b0b5958856fde4cf20308a6e27" prot="public" virt="virtual"><scope>GenericEditorAppWindow</scope><name>canClose</name></member>
+      <member refid="classGenericEditorAppWindow_1a82535fdc0a61c6deb90e43217a668e1b" prot="protected" virt="virtual"><scope>GenericEditorAppWindow</scope><name>canCloseScene</name></member>
+      <member refid="classGenericEditorAppWindow_1ab81049b1882c112ba1db30e16535a54e" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>closeScreenshotSettingsDialog</name></member>
+      <member refid="classGenericEditorAppWindow_1a2dec13849028fc0e59049b3f72c7153d" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>console</name></member>
+      <member refid="classGenericEditorAppWindow_1aed7e8d9f462237464647f4cb4e3a5cc5" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>createCubeScreenshot</name></member>
+      <member refid="classGenericEditorAppWindow_1af9c07507ad6cade190a00fe98eec7ac2" prot="protected" virt="pure-virtual"><scope>GenericEditorAppWindow</scope><name>createNewProject</name></member>
+      <member refid="classGenericEditorAppWindow_1a4c47af15931690f2afe56a14e44862ab" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>createOrthogonalScreenshot</name></member>
+      <member refid="classGenericEditorAppWindow_1a0e927cef6deed4bcfd09fa635901c392" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>createScreenshot</name></member>
+      <member refid="classGenericEditorAppWindow_1a4bdd8e9e617f3f86c0504d4795038ea7" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>cubeScreenshotCfg</name></member>
+      <member refid="classGenericEditorAppWindow_1ab37c9cde44e7119a46fafcab01b1392c" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>cursor</name></member>
+      <member refid="classGenericEditorAppWindow_1a102842c408a5fd15914119374f203ede" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>cursorLast</name></member>
+      <member refid="classGenericEditorAppWindow_1a0a1c542dc2d3e23ef695f0c41c96df6c" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>defaultThemeName</name></member>
+      <member refid="classGenericEditorAppWindow_1a0014a607e0a7c3ebd12a64fe7403ac21" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>fillCommonToolbar</name></member>
+      <member refid="classGenericEditorAppWindow_1a7634fe4505a78eec0471c80a31bc1848" prot="protected" virt="virtual"><scope>GenericEditorAppWindow</scope><name>fillMenu</name></member>
+      <member refid="classGenericEditorAppWindow_1a46b43dfd321a61e78719dfd104b85310" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>ged</name></member>
+      <member refid="classGenericEditorAppWindow_1a92711446a1be65eeaa374b223e7bf56b" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>GenericEditorAppWindow</name></member>
+      <member refid="classGenericEditorAppWindow_1a6611222e501ed9cf38513e3f0a6dc0b7" prot="protected" virt="virtual"><scope>GenericEditorAppWindow</scope><name>getDocTitleText</name></member>
+      <member refid="classGenericEditorAppWindow_1a9ca733b8e7f7cb6297a0b8824543f8bb" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>getMainMenu</name></member>
+      <member refid="classGenericEditorAppWindow_1a1cb085d15baf4b3e038cdeac15df3ae8" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>getMaxRTSize</name></member>
+      <member refid="classGenericEditorAppWindow_1ad965053e07324da4026f04d14182fd72" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>getScreenshotName</name></member>
+      <member refid="classGenericEditorAppWindow_1ad3eb05a7e7aebb2b4da009673301a456" prot="protected" virt="pure-virtual"><scope>GenericEditorAppWindow</scope><name>getScreenshotNameMask</name></member>
+      <member refid="classGenericEditorAppWindow_1a6cd29fbebb31832994ae019fa15be10f" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>getThemeFileName</name></member>
+      <member refid="classGenericEditorAppWindow_1ad8141654ef753d7dbd69c057a43dc949" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>getWorkspace</name></member>
+      <member refid="classGenericEditorAppWindow_1a36c5a81c9d4d615aa1757a861d59cc8d" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>gizmoEH</name></member>
+      <member refid="classGenericEditorAppWindow_1a699845f962a3b58120d3af19f274896c" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>grid</name></member>
+      <member refid="classGenericEditorAppWindow_1ae943950daa6421c529c536b45ba1a78b" prot="protected" virt="pure-virtual"><scope>GenericEditorAppWindow</scope><name>handleNewProject</name></member>
+      <member refid="classGenericEditorAppWindow_1ac1d52213899b36eb7c7abd19792b2766" prot="protected" virt="pure-virtual"><scope>GenericEditorAppWindow</scope><name>handleOpenProject</name></member>
+      <member refid="classGenericEditorAppWindow_1a66a359b64f4334baf6c5010ec4e40ca8" prot="protected" virt="virtual"><scope>GenericEditorAppWindow</scope><name>init</name></member>
+      <member refid="classGenericEditorAppWindow_1a0804579f14ee0b41eea6068f430d91e4" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>isOrthogonalPreview</name></member>
+      <member refid="classGenericEditorAppWindow_1aceb5e19ec47a679053b070655bafff5b" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>isRenderingOrtScreenshot</name></member>
+      <member refid="classGenericEditorAppWindow_1a2d63f83875291a90fde7401c02cea08e" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>isRenderingOrtScreenshot_</name></member>
+      <member refid="classGenericEditorAppWindow_1a9606a8429088848785de92ff8be1452a" prot="protected" virt="pure-virtual"><scope>GenericEditorAppWindow</scope><name>loadProject</name></member>
+      <member refid="classGenericEditorAppWindow_1a098822830293b9efefbf87f96613202f" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>loadScreenshotSettings</name></member>
+      <member refid="classGenericEditorAppWindow_1ac4b85fceba620b107dd30a830f40342d" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>loadThemeSettings</name></member>
+      <member refid="classGenericEditorAppWindow_1ada620ddec015ae39e8efc0a49390af35" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>loadViewportsParams</name></member>
+      <member refid="classGenericEditorAppWindow_1a33709e764717993fdab330d12de91b6e" prot="private" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>mainMenu</name></member>
+      <member refid="classGenericEditorAppWindow_1ac9620f24e1f833fa402e12e39bcef9af" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>mManager</name></member>
+      <member refid="classGenericEditorAppWindow_1a55b48c88d8bf54f71e31a9969d0cac92" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>mScrCells</name></member>
+      <member refid="classGenericEditorAppWindow_1a7d96afc5eadd1363a16b9a57e39215ea" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>mScrData</name></member>
+      <member refid="classGenericEditorAppWindow_1a1d2930bb76f5dd7cec2a6f425f7ac1df" prot="private" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>mWSpace</name></member>
+      <member refid="classGenericEditorAppWindow_1a9df04b4d70bb8ae9f8af09aceaf24ba4" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>onChangeFov</name></member>
+      <member refid="classGenericEditorAppWindow_1a72a4c486d62e44173d9c2ae2f4501d6d" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>onMenuItemClick</name></member>
+      <member refid="classGenericEditorAppWindow_1ac6255e1857420439250b584d60d3d2b5" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>onShowConsole</name></member>
+      <member refid="classGenericEditorAppWindow_1a51bf07aee3b79e4510b3a6f5088aa3e6" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>quietMode</name></member>
+      <member refid="classGenericEditorAppWindow_1adb55fd276993ec466e1ef9140ca1e0aa" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>renderInTex</name></member>
+      <member refid="classGenericEditorAppWindow_1a02b9d6d0c87cb6aded6c75ec6238db1b" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>renderOrtogonalCells</name></member>
+      <member refid="classGenericEditorAppWindow_1a0d3abfc125e55b84acc3ab15b3477f19" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>saveOrthogonalScreenshot</name></member>
+      <member refid="classGenericEditorAppWindow_1a30c6ccd753e8a6ed4a702bd0a3ec635d" prot="protected" virt="pure-virtual"><scope>GenericEditorAppWindow</scope><name>saveProject</name></member>
+      <member refid="classGenericEditorAppWindow_1ab83fe16ee4b983143e14a403447632da" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>saveScreenshotSettings</name></member>
+      <member refid="classGenericEditorAppWindow_1abd5bf99dbfbbad41e3c19b23f68fa61b" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>saveThemeSettings</name></member>
+      <member refid="classGenericEditorAppWindow_1abb9838e90a9c58a764d02e536356deed" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>saveViewportsParams</name></member>
+      <member refid="classGenericEditorAppWindow_1ad29231f72421437d40be066acf0fc4ff" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>sceneFname</name></member>
+      <member refid="classGenericEditorAppWindow_1a5cf79c6c0088df89711c56ef2169a691" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>screenshotCfg</name></member>
+      <member refid="classGenericEditorAppWindow_1a35349cb9a421931e07708388a420ef99" prot="protected" virt="pure-virtual"><scope>GenericEditorAppWindow</scope><name>screenshotRender</name></member>
+      <member refid="classGenericEditorAppWindow_1a9e14923cc50728676bca31863d048018" prot="protected" virt="virtual"><scope>GenericEditorAppWindow</scope><name>setDocTitle</name></member>
+      <member refid="classGenericEditorAppWindow_1a1437b6e34922cf098f05e6b998aa51c0" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>setQuietMode</name></member>
+      <member refid="classGenericEditorAppWindow_1a6ecc336bc22b9d7f26d6c4c4b50113cd" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>setScreenshotOptions</name></member>
+      <member refid="classGenericEditorAppWindow_1a4fa76a442cf61a0aebd1edcbe4de19ed" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>shouldLoadFile</name></member>
+      <member refid="classGenericEditorAppWindow_1a06286b771cb6f914804976435a4c186f" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>shouldUpdateViewports</name></member>
+      <member refid="classGenericEditorAppWindow_1a0e19a8333220fa263987db12169bdc69" prot="public" virt="virtual"><scope>GenericEditorAppWindow</scope><name>startWith</name></member>
+      <member refid="classGenericEditorAppWindow_1a91183b4e805edc90e33339017f8c7f3c" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>themeName</name></member>
+      <member refid="classGenericEditorAppWindow_1a01f2d9fd814a9d28d10b74ca141b85ec" prot="protected" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>undoSystem</name></member>
+      <member refid="classGenericEditorAppWindow_1a6c618145000e5cc52e1a32ab60e59b62" prot="protected" virt="virtual"><scope>GenericEditorAppWindow</scope><name>updateMenu</name></member>
+      <member refid="classGenericEditorAppWindow_1a900c291337072cbfcf9504cb0c941a05" prot="public" virt="non-virtual"><scope>GenericEditorAppWindow</scope><name>updateUndoRedoMenu</name></member>
+      <member refid="classGenericEditorAppWindow_1a1ab117d5cd92e26cc3a05e1561dc66cd" prot="public" virt="virtual"><scope>GenericEditorAppWindow</scope><name>~GenericEditorAppWindow</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

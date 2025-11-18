@@ -1,0 +1,534 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceassembly" kind="namespace" language="C++">
+    <compoundname>assembly</compoundname>
+    <innerclass refid="structassembly_1_1NamedConstDeclarationHlsl" prot="public">assembly::NamedConstDeclarationHlsl</innerclass>
+    <innerclass refid="structassembly_1_1StcodeBuildFlagsBits" prot="public">assembly::StcodeBuildFlagsBits</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceassembly_1ade16b36c2019dc901e5798ece3dce754" prot="public" static="no">
+        <type>uint32_t</type>
+        <definition>using assembly::StcodeBuildFlags = typedef uint32_t</definition>
+        <argsstring></argsstring>
+        <name>StcodeBuildFlags</name>
+        <qualifiedname>assembly::StcodeBuildFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.h" line="14" column="1" bodyfile="variantAssembly.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceassembly_1a36ba8b4a6480a135492d5a4ec608870d" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>static eastl::string assembly::to_upcase_str</definition>
+        <argsstring>(const auto &amp;s)</argsstring>
+        <name>to_upcase_str</name>
+        <qualifiedname>assembly::to_upcase_str</qualifiedname>
+        <param>
+          <type>const auto &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwAssembly.cpp" line="16" column="22" bodyfile="hwAssembly.cpp" bodystart="16" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a7c62fb915f6b0f8146ecec1045b43bbb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string assembly::build_common_hardware_defines_hlsl</definition>
+        <argsstring>(const shc::CompilationContext &amp;ctx)</argsstring>
+        <name>build_common_hardware_defines_hlsl</name>
+        <qualifiedname>assembly::build_common_hardware_defines_hlsl</qualifiedname>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwAssembly.cpp" line="27" column="15" bodyfile="hwAssembly.cpp" bodystart="27" bodyend="84" declfile="hwAssembly.h" declline="14" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a07f2c200251b6e2fc46997a991093302" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string assembly::build_hardware_defines_hlsl</definition>
+        <argsstring>(const char *profile, bool use_halfs, const shc::CompilationContext &amp;ctx)</argsstring>
+        <name>build_hardware_defines_hlsl</name>
+        <qualifiedname>assembly::build_hardware_defines_hlsl</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_halfs</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwAssembly.cpp" line="96" column="15" bodyfile="hwAssembly.cpp" bodystart="96" bodyend="139" declfile="hwAssembly.h" declline="15" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a7b9bd44389fc2c58d5bb324ee4e8cfc4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>StcodeBuildFlags</type>
+            <declname>FLAGS</declname>
+            <defname>FLAGS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void assembly::assemble_local_var</definition>
+        <argsstring>(LocalVar *var, ShaderParser::ComplexExpression *rootExpr, ShaderTerminal::SHTOK_ident *decl_name, shc::VariantContext &amp;ctx)</argsstring>
+        <name>assemble_local_var</name>
+        <qualifiedname>assembly::assemble_local_var</qualifiedname>
+        <param>
+          <type><ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+          <declname>var</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ShaderParser::ComplexExpression</ref> *</type>
+          <declname>rootExpr</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::SHTOK_ident *</type>
+          <declname>decl_name</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="15" column="6" bodyfile="variantAssembly.cpp" bodystart="15" bodyend="42" declfile="variantAssembly.h" declline="24" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a482e6b7d72f8ba776964828bfffeeb2e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>static eastl::string assembly::build_placement_specifier</definition>
+        <argsstring>(int dest_reg, bool is_array, int elem_count, HlslRegisterSpace rspace, ShaderBlockLevel block_level, bool is_dynamic)</argsstring>
+        <name>build_placement_specifier</name>
+        <qualifiedname>assembly::build_placement_specifier</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_array</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>elem_count</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>rspace</declname>
+        </param>
+        <param>
+          <type><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></type>
+          <declname>block_level</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_dynamic</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="44" column="22" bodyfile="variantAssembly.cpp" bodystart="44" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a61b2b995030f3ac4d90ea82218c3d786" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="structassembly_1_1NamedConstDeclarationHlsl" kindref="compound">NamedConstDeclarationHlsl</ref> &gt;</type>
+        <definition>eastl::optional&lt; NamedConstDeclarationHlsl &gt; assembly::build_hlsl_decl_for_named_const</definition>
+        <argsstring>(const semantic::NamedConstDefInfo &amp;def, shc::VariantContext &amp;ctx, int dest_register, const ShaderParser::VariablesMerger &amp;var_merger)</argsstring>
+        <name>build_hlsl_decl_for_named_const</name>
+        <qualifiedname>assembly::build_hlsl_decl_for_named_const</qualifiedname>
+        <param>
+          <type>const <ref refid="structsemantic_1_1NamedConstDefInfo" kindref="compound">semantic::NamedConstDefInfo</ref> &amp;</type>
+          <declname>def</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_register</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">ShaderParser::VariablesMerger</ref> &amp;</type>
+          <declname>var_merger</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="73" column="17" bodyfile="variantAssembly.cpp" bodystart="73" bodyend="280" declfile="variantAssembly.h" declline="33" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a9de4b8030531cb2cf9e84af47107d2aa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>StcodeBuildFlags</type>
+            <declname>FLAGS</declname>
+            <defname>FLAGS</defname>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool assembly::build_stcode_for_named_const</definition>
+        <argsstring>(const semantic::NamedConstDefInfo &amp;def, int dest_register, shc::VariantContext &amp;ctx, IMemAlloc *tmp_memory, bool add_sampler_vars)</argsstring>
+        <name>build_stcode_for_named_const</name>
+        <qualifiedname>assembly::build_stcode_for_named_const</qualifiedname>
+        <param>
+          <type>const <ref refid="structsemantic_1_1NamedConstDefInfo" kindref="compound">semantic::NamedConstDefInfo</ref> &amp;</type>
+          <declname>def</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_register</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>tmp_memory</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>add_sampler_vars</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="283" column="6" bodyfile="variantAssembly.cpp" bodystart="283" bodyend="745" declfile="variantAssembly.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1aa2103c4b24d97bc75908e181a4c6e4af" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String assembly::build_hlsl_for_pair_sampler</definition>
+        <argsstring>(const char *const_name, bool is_shadow, int dest_register, shc::VariantContext &amp;ctx)</argsstring>
+        <name>build_hlsl_for_pair_sampler</name>
+        <qualifiedname>assembly::build_hlsl_for_pair_sampler</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>const_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_shadow</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_register</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="747" column="8" bodyfile="variantAssembly.cpp" bodystart="747" bodyend="755" declfile="variantAssembly.h" declline="40" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a8026a31965c1ca181d81478595335675" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>StcodeBuildFlags</type>
+            <declname>FLAGS</declname>
+            <defname>FLAGS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void assembly::build_stcode_for_pair_sampler</definition>
+        <argsstring>(const char *const_name, const char *var_name, int dest_register, ShaderStage stage, int var_id, bool is_global, shc::VariantContext &amp;ctx)</argsstring>
+        <name>build_stcode_for_pair_sampler</name>
+        <qualifiedname>assembly::build_stcode_for_pair_sampler</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>const_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>var_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_register</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_global</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="758" column="6" bodyfile="variantAssembly.cpp" bodystart="758" bodyend="782" declfile="variantAssembly.h" declline="43" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1ad3e505f51d3620ecfe672ffa1b7e9c99" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void assembly::build_cpp_declarations_for_used_local_vars</definition>
+        <argsstring>(shc::VariantContext &amp;ctx)</argsstring>
+        <name>build_cpp_declarations_for_used_local_vars</name>
+        <qualifiedname>assembly::build_cpp_declarations_for_used_local_vars</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="784" column="6" bodyfile="variantAssembly.cpp" bodystart="784" bodyend="797" declfile="variantAssembly.h" declline="46" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a9a8fb5d1403190cf61579a5fb05a8569" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void assembly::build_cpp_declarations_for_used_bool_vars</definition>
+        <argsstring>(shc::VariantContext &amp;ctx)</argsstring>
+        <name>build_cpp_declarations_for_used_bool_vars</name>
+        <qualifiedname>assembly::build_cpp_declarations_for_used_bool_vars</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="799" column="6" bodyfile="variantAssembly.cpp" bodystart="799" bodyend="805" declfile="variantAssembly.h" declline="47" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a051e2812cbe06c020fc8135227fc9e3f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template void</type>
+        <definition>template void assembly::assemble_local_var&lt; StcodeBuildFlagsBits::ALL &gt;</definition>
+        <argsstring>(LocalVar *, ShaderParser::ComplexExpression *, ShaderTerminal::SHTOK_ident *, shc::VariantContext &amp;)</argsstring>
+        <name>assemble_local_var&lt; StcodeBuildFlagsBits::ALL &gt;</name>
+        <qualifiedname>assembly::assemble_local_var&lt; StcodeBuildFlagsBits::ALL &gt;</qualifiedname>
+        <param>
+          <type><ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ShaderParser::ComplexExpression</ref> *</type>
+        </param>
+        <param>
+          <type>ShaderTerminal::SHTOK_ident *</type>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="808" column="10" declfile="variantAssembly.cpp" declline="808" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a4464713eaa3a7a20a5de730f8692a589" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template void</type>
+        <definition>template void assembly::assemble_local_var&lt; StcodeBuildFlagsBits::CPP &gt;</definition>
+        <argsstring>(LocalVar *, ShaderParser::ComplexExpression *, ShaderTerminal::SHTOK_ident *, shc::VariantContext &amp;)</argsstring>
+        <name>assemble_local_var&lt; StcodeBuildFlagsBits::CPP &gt;</name>
+        <qualifiedname>assembly::assemble_local_var&lt; StcodeBuildFlagsBits::CPP &gt;</qualifiedname>
+        <param>
+          <type><ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ShaderParser::ComplexExpression</ref> *</type>
+        </param>
+        <param>
+          <type>ShaderTerminal::SHTOK_ident *</type>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="810" column="10" declfile="variantAssembly.cpp" declline="810" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a460627748565256b59183046c58491c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template bool</type>
+        <definition>template bool assembly::build_stcode_for_named_const&lt; StcodeBuildFlagsBits::ALL &gt;</definition>
+        <argsstring>(const semantic::NamedConstDefInfo &amp;, int, shc::VariantContext &amp;, IMemAlloc *, bool)</argsstring>
+        <name>build_stcode_for_named_const&lt; StcodeBuildFlagsBits::ALL &gt;</name>
+        <qualifiedname>assembly::build_stcode_for_named_const&lt; StcodeBuildFlagsBits::ALL &gt;</qualifiedname>
+        <param>
+          <type>const <ref refid="structsemantic_1_1NamedConstDefInfo" kindref="compound">semantic::NamedConstDefInfo</ref> &amp;</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+        </param>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="812" column="10" declfile="variantAssembly.cpp" declline="812" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a26d99e1ebc2e38c7f07f7d5efaf7643a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template bool</type>
+        <definition>template bool assembly::build_stcode_for_named_const&lt; StcodeBuildFlagsBits::CPP &gt;</definition>
+        <argsstring>(const semantic::NamedConstDefInfo &amp;, int, shc::VariantContext &amp;, IMemAlloc *, bool)</argsstring>
+        <name>build_stcode_for_named_const&lt; StcodeBuildFlagsBits::CPP &gt;</name>
+        <qualifiedname>assembly::build_stcode_for_named_const&lt; StcodeBuildFlagsBits::CPP &gt;</qualifiedname>
+        <param>
+          <type>const <ref refid="structsemantic_1_1NamedConstDefInfo" kindref="compound">semantic::NamedConstDefInfo</ref> &amp;</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+        </param>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="814" column="10" declfile="variantAssembly.cpp" declline="814" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1afad05a99e96c289711ebd13f55919856" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template void</type>
+        <definition>template void assembly::build_stcode_for_pair_sampler&lt; StcodeBuildFlagsBits::ALL &gt;</definition>
+        <argsstring>(const char *, const char *, int, ShaderStage, int, bool, shc::VariantContext &amp;)</argsstring>
+        <name>build_stcode_for_pair_sampler&lt; StcodeBuildFlagsBits::ALL &gt;</name>
+        <qualifiedname>assembly::build_stcode_for_pair_sampler&lt; StcodeBuildFlagsBits::ALL &gt;</qualifiedname>
+        <param>
+          <type>const char *</type>
+        </param>
+        <param>
+          <type>const char *</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>bool</type>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="816" column="10" declfile="variantAssembly.cpp" declline="816" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceassembly_1a5c94f8b3c99f14fd075dbe90c73641d9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>template void</type>
+        <definition>template void assembly::build_stcode_for_pair_sampler&lt; StcodeBuildFlagsBits::CPP &gt;</definition>
+        <argsstring>(const char *, const char *, int, ShaderStage, int, bool, shc::VariantContext &amp;)</argsstring>
+        <name>build_stcode_for_pair_sampler&lt; StcodeBuildFlagsBits::CPP &gt;</name>
+        <qualifiedname>assembly::build_stcode_for_pair_sampler&lt; StcodeBuildFlagsBits::CPP &gt;</qualifiedname>
+        <param>
+          <type>const char *</type>
+        </param>
+        <param>
+          <type>const char *</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>bool</type>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantAssembly.cpp" line="818" column="10" declfile="variantAssembly.cpp" declline="818" declcolumn="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hwAssembly.cpp" line="13" column="1"/>
+  </compounddef>
+</doxygen>

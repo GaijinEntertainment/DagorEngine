@@ -1,0 +1,931 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderScene" kind="class" language="C++" prot="public">
+    <compoundname>RenderScene</compoundname>
+    <innerclass refid="structRenderScene_1_1ElemCallback" prot="public">RenderScene::ElemCallback</innerclass>
+    <innerclass refid="structRenderScene_1_1OptimizedScene" prot="protected">RenderScene::OptimizedScene</innerclass>
+    <innerclass refid="structRenderScene_1_1RenderObject" prot="public">RenderScene::RenderObject</innerclass>
+    <innerclass refid="structRenderScene_1_1VisibilityData" prot="public">RenderScene::VisibilityData</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classRenderScene_1a293e4957469e1d10676beaf382d44774" prot="public" static="no">
+        <type>bool(*</type>
+        <definition>typedef bool(* RenderScene::reset_states_t) (const bbox3f &amp;, bool, bool)</definition>
+        <argsstring>)(const bbox3f &amp;, bool, bool)</argsstring>
+        <name>reset_states_t</name>
+        <qualifiedname>RenderScene::reset_states_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="55" column="11" bodyfile="dag_renderScene.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classRenderScene_1af053fab4a97ac09348148ae14d9e3f97" prot="public" static="no" mutable="no">
+        <type>PatchableTab&lt; <ref refid="structRenderScene_1_1RenderObject" kindref="compound">RenderObject</ref> &gt;</type>
+        <definition>PatchableTab&lt;RenderObject&gt; RenderScene::obj</definition>
+        <argsstring></argsstring>
+        <name>obj</name>
+        <qualifiedname>RenderScene::obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="149" column="16" bodyfile="dag_renderScene.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1aa46c3ff6d0bebab68909bf175dbd2c93" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* RenderScene::robjMem</definition>
+        <argsstring></argsstring>
+        <name>robjMem</name>
+        <qualifiedname>RenderScene::robjMem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="157" column="8" bodyfile="dag_renderScene.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classRenderScene_1aa9992197a002071f6cf485f6ac26803e" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::should_build_optscene_data</definition>
+        <argsstring></argsstring>
+        <name>should_build_optscene_data</name>
+        <qualifiedname>RenderScene::should_build_optscene_data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="367" column="15" bodyfile="dag_renderScene.h" bodystart="367" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1a760fd70ca8d99dbe972b54bb97b840ff" prot="public" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::useSRVBuffers</definition>
+        <argsstring></argsstring>
+        <name>useSRVBuffers</name>
+        <qualifiedname>RenderScene::useSRVBuffers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="448" column="15" bodyfile="dag_renderScene.h" bodystart="448" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-attrib">
+      <memberdef kind="variable" id="classRenderScene_1a522ba1d6436c3e220af4e7958372cc05" prot="protected" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::checked_frustum</definition>
+        <argsstring></argsstring>
+        <name>checked_frustum</name>
+        <qualifiedname>RenderScene::checked_frustum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="380" column="15" bodyfile="dag_renderScene.h" bodystart="380" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1aef2724c30e860fd478f88e6f9ca95333" prot="protected" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::enable_prerender</definition>
+        <argsstring></argsstring>
+        <name>enable_prerender</name>
+        <qualifiedname>RenderScene::enable_prerender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="381" column="15" bodyfile="dag_renderScene.h" bodystart="381" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1a51abf9db585eb0587ecf108212ef5245" prot="protected" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::rendering_depth_pass</definition>
+        <argsstring></argsstring>
+        <name>rendering_depth_pass</name>
+        <qualifiedname>RenderScene::rendering_depth_pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="382" column="15" bodyfile="dag_renderScene.h" bodystart="382" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1a79e10062824b202123dd65200855291f" prot="protected" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int RenderScene::MAX_CVIS</definition>
+        <argsstring></argsstring>
+        <name>MAX_CVIS</name>
+        <qualifiedname>RenderScene::MAX_CVIS</qualifiedname>
+        <initializer>= 8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="431" column="24" bodyfile="dag_renderScene.h" bodystart="431" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classRenderScene_1a50aa200d15ffd54944bcb23142e3897b" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderScene::clipmapMinHeight</definition>
+        <argsstring></argsstring>
+        <name>clipmapMinHeight</name>
+        <qualifiedname>RenderScene::clipmapMinHeight</qualifiedname>
+        <initializer>= 100000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="384" column="9" bodyfile="dag_renderScene.h" bodystart="384" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1a052a6981dc3c2df7163803f1bd3f646a" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderScene::clipmapMaxHeight</definition>
+        <argsstring></argsstring>
+        <name>clipmapMaxHeight</name>
+        <qualifiedname>RenderScene::clipmapMaxHeight</qualifiedname>
+        <initializer>= -100000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="385" column="9" bodyfile="dag_renderScene.h" bodystart="385" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1a29626fd88c1c7f1f84750a14198a5115" prot="protected" static="no" mutable="no">
+        <type>SmallTab&lt; int, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;int, MidmemAlloc&gt; RenderScene::objIndices</definition>
+        <argsstring></argsstring>
+        <name>objIndices</name>
+        <qualifiedname>RenderScene::objIndices</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="387" column="12" bodyfile="dag_renderScene.h" bodystart="387" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1ad6ec429a82dda820c3c9d825bae75d1a" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderMatVdata&gt; RenderScene::smvd</definition>
+        <argsstring></argsstring>
+        <name>smvd</name>
+        <qualifiedname>RenderScene::smvd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="389" column="7" bodyfile="dag_renderScene.h" bodystart="389" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1a012b596ee55bbcf13c8de55ccc0f6ddc" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderScene::hasReflectionRefraction_</definition>
+        <argsstring></argsstring>
+        <name>hasReflectionRefraction_</name>
+        <qualifiedname>RenderScene::hasReflectionRefraction_</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="391" column="8" bodyfile="dag_renderScene.h" bodystart="391" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1ab5f63969534895004cd3110472b7f251" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structRenderScene_1_1OptimizedScene" kindref="compound">RenderScene::OptimizedScene</ref></type>
+        <definition>struct RenderScene::OptimizedScene RenderScene::optScn</definition>
+        <argsstring></argsstring>
+        <name>optScn</name>
+        <qualifiedname>RenderScene::optScn</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="426" column="10"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1ab508404cd22545f414a4de37657d9f71" prot="protected" static="no" mutable="no">
+        <type>carray&lt; <ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref>, MAX_CVIS &gt;</type>
+        <definition>carray&lt;VisibilityData, MAX_CVIS&gt; RenderScene::cVisData</definition>
+        <argsstring></argsstring>
+        <name>cVisData</name>
+        <qualifiedname>RenderScene::cVisData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="432" column="10" bodyfile="dag_renderScene.h" bodystart="432" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderScene_1a3807ec813ab8e56f1a3af5180c33cf32" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::visDataStackIdx</definition>
+        <argsstring></argsstring>
+        <name>visDataStackIdx</name>
+        <qualifiedname>RenderScene::visDataStackIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="433" column="7" bodyfile="dag_renderScene.h" bodystart="433" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderScene_1ae653a9cd629558a6aeca9815032aa47e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BBox3</type>
+        <definition>BBox3 RenderScene::calcBoundingBox</definition>
+        <argsstring>()</argsstring>
+        <name>calcBoundingBox</name>
+        <qualifiedname>RenderScene::calcBoundingBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="150" column="9" bodyfile="dag_renderScene.h" bodystart="150" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a7ed844c701c5281611048d41eb8e914e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderScene::RenderScene</definition>
+        <argsstring>()</argsstring>
+        <name>RenderScene</name>
+        <qualifiedname>RenderScene::RenderScene</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="160" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a17a31fffc55820bac7b9236cb1debef3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderScene::~RenderScene</definition>
+        <argsstring>()</argsstring>
+        <name>~RenderScene</name>
+        <qualifiedname>RenderScene::~RenderScene</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="161" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a3b256c95cc19c4803ab8fd40548e22e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderScene::replaceTexture</definition>
+        <argsstring>(TEXTUREID old_texid, TEXTUREID new_texid)</argsstring>
+        <name>replaceTexture</name>
+        <qualifiedname>RenderScene::replaceTexture</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>old_texid</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>new_texid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="165" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1afc5d8e23d7482b3de7ca21d2ae016404" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::load</definition>
+        <argsstring>(const char *lmdir, bool use_portal_visibility)</argsstring>
+        <name>load</name>
+        <qualifiedname>RenderScene::load</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>lmdir</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_portal_visibility</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="167" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a2b523e2a5764ed504fb8d81cff2e06ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::loadBinary</definition>
+        <argsstring>(IGenLoad &amp;crd, dag::ConstSpan&lt; TEXTUREID &gt; texMap, bool use_portal_visibility)</argsstring>
+        <name>loadBinary</name>
+        <qualifiedname>RenderScene::loadBinary</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>texMap</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_portal_visibility</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="169" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1acfc8357ee54400b8c3e3981613bdfffb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::prepareVisibility</definition>
+        <argsstring>(const VisibilityFinder &amp;vf, int render_id=0, unsigned render_flags_mask=0xFFFFFFFFU)</argsstring>
+        <name>prepareVisibility</name>
+        <qualifiedname>RenderScene::prepareVisibility</qualifiedname>
+        <param>
+          <type>const VisibilityFinder &amp;</type>
+          <declname>vf</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>render_flags_mask</declname>
+          <defval>0xFFFFFFFFU</defval>
+        </param>
+        <briefdescription>
+<para>explicit scene visibility preparation (optional, called automaticall from <ref refid="classRenderScene_1a54446bc65982cdbaa2a6ad851cc56573" kindref="member">render()</ref>) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="172" column="8" bodyfile="dag_renderScene.h" bodystart="172" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a7ae0d8c43437a182a82b492c6e23317b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::allocPrepareVisCtx</definition>
+        <argsstring>(int render_id)</argsstring>
+        <name>allocPrepareVisCtx</name>
+        <qualifiedname>RenderScene::allocPrepareVisCtx</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="225" column="8" bodyfile="dag_renderScene.h" bodystart="225" bodyend="237"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1ad0b1692b11b1d39a8801c9abe215ae9f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::doPrepareVisCtx</definition>
+        <argsstring>(const VisibilityFinder &amp;vf, int render_id, unsigned render_flags_mask=0xFFFFFFFFU)</argsstring>
+        <name>doPrepareVisCtx</name>
+        <qualifiedname>RenderScene::doPrepareVisCtx</qualifiedname>
+        <param>
+          <type>const VisibilityFinder &amp;</type>
+          <declname>vf</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>render_flags_mask</declname>
+          <defval>0xFFFFFFFFU</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="238" column="8" bodyfile="dag_renderScene.h" bodystart="238" bodyend="255"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1ad4fb286ee4cad6980224054403d418dc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::setPrepareVisCtxToRender</definition>
+        <argsstring>(int render_id)</argsstring>
+        <name>setPrepareVisCtxToRender</name>
+        <qualifiedname>RenderScene::setPrepareVisCtxToRender</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="256" column="8" bodyfile="dag_renderScene.h" bodystart="256" bodyend="278"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a64739bb4e662c71d726783e842a0767b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::pushPreparedVisCtx</definition>
+        <argsstring>()</argsstring>
+        <name>pushPreparedVisCtx</name>
+        <qualifiedname>RenderScene::pushPreparedVisCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="279" column="8" bodyfile="dag_renderScene.h" bodystart="279" bodyend="294"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a69df781420cd0fd6d9a36284601b6483" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::popPreparedVisCtx</definition>
+        <argsstring>()</argsstring>
+        <name>popPreparedVisCtx</name>
+        <qualifiedname>RenderScene::popPreparedVisCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="295" column="8" bodyfile="dag_renderScene.h" bodystart="295" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1aa5b3e8418f25dd296c1069d96da72023" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::releasePrepareVisCtx</definition>
+        <argsstring>(int render_id)</argsstring>
+        <name>releasePrepareVisCtx</name>
+        <qualifiedname>RenderScene::releasePrepareVisCtx</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="305" column="8" bodyfile="dag_renderScene.h" bodystart="305" bodyend="312"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a5e9b507c8bc54477e9073b8c1485e3fa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::savePreparedVisCtx</definition>
+        <argsstring>(int render_id)</argsstring>
+        <name>savePreparedVisCtx</name>
+        <qualifiedname>RenderScene::savePreparedVisCtx</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="313" column="8" bodyfile="dag_renderScene.h" bodystart="313" bodyend="319"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a00d4e105a652d552ec65c6040c3c46bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::restorePreparedVisCtx</definition>
+        <argsstring>(int render_id)</argsstring>
+        <name>restorePreparedVisCtx</name>
+        <qualifiedname>RenderScene::restorePreparedVisCtx</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="320" column="8" bodyfile="dag_renderScene.h" bodystart="320" bodyend="326"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a54446bc65982cdbaa2a6ad851cc56573" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::render</definition>
+        <argsstring>(const VisibilityFinder &amp;vf, int render_id=0, unsigned render_flags_mask=0xFFFFFFFFU)</argsstring>
+        <name>render</name>
+        <qualifiedname>RenderScene::render</qualifiedname>
+        <param>
+          <type>const VisibilityFinder &amp;</type>
+          <declname>vf</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>render_flags_mask</declname>
+          <defval>0xFFFFFFFFU</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>checks visibility and renders scene; render_id&lt;0 forces full render, other values (0..7) are context for visibility finder </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="330" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a3dba0cc4d6e903a65dcc0130b439f446" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::render_trans</definition>
+        <argsstring>()</argsstring>
+        <name>render_trans</name>
+        <qualifiedname>RenderScene::render_trans</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="331" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a87146b214493feffbcf0e28afa4463a0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::foreachElem</definition>
+        <argsstring>(ElemCallback &amp;callback) const</argsstring>
+        <name>foreachElem</name>
+        <qualifiedname>RenderScene::foreachElem</qualifiedname>
+        <param>
+          <type><ref refid="structRenderScene_1_1ElemCallback" kindref="compound">ElemCallback</ref> &amp;</type>
+          <declname>callback</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="357" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1af63a9ff291005d3c4993f0de56b091e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderScene::hasReflectionRefraction</definition>
+        <argsstring>()</argsstring>
+        <name>hasReflectionRefraction</name>
+        <qualifiedname>RenderScene::hasReflectionRefraction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="361" column="8" bodyfile="dag_renderScene.h" bodystart="361" bodyend="361"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a5af422e54a34b45566dbffa888f49bf2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::sort_objects</definition>
+        <argsstring>(const Point3 &amp;view_point)</argsstring>
+        <name>sort_objects</name>
+        <qualifiedname>RenderScene::sort_objects</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>view_point</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="366" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1aac354c9ca66f94ab2c4e98678eee18a8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderScene::hasClipmap</definition>
+        <argsstring>() const</argsstring>
+        <name>hasClipmap</name>
+        <qualifiedname>RenderScene::hasClipmap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="369" column="8" bodyfile="dag_renderScene.h" bodystart="369" bodyend="369"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a8a6a3968fc21f7d39cf31f47f28d44a0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderScene::getClipmapMinMaxHeight</definition>
+        <argsstring>(float &amp;min_height, float &amp;max_height) const</argsstring>
+        <name>getClipmapMinMaxHeight</name>
+        <qualifiedname>RenderScene::getClipmapMinMaxHeight</qualifiedname>
+        <param>
+          <type>float &amp;</type>
+          <declname>min_height</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>max_height</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="370" column="8" bodyfile="dag_renderScene.h" bodystart="370" bodyend="377"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classRenderScene_1a5539d502f4034893f90d5d2297ad6d54" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void RenderScene::enablePrerender</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>enablePrerender</name>
+        <qualifiedname>RenderScene::enablePrerender</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="359" column="15" bodyfile="dag_renderScene.h" bodystart="359" bodyend="359"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1aa399a6043dab9de17b35c685ad630948" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void RenderScene::set_checked_frustum</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>set_checked_frustum</name>
+        <qualifiedname>RenderScene::set_checked_frustum</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="363" column="15" bodyfile="dag_renderScene.h" bodystart="363" bodyend="363"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a5f48a5d7597fc039b8034747f2779c73" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void RenderScene::set_depth_pass</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>set_depth_pass</name>
+        <qualifiedname>RenderScene::set_depth_pass</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="364" column="15" bodyfile="dag_renderScene.h" bodystart="364" bodyend="364"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classRenderScene_1a300097add81951d1b403b02a099ff1f1" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::loadTextures</definition>
+        <argsstring>(IGenLoad &amp;cb, Tab&lt; TEXTUREID &gt; &amp;tex)</argsstring>
+        <name>loadTextures</name>
+        <qualifiedname>RenderScene::loadTextures</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>Tab&lt; TEXTUREID &gt; &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="435" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a5b515389423e347c83733d89153b4a61" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::clearRenderObjects</definition>
+        <argsstring>()</argsstring>
+        <name>clearRenderObjects</name>
+        <qualifiedname>RenderScene::clearRenderObjects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="438" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1af8f6429a36f4fb6e2c6d07aecbda5bdc" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::buildOptSceneData</definition>
+        <argsstring>()</argsstring>
+        <name>buildOptSceneData</name>
+        <qualifiedname>RenderScene::buildOptSceneData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="440" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a8bedb021bbe8638db7404bb1409527af" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::prepareVisibilitySimple</definition>
+        <argsstring>(VisibilityData *vd, int render_id, unsigned render_flags_mask, const VisibilityFinder &amp;vf)</argsstring>
+        <name>prepareVisibilitySimple</name>
+        <qualifiedname>RenderScene::prepareVisibilitySimple</qualifiedname>
+        <param>
+          <type><ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref> *</type>
+          <declname>vd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>render_id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>render_flags_mask</declname>
+        </param>
+        <param>
+          <type>const VisibilityFinder &amp;</type>
+          <declname>vf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="441" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classRenderScene_1a4d0e01f9ef8efa2932b3dd3c114b8a3d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderScene::RenderScene</definition>
+        <argsstring>(const RenderScene &amp;)</argsstring>
+        <name>RenderScene</name>
+        <qualifiedname>RenderScene::RenderScene</qualifiedname>
+        <param>
+          <type>const <ref refid="classRenderScene" kindref="compound">RenderScene</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="444" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderScene_1a102117d18fc86b89e76af7d3d175f43b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classRenderScene" kindref="compound">RenderScene</ref> &amp;</type>
+        <definition>RenderScene &amp; RenderScene::operator=</definition>
+        <argsstring>(const RenderScene &amp;)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>RenderScene::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classRenderScene" kindref="compound">RenderScene</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="445" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>RenderScene</label>
+        <link refid="classRenderScene"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>optScn</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderScene::OptimizedScene</label>
+        <link refid="structRenderScene_1_1OptimizedScene"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>visData</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>RenderScene::VisibilityData</label>
+        <link refid="structRenderScene_1_1VisibilityData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>scn</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_renderScene.h" line="50" column="1" bodyfile="dag_renderScene.h" bodystart="51" bodyend="449"/>
+    <listofallmembers>
+      <member refid="classRenderScene_1a7ae0d8c43437a182a82b492c6e23317b" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>allocPrepareVisCtx</name></member>
+      <member refid="classRenderScene_1af8f6429a36f4fb6e2c6d07aecbda5bdc" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>buildOptSceneData</name></member>
+      <member refid="classRenderScene_1ae653a9cd629558a6aeca9815032aa47e" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>calcBoundingBox</name></member>
+      <member refid="classRenderScene_1a522ba1d6436c3e220af4e7958372cc05" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>checked_frustum</name></member>
+      <member refid="classRenderScene_1a5b515389423e347c83733d89153b4a61" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>clearRenderObjects</name></member>
+      <member refid="classRenderScene_1a052a6981dc3c2df7163803f1bd3f646a" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>clipmapMaxHeight</name></member>
+      <member refid="classRenderScene_1a50aa200d15ffd54944bcb23142e3897b" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>clipmapMinHeight</name></member>
+      <member refid="classRenderScene_1ab508404cd22545f414a4de37657d9f71" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>cVisData</name></member>
+      <member refid="classRenderScene_1ad0b1692b11b1d39a8801c9abe215ae9f" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>doPrepareVisCtx</name></member>
+      <member refid="classRenderScene_1aef2724c30e860fd478f88e6f9ca95333" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>enable_prerender</name></member>
+      <member refid="classRenderScene_1a5539d502f4034893f90d5d2297ad6d54" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>enablePrerender</name></member>
+      <member refid="classRenderScene_1a87146b214493feffbcf0e28afa4463a0" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>foreachElem</name></member>
+      <member refid="classRenderScene_1a8a6a3968fc21f7d39cf31f47f28d44a0" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>getClipmapMinMaxHeight</name></member>
+      <member refid="classRenderScene_1aac354c9ca66f94ab2c4e98678eee18a8" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>hasClipmap</name></member>
+      <member refid="classRenderScene_1af63a9ff291005d3c4993f0de56b091e9" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>hasReflectionRefraction</name></member>
+      <member refid="classRenderScene_1a012b596ee55bbcf13c8de55ccc0f6ddc" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>hasReflectionRefraction_</name></member>
+      <member refid="classRenderScene_1afc5d8e23d7482b3de7ca21d2ae016404" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>load</name></member>
+      <member refid="classRenderScene_1a2b523e2a5764ed504fb8d81cff2e06ba" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>loadBinary</name></member>
+      <member refid="classRenderScene_1a300097add81951d1b403b02a099ff1f1" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>loadTextures</name></member>
+      <member refid="classRenderScene_1a79e10062824b202123dd65200855291f" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>MAX_CVIS</name></member>
+      <member refid="classRenderScene_1af053fab4a97ac09348148ae14d9e3f97" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>obj</name></member>
+      <member refid="classRenderScene_1a29626fd88c1c7f1f84750a14198a5115" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>objIndices</name></member>
+      <member refid="classRenderScene_1a102117d18fc86b89e76af7d3d175f43b" prot="private" virt="non-virtual"><scope>RenderScene</scope><name>operator=</name></member>
+      <member refid="classRenderScene_1ab5f63969534895004cd3110472b7f251" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>optScn</name></member>
+      <member refid="classRenderScene_1a69df781420cd0fd6d9a36284601b6483" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>popPreparedVisCtx</name></member>
+      <member refid="classRenderScene_1acfc8357ee54400b8c3e3981613bdfffb" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>prepareVisibility</name></member>
+      <member refid="classRenderScene_1a8bedb021bbe8638db7404bb1409527af" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>prepareVisibilitySimple</name></member>
+      <member refid="classRenderScene_1a64739bb4e662c71d726783e842a0767b" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>pushPreparedVisCtx</name></member>
+      <member refid="classRenderScene_1aa5b3e8418f25dd296c1069d96da72023" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>releasePrepareVisCtx</name></member>
+      <member refid="classRenderScene_1a54446bc65982cdbaa2a6ad851cc56573" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>render</name></member>
+      <member refid="classRenderScene_1a3dba0cc4d6e903a65dcc0130b439f446" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>render_trans</name></member>
+      <member refid="classRenderScene_1a51abf9db585eb0587ecf108212ef5245" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>rendering_depth_pass</name></member>
+      <member refid="classRenderScene_1a7ed844c701c5281611048d41eb8e914e" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>RenderScene</name></member>
+      <member refid="classRenderScene_1a4d0e01f9ef8efa2932b3dd3c114b8a3d" prot="private" virt="non-virtual"><scope>RenderScene</scope><name>RenderScene</name></member>
+      <member refid="classRenderScene_1a3b256c95cc19c4803ab8fd40548e22e3" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>replaceTexture</name></member>
+      <member refid="classRenderScene_1a293e4957469e1d10676beaf382d44774" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>reset_states_t</name></member>
+      <member refid="classRenderScene_1a00d4e105a652d552ec65c6040c3c46bc" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>restorePreparedVisCtx</name></member>
+      <member refid="classRenderScene_1aa46c3ff6d0bebab68909bf175dbd2c93" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>robjMem</name></member>
+      <member refid="classRenderScene_1a5e9b507c8bc54477e9073b8c1485e3fa" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>savePreparedVisCtx</name></member>
+      <member refid="classRenderScene_1aa399a6043dab9de17b35c685ad630948" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>set_checked_frustum</name></member>
+      <member refid="classRenderScene_1a5f48a5d7597fc039b8034747f2779c73" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>set_depth_pass</name></member>
+      <member refid="classRenderScene_1ad4fb286ee4cad6980224054403d418dc" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>setPrepareVisCtxToRender</name></member>
+      <member refid="classRenderScene_1aa9992197a002071f6cf485f6ac26803e" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>should_build_optscene_data</name></member>
+      <member refid="classRenderScene_1ad6ec429a82dda820c3c9d825bae75d1a" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>smvd</name></member>
+      <member refid="classRenderScene_1a5af422e54a34b45566dbffa888f49bf2" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>sort_objects</name></member>
+      <member refid="classRenderScene_1a760fd70ca8d99dbe972b54bb97b840ff" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>useSRVBuffers</name></member>
+      <member refid="classRenderScene_1a3807ec813ab8e56f1a3af5180c33cf32" prot="protected" virt="non-virtual"><scope>RenderScene</scope><name>visDataStackIdx</name></member>
+      <member refid="classRenderScene_1a17a31fffc55820bac7b9236cb1debef3" prot="public" virt="non-virtual"><scope>RenderScene</scope><name>~RenderScene</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

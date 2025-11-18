@@ -1,0 +1,249 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1StateRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::StateRequest</compoundname>
+    <includes refid="stateRequest_8h" local="no">stateRequest.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1StateRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <qualifiedname>dafg::StateRequest::Registry</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="21" column="16" bodyfile="stateRequest.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdafg_1_1StateRequest_1a07b3e36af927dc7664da042c544fcbc7" prot="private" static="no" mutable="no">
+        <type>NodeNameId</type>
+        <definition>NodeNameId dafg::StateRequest::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>dafg::StateRequest::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="78" column="14" bodyfile="stateRequest.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1StateRequest_1a4328d8243867364a76f6600f2be52ee1" prot="private" static="no" mutable="no">
+        <type>InternalRegistry *</type>
+        <definition>InternalRegistry* dafg::StateRequest::registry</definition>
+        <argsstring></argsstring>
+        <name>registry</name>
+        <qualifiedname>dafg::StateRequest::registry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="79" column="20" bodyfile="stateRequest.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1StateRequest_1a033a3790530578aaa2ce5dc86fa344d7" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dafg::StateRequest::StateRequest</definition>
+        <argsstring>(InternalRegistry *reg, NodeNameId nodeId)</argsstring>
+        <name>StateRequest</name>
+        <qualifiedname>dafg::StateRequest::StateRequest</qualifiedname>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>nodeId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="22" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1StateRequest_1afd7d242687de214e5993c7576ca04dc5" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dafg::StateRequest::setFrameBlock</definition>
+        <argsstring>(const char *block) &amp;&amp;</argsstring>
+        <name>setFrameBlock</name>
+        <qualifiedname>dafg::StateRequest::setFrameBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+<para>Requests for a <computeroutput>block</computeroutput> to be set to FRAME layer Values of frame block shader vars are supposed to change once per frame. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>block</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the block to set. Must be present in the shader dump. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="32" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1StateRequest_1a740426524b547f0cc770ebde0eb98dbb" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dafg::StateRequest::setSceneBlock</definition>
+        <argsstring>(const char *block) &amp;&amp;</argsstring>
+        <name>setSceneBlock</name>
+        <qualifiedname>dafg::StateRequest::setSceneBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+<para>Requests for a <computeroutput>block</computeroutput> to be set to SCENE layer. Values of scene block shader vars are supposed to change when the rendering mode changes. Examples of rendering modes are; depth pre-pass, shadow pass, color pass, voxelization pass, etc. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>block</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the block to set. Must be present in the shader dump. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="43" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1StateRequest_1a5ab7210d08bac986458a9845460eae9b" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dafg::StateRequest::setObjectBlock</definition>
+        <argsstring>(const char *block) &amp;&amp;</argsstring>
+        <name>setObjectBlock</name>
+        <qualifiedname>dafg::StateRequest::setObjectBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+<para>Requests for a <computeroutput>block</computeroutput> to be set to OBJECT layer. Per-object blocks are evil and should be avoided at all costs. They imply a draw-call-per-object model, which has historically proven itself antagonistic to performance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>block</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the block to set. Must be present in the shader dump. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="54" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1StateRequest_1a7233020cac3113c6c628f94a753973cb" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dafg::StateRequest::allowWireframe</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>allowWireframe</name>
+        <qualifiedname>dafg::StateRequest::allowWireframe</qualifiedname>
+        <briefdescription>
+<para>Requests for the driver wireframe mode to be enabled for this node when the user turns it on for debug purposes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="60" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1StateRequest_1a0dd3e2d49052aac9fe63f270588afe84" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dafg::StateRequest::maxVrs</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>maxVrs</name>
+        <qualifiedname>dafg::StateRequest::maxVrs</qualifiedname>
+        <briefdescription>
+<para>Enable variable rate shading with as little rendering as possible. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>Incompatible with using a VRS rate texture. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="67" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1StateRequest_1aee3a98bd1f753f4c950c3a00ea59f3c2" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1StateRequest" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dafg::StateRequest::enableOverride</definition>
+        <argsstring>(shaders::OverrideState override) &amp;&amp;</argsstring>
+        <name>enableOverride</name>
+        <qualifiedname>dafg::StateRequest::enableOverride</qualifiedname>
+        <param>
+          <type>shaders::OverrideState</type>
+          <declname>override</declname>
+        </param>
+        <briefdescription>
+<para>Requests a shader pipeline state override to be active while this node is executing. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>override</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The override to use. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stateRequest.h" line="75" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Represents a request for a certain global state to be set during the node&apos;s execution. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="stateRequest.h" line="19" column="1" bodyfile="stateRequest.h" bodystart="20" bodyend="80"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1StateRequest_1a7233020cac3113c6c628f94a753973cb" prot="public" virt="non-virtual"><scope>dafg::StateRequest</scope><name>allowWireframe</name></member>
+      <member refid="classdafg_1_1StateRequest_1aee3a98bd1f753f4c950c3a00ea59f3c2" prot="public" virt="non-virtual"><scope>dafg::StateRequest</scope><name>enableOverride</name></member>
+      <member refid="classdafg_1_1StateRequest_1a07b3e36af927dc7664da042c544fcbc7" prot="private" virt="non-virtual"><scope>dafg::StateRequest</scope><name>id</name></member>
+      <member refid="classdafg_1_1StateRequest_1a0dd3e2d49052aac9fe63f270588afe84" prot="public" virt="non-virtual"><scope>dafg::StateRequest</scope><name>maxVrs</name></member>
+      <member refid="classdafg_1_1StateRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dafg::StateRequest</scope><name>Registry</name></member>
+      <member refid="classdafg_1_1StateRequest_1a4328d8243867364a76f6600f2be52ee1" prot="private" virt="non-virtual"><scope>dafg::StateRequest</scope><name>registry</name></member>
+      <member refid="classdafg_1_1StateRequest_1afd7d242687de214e5993c7576ca04dc5" prot="public" virt="non-virtual"><scope>dafg::StateRequest</scope><name>setFrameBlock</name></member>
+      <member refid="classdafg_1_1StateRequest_1a5ab7210d08bac986458a9845460eae9b" prot="public" virt="non-virtual"><scope>dafg::StateRequest</scope><name>setObjectBlock</name></member>
+      <member refid="classdafg_1_1StateRequest_1a740426524b547f0cc770ebde0eb98dbb" prot="public" virt="non-virtual"><scope>dafg::StateRequest</scope><name>setSceneBlock</name></member>
+      <member refid="classdafg_1_1StateRequest_1a033a3790530578aaa2ce5dc86fa344d7" prot="private" virt="non-virtual"><scope>dafg::StateRequest</scope><name>StateRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

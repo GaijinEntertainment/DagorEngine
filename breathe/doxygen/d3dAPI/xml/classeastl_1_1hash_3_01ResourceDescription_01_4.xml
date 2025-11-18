@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classeastl_1_1hash_3_01ResourceDescription_01_4" kind="class" language="C++" prot="public">
+    <compoundname>eastl::hash&lt; ResourceDescription &gt;</compoundname>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classeastl_1_1hash_3_01ResourceDescription_01_4_1a7cbee9fd12f38cec296cdb11a901b868" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t eastl::hash&lt; ResourceDescription &gt;::operator()</definition>
+        <argsstring>(const ResourceDescription &amp;desc) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>eastl::hash&lt; ResourceDescription &gt;::operator()</qualifiedname>
+        <param>
+          <type>const <ref refid="structResourceDescription" kindref="compound">ResourceDescription</ref> &amp;</type>
+          <declname>desc</declname>
+        </param>
+        <briefdescription>
+<para>Computes the hash value of a resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>desc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource description. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The hash value of the resource description. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_heap.h" line="310" column="10" bodyfile="dag_heap.h" bodystart="310" bodyend="310"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Hash function specialization for <ref refid="structResourceDescription" kindref="compound">ResourceDescription</ref>. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_heap.h" line="301" column="1" bodyfile="dag_heap.h" bodystart="302" bodyend="311"/>
+    <listofallmembers>
+      <member refid="classeastl_1_1hash_3_01ResourceDescription_01_4_1a7cbee9fd12f38cec296cdb11a901b868" prot="public" virt="non-virtual"><scope>eastl::hash&lt; ResourceDescription &gt;</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

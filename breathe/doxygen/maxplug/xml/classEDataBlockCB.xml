@@ -1,0 +1,266 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classEDataBlockCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>EDataBlockCB</compoundname>
+    <derivedcompoundref refid="classFillCB" prot="public" virt="non-virtual">FillCB</derivedcompoundref>
+    <derivedcompoundref refid="classUpdateCB" prot="public" virt="non-virtual">UpdateCB</derivedcompoundref>
+    <derivedcompoundref refid="classUpdateNCCB" prot="public" virt="non-virtual">UpdateNCCB</derivedcompoundref>
+    <derivedcompoundref refid="classUserPropCB" prot="public" virt="non-virtual">UserPropCB</derivedcompoundref>
+    <derivedcompoundref refid="classUserPropToBlkCB" prot="public" virt="non-virtual">UserPropToBlkCB</derivedcompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classEDataBlockCB_1a6193af9cabfe7ec2d10317ff4d63d930" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int EDataBlockCB::groupId</definition>
+        <argsstring></argsstring>
+        <name>groupId</name>
+        <qualifiedname>EDataBlockCB::groupId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="58" column="7" bodyfile="rolluppanel.cpp" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEDataBlockCB_1ae0d7b4125e1df4192ea4e1e78314faa1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int EDataBlockCB::paramId</definition>
+        <argsstring></argsstring>
+        <name>paramId</name>
+        <qualifiedname>EDataBlockCB::paramId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="59" column="7" bodyfile="rolluppanel.cpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEDataBlockCB_1ae04e35149b085a3203b2b0374bf841f1" prot="public" static="no" mutable="no">
+        <type>char *</type>
+        <definition>char* EDataBlockCB::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>EDataBlockCB::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="60" column="8" bodyfile="rolluppanel.cpp" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classEDataBlockCB_1a89b47c88e410957d8ba4aad62c4ad2e2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual EDataBlockCB::~EDataBlockCB</definition>
+        <argsstring>()</argsstring>
+        <name>~EDataBlockCB</name>
+        <qualifiedname>EDataBlockCB::~EDataBlockCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="51" column="11" bodyfile="rolluppanel.cpp" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classEDataBlockCB_1a927c63983a13b001d14af1710d178b00" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int EDataBlockCB::procCheck</definition>
+        <argsstring>(bool val)=0</argsstring>
+        <name>procCheck</name>
+        <qualifiedname>EDataBlockCB::procCheck</qualifiedname>
+        <reimplementedby refid="classFillCB_1a9c8a5d06a4c7a7fbf3c459f24ed17755">procCheck</reimplementedby>
+        <reimplementedby refid="classUpdateCB_1a490f0712156ef85fccceae0988fe0cf4">procCheck</reimplementedby>
+        <reimplementedby refid="classUpdateNCCB_1abd30f7172484700a8f5d9991af0f80e1">procCheck</reimplementedby>
+        <reimplementedby refid="classUserPropToBlkCB_1adb1060d08cc67c3bee06accc05b5d0be">procCheck</reimplementedby>
+        <reimplementedby refid="classUserPropCB_1af04bd9c01223b6c91b88d1cf273cdaa8">procCheck</reimplementedby>
+        <param>
+          <type>bool</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="52" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classEDataBlockCB_1af332c55d0b8afbc0e43bf346ccb69d34" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int EDataBlockCB::procInt</definition>
+        <argsstring>(int val)=0</argsstring>
+        <name>procInt</name>
+        <qualifiedname>EDataBlockCB::procInt</qualifiedname>
+        <reimplementedby refid="classFillCB_1ae5f7d7c63f64597bccb8a2f818ebd4f1">procInt</reimplementedby>
+        <reimplementedby refid="classUpdateCB_1a9569e42cb459c62766e6d7d7b484dfa6">procInt</reimplementedby>
+        <reimplementedby refid="classUpdateNCCB_1a653de2acc5dd43643cf42de77f35384a">procInt</reimplementedby>
+        <reimplementedby refid="classUserPropToBlkCB_1adf6441d2a7cd1531f402646315a42335">procInt</reimplementedby>
+        <reimplementedby refid="classUserPropCB_1ae1f5cd69b489ae6a12420616901e96fd">procInt</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="53" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classEDataBlockCB_1a9ce4638755e2f1afdfb4a288a77ad102" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int EDataBlockCB::procCombo</definition>
+        <argsstring>(const char *val, Tab&lt; String &gt; &amp;items)=0</argsstring>
+        <name>procCombo</name>
+        <qualifiedname>EDataBlockCB::procCombo</qualifiedname>
+        <reimplementedby refid="classFillCB_1aeb11cc5fe08c756e785d24038b60473e">procCombo</reimplementedby>
+        <reimplementedby refid="classUpdateCB_1aa9f5a85c6318b037ea4be54136f806c2">procCombo</reimplementedby>
+        <reimplementedby refid="classUpdateNCCB_1ae3cd7d73a2a1f1db9eedb61dd48e031f">procCombo</reimplementedby>
+        <reimplementedby refid="classUserPropToBlkCB_1a363f9bcb28a685e2735fd1f616dd3c92">procCombo</reimplementedby>
+        <reimplementedby refid="classUserPropCB_1a8ccfd86e6f2eb6483c7047d18c225d89">procCombo</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>items</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="54" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classEDataBlockCB_1a8111e2ebca5d5f1b175eeef1458898b2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int EDataBlockCB::procReal</definition>
+        <argsstring>(real val)=0</argsstring>
+        <name>procReal</name>
+        <qualifiedname>EDataBlockCB::procReal</qualifiedname>
+        <reimplementedby refid="classFillCB_1a08c9890b1378c3623afbefb12aa6878c">procReal</reimplementedby>
+        <reimplementedby refid="classUpdateCB_1a3eaa07bd42735cec47833440dba51d56">procReal</reimplementedby>
+        <reimplementedby refid="classUpdateNCCB_1a7cfc1fbe1ecf29bb113ca43aa971154d">procReal</reimplementedby>
+        <reimplementedby refid="classUserPropToBlkCB_1af0ff27630197d52ea192263ecce793d3">procReal</reimplementedby>
+        <reimplementedby refid="classUserPropCB_1aac2b87b3e9c5e41513fdb5d94b9b7fe4">procReal</reimplementedby>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="55" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classEDataBlockCB_1a8c0209058acca0617fc5642480051a2c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int EDataBlockCB::procStr</definition>
+        <argsstring>(const char *val)=0</argsstring>
+        <name>procStr</name>
+        <qualifiedname>EDataBlockCB::procStr</qualifiedname>
+        <reimplementedby refid="classFillCB_1a384b5e9c2b0bd31d2ea1596f297e2112">procStr</reimplementedby>
+        <reimplementedby refid="classUpdateCB_1acfb67b759665a0a7ec311d9a44721f92">procStr</reimplementedby>
+        <reimplementedby refid="classUpdateNCCB_1a8d1a5c9e21ee26c03dd91f3a1190ef8e">procStr</reimplementedby>
+        <reimplementedby refid="classUserPropToBlkCB_1af24c804d85727d5e9ae290879205deac">procStr</reimplementedby>
+        <reimplementedby refid="classUserPropCB_1a999b0f14e96a67c503aa4c81d74ff9d5">procStr</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="56" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classEDataBlockCB_1a1e77fd0eb49a978014986488c1bdaed5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int EDataBlockCB::procPoint3</definition>
+        <argsstring>(const Point3 &amp;val)=0</argsstring>
+        <name>procPoint3</name>
+        <qualifiedname>EDataBlockCB::procPoint3</qualifiedname>
+        <reimplementedby refid="classFillCB_1a42b361a873372ecbb9e986221315b321">procPoint3</reimplementedby>
+        <reimplementedby refid="classUpdateCB_1acded52f8d8d5000638ff4f995717c733">procPoint3</reimplementedby>
+        <reimplementedby refid="classUpdateNCCB_1a16906c7a8c2bcbe5e9cab0bb052ec8ce">procPoint3</reimplementedby>
+        <reimplementedby refid="classUserPropToBlkCB_1a2829b002e356b1ee9ce6d3847ccdcc97">procPoint3</reimplementedby>
+        <reimplementedby refid="classUserPropCB_1ab0d6c7563e31fe8c57dcb2f5b04a7182">procPoint3</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="57" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>EDataBlockCB</label>
+        <link refid="classEDataBlockCB"/>
+      </node>
+      <node id="2">
+        <label>FillCB</label>
+        <link refid="classFillCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>UpdateCB</label>
+        <link refid="classUpdateCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>UpdateNCCB</label>
+        <link refid="classUpdateNCCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>UserPropCB</label>
+        <link refid="classUserPropCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>UserPropToBlkCB</label>
+        <link refid="classUserPropToBlkCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="rolluppanel.cpp" line="48" column="1" bodyfile="rolluppanel.cpp" bodystart="49" bodyend="61"/>
+    <listofallmembers>
+      <member refid="classEDataBlockCB_1a6193af9cabfe7ec2d10317ff4d63d930" prot="public" virt="non-virtual"><scope>EDataBlockCB</scope><name>groupId</name></member>
+      <member refid="classEDataBlockCB_1ae04e35149b085a3203b2b0374bf841f1" prot="public" virt="non-virtual"><scope>EDataBlockCB</scope><name>name</name></member>
+      <member refid="classEDataBlockCB_1ae0d7b4125e1df4192ea4e1e78314faa1" prot="public" virt="non-virtual"><scope>EDataBlockCB</scope><name>paramId</name></member>
+      <member refid="classEDataBlockCB_1a927c63983a13b001d14af1710d178b00" prot="public" virt="pure-virtual"><scope>EDataBlockCB</scope><name>procCheck</name></member>
+      <member refid="classEDataBlockCB_1a9ce4638755e2f1afdfb4a288a77ad102" prot="public" virt="pure-virtual"><scope>EDataBlockCB</scope><name>procCombo</name></member>
+      <member refid="classEDataBlockCB_1af332c55d0b8afbc0e43bf346ccb69d34" prot="public" virt="pure-virtual"><scope>EDataBlockCB</scope><name>procInt</name></member>
+      <member refid="classEDataBlockCB_1a1e77fd0eb49a978014986488c1bdaed5" prot="public" virt="pure-virtual"><scope>EDataBlockCB</scope><name>procPoint3</name></member>
+      <member refid="classEDataBlockCB_1a8111e2ebca5d5f1b175eeef1458898b2" prot="public" virt="pure-virtual"><scope>EDataBlockCB</scope><name>procReal</name></member>
+      <member refid="classEDataBlockCB_1a8c0209058acca0617fc5642480051a2c" prot="public" virt="pure-virtual"><scope>EDataBlockCB</scope><name>procStr</name></member>
+      <member refid="classEDataBlockCB_1a89b47c88e410957d8ba4aad62c4ad2e2" prot="public" virt="virtual"><scope>EDataBlockCB</scope><name>~EDataBlockCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

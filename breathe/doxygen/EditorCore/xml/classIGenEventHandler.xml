@@ -1,0 +1,918 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGenEventHandler" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGenEventHandler</compoundname>
+    <derivedcompoundref refid="classBrushEventFilter" prot="public" virt="non-virtual">BrushEventFilter</derivedcompoundref>
+    <derivedcompoundref refid="classGenericEditorAppWindow_1_1AppEventHandler" prot="public" virt="non-virtual">GenericEditorAppWindow::AppEventHandler</derivedcompoundref>
+    <derivedcompoundref refid="classGizmoEventFilter" prot="public" virt="non-virtual">GizmoEventFilter</derivedcompoundref>
+    <derivedcompoundref refid="classIGenEventHandlerWrapper" prot="public" virt="non-virtual">IGenEventHandlerWrapper</derivedcompoundref>
+    <derivedcompoundref refid="classObjectEditor" prot="public" virt="non-virtual">ObjectEditor</derivedcompoundref>
+    <includes refid="ec__interface_8h" local="no">ec_interface.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Mouse events handlers.</header>
+      <memberdef kind="function" id="classIGenEventHandler_1a46164eba137560a326038e89a9240ffe" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>IGenEventHandler::handleMouseMove</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a5f3829fbeb298682327f31c4c8fed17b">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1ab60664c33c7be702e2c3748dd8344d5b">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a559fedbc2351f47277cab52019f645fe">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1ab9d9a7d40d5cd9f850aaac3a94807a0f">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1aad45fe9d5ec867ddfc286c23dd451134">handleMouseMove</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse move. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="271" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1a76d3042ca31425d226f0f72362e2dd56" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>IGenEventHandler::handleMouseLBPress</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a866a69f1561c3a8fb6c5d7c2192d1279">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1ac33489f873b63cc8d3a91e8864880adb">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a0cb830d610e098826c390b8872e00e3c">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1ae4da9969c8c6f8a4318f8905f8ee01fe">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1add728baae0b3b6bef17b0f96e575b2de">handleMouseLBPress</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse left button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="280" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1a0d282a84127069635a1fae4b454a8d3b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>IGenEventHandler::handleMouseLBRelease</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a11cc9976d27245e67d27f2a6d497a4cf">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1a4183f6e9c33fa3b615c9c971ee0fbbd9">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a471078422b09419371d9eca22b51a494">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1a736faeaaccb83763bf9a6db61361a5a5">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1aa9347787f2d048e46080209204e041d2">handleMouseLBRelease</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse left button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="289" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1a5efed76d47bfdd603d2c031553b8d64a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>IGenEventHandler::handleMouseRBPress</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a9582e177037c55763a4ddc5cdf949995">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1a94a96920e937134e82db682dec63829d">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a81c41a36a3c16b48af1ba6ab756ef160">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1a81d64a326bc3a17b1210066ce329f2a4">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1a1494740d3fea07b29e5b2415c2ac90c6">handleMouseRBPress</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse right button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="298" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1a2e35e2b69f623dd8f9ea4289bad0f809" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseRBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>handleMouseRBRelease</name>
+        <qualifiedname>IGenEventHandler::handleMouseRBRelease</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a0ae9874443d9dad4b23c61621dc36d90">handleMouseRBRelease</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1a227138bf95479988f2f98b2cfb99f824">handleMouseRBRelease</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a8d680f9ca5634e82520d547ccda32460">handleMouseRBRelease</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1aca62211dbef6f8b1590c5e6511e3038a">handleMouseRBRelease</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1a730ea5261fa006ce2c7ae771a7c95fa4">handleMouseRBRelease</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse right button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="307" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1a39911163de6ae644a30da1c40886cd56" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseCBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>handleMouseCBPress</name>
+        <qualifiedname>IGenEventHandler::handleMouseCBPress</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1ae1a0eed537c6df7e9ed055955eb421d6">handleMouseCBPress</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1a442b387e4d49c158af7186f2ffaa3361">handleMouseCBPress</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a0e0a1fdd9d64f63484ef9ea1f9b9f3e9">handleMouseCBPress</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1a0ed88450f25c0212873a9764919dbd4b">handleMouseCBPress</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1aa5fbcf3e9b942a5492b2bb20599a533e">handleMouseCBPress</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse center button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="316" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1a611babe0c85315bb93ce54c4986ef80a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseCBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>handleMouseCBRelease</name>
+        <qualifiedname>IGenEventHandler::handleMouseCBRelease</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a049b7309366eec8d92b93595dd37d1f3">handleMouseCBRelease</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1a7b6cd7304561d6b75ed18bc41a304259">handleMouseCBRelease</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a8f2096de452928c0e7bc7d4330a371e3">handleMouseCBRelease</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1a6002b8ae202439e8699f92ae5bb7de96">handleMouseCBRelease</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1a09a698eb3edef2ac7df488da505174ab">handleMouseCBRelease</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse center button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="325" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1ae8879b99e9cf470abb70e4320e38de8c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseWheel</definition>
+        <argsstring>(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif)=0</argsstring>
+        <name>handleMouseWheel</name>
+        <qualifiedname>IGenEventHandler::handleMouseWheel</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1ae7caa0cde7f7ad728cdcc1fab473e348">handleMouseWheel</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1aa608f955a35bdae3e87fcb5e50247181">handleMouseWheel</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1ab77d285d24c9377cd64789d0dc68dd19">handleMouseWheel</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1ab4f89da919878dcb81a4f10eac389601">handleMouseWheel</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1aa16b537a51d1c880df687ab5df4628c8">handleMouseWheel</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>wheel_d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse scroll wheel <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">wheel_d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- scroll wheel steps </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="333" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1a320e9235759aacd382f71d66d8138b15" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenEventHandler::handleMouseDoubleClick</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int key_modif)=0</argsstring>
+        <name>handleMouseDoubleClick</name>
+        <qualifiedname>IGenEventHandler::handleMouseDoubleClick</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a0d3e93b2e4097257b1a96a9583802016">handleMouseDoubleClick</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1a9fe62fdf35ede043a7dd369d13343434">handleMouseDoubleClick</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a7b0d766b594add7b068c9933fc0fe611">handleMouseDoubleClick</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1aa2a74fd0d8755be71cba174d3c8f9e3b">handleMouseDoubleClick</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1abeb4b22cb5db04d1dee018cdf3c10eaf">handleMouseDoubleClick</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse double-click <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="340" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Viewport redraw/change events handlers.</header>
+      <memberdef kind="function" id="classIGenEventHandler_1a7f3ce10fef24468691cfb20b568f8f9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenEventHandler::handleViewportPaint</definition>
+        <argsstring>(IGenViewportWnd *wnd)=0</argsstring>
+        <name>handleViewportPaint</name>
+        <qualifiedname>IGenEventHandler::handleViewportPaint</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1a67a245c7c1da12b141f7b1cdc25d79a5">handleViewportPaint</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1a25f749fc65d31be5566a07dae4fe075d">handleViewportPaint</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1abce2dfcc5c82b41bd4ab7bda0497fc92">handleViewportPaint</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1a677fac11e9d6c664f49d55dfae6f1df6">handleViewportPaint</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1a08e9c244ff18114b602d7bfbd94655e9">handleViewportPaint</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Viewport CTL window redraw <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">dc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport&apos;s device context </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="349" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1af0e97cbbdf5fdeb07f09707ad80e8334" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenEventHandler::handleViewChange</definition>
+        <argsstring>(IGenViewportWnd *wnd)=0</argsstring>
+        <name>handleViewChange</name>
+        <qualifiedname>IGenEventHandler::handleViewChange</qualifiedname>
+        <reimplementedby refid="classBrushEventFilter_1acb7d1472c67ab1f1b8209f5b3c04b009">handleViewChange</reimplementedby>
+        <reimplementedby refid="classGenericEditorAppWindow_1_1AppEventHandler_1af55d60c12fe583061e2bfecec2d990ad">handleViewChange</reimplementedby>
+        <reimplementedby refid="classGizmoEventFilter_1a615e4678313f5499f3842d834f6a6873">handleViewChange</reimplementedby>
+        <reimplementedby refid="classIGenEventHandlerWrapper_1a4015955c4ec44dbcf1f88b8ea8cf0bf2">handleViewChange</reimplementedby>
+        <reimplementedby refid="classObjectEditor_1a0f6435d93d24627fcd8e2eaf81a300e8">handleViewChange</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Viewport view change notification <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="353" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandler_1adb70e764e4b90c0937dd7dc47261606b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual IGenEventHandler::~IGenEventHandler</definition>
+        <argsstring>()=default</argsstring>
+        <name>~IGenEventHandler</name>
+        <qualifiedname>IGenEventHandler::~IGenEventHandler</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="356" column="11"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>General event handler interface. Usually used to send messages from EditorCore to plugins. By using this interface plugins get to know about current events in Dagor Editor. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BrushEventFilter</label>
+        <link refid="classBrushEventFilter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>GenericEditorAppWindow::AppEventHandler</label>
+        <link refid="classGenericEditorAppWindow_1_1AppEventHandler"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>GizmoEventFilter</label>
+        <link refid="classGizmoEventFilter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="5">
+        <label>IGenEventHandlerWrapper</label>
+        <link refid="classIGenEventHandlerWrapper"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ObjectEditor</label>
+        <link refid="classObjectEditor"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="ec_interface.h" line="258" column="1" bodyfile="ec_interface.h" bodystart="259" bodyend="357"/>
+    <listofallmembers>
+      <member refid="classIGenEventHandler_1a39911163de6ae644a30da1c40886cd56" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseCBPress</name></member>
+      <member refid="classIGenEventHandler_1a611babe0c85315bb93ce54c4986ef80a" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseCBRelease</name></member>
+      <member refid="classIGenEventHandler_1a320e9235759aacd382f71d66d8138b15" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseDoubleClick</name></member>
+      <member refid="classIGenEventHandler_1a76d3042ca31425d226f0f72362e2dd56" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseLBPress</name></member>
+      <member refid="classIGenEventHandler_1a0d282a84127069635a1fae4b454a8d3b" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classIGenEventHandler_1a46164eba137560a326038e89a9240ffe" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseMove</name></member>
+      <member refid="classIGenEventHandler_1a5efed76d47bfdd603d2c031553b8d64a" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseRBPress</name></member>
+      <member refid="classIGenEventHandler_1a2e35e2b69f623dd8f9ea4289bad0f809" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseRBRelease</name></member>
+      <member refid="classIGenEventHandler_1ae8879b99e9cf470abb70e4320e38de8c" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleMouseWheel</name></member>
+      <member refid="classIGenEventHandler_1af0e97cbbdf5fdeb07f09707ad80e8334" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleViewChange</name></member>
+      <member refid="classIGenEventHandler_1a7f3ce10fef24468691cfb20b568f8f9a" prot="public" virt="pure-virtual"><scope>IGenEventHandler</scope><name>handleViewportPaint</name></member>
+      <member refid="classIGenEventHandler_1adb70e764e4b90c0937dd7dc47261606b" prot="public" virt="virtual"><scope>IGenEventHandler</scope><name>~IGenEventHandler</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

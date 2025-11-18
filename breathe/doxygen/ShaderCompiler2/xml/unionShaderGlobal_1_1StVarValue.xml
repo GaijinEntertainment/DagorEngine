@@ -1,0 +1,231 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="unionShaderGlobal_1_1StVarValue" kind="union" language="C++" prot="public">
+    <compoundname>ShaderGlobal::StVarValue</compoundname>
+    <includes refid="globVar_8h" local="no">globVar.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" prot="public" static="no" mutable="no">
+        <type><ref refid="structshc_1_1Col4" kindref="compound">shc::Col4</ref></type>
+        <definition>shc::Col4 ShaderGlobal::StVarValue::c4</definition>
+        <argsstring></argsstring>
+        <name>c4</name>
+        <qualifiedname>ShaderGlobal::StVarValue::c4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="28" column="13" bodyfile="globVar.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" prot="public" static="no" mutable="no">
+        <type><ref refid="structshc_1_1Int4" kindref="compound">shc::Int4</ref></type>
+        <definition>shc::Int4 ShaderGlobal::StVarValue::i4</definition>
+        <argsstring></argsstring>
+        <name>i4</name>
+        <qualifiedname>ShaderGlobal::StVarValue::i4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="29" column="13" bodyfile="globVar.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1a9aab21fc7889d8f5f44110140c6a8abb" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real ShaderGlobal::StVarValue::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>ShaderGlobal::StVarValue::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="30" column="8" bodyfile="globVar.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1abcf4d3bfc37c8a74a77806e229585e52" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderGlobal::StVarValue::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>ShaderGlobal::StVarValue::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="31" column="7" bodyfile="globVar.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1a5a1fb931adbc53fec91798d0f4eebdee" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderGlobal::StVarValue::texId</definition>
+        <argsstring></argsstring>
+        <name>texId</name>
+        <qualifiedname>ShaderGlobal::StVarValue::texId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="34" column="14" bodyfile="globVar.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1a372ee8b5cd673e826f836217df427380" prot="public" static="no" mutable="no">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture* ShaderGlobal::StVarValue::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>ShaderGlobal::StVarValue::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="35" column="17" bodyfile="globVar.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1aba7d75d649e0cb6df5ac82caf268536f" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="unionShaderGlobal_1_1StVarValue" kindref="compound">ShaderGlobal::StVarValue</ref></type>
+        <definition>struct ShaderGlobal::StVarValue ShaderGlobal::StVarValue</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ShaderGlobal::StVarValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="36" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1ad2dd68c86766b56f488ad07b613d9970" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderGlobal::StVarValue::bufId</definition>
+        <argsstring></argsstring>
+        <name>bufId</name>
+        <qualifiedname>ShaderGlobal::StVarValue::bufId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="39" column="14" bodyfile="globVar.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1a662d535863ccb0a419f1bf5911322d17" prot="public" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* ShaderGlobal::StVarValue::buf</definition>
+        <argsstring></argsstring>
+        <name>buf</name>
+        <qualifiedname>ShaderGlobal::StVarValue::buf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="40" column="13" bodyfile="globVar.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1ab89d16a02149a80672d7a13ad3628e4e" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="unionShaderGlobal_1_1StVarValue" kindref="compound">ShaderGlobal::StVarValue</ref></type>
+        <definition>struct ShaderGlobal::StVarValue ShaderGlobal::StVarValue</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ShaderGlobal::StVarValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="41" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1a517c4a8df5acb716de927b2ba8caee98" prot="public" static="no" mutable="no">
+        <type>RaytraceTopAccelerationStructure *</type>
+        <definition>RaytraceTopAccelerationStructure* ShaderGlobal::StVarValue::tlas</definition>
+        <argsstring></argsstring>
+        <name>tlas</name>
+        <qualifiedname>ShaderGlobal::StVarValue::tlas</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="42" column="36" bodyfile="globVar.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionShaderGlobal_1_1StVarValue_1a7083b0c13c0be7e56da7044a1e3bc10b" prot="public" static="no" mutable="no">
+        <type>d3d::SamplerInfo</type>
+        <definition>d3d::SamplerInfo ShaderGlobal::StVarValue::samplerInfo</definition>
+        <argsstring></argsstring>
+        <name>samplerInfo</name>
+        <qualifiedname>ShaderGlobal::StVarValue::samplerInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="43" column="20" bodyfile="globVar.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="unionShaderGlobal_1_1StVarValue_1a586400ea465401d0fff03297b1197a3c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderGlobal::StVarValue::StVarValue</definition>
+        <argsstring>()</argsstring>
+        <name>StVarValue</name>
+        <qualifiedname>ShaderGlobal::StVarValue::StVarValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="44" column="3" bodyfile="globVar.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderGlobal::StVarValue</label>
+        <link refid="unionShaderGlobal_1_1StVarValue"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>c4</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>i4</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shc::Col4</label>
+        <link refid="structshc_1_1Col4"/>
+      </node>
+      <node id="3">
+        <label>shc::Int4</label>
+        <link refid="structshc_1_1Int4"/>
+      </node>
+    </collaborationgraph>
+    <location file="globVar.h" line="26" column="1" bodyfile="globVar.h" bodystart="27" bodyend="45"/>
+    <listofallmembers>
+      <member refid="unionShaderGlobal_1_1StVarValue_1a662d535863ccb0a419f1bf5911322d17" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>buf</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1ad2dd68c86766b56f488ad07b613d9970" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>bufId</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>c4</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1abcf4d3bfc37c8a74a77806e229585e52" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>i</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>i4</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1a9aab21fc7889d8f5f44110140c6a8abb" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>r</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1a7083b0c13c0be7e56da7044a1e3bc10b" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>samplerInfo</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1a586400ea465401d0fff03297b1197a3c" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>StVarValue</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1a372ee8b5cd673e826f836217df427380" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>tex</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1a5a1fb931adbc53fec91798d0f4eebdee" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>texId</name></member>
+      <member refid="unionShaderGlobal_1_1StVarValue_1a517c4a8df5acb716de927b2ba8caee98" prot="public" virt="non-virtual"><scope>ShaderGlobal::StVarValue</scope><name>tlas</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

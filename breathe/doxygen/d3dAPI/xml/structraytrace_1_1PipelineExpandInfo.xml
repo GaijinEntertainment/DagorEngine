@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1PipelineExpandInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::PipelineExpandInfo</compoundname>
+    <derivedcompoundref refid="structraytrace_1_1PipelineCreateInfo" prot="public" virt="non-virtual">raytrace::PipelineCreateInfo</derivedcompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1PipelineExpandInfo_1ae6b940dcc2e188c0f24c5802061c28ee" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* raytrace::PipelineExpandInfo::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>raytrace::PipelineExpandInfo::name</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Debug name of the pipeline. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="627" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="627" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineExpandInfo_1a4223d4566ac5f851f0eb13489f71f031" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const <ref refid="structraytrace_1_1ShaderGroupMember" kindref="compound">ShaderGroupMember</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;const ShaderGroupMember&gt; raytrace::PipelineExpandInfo::groupMemebers</definition>
+        <argsstring></argsstring>
+        <name>groupMemebers</name>
+        <qualifiedname>raytrace::PipelineExpandInfo::groupMemebers</qualifiedname>
+        <briefdescription>
+<para>A set of shader group members that should be appended to the pipeline, in the order they appear in the array. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="629" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="629" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineExpandInfo_1af338f9b022721c7943e945e71881fe0d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::PipelineExpandInfo::expandable</definition>
+        <argsstring></argsstring>
+        <name>expandable</name>
+        <qualifiedname>raytrace::PipelineExpandInfo::expandable</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the pipeline may be expanded over time with calls to expand_pipeline. Calls to expand_pipeline without this flag are invalid. This flag is not inherited by the expanded pipeline and has to be set on expansion when the expanded pipeline should be capable to be further expanded. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="634" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="634" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineExpandInfo_1a816fcdfcccf9b74e05caf8fb249f469e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::PipelineExpandInfo::alwaysIgnoreTriangleGeometry</definition>
+        <argsstring></argsstring>
+        <name>alwaysIgnoreTriangleGeometry</name>
+        <qualifiedname>raytrace::PipelineExpandInfo::alwaysIgnoreTriangleGeometry</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Pipelines with this flag will always ignore triangle geometry during traversal. Requires the hasRayTraceSkipPrimitiveType feature to be available, otherwise pipeline create / expand will fail. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="637" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="637" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1PipelineExpandInfo_1a5badffdd8cfe653b9b8c5e24d398fb59" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::PipelineExpandInfo::alwaysIgnoreProceduralGeometry</definition>
+        <argsstring></argsstring>
+        <name>alwaysIgnoreProceduralGeometry</name>
+        <qualifiedname>raytrace::PipelineExpandInfo::alwaysIgnoreProceduralGeometry</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Pipelines with this flag will always ignore procedural geometry during traversal. Requires the hasRayTraceSkipPrimitiveType feature to be available, otherwise pipeline create / expand will fail. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="640" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="640" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Describes a expansion of a existing pipeline. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>raytrace::PipelineCreateInfo</label>
+        <link refid="structraytrace_1_1PipelineCreateInfo"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::PipelineExpandInfo</label>
+        <link refid="structraytrace_1_1PipelineExpandInfo"/>
+      </node>
+    </inheritancegraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="624" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="625" bodyend="641"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1a5badffdd8cfe653b9b8c5e24d398fb59" prot="public" virt="non-virtual"><scope>raytrace::PipelineExpandInfo</scope><name>alwaysIgnoreProceduralGeometry</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1a816fcdfcccf9b74e05caf8fb249f469e" prot="public" virt="non-virtual"><scope>raytrace::PipelineExpandInfo</scope><name>alwaysIgnoreTriangleGeometry</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1af338f9b022721c7943e945e71881fe0d" prot="public" virt="non-virtual"><scope>raytrace::PipelineExpandInfo</scope><name>expandable</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1a4223d4566ac5f851f0eb13489f71f031" prot="public" virt="non-virtual"><scope>raytrace::PipelineExpandInfo</scope><name>groupMemebers</name></member>
+      <member refid="structraytrace_1_1PipelineExpandInfo_1ae6b940dcc2e188c0f24c5802061c28ee" prot="public" virt="non-virtual"><scope>raytrace::PipelineExpandInfo</scope><name>name</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

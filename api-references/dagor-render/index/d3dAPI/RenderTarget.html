@@ -1,0 +1,680 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Render Targets</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Resource Update Buffers" href="ResUpdateBuffer.html" />
+    <link rel="prev" title="Render State" href="RenderState.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Render Targets</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv47Texture"><code class="docutils literal notranslate"><span class="pre">Texture</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv411DepthAccess"><code class="docutils literal notranslate"><span class="pre">DepthAccess</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11DepthAccess2RWE"><code class="docutils literal notranslate"><span class="pre">DepthAccess::RW</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N11DepthAccess9SampledROE"><code class="docutils literal notranslate"><span class="pre">DepthAccess::SampledRO</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv412RenderTarget"><code class="docutils literal notranslate"><span class="pre">RenderTarget</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12RenderTarget3texE"><code class="docutils literal notranslate"><span class="pre">RenderTarget::tex</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12RenderTarget9mip_levelE"><code class="docutils literal notranslate"><span class="pre">RenderTarget::mip_level</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N12RenderTarget5layerE"><code class="docutils literal notranslate"><span class="pre">RenderTarget::layer</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d31copy_from_current_render_targetEP11BaseTexture"><code class="docutils literal notranslate"><span class="pre">d3d::copy_from_current_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d8clear_rtERK12RenderTargetRK18ResourceClearValue"><code class="docutils literal notranslate"><span class="pre">d3d::clear_rt()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetEv"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9set_depthEP11BaseTexture11DepthAccess"><code class="docutils literal notranslate"><span class="pre">d3d::set_depth()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9set_depthEP11BaseTexturei11DepthAccess"><code class="docutils literal notranslate"><span class="pre">d3d::set_depth()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetEiP11BaseTexturei7uint8_t"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetEiP11BaseTexture7uint8_t"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetEP11BaseTexture7uint8_t"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetEP11BaseTexturei7uint8_t"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetE12RenderTarget11DepthAccessN3dag9ConstSpanI12RenderTargetEE"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetE12RenderTarget11DepthAccessKNSt16initializer_listI12RenderTargetEE"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17get_render_targetER20Driver3dRenderTarget"><code class="docutils literal notranslate"><span class="pre">d3d::get_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d17set_render_targetERK20Driver3dRenderTarget"><code class="docutils literal notranslate"><span class="pre">d3d::set_render_target()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d15get_target_sizeERiRi"><code class="docutils literal notranslate"><span class="pre">d3d::get_target_size()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d22get_render_target_sizeERiRiP11BaseTexture7uint8_t"><code class="docutils literal notranslate"><span class="pre">d3d::get_render_target_size()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d9clearviewEi8E3DCOLORf8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::clearview()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d15get_screen_sizeERiRi"><code class="docutils literal notranslate"><span class="pre">d3d::get_screen_size()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d18get_backbuffer_texEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_backbuffer_tex()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d28get_secondary_backbuffer_texEv"><code class="docutils literal notranslate"><span class="pre">d3d::get_secondary_backbuffer_tex()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Render Targets</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/RenderTarget.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="render-targets">
+<h1>Render Targets<a class="headerlink" href="#render-targets" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-typedefs">Typedefs</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv47Texture">
+<span id="_CPPv37Texture"></span><span id="_CPPv27Texture"></span><span id="Texture"></span><span class="target" id="dag__renderTarget_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Texture</span></span></span><a class="headerlink" href="#_CPPv47Texture" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-enums">Enums</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv411DepthAccess">
+<span id="_CPPv311DepthAccess"></span><span id="_CPPv211DepthAccess"></span><span class="target" id="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DepthAccess</span></span></span><a class="headerlink" href="#_CPPv411DepthAccess" title="Link to this definition"></a><br /></dt>
+<dd><p>Specifies the access mode for a depth attachment. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N11DepthAccess2RWE">
+<span id="_CPPv3N11DepthAccess2RWE"></span><span id="_CPPv2N11DepthAccess2RWE"></span><span class="target" id="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5c6dc3d436504b7a65191cafe28212ee"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RW</span></span></span><a class="headerlink" href="#_CPPv4N11DepthAccess2RWE" title="Link to this definition"></a><br /></dt>
+<dd><p>For regular depth attachment. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N11DepthAccess9SampledROE">
+<span id="_CPPv3N11DepthAccess9SampledROE"></span><span id="_CPPv2N11DepthAccess9SampledROE"></span><span class="target" id="dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5dd42e2c3b83a9658333215beadfef34"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SampledRO</span></span></span><a class="headerlink" href="#_CPPv4N11DepthAccess9SampledROE" title="Link to this definition"></a><br /></dt>
+<dd><p>For read-only depth attachment which can also be sampled as a texture in the same shader. IF YOU DON’T NEED TO SAMPLE THE DEPTH, USE z_write=false WITH <a class="reference internal" href="#dag__renderTarget_8h_1a96de47a38fda09536e3a862b550d8c1da5c6dc3d436504b7a65191cafe28212ee"><span class="std std-ref">DepthAccess::RW</span></a> INSTEAD. Using this state will cause HiZ decompression on some hardware and split of renderpass with flush of tile data into memory in a TBR. </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv412RenderTarget">
+<span id="_CPPv312RenderTarget"></span><span id="_CPPv212RenderTarget"></span><span id="RenderTarget"></span><span class="target" id="structRenderTarget"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RenderTarget</span></span></span><a class="headerlink" href="#_CPPv412RenderTarget" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_renderTarget.h&gt;</em></div>
+<p>Represents a render target to set it into slot. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12RenderTarget3texE">
+<span id="_CPPv3N12RenderTarget3texE"></span><span id="_CPPv2N12RenderTarget3texE"></span><span id="RenderTarget::tex__BaseTextureP"></span><span class="target" id="structRenderTarget_1a4a161583287ebfadccf0d054d6ee0b0d"></span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">tex</span></span></span><a class="headerlink" href="#_CPPv4N12RenderTarget3texE" title="Link to this definition"></a><br /></dt>
+<dd><p>Texture to set as render target. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12RenderTarget9mip_levelE">
+<span id="_CPPv3N12RenderTarget9mip_levelE"></span><span id="_CPPv2N12RenderTarget9mip_levelE"></span><span id="RenderTarget::mip_level__uint32_t"></span><span class="target" id="structRenderTarget_1af5a772cc1ad472fc0dc44d737c6bd197"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mip_level</span></span></span><a class="headerlink" href="#_CPPv4N12RenderTarget9mip_levelE" title="Link to this definition"></a><br /></dt>
+<dd><p>Mip level to set as render target. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N12RenderTarget5layerE">
+<span id="_CPPv3N12RenderTarget5layerE"></span><span id="_CPPv2N12RenderTarget5layerE"></span><span id="RenderTarget::layer__uint32_t"></span><span class="target" id="structRenderTarget_1abbc128112606626b4a390dd23398eee3"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">layer</span></span></span><a class="headerlink" href="#_CPPv4N12RenderTarget5layerE" title="Link to this definition"></a><br /></dt>
+<dd><p>Layer to set as render target. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d31copy_from_current_render_targetEP11BaseTexture">
+<span id="_CPPv3N3d3d31copy_from_current_render_targetEP11BaseTexture"></span><span id="_CPPv2N3d3d31copy_from_current_render_targetEP11BaseTexture"></span><span id="d3d::copy_from_current_render_target__BaseTextureP"></span><span class="target" id="namespaced3d_1ae441b2eb0ba406fcc15dbc1dde3dee50"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">copy_from_current_render_target</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">to_tex</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d31copy_from_current_render_targetEP11BaseTexture" title="Link to this definition"></a><br /></dt>
+<dd><p>Copy the current render target to a texture. It is useful to get a backbuffer content on such drivers as Metal. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>to_tex</strong> – Texture to copy the current render target to. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d8clear_rtERK12RenderTargetRK18ResourceClearValue">
+<span id="_CPPv3N3d3d8clear_rtERK12RenderTargetRK18ResourceClearValue"></span><span id="_CPPv2N3d3d8clear_rtERK12RenderTargetRK18ResourceClearValue"></span><span id="d3d::clear_rt__RenderTargetCR.ResourceClearValueCR"></span><span class="target" id="namespaced3d_1abbe9addf6818cb5f3764e8f575d8b3bb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_rt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv412RenderTarget" title="RenderTarget"><span class="n"><span class="pre">RenderTarget</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rt</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="Resource.html#_CPPv418ResourceClearValue" title="ResourceClearValue"><span class="n"><span class="pre">ResourceClearValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">clear_val</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d8clear_rtERK12RenderTargetRK18ResourceClearValue" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear the render target. Perform full clear on the RT according to its’ creation flag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt</strong> – Render target to clear. </p></li>
+<li><p><strong>clear_val</strong> – Clear value. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetEv">
+<span id="_CPPv3N3d3d17set_render_targetEv"></span><span id="_CPPv2N3d3d17set_render_targetEv"></span><span id="d3d::set_render_target"></span><span class="target" id="namespaced3d_1a1b449228601334a2df5185520ed4c6da"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the default render target (backbuffer) as a single current render target. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9set_depthEP11BaseTexture11DepthAccess">
+<span id="_CPPv3N3d3d9set_depthEP11BaseTexture11DepthAccess"></span><span id="_CPPv2N3d3d9set_depthEP11BaseTexture11DepthAccess"></span><span id="d3d::set_depth__BaseTextureP.DepthAccess"></span><span class="target" id="namespaced3d_1a9a3ad67c6ca271bac823cd238f940426"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_depth</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <a class="reference internal" href="#_CPPv411DepthAccess" title="DepthAccess"><span class="n"><span class="pre">DepthAccess</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">access</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9set_depthEP11BaseTexture11DepthAccess" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the depth texture target. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex</strong> – Texture to set as depth target. NULL means NO depth. </p></li>
+<li><p><strong>access</strong> – Access mode for the depth attachment. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9set_depthEP11BaseTexturei11DepthAccess">
+<span id="_CPPv3N3d3d9set_depthEP11BaseTexturei11DepthAccess"></span><span id="_CPPv2N3d3d9set_depthEP11BaseTexturei11DepthAccess"></span><span id="d3d::set_depth__BaseTextureP.i.DepthAccess"></span><span class="target" id="namespaced3d_1ac6cff2b2f2409dc2b3f62736aee6bb64"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_depth</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">layer</span></span>, <a class="reference internal" href="#_CPPv411DepthAccess" title="DepthAccess"><span class="n"><span class="pre">DepthAccess</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">access</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9set_depthEP11BaseTexturei11DepthAccess" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the depth texture target. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex</strong> – Texture to set as depth target. NULL means NO depth. </p></li>
+<li><p><strong>layer</strong> – Layer of the tex to set as depth target. </p></li>
+<li><p><strong>access</strong> – Access mode for the depth attachment. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetEiP11BaseTexturei7uint8_t">
+<span id="_CPPv3N3d3d17set_render_targetEiP11BaseTexturei7uint8_t"></span><span id="_CPPv2N3d3d17set_render_targetEiP11BaseTexturei7uint8_t"></span><span id="d3d::set_render_target__i.BaseTextureP.i.uint8_t"></span><span class="target" id="namespaced3d_1ad9a81f30be394f004099ba1950b7334e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_index</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="p"><span class="pre">*</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fc</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetEiP11BaseTexturei7uint8_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the render target for rendering. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd><p>Use <a class="reference internal" href="#namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce"><span class="std std-ref">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</span></a> instead.</p>
+</dd></dl>
+
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>if texture is depth texture format, it is the same as call <a class="reference internal" href="#namespaced3d_1a9a3ad67c6ca271bac823cd238f940426"><span class="std std-ref">set_depth()</span></a> DON’T USE THIS BEHAVIOR!!! </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_index</strong> – The index of the render target. The maximum number of render targets is defined by Driver3dRenderTarget::MAX_SIMRT. </p></li>
+<li><p><strong>texture</strong> – A pointer to the <a class="reference internal" href="textures.html#classBaseTexture"><span class="std std-ref">BaseTexture</span></a> object representing the render target. </p></li>
+<li><p><strong>fc</strong> – The face of the texture (for cube textures and texture arrays). If face is RENDER_TO_WHOLE_ARRAY, then the whole Texture Array/Volume Tex will be set as render target. This is to be used with geom shader (and Metal allows with vertex shader). </p></li>
+<li><p><strong>level</strong> – The level of the render target. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the render target was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetEiP11BaseTexture7uint8_t">
+<span id="_CPPv3N3d3d17set_render_targetEiP11BaseTexture7uint8_t"></span><span id="_CPPv2N3d3d17set_render_targetEiP11BaseTexture7uint8_t"></span><span id="d3d::set_render_target__i.BaseTextureP.uint8_t"></span><span class="target" id="namespaced3d_1a1e62ac21a8d9982ae14e04de9d92f22d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_index</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="p"><span class="pre">*</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetEiP11BaseTexture7uint8_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the render target for rendering. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd><p>Use <a class="reference internal" href="#namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce"><span class="std std-ref">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</span></a> instead.</p>
+</dd></dl>
+
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>if texture is depth texture format, it is the same as call <a class="reference internal" href="#namespaced3d_1a9a3ad67c6ca271bac823cd238f940426"><span class="std std-ref">set_depth()</span></a> DON’T USE THIS BEHAVIOR!!! </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_index</strong> – The index of the render target. The maximum number of render targets is defined by Driver3dRenderTarget::MAX_SIMRT. </p></li>
+<li><p><strong>texture</strong> – A pointer to the <a class="reference internal" href="textures.html#classBaseTexture"><span class="std std-ref">BaseTexture</span></a> object representing the render target. </p></li>
+<li><p><strong>level</strong> – The level of the render target. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the render target was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetEP11BaseTexture7uint8_t">
+<span id="_CPPv3N3d3d17set_render_targetEP11BaseTexture7uint8_t"></span><span id="_CPPv2N3d3d17set_render_targetEP11BaseTexture7uint8_t"></span><span id="d3d::set_render_target__BaseTextureP.uint8_t"></span><span class="target" id="namespaced3d_1a0c9762a8b10d55794a731a8229addcea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetEP11BaseTexture7uint8_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the render target for rendering. All other render targets will be set to nullptr. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd><p>Use <a class="reference internal" href="#namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce"><span class="std std-ref">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</span></a> instead.</p>
+</dd></dl>
+
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>if texture is depth texture format, it is the same as call <a class="reference internal" href="#namespaced3d_1a9a3ad67c6ca271bac823cd238f940426"><span class="std std-ref">set_depth()</span></a> DON’T USE THIS BEHAVIOR!!! </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>texture</strong> – A pointer to the <a class="reference internal" href="textures.html#classBaseTexture"><span class="std std-ref">BaseTexture</span></a> object representing the render target. </p></li>
+<li><p><strong>level</strong> – The level of the render target. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the render target was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetEP11BaseTexturei7uint8_t">
+<span id="_CPPv3N3d3d17set_render_targetEP11BaseTexturei7uint8_t"></span><span id="_CPPv2N3d3d17set_render_targetEP11BaseTexturei7uint8_t"></span><span id="d3d::set_render_target__BaseTextureP.i.uint8_t"></span><span class="target" id="namespaced3d_1afd6679cb8c61d1b5b767b0e79dc45797"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fc</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetEP11BaseTexturei7uint8_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the render target for rendering. All other render targets will be set to nullptr. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd><p>Use <a class="reference internal" href="#namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce"><span class="std std-ref">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</span></a> instead.</p>
+</dd></dl>
+
+</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>if texture is depth texture format, it is the same as call <a class="reference internal" href="#namespaced3d_1a9a3ad67c6ca271bac823cd238f940426"><span class="std std-ref">set_depth()</span></a> DON’T USE THIS BEHAVIOR!!! </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> – A pointer to the <a class="reference internal" href="textures.html#classBaseTexture"><span class="std std-ref">BaseTexture</span></a> object representing the render target. </p></li>
+<li><p><strong>fc</strong> – The face of the texture (for cube textures and texture arrays). If face is RENDER_TO_WHOLE_ARRAY, then the whole Texture Array/Volume Tex will be set as render target. This is to be used with geom shader (and Metal allows with vertex shader). </p></li>
+<li><p><strong>level</strong> – The level of the render target. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the render target was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetE12RenderTarget11DepthAccessN3dag9ConstSpanI12RenderTargetEE">
+<span id="_CPPv3N3d3d17set_render_targetE12RenderTarget11DepthAccessN3dag9ConstSpanI12RenderTargetEE"></span><span id="_CPPv2N3d3d17set_render_targetE12RenderTarget11DepthAccessN3dag9ConstSpanI12RenderTargetEE"></span><span id="d3d::set_render_target__RenderTarget.DepthAccess.dag::ConstSpan:RenderTarget:"></span><span class="target" id="namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv412RenderTarget" title="RenderTarget"><span class="n"><span class="pre">RenderTarget</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">depth</span></span>, <a class="reference internal" href="#_CPPv411DepthAccess" title="DepthAccess"><span class="n"><span class="pre">DepthAccess</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">depth_access</span></span>, <span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ConstSpan</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv412RenderTarget" title="RenderTarget"><span class="n"><span class="pre">RenderTarget</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">colors</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetE12RenderTarget11DepthAccessN3dag9ConstSpanI12RenderTargetEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the render target for rendering. All other render targets will be set to nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>depth</strong> – The depth render target. </p></li>
+<li><p><strong>depth_access</strong> – The access mode for the depth attachment. </p></li>
+<li><p><strong>colors</strong> – The color render targets. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the render target was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetE12RenderTarget11DepthAccessKNSt16initializer_listI12RenderTargetEE">
+<span id="_CPPv3N3d3d17set_render_targetE12RenderTarget11DepthAccessKNSt16initializer_listI12RenderTargetEE"></span><span id="_CPPv2N3d3d17set_render_targetE12RenderTarget11DepthAccessKNSt16initializer_listI12RenderTargetEE"></span><span id="d3d::set_render_target__RenderTarget.DepthAccess.std::initializer_list:RenderTarget:C"></span><span class="target" id="namespaced3d_1a70a77806b62eb41cc4cb685a9218cd76"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv412RenderTarget" title="RenderTarget"><span class="n"><span class="pre">RenderTarget</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">depth</span></span>, <a class="reference internal" href="#_CPPv411DepthAccess" title="DepthAccess"><span class="n"><span class="pre">DepthAccess</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">depth_access</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv412RenderTarget" title="RenderTarget"><span class="n"><span class="pre">RenderTarget</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">colors</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetE12RenderTarget11DepthAccessKNSt16initializer_listI12RenderTargetEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets the render target for rendering. All other render targets will be set to nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>depth</strong> – The depth render target. </p></li>
+<li><p><strong>depth_access</strong> – The access mode for the depth attachment. </p></li>
+<li><p><strong>colors</strong> – The color render targets. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the render target was set successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17get_render_targetER20Driver3dRenderTarget">
+<span id="_CPPv3N3d3d17get_render_targetER20Driver3dRenderTarget"></span><span id="_CPPv2N3d3d17get_render_targetER20Driver3dRenderTarget"></span><span id="d3d::get_render_target__Driver3dRenderTargetR"></span><span class="target" id="namespaced3d_1af9749109c1cffb149f8cbb717dbcfcdd"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_render_target</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">Driver3dRenderTarget</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out_rt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17get_render_targetER20Driver3dRenderTarget" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the render target object. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd><p>Don’t use it since the method relies on a global state.</p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out_rt</strong> – The render target object to fill. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d17set_render_targetERK20Driver3dRenderTarget">
+<span id="_CPPv3N3d3d17set_render_targetERK20Driver3dRenderTarget"></span><span id="_CPPv2N3d3d17set_render_targetERK20Driver3dRenderTarget"></span><span id="d3d::set_render_target__Driver3dRenderTargetCR"></span><span class="target" id="namespaced3d_1a19389294b01679a03fb8351718bd9d9d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_render_target</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Driver3dRenderTarget</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d17set_render_targetERK20Driver3dRenderTarget" title="Link to this definition"></a><br /></dt>
+<dd><p>Set the render target object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rt</strong> – The render target object to set. Usually, it is obtained by <a class="reference internal" href="#namespaced3d_1af9749109c1cffb149f8cbb717dbcfcdd"><span class="std std-ref">get_render_target(Driver3dRenderTarget &amp;out_rt)</span></a>. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d15get_target_sizeERiRi">
+<span id="_CPPv3N3d3d15get_target_sizeERiRi"></span><span id="_CPPv2N3d3d15get_target_sizeERiRi"></span><span id="d3d::get_target_size__iR.iR"></span><span class="target" id="namespaced3d_1a32ba0b93e0029c75fad830eb591e4453"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_target_size</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d15get_target_sizeERiRi" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the size of the render target. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd><p>If you need to use the method, it seems that you are doing something wrong.</p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> – The width of the render target. </p></li>
+<li><p><strong>h</strong> – The height of the render target. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d22get_render_target_sizeERiRiP11BaseTexture7uint8_t">
+<span id="_CPPv3N3d3d22get_render_target_sizeERiRiP11BaseTexture7uint8_t"></span><span id="_CPPv2N3d3d22get_render_target_sizeERiRiP11BaseTexture7uint8_t"></span><span id="d3d::get_render_target_size__iR.iR.BaseTextureP.uint8_t"></span><span class="target" id="namespaced3d_1a195d3165dc9677bc46b7f4909514eeae"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_render_target_size</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">h</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">rt_tex</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d22get_render_target_sizeERiRiP11BaseTexture7uint8_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the size of the render target texture. </p>
+<p><dl>
+<dt class="sig sig-object cpp">
+<em><span class="pre">Deprecated:</span></em></dt>
+<dd><p>If you need to use the method, it seems that you are doing something wrong.</p>
+</dd></dl>
+
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> – The width of the render target texture. </p></li>
+<li><p><strong>h</strong> – The height of the render target texture. </p></li>
+<li><p><strong>rt_tex</strong> – The render target texture. If nullptr, the size of the backbuffer will be written to w and h. </p></li>
+<li><p><strong>level</strong> – The level of the render target texture. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d9clearviewEi8E3DCOLORf8uint32_t">
+<span id="_CPPv3N3d3d9clearviewEi8E3DCOLORf8uint32_t"></span><span id="_CPPv2N3d3d9clearviewEi8E3DCOLORf8uint32_t"></span><span id="d3d::clearview__i.E3DCOLOR.float.uint32_t"></span><span class="target" id="namespaced3d_1a85503ffed990ac67ee35f3094bf376da"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clearview</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">what</span></span>, <span class="n"><span class="pre">E3DCOLOR</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">c</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stencil</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d9clearviewEi8E3DCOLORf8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>clear all view </p>
+<p>Clear the view. What is view will be explained in the params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>what</strong> – The view to clear. It can be one of the CLEAR_*** enum. It will clears either color, depth, or stencil buffer. </p></li>
+<li><p><strong>c</strong> – The color to clear the view with. </p></li>
+<li><p><strong>z</strong> – The depth to clear the view with. </p></li>
+<li><p><strong>stencil</strong> – The stencil to clear the view with. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d15get_screen_sizeERiRi">
+<span id="_CPPv3N3d3d15get_screen_sizeERiRi"></span><span id="_CPPv2N3d3d15get_screen_sizeERiRi"></span><span id="d3d::get_screen_size__iR.iR"></span><span class="target" id="namespaced3d_1a74fa30565879cd55fbc1f66adce6c31a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_screen_size</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d15get_screen_sizeERiRi" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the size of the screen (backbuffer). </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The size of the screen can be different from the size of the framebuffer.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> – The width of the screen. </p></li>
+<li><p><strong>h</strong> – The height of the screen. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d18get_backbuffer_texEv">
+<span id="_CPPv3N3d3d18get_backbuffer_texEv"></span><span id="_CPPv2N3d3d18get_backbuffer_texEv"></span><span id="d3d::get_backbuffer_tex"></span><span class="target" id="namespaced3d_1a60e38591be0a88b88e5ae9542dfbcb2a"></span><a class="reference internal" href="#_CPPv47Texture" title="Texture"><span class="n"><span class="pre">Texture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_backbuffer_tex</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d18get_backbuffer_texEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the backbuffer texture. </p>
+<p>Backbuffer is only valid while the GPU is acquired, and can be recreated in between.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The backbuffer texture. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d28get_secondary_backbuffer_texEv">
+<span id="_CPPv3N3d3d28get_secondary_backbuffer_texEv"></span><span id="_CPPv2N3d3d28get_secondary_backbuffer_texEv"></span><span id="d3d::get_secondary_backbuffer_tex"></span><span class="target" id="namespaced3d_1a875f3568c214b7d46098dc19a0b08fd3"></span><a class="reference internal" href="#_CPPv47Texture" title="Texture"><span class="n"><span class="pre">Texture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_secondary_backbuffer_tex</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d28get_secondary_backbuffer_texEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the secondary backbuffer texture. </p>
+<p>Secondary backbuffer is only valid while the GPU is acquired, and can be recreated in between. It exists only for Xbox. Mostly used as a backbuffer with a higher resolution to draw UI.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The secondary backbuffer texture. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RenderState.html" class="btn btn-neutral float-left" title="Render State" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ResUpdateBuffer.html" class="btn btn-neutral float-right" title="Resource Update Buffers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

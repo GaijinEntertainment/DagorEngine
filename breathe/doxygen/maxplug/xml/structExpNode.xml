@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExpNode" kind="struct" language="C++" prot="public">
+    <compoundname>ExpNode</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExpNode_1a14cee1ade5dd6a3e511d75bcf522a22a" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structExpNode" kindref="compound">ExpNode</ref> * &gt;</type>
+        <definition>Tab&lt;ExpNode *&gt; ExpNode::child</definition>
+        <argsstring></argsstring>
+        <name>child</name>
+        <qualifiedname>ExpNode::child</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1110" column="7" bodyfile="expUtil.cpp" bodystart="1110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpNode_1ab24fa98743c1cf748b3be2b58060a778" prot="public" static="no" mutable="no">
+        <type><ref refid="structExpNode" kindref="compound">ExpNode</ref> *</type>
+        <definition>ExpNode* ExpNode::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>ExpNode::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1111" column="11" bodyfile="expUtil.cpp" bodystart="1111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpNode_1aadf418392cbd46430eaeba3ff597f6b1" prot="public" static="no" mutable="no">
+        <type><ref refid="expUtil_8cpp_1ab95f123a6c9bcfee6a343170ef8c5f69" kindref="member">ushort</ref></type>
+        <definition>ushort ExpNode::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>ExpNode::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1112" column="10" bodyfile="expUtil.cpp" bodystart="1112" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structExpNode_1a31bd685f0942fb2ba10655e4ddb9d299" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExpNode::ExpNode</definition>
+        <argsstring>(int i)</argsstring>
+        <name>ExpNode</name>
+        <qualifiedname>ExpNode::ExpNode</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1114" column="3" bodyfile="expUtil.cpp" bodystart="1114" bodyend="1118"/>
+      </memberdef>
+      <memberdef kind="function" id="structExpNode_1a5498444827d720e7abcccdd3d874cd61" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExpNode::~ExpNode</definition>
+        <argsstring>()</argsstring>
+        <name>~ExpNode</name>
+        <qualifiedname>ExpNode::~ExpNode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1119" column="3" bodyfile="expUtil.cpp" bodystart="1119" bodyend="1124"/>
+      </memberdef>
+      <memberdef kind="function" id="structExpNode_1a528c7bc5d56b2c958738748e4834a851" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ExpNode::add_child</definition>
+        <argsstring>(ExpNode *n)</argsstring>
+        <name>add_child</name>
+        <qualifiedname>ExpNode::add_child</qualifiedname>
+        <param>
+          <type><ref refid="structExpNode" kindref="compound">ExpNode</ref> *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1125" column="8" bodyfile="expUtil.cpp" bodystart="1125" bodyend="1131"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ExpNode</label>
+        <link refid="structExpNode"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="1108" column="1" bodyfile="expUtil.cpp" bodystart="1109" bodyend="1132"/>
+    <listofallmembers>
+      <member refid="structExpNode_1a528c7bc5d56b2c958738748e4834a851" prot="public" virt="non-virtual"><scope>ExpNode</scope><name>add_child</name></member>
+      <member refid="structExpNode_1a14cee1ade5dd6a3e511d75bcf522a22a" prot="public" virt="non-virtual"><scope>ExpNode</scope><name>child</name></member>
+      <member refid="structExpNode_1a31bd685f0942fb2ba10655e4ddb9d299" prot="public" virt="non-virtual"><scope>ExpNode</scope><name>ExpNode</name></member>
+      <member refid="structExpNode_1aadf418392cbd46430eaeba3ff597f6b1" prot="public" virt="non-virtual"><scope>ExpNode</scope><name>id</name></member>
+      <member refid="structExpNode_1ab24fa98743c1cf748b3be2b58060a778" prot="public" virt="non-virtual"><scope>ExpNode</scope><name>parent</name></member>
+      <member refid="structExpNode_1a5498444827d720e7abcccdd3d874cd61" prot="public" virt="non-virtual"><scope>ExpNode</scope><name>~ExpNode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,641 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRBHelper" kind="class" language="C++" prot="public">
+    <compoundname>RBHelper</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">SimpleObject</basecompoundref>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classRBHelper_1ab211bfa2410616329b78f2d80f01c3fa" prot="public" static="yes" mutable="no">
+        <type><ref refid="classRBHelper" kindref="compound">RBHelper</ref> *</type>
+        <definition>RBHelper * RBHelper::editOb</definition>
+        <argsstring></argsstring>
+        <name>editOb</name>
+        <qualifiedname>RBHelper::editOb</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="14" column="19" bodyfile="rbDummy.cpp" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" prot="public" static="yes" mutable="no">
+        <type>IParamMap *</type>
+        <definition>IParamMap * RBHelper::pmapParam</definition>
+        <argsstring></argsstring>
+        <name>pmapParam</name>
+        <qualifiedname>RBHelper::pmapParam</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="15" column="20" bodyfile="rbDummy.cpp" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" prot="public" static="yes" mutable="no">
+        <type>IObjParam *</type>
+        <definition>IObjParam * RBHelper::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>RBHelper::ip</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="16" column="20" bodyfile="rbDummy.cpp" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRBHelper_1ad5f250ddba0f4aae6b6e8d17ff6f2bae" prot="public" static="yes" mutable="no">
+        <type>float</type>
+        <definition>float RBHelper::crtSize</definition>
+        <argsstring></argsstring>
+        <name>crtSize</name>
+        <qualifiedname>RBHelper::crtSize</qualifiedname>
+        <initializer>= 20.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="17" column="16" bodyfile="rbDummy.cpp" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRBHelper_1a7e142ff9eb0373c6c2ed7b2d59c24b35" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RBHelper::RBHelper</definition>
+        <argsstring>()</argsstring>
+        <name>RBHelper</name>
+        <qualifiedname>RBHelper::RBHelper</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="19" column="3" bodyfile="rbDummy.cpp" bodystart="167" bodyend="172"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a98200ead9c934891b0e2c0d5775c706d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::InvalidateUI</definition>
+        <argsstring>() override</argsstring>
+        <name>InvalidateUI</name>
+        <qualifiedname>RBHelper::InvalidateUI</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="21" column="8" bodyfile="rbDummy.cpp" bodystart="72" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a00453d74753fc4ddab02f1164c51959d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::set_axis_color</definition>
+        <argsstring>(GraphicsWindow *gw, INode *, int axis)</argsstring>
+        <name>set_axis_color</name>
+        <qualifiedname>RBHelper::set_axis_color</qualifiedname>
+        <param>
+          <type>GraphicsWindow *</type>
+          <declname>gw</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <defname>n</defname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>axis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="23" column="8" bodyfile="rbDummy.cpp" bodystart="78" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1acfb869e92a8afc6ca89e2f68cd52f114" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RBHelper::Display</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, int flags) override</argsstring>
+        <name>Display</name>
+        <qualifiedname>RBHelper::Display</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="24" column="7" bodyfile="rbDummy.cpp" bodystart="114" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a3eb00d57def8ab2c30c88080d745dd28" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RBHelper::HitTest</definition>
+        <argsstring>(TimeValue t, INode *inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override</argsstring>
+        <name>HitTest</name>
+        <qualifiedname>RBHelper::HitTest</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>crossing</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IPoint2 *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="25" column="7" bodyfile="rbDummy.cpp" bodystart="93" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a961a38466c1c154628813b40d92260c6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>RBHelper::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="27" column="8" bodyfile="rbDummy.cpp" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a405be019a0277e38fc9eb390ffba4b17" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID RBHelper::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>RBHelper::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="28" column="13" bodyfile="rbDummy.cpp" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a1a188875fa3cab90cf7f7ddc00b1d74e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RBHelper::IsRenderable</definition>
+        <argsstring>() override</argsstring>
+        <name>IsRenderable</name>
+        <qualifiedname>RBHelper::IsRenderable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="29" column="7" bodyfile="rbDummy.cpp" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a7400afcab291aa8ec27ee29be0382a4b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RBHelper::UsesWireColor</definition>
+        <argsstring>() override</argsstring>
+        <name>UsesWireColor</name>
+        <qualifiedname>RBHelper::UsesWireColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="30" column="7" bodyfile="rbDummy.cpp" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a1eb1f6f0a38bfb911b491a8072229974" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RBHelper::DoOwnSelectHilite</definition>
+        <argsstring>() override</argsstring>
+        <name>DoOwnSelectHilite</name>
+        <qualifiedname>RBHelper::DoOwnSelectHilite</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="31" column="7" bodyfile="rbDummy.cpp" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a711e32cb04c425c9d84dbbce2b76205a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>CreateMouseCallBack *</type>
+        <definition>CreateMouseCallBack * RBHelper::GetCreateMouseCallBack</definition>
+        <argsstring>() override</argsstring>
+        <name>GetCreateMouseCallBack</name>
+        <qualifiedname>RBHelper::GetCreateMouseCallBack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="33" column="23" bodyfile="rbDummy.cpp" bodystart="257" bodyend="261"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1aea3004ed65c0df6b32b54b41d39f097e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>MCHAR * RBHelper::GetObjectName</definition>
+        <argsstring>()</argsstring>
+        <name>GetObjectName</name>
+        <qualifiedname>RBHelper::GetObjectName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="41" column="5" bodyfile="rbDummy.cpp" bodystart="41" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a476e6c74a8904d228c4d80453b030553" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RefTargetHandle</type>
+        <definition>RefTargetHandle RBHelper::Clone</definition>
+        <argsstring>(RemapDir &amp;remap) override</argsstring>
+        <name>Clone</name>
+        <qualifiedname>RBHelper::Clone</qualifiedname>
+        <param>
+          <type>RemapDir &amp;</type>
+          <declname>remap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="46" column="19" bodyfile="rbDummy.cpp" bodystart="282" bodyend="291"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a5808438ac968fcb2d2a297c142895cc5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL RBHelper::OKtoDisplay</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>OKtoDisplay</name>
+        <qualifiedname>RBHelper::OKtoDisplay</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="48" column="8" bodyfile="rbDummy.cpp" bodystart="263" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a3aab75c508d13019514e97942a7a34a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ParamDimension *</type>
+        <definition>ParamDimension * RBHelper::GetParameterDim</definition>
+        <argsstring>(int pbIndex) override</argsstring>
+        <name>GetParameterDim</name>
+        <qualifiedname>RBHelper::GetParameterDim</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pbIndex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="49" column="18" bodyfile="rbDummy.cpp" bodystart="273" bodyend="280"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a0f24e34c0996bfb34f0d38989a489cb7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR RBHelper::GetParameterName</definition>
+        <argsstring>(int pbIndex) override</argsstring>
+        <name>GetParameterName</name>
+        <qualifiedname>RBHelper::GetParameterName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pbIndex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="53" column="8" bodyfile="rbDummy.cpp" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a8d93a5d5184ad5aa287b7f96a632934a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::BeginEditParams</definition>
+        <argsstring>(IObjParam *ip, ULONG flags, Animatable *prev) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>RBHelper::BeginEditParams</qualifiedname>
+        <param>
+          <type>IObjParam *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>ULONG</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>Animatable *</type>
+          <declname>prev</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="56" column="8" bodyfile="rbDummy.cpp" bodystart="174" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a5cc3eb40d8a8b21a322ea65e04af37c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::EndEditParams</definition>
+        <argsstring>(IObjParam *ip, ULONG flags, Animatable *next) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>RBHelper::EndEditParams</qualifiedname>
+        <param>
+          <type>IObjParam *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>ULONG</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>Animatable *</type>
+          <declname>next</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="57" column="8" bodyfile="rbDummy.cpp" bodystart="191" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a99405fb6d3e16770bc2a7e00428e6fd8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::BuildMesh</definition>
+        <argsstring>(TimeValue) override</argsstring>
+        <name>BuildMesh</name>
+        <qualifiedname>RBHelper::BuildMesh</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <defname>tm</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="59" column="8" bodyfile="rbDummy.cpp" bodystart="293" bodyend="300"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a373a97023e84f847a85367ea3dff6b36" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::DrawIt</definition>
+        <argsstring>(GraphicsWindow *gw, TimeValue t, INode *inode, int sel, int flags, ViewExp *vpt)</argsstring>
+        <name>DrawIt</name>
+        <qualifiedname>RBHelper::DrawIt</qualifiedname>
+        <param>
+          <type>GraphicsWindow *</type>
+          <declname>gw</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="60" column="8" bodyfile="rbDummy.cpp" bodystart="302" bodyend="349"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a40b5261335b10c62ed1ff301a8f27b3d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::GetLocalBoundBox</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, Box3 &amp;box) override</argsstring>
+        <name>GetLocalBoundBox</name>
+        <qualifiedname>RBHelper::GetLocalBoundBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="61" column="8" bodyfile="rbDummy.cpp" bodystart="351" bodyend="358"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1af22ac02b65baf2d2d7eb4c92572b5b18" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::GetWorldBoundBox</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, Box3 &amp;box) override</argsstring>
+        <name>GetWorldBoundBox</name>
+        <qualifiedname>RBHelper::GetWorldBoundBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="62" column="8" bodyfile="rbDummy.cpp" bodystart="360" bodyend="366"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a883488607ba14357bf80df6e7013f7c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelper::GetDeformBBox</definition>
+        <argsstring>(TimeValue t, Box3 &amp;box, Matrix3 *tm=NULL, BOOL useSel=FALSE) override</argsstring>
+        <name>GetDeformBBox</name>
+        <qualifiedname>RBHelper::GetDeformBBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>Matrix3 *</type>
+          <declname>tm</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>useSel</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="63" column="8" bodyfile="rbDummy.cpp" bodystart="368" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelper_1a746d97eaff6aaa6264739f2b573ab610" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID RBHelper::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>RBHelper::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="65" column="12" bodyfile="rbDummy.cpp" bodystart="65" bodyend="65"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>RBHelper</label>
+        <link refid="classRBHelper"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SimpleObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>RBHelper</label>
+        <link refid="classRBHelper"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>editOb</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SimpleObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="rbDummy.cpp" line="11" column="1" bodyfile="rbDummy.cpp" bodystart="12" bodyend="66"/>
+    <listofallmembers>
+      <member refid="classRBHelper_1a8d93a5d5184ad5aa287b7f96a632934a" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>BeginEditParams</name></member>
+      <member refid="classRBHelper_1a99405fb6d3e16770bc2a7e00428e6fd8" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>BuildMesh</name></member>
+      <member refid="classRBHelper_1a746d97eaff6aaa6264739f2b573ab610" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>ClassID</name></member>
+      <member refid="classRBHelper_1a476e6c74a8904d228c4d80453b030553" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>Clone</name></member>
+      <member refid="classRBHelper_1ad5f250ddba0f4aae6b6e8d17ff6f2bae" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>crtSize</name></member>
+      <member refid="classRBHelper_1a961a38466c1c154628813b40d92260c6" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>DeleteThis</name></member>
+      <member refid="classRBHelper_1acfb869e92a8afc6ca89e2f68cd52f114" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>Display</name></member>
+      <member refid="classRBHelper_1a1eb1f6f0a38bfb911b491a8072229974" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>DoOwnSelectHilite</name></member>
+      <member refid="classRBHelper_1a373a97023e84f847a85367ea3dff6b36" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>DrawIt</name></member>
+      <member refid="classRBHelper_1ab211bfa2410616329b78f2d80f01c3fa" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>editOb</name></member>
+      <member refid="classRBHelper_1a5cc3eb40d8a8b21a322ea65e04af37c5" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>EndEditParams</name></member>
+      <member refid="classRBHelper_1a711e32cb04c425c9d84dbbce2b76205a" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>GetCreateMouseCallBack</name></member>
+      <member refid="classRBHelper_1a883488607ba14357bf80df6e7013f7c2" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>GetDeformBBox</name></member>
+      <member refid="classRBHelper_1a40b5261335b10c62ed1ff301a8f27b3d" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>GetLocalBoundBox</name></member>
+      <member refid="classRBHelper_1aea3004ed65c0df6b32b54b41d39f097e" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>GetObjectName</name></member>
+      <member refid="classRBHelper_1a3aab75c508d13019514e97942a7a34a8" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>GetParameterDim</name></member>
+      <member refid="classRBHelper_1a0f24e34c0996bfb34f0d38989a489cb7" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>GetParameterName</name></member>
+      <member refid="classRBHelper_1af22ac02b65baf2d2d7eb4c92572b5b18" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>GetWorldBoundBox</name></member>
+      <member refid="classRBHelper_1a3eb00d57def8ab2c30c88080d745dd28" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>HitTest</name></member>
+      <member refid="classRBHelper_1a98200ead9c934891b0e2c0d5775c706d" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>InvalidateUI</name></member>
+      <member refid="classRBHelper_1afa13b8190e99ba49e175a7a7aaec9800" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>ip</name></member>
+      <member refid="classRBHelper_1a1a188875fa3cab90cf7f7ddc00b1d74e" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>IsRenderable</name></member>
+      <member refid="classRBHelper_1a5808438ac968fcb2d2a297c142895cc5" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>OKtoDisplay</name></member>
+      <member refid="classRBHelper_1aff8eaa52f894e1d49484fc3300f9ac2c" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>pmapParam</name></member>
+      <member refid="classRBHelper_1a7e142ff9eb0373c6c2ed7b2d59c24b35" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>RBHelper</name></member>
+      <member refid="classRBHelper_1a00453d74753fc4ddab02f1164c51959d" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>set_axis_color</name></member>
+      <member refid="classRBHelper_1a405be019a0277e38fc9eb390ffba4b17" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>SuperClassID</name></member>
+      <member refid="classRBHelper_1a7400afcab291aa8ec27ee29be0382a4b" prot="public" virt="non-virtual"><scope>RBHelper</scope><name>UsesWireColor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

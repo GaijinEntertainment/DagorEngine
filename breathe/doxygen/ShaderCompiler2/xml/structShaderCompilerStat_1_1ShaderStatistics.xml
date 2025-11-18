@@ -1,0 +1,258 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCompilerStat_1_1ShaderStatistics" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCompilerStat::ShaderStatistics</compoundname>
+    <includes refid="sh__stat_8h" local="no">sh_stat.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1aa5c9044a71066bb641116a3de3fa8923" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShaderCompilerStat::ShaderStatistics::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="28" column="10" bodyfile="sh_stat.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a605ba93dab49b3166db203ae22e315ca" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShaderCompilerStat::ShaderStatistics::entry</definition>
+        <argsstring></argsstring>
+        <name>entry</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::entry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="29" column="10" bodyfile="sh_stat.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a103b80d70da4e9d99992abfa7ea967aa" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int ShaderCompilerStat::ShaderStatistics::hlslVariants</definition>
+        <argsstring></argsstring>
+        <name>hlslVariants</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::hlslVariants</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="30" column="16" bodyfile="sh_stat.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a54562683de52ae284d9a1df43d980948" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::minInstructions</definition>
+        <argsstring></argsstring>
+        <name>minInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::minInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="31" column="7" bodyfile="sh_stat.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1acd791c9885a64db14bf6fa4241d4c87e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::maxInstructions</definition>
+        <argsstring></argsstring>
+        <name>maxInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::maxInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="32" column="7" bodyfile="sh_stat.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a2b74e9a938f0db2c8a44f08085ffd3b3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::totalInstructions</definition>
+        <argsstring></argsstring>
+        <name>totalInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::totalInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="33" column="7" bodyfile="sh_stat.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1ac8efe77c5772b0ab9f9741335324e560" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::minTextureInstructions</definition>
+        <argsstring></argsstring>
+        <name>minTextureInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::minTextureInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="34" column="7" bodyfile="sh_stat.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a34a456387b3403c07afae5a1c41a8e27" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::maxTextureInstructions</definition>
+        <argsstring></argsstring>
+        <name>maxTextureInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::maxTextureInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="35" column="7" bodyfile="sh_stat.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a6da71ee2fb7a65af38aa98411ddba516" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::totalTextureInstructions</definition>
+        <argsstring></argsstring>
+        <name>totalTextureInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::totalTextureInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="36" column="7" bodyfile="sh_stat.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a2c1bcf5a679936e44ea077d14449c9c2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::minArithmeticInstructions</definition>
+        <argsstring></argsstring>
+        <name>minArithmeticInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::minArithmeticInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="37" column="7" bodyfile="sh_stat.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a7e4fd8beef72b6de324b05322e48b2a8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::maxArithmeticInstructions</definition>
+        <argsstring></argsstring>
+        <name>maxArithmeticInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::maxArithmeticInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="38" column="7" bodyfile="sh_stat.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1abad71e21182d1caaf1bbd1e39e9d6651" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::totalArithmeticInstructions</definition>
+        <argsstring></argsstring>
+        <name>totalArithmeticInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::totalArithmeticInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="39" column="7" bodyfile="sh_stat.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1a1576b005c2468f7209614cd9fd67bd72" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::minFlowInstructions</definition>
+        <argsstring></argsstring>
+        <name>minFlowInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::minFlowInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="40" column="7" bodyfile="sh_stat.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1af21186d7913714102f8c05e42b7ae785" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::maxFlowInstructions</definition>
+        <argsstring></argsstring>
+        <name>maxFlowInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::maxFlowInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="41" column="7" bodyfile="sh_stat.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1ShaderStatistics_1af17d0f518e1bd974a4ec88614f2beb3e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::ShaderStatistics::totalFlowInstructions</definition>
+        <argsstring></argsstring>
+        <name>totalFlowInstructions</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::totalFlowInstructions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="42" column="7" bodyfile="sh_stat.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderCompilerStat_1_1ShaderStatistics_1ae53298f5bf809034577ec1024fd9a309" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderCompilerStat::ShaderStatistics::ShaderStatistics</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderStatistics</name>
+        <qualifiedname>ShaderCompilerStat::ShaderStatistics::ShaderStatistics</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="44" column="3" bodyfile="sh_stat.h" bodystart="44" bodyend="59"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="sh_stat.h" line="26" column="1" bodyfile="sh_stat.h" bodystart="27" bodyend="60"/>
+    <listofallmembers>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a605ba93dab49b3166db203ae22e315ca" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>entry</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a103b80d70da4e9d99992abfa7ea967aa" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>hlslVariants</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a7e4fd8beef72b6de324b05322e48b2a8" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>maxArithmeticInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1af21186d7913714102f8c05e42b7ae785" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>maxFlowInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1acd791c9885a64db14bf6fa4241d4c87e" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>maxInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a34a456387b3403c07afae5a1c41a8e27" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>maxTextureInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a2c1bcf5a679936e44ea077d14449c9c2" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>minArithmeticInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a1576b005c2468f7209614cd9fd67bd72" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>minFlowInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a54562683de52ae284d9a1df43d980948" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>minInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1ac8efe77c5772b0ab9f9741335324e560" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>minTextureInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1aa5c9044a71066bb641116a3de3fa8923" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>name</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1ae53298f5bf809034577ec1024fd9a309" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>ShaderStatistics</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1abad71e21182d1caaf1bbd1e39e9d6651" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>totalArithmeticInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1af17d0f518e1bd974a4ec88614f2beb3e" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>totalFlowInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a2b74e9a938f0db2c8a44f08085ffd3b3" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>totalInstructions</name></member>
+      <member refid="structShaderCompilerStat_1_1ShaderStatistics_1a6da71ee2fb7a65af38aa98411ddba516" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::ShaderStatistics</scope><name>totalTextureInstructions</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

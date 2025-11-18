@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImpMat" kind="struct" language="C++" prot="public">
+    <compoundname>ImpMat</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImpMat_1abf1da1581d73da471dbfd398aeebfba3" prot="public" static="no" mutable="no">
+        <type><ref refid="structDagMater" kindref="compound">DagMater</ref></type>
+        <definition>DagMater ImpMat::m</definition>
+        <argsstring></argsstring>
+        <name>m</name>
+        <qualifiedname>ImpMat::m</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1288" column="12" bodyfile="dagimp.cpp" bodystart="1288" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpMat_1a0dcd841ae7f3cd66745a13cc1e0f993d" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR* ImpMat::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ImpMat::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1289" column="9" bodyfile="dagimp.cpp" bodystart="1289" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpMat_1af396b8a8ee19cfa0571565f5601fc31a" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR* ImpMat::clsname</definition>
+        <argsstring></argsstring>
+        <name>clsname</name>
+        <qualifiedname>ImpMat::clsname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1290" column="9" bodyfile="dagimp.cpp" bodystart="1290" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpMat_1a3d2834f68f0a8e37bd712287f1d6181e" prot="public" static="no" mutable="no">
+        <type>TCHAR *</type>
+        <definition>TCHAR* ImpMat::script</definition>
+        <argsstring></argsstring>
+        <name>script</name>
+        <qualifiedname>ImpMat::script</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1291" column="9" bodyfile="dagimp.cpp" bodystart="1291" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpMat_1a9a9b8d52f4db80e54bc011c97e0a5eb9" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* ImpMat::mtl</definition>
+        <argsstring></argsstring>
+        <name>mtl</name>
+        <qualifiedname>ImpMat::mtl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1292" column="7" bodyfile="dagimp.cpp" bodystart="1292" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structImpMat_1a8c33df7bb12bdec422fdaf6a2d4c69b5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ImpMat::ImpMat</definition>
+        <argsstring>()</argsstring>
+        <name>ImpMat</name>
+        <qualifiedname>ImpMat::ImpMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1293" column="3" bodyfile="dagimp.cpp" bodystart="1293" bodyend="1297"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>DagColor</label>
+        <link refid="structDagColor"/>
+      </node>
+      <node id="2">
+        <label>DagMater</label>
+        <link refid="structDagMater"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>amb</edgelabel>
+          <edgelabel>diff</edgelabel>
+          <edgelabel>emis</edgelabel>
+          <edgelabel>spec</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ImpMat</label>
+        <link refid="structImpMat"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>m</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dagimp.cpp" line="1286" column="1" bodyfile="dagimp.cpp" bodystart="1287" bodyend="1298"/>
+    <listofallmembers>
+      <member refid="structImpMat_1af396b8a8ee19cfa0571565f5601fc31a" prot="public" virt="non-virtual"><scope>ImpMat</scope><name>clsname</name></member>
+      <member refid="structImpMat_1a8c33df7bb12bdec422fdaf6a2d4c69b5" prot="public" virt="non-virtual"><scope>ImpMat</scope><name>ImpMat</name></member>
+      <member refid="structImpMat_1abf1da1581d73da471dbfd398aeebfba3" prot="public" virt="non-virtual"><scope>ImpMat</scope><name>m</name></member>
+      <member refid="structImpMat_1a9a9b8d52f4db80e54bc011c97e0a5eb9" prot="public" virt="non-virtual"><scope>ImpMat</scope><name>mtl</name></member>
+      <member refid="structImpMat_1a0dcd841ae7f3cd66745a13cc1e0f993d" prot="public" virt="non-virtual"><scope>ImpMat</scope><name>name</name></member>
+      <member refid="structImpMat_1a3d2834f68f0a8e37bd712287f1d6181e" prot="public" virt="non-virtual"><scope>ImpMat</scope><name>script</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

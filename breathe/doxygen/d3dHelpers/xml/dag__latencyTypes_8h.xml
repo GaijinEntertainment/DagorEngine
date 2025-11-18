@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__latencyTypes_8h" kind="file" language="C++">
+    <compoundname>dag_latencyTypes.h</compoundname>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes local="no">EASTL/algorithm.h</includes>
+    <includes local="no">EASTL/numeric_limits.h</includes>
+    <includedby refid="dag__amdFsr_8h" local="no">dag_amdFsr.h</includedby>
+    <includedby refid="dag__lowLatency_8h" local="no">dag_lowLatency.h</includedby>
+    <includedby refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_latencyTypes.h</label>
+        <link refid="dag__latencyTypes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/numeric_limits.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_amdFsr.h</label>
+        <link refid="dag__amdFsr_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_latencyTypes.h</label>
+        <link refid="dag__latencyTypes_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>dag_lowLatency.h</label>
+        <link refid="dag__lowLatency_8h"/>
+      </node>
+      <node id="4">
+        <label>dag_nvFeatures.h</label>
+        <link refid="dag__nvFeatures_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structlowlatency_1_1Statistics" prot="public">lowlatency::Statistics</innerclass>
+    <innerclass refid="structlowlatency_1_1LatencyData" prot="public">lowlatency::LatencyData</innerclass>
+    <innernamespace refid="namespacelowlatency">lowlatency</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/algorithm.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/numeric_limits.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="namespacelowlatency" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacelowlatency" kindref="compound">lowlatency</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13" refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cf" kindref="member">LatencyMarkerType</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfae7e4a809303f2429fec5cbe97b01af19" kindref="member">SIMULATION_START</ref>,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa7e479d73b504f6dcd06b2782067d75e7" kindref="member">SIMULATION_END</ref>,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa5cb3b47b9d8e0be0747a3bde4b62ffdc" kindref="member">RENDERSUBMIT_START</ref>,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa0033d14e5a4ba99c7f4f970bcb0ceeff" kindref="member">RENDERSUBMIT_END</ref>,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfabd3f5e342b72afb3eb8d0200f39eae68" kindref="member">PRESENT_START</ref>,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa1ef0fb2b452732490d8835bf51fcac29" kindref="member">PRESENT_END</ref>,</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1ac3966a3839567774561a170aa302b8cfa80a1a02a7da1d25c25030fa0f12fe10e" kindref="member">TRIGGER_FLASH</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="structlowlatency_1_1Statistics" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref></highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26" refid="structlowlatency_1_1Statistics_1acd447a985c7dcde87c391179de01d859" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structlowlatency_1_1Statistics_1acd447a985c7dcde87c391179de01d859" kindref="member">min</ref><sp/>=<sp/>eastl::numeric_limits&lt;float&gt;::infinity();</highlight></codeline>
+<codeline lineno="27" refid="structlowlatency_1_1Statistics_1a7ab225e3277eb2dba76a63543164373c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structlowlatency_1_1Statistics_1a7ab225e3277eb2dba76a63543164373c" kindref="member">max</ref><sp/>=<sp/>-eastl::numeric_limits&lt;float&gt;::infinity();</highlight></codeline>
+<codeline lineno="28" refid="structlowlatency_1_1Statistics_1adbcb02e93830455184038ef74004e386" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structlowlatency_1_1Statistics_1adbcb02e93830455184038ef74004e386" kindref="member">avg</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="29" refid="structlowlatency_1_1Statistics_1af4308b8cc4948303399396aead1a97e0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structlowlatency_1_1Statistics_1af4308b8cc4948303399396aead1a97e0" kindref="member">apply</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>value)</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structlowlatency_1_1Statistics_1acd447a985c7dcde87c391179de01d859" kindref="member">min</ref><sp/>=<sp/>eastl::min(<ref refid="structlowlatency_1_1Statistics_1acd447a985c7dcde87c391179de01d859" kindref="member">min</ref>,<sp/>value);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structlowlatency_1_1Statistics_1a7ab225e3277eb2dba76a63543164373c" kindref="member">max</ref><sp/>=<sp/>eastl::max(<ref refid="structlowlatency_1_1Statistics_1a7ab225e3277eb2dba76a63543164373c" kindref="member">max</ref>,<sp/>value);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structlowlatency_1_1Statistics_1adbcb02e93830455184038ef74004e386" kindref="member">avg</ref><sp/>+=<sp/>value;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35" refid="structlowlatency_1_1Statistics_1a2ae165614a9c8e9f57a500531f816141" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structlowlatency_1_1Statistics_1a2ae165614a9c8e9f57a500531f816141" kindref="member">finalize</ref>(uint32_t<sp/>count)<sp/></highlight><highlight class="comment">//<sp/>count<sp/>is<sp/>not<sp/>stored<sp/>inside<sp/>the<sp/>struct</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(count<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structlowlatency_1_1Statistics_1adbcb02e93830455184038ef74004e386" kindref="member">avg</ref><sp/>/=<sp/>float(count);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="structlowlatency_1_1LatencyData" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlowlatency_1_1LatencyData" kindref="compound">LatencyData</ref></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>times<sp/>are<sp/>measured<sp/>in<sp/>ms</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>time<sp/>points<sp/>are<sp/>relative<sp/>to<sp/>simStartTime</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="structlowlatency_1_1LatencyData_1a5e8e131ba9d498c99d2a73bb1bb627ad" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structlowlatency_1_1LatencyData_1a5e8e131ba9d498c99d2a73bb1bb627ad" kindref="member">frameCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47" refid="structlowlatency_1_1LatencyData_1a1d55fe9adc3626eff2cf76659a66b9f4" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structlowlatency_1_1LatencyData_1a1d55fe9adc3626eff2cf76659a66b9f4" kindref="member">latestFrameId</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>These<sp/>are<sp/>currently<sp/>measured<sp/>by<sp/>only<sp/>the<sp/>NVIDIA<sp/>low<sp/>latency<sp/>sdk</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>but<sp/>they<sp/>can<sp/>be<sp/>implemented<sp/>without<sp/>the<sp/>sdk</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>implementation<sp/>should<sp/>be<sp/>placed<sp/>in<sp/>the<sp/>set_marker<sp/>function</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="structlowlatency_1_1LatencyData_1a1bba364d1386ad9749e55ee0aab1552c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a1bba364d1386ad9749e55ee0aab1552c" kindref="member">gameLatency</ref>;</highlight></codeline>
+<codeline lineno="53" refid="structlowlatency_1_1LatencyData_1a0804559a0179a182568c5be968628674" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a0804559a0179a182568c5be968628674" kindref="member">inputSampleTime</ref>;</highlight></codeline>
+<codeline lineno="54" refid="structlowlatency_1_1LatencyData_1a82f48e0f8a4fca479c1cdcbbd2651065" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a82f48e0f8a4fca479c1cdcbbd2651065" kindref="member">simEndTime</ref>;</highlight></codeline>
+<codeline lineno="55" refid="structlowlatency_1_1LatencyData_1a686d04226e38c6d5ae8ae456371f67e5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a686d04226e38c6d5ae8ae456371f67e5" kindref="member">renderSubmitStartTime</ref>;</highlight></codeline>
+<codeline lineno="56" refid="structlowlatency_1_1LatencyData_1acf4f5effe744f11fb6214f1239642c6f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1acf4f5effe744f11fb6214f1239642c6f" kindref="member">renderSubmitEndTime</ref>;</highlight></codeline>
+<codeline lineno="57" refid="structlowlatency_1_1LatencyData_1a331ed6d103bf5878fc6dedded6e162c1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a331ed6d103bf5878fc6dedded6e162c1" kindref="member">presentStartTime</ref>;</highlight></codeline>
+<codeline lineno="58" refid="structlowlatency_1_1LatencyData_1a23334e4a8ca2695dfbb1cd06aeb64d13" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a23334e4a8ca2695dfbb1cd06aeb64d13" kindref="member">presentEndTime</ref>;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>these<sp/>are<sp/>only<sp/>available<sp/>with<sp/>NVIDIA<sp/>low<sp/>latency<sp/>sdk</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="structlowlatency_1_1LatencyData_1a4dcfc3e7577be4fee22962b420c45d64" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a4dcfc3e7577be4fee22962b420c45d64" kindref="member">gameToRenderLatency</ref>;</highlight></codeline>
+<codeline lineno="62" refid="structlowlatency_1_1LatencyData_1ac4d94489e33b13b859b9bbd63cee4e30" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1ac4d94489e33b13b859b9bbd63cee4e30" kindref="member">renderLatency</ref>;</highlight></codeline>
+<codeline lineno="63" refid="structlowlatency_1_1LatencyData_1a58ed9ada96844366baea2eb8217053ae" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a58ed9ada96844366baea2eb8217053ae" kindref="member">driverStartTime</ref>;</highlight></codeline>
+<codeline lineno="64" refid="structlowlatency_1_1LatencyData_1a05d43e0379bd4422efe57b1d85028ec0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a05d43e0379bd4422efe57b1d85028ec0" kindref="member">driverEndTime</ref>;</highlight></codeline>
+<codeline lineno="65" refid="structlowlatency_1_1LatencyData_1a9bafc767079004e04abb698ec046143f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a9bafc767079004e04abb698ec046143f" kindref="member">osRenderQueueStartTime</ref>;</highlight></codeline>
+<codeline lineno="66" refid="structlowlatency_1_1LatencyData_1a92ccbcf2a5792bc3b37aa90b44eadd82" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a92ccbcf2a5792bc3b37aa90b44eadd82" kindref="member">osRenderQueueEndTime</ref>;</highlight></codeline>
+<codeline lineno="67" refid="structlowlatency_1_1LatencyData_1a9221870f351574081d068566eb60383c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a9221870f351574081d068566eb60383c" kindref="member">gpuRenderStartTime</ref>;</highlight></codeline>
+<codeline lineno="68" refid="structlowlatency_1_1LatencyData_1a19c21e14fdf13665e2c2db5e13f026a2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structlowlatency_1_1Statistics" kindref="compound">Statistics</ref><sp/><ref refid="structlowlatency_1_1LatencyData_1a19c21e14fdf13665e2c2db5e13f026a2" kindref="member">gpuRenderEndTime</ref>;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="namespacelowlatency_1ac1470239a11ed863d099db245fa53aa6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespacelowlatency_1ac1470239a11ed863d099db245fa53aa6" kindref="member">LatencyModeFlag</ref><sp/>=<sp/>uint8_t;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68" kindref="member">LatencyMode</ref><sp/>:<sp/><ref refid="namespacelowlatency_1ac1470239a11ed863d099db245fa53aa6" kindref="member">LatencyModeFlag</ref></highlight></codeline>
+<codeline lineno="74"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75" refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68a7c74c9e1d03d6be11e7b5ffca7efdc27" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68a7c74c9e1d03d6be11e7b5ffca7efdc27" kindref="member">LATENCY_MODE_OFF</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="76" refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68acfa463fc6d3b10e60fd62405f39cd98d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68acfa463fc6d3b10e60fd62405f39cd98d" kindref="member">LATENCY_MODE_ON</ref><sp/>=<sp/>1,<sp/></highlight><highlight class="comment">//<sp/>present<sp/>block<sp/>+<sp/>sleep<sp/>before<sp/>sampling<sp/>input</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>NVIDIA<sp/>low<sp/>latency<sp/>sdk</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68a32ff5dd2a049aea8560eba4c714dc285" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespacelowlatency_1add119224bd81c7433722d30d1e735c68a32ff5dd2a049aea8560eba4c714dc285" kindref="member">LATENCY_MODE_NV_BOOST</ref><sp/>=<sp/>2,<sp/></highlight><highlight class="comment">//<sp/>ON<sp/>+<sp/>gpu<sp/>clock<sp/>control</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lowlatency</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_latencyTypes.h"/>
+  </compounddef>
+</doxygen>

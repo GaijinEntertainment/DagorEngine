@@ -1,0 +1,481 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLK File Format</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Building Resources" href="../building-resources/index.html" />
+    <link rel="prev" title="BLK File Format" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">BLK File Format</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">BLK File Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#text-format-of-blk-file">Text Format of <code class="docutils literal notranslate"><span class="pre">.blk</span></code> File</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#file-syntax">File Syntax</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#directives-and-comments">Directives and Comments</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#directive-include">Directive <code class="docutils literal notranslate"><span class="pre">&#64;include</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#directive-override">Directive <code class="docutils literal notranslate"><span class="pre">&#64;override</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#directive-delete">Directive <code class="docutils literal notranslate"><span class="pre">&#64;delete</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#directive-clone-last">Directive <code class="docutils literal notranslate"><span class="pre">&#64;clone-last</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#comments">Comments</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#block-types">Block Types</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#sequential">Sequential</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#nested">Nested</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#combination-of-sequential-and-nested">Combination of sequential and nested</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#binary-format-of-blk-file">Binary Format of <code class="docutils literal notranslate"><span class="pre">.blk</span></code> File</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#file-structure">File Structure</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#useful-tools">Useful tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">BLK File Format</a></li>
+      <li class="breadcrumb-item active">BLK File Format</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/blk/blk.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="blk-file-format">
+<h1>BLK File Format<a class="headerlink" href="#blk-file-format" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">.blk</span></code> (“block”) is a <em>data block</em>, the primary configuration format in
+Dagor Engine. It is a configuration file similar to <code class="docutils literal notranslate"><span class="pre">.ini</span></code>, <code class="docutils literal notranslate"><span class="pre">.cfg</span></code>, and other
+configuration files you may have encountered in other systems.</p>
+<p>The Dagor Engine uses <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files for storing settings, parameters, and other
+essential information.</p>
+<p>There are two types of <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files: <em>text</em> and <em>binary</em>.</p>
+<section id="text-format-of-blk-file">
+<h2>Text Format of <code class="docutils literal notranslate"><span class="pre">.blk</span></code> File<a class="headerlink" href="#text-format-of-blk-file" title="Link to this heading"></a></h2>
+<p>Text <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files are regular text files with proprietary syntax.</p>
+<section id="file-syntax">
+<h3>File Syntax<a class="headerlink" href="#file-syntax" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file consists of a <em>block name</em> and optional <em>parameters</em> enclosed in
+curly braces.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;block_name&gt;{
+  &lt;parameter_name&gt;:&lt;type&gt;=&lt;value&gt;[;]
+}
+</pre></div>
+</div>
+<p>where</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;block_name&gt;</span></code>: the name of the block, which must start with a Latin letter or
+an underscore and consist of Latin letters, digits, or underscores.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;parameter_name&gt;</span></code>: the name of the parameter, which must start with a Latin
+letter or an underscore and consist of Latin letters, digits, or underscores.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;type&gt;</span></code>: the type of the parameter, which is mandatory and can be one of the
+following:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">t</span></code></strong>: <em>string</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is a text string in quotes. If the string
+consists of only one word, quotes may be omitted. The string should not
+contain <code class="docutils literal notranslate"><span class="pre">LF</span></code>, <code class="docutils literal notranslate"><span class="pre">CR</span></code>, or <code class="docutils literal notranslate"><span class="pre">TAB</span></code> symbols. Instead, use combinations of
+symbols: <code class="docutils literal notranslate"><span class="pre">~r</span></code> (<code class="docutils literal notranslate"><span class="pre">CR</span></code> symbol), <code class="docutils literal notranslate"><span class="pre">~n</span></code> (<code class="docutils literal notranslate"><span class="pre">LF</span></code> symbol), <code class="docutils literal notranslate"><span class="pre">~t</span></code> (<code class="docutils literal notranslate"><span class="pre">TAB</span></code> symbol).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">b</span></code></strong>: <em>boolean</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is one of the strings: <code class="docutils literal notranslate"><span class="pre">yes</span></code>, <code class="docutils literal notranslate"><span class="pre">no</span></code>,
+<code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code>, <code class="docutils literal notranslate"><span class="pre">on</span></code>, <code class="docutils literal notranslate"><span class="pre">off</span></code>, <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">c</span></code></strong>: 32-bit <em>color (E3DCOLOR)</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is a sequence of
+comma-separated integer numbers representing the color the format <code class="docutils literal notranslate"><span class="pre">R,G,B</span></code>
+or in <code class="docutils literal notranslate"><span class="pre">R,</span> <span class="pre">G,</span> <span class="pre">B,</span> <span class="pre">A</span></code> with components ranging from <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">255</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">r</span></code></strong>: <em>floating-point number</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is a floating-point number
+with truncated trailing zeros.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">m</span></code></strong>: <code class="docutils literal notranslate"><span class="pre">matrix</span> <span class="pre">3x4</span></code>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is a string in the form of <code class="docutils literal notranslate"><span class="pre">[[first</span> <span class="pre">line][second</span> <span class="pre">line][third</span> <span class="pre">line][fourth</span> <span class="pre">line]]</span></code>. The lines are
+comma-separated floating-point numbers defining x,y,z vector (<strong><code class="docutils literal notranslate"><span class="pre">p3</span></code></strong> –
+see below).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">p2</span></code></strong>: <em>Point2 vector</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is comma-separated floating-point
+numbers defining x,y vector.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">p3</span></code></strong>: <em>Point3 vector</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is comma-separated floating-point
+numbers defining x,y,z vector.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">p4</span></code></strong>: <em>Point4 vector</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is comma-separated floating-point
+numbers defining x,y,z,w vector.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">ip2</span></code></strong>: <em>IPoint2 vector</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is comma-separated integer
+numbers defining x,y vector.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">ip3</span></code></strong>: <em>IPoint3 vector</em>, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is comma-separated integer
+numbers defining x,y,z vector.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code>: the value of the parameter, can be in quotes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[;]</span></code>: if a semicolon is placed after the parameter, the next parameter may be
+on the same line. If the semicolon is omitted, the next parameter should be on
+a new line.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use a tilde (<code class="docutils literal notranslate"><span class="pre">~</span></code>) in quotes to represent special characters such as
+quotes. To write a tilde in a string, use two tildes (<code class="docutils literal notranslate"><span class="pre">~~</span></code>).</p>
+</div>
+</li>
+</ul>
+<p>Parameters can be defined as an array:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;parameter_name&gt;:&lt;type&gt;[] = [&lt;values&gt;]
+</pre></div>
+</div>
+<p>where</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;parameter_name&gt;</span></code>: the name of the parameter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;type&gt;</span></code>: the type of parameter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;values&gt;</span></code>: a list of values of the corresponding type separated by a
+semicolon or a new line.</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>param1:i[]=[42; 43; 44;]
+param2:t[]=[
+  &quot;parameter1&quot;
+  &quot;parameter2&quot;
+  &quot;parameter3&quot;
+]
+</pre></div>
+</div>
+</section>
+<section id="directives-and-comments">
+<h3>Directives and Comments<a class="headerlink" href="#directives-and-comments" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">.blk</span></code> files may contain <em>parser directives</em> and <em>comments</em>.</p>
+<section id="directive-include">
+<h4>Directive <code class="docutils literal notranslate"><span class="pre">&#64;include</span></code><a class="headerlink" href="#directive-include" title="Link to this heading"></a></h4>
+<p>All parameters of the file will be included as if they were initially presented
+in the current file. Included files may contain other <code class="docutils literal notranslate"><span class="pre">include</span></code> files.</p>
+<p>Including another <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>include &lt;file_name&gt;
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">&lt;file_name&gt;</span></code> is a path to the included <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file relative to the
+current <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file path. If the <code class="docutils literal notranslate"><span class="pre">&lt;file_name&gt;</span></code> starts with a slash (<code class="docutils literal notranslate"><span class="pre">/</span></code>), the
+path is considered from the root of the engine, otherwise from the directory
+where the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file is located. In tools, starting with <code class="docutils literal notranslate"><span class="pre">#</span></code> means from the
+<code class="docutils literal notranslate"><span class="pre">develop/</span></code> directory.</p>
+</section>
+<section id="directive-override">
+<h4>Directive <code class="docutils literal notranslate"><span class="pre">&#64;override</span></code><a class="headerlink" href="#directive-override" title="Link to this heading"></a></h4>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;@override:&lt;name_of_block_or_parameter&gt;&quot;
+&quot;@override:block&quot;{
+  &quot;@override:parameter&quot;i=10`
+}
+</pre></div>
+</div>
+<p>There are rules to follow when <em>overriding</em>:</p>
+<ul class="simple">
+<li><p>Overriding a value that has not been declared before results in a log error.</p></li>
+<li><p>If it’s unclear whether a value to be overridden has been declared before,
+it’s common practice to delete it first. This ensures there is no such
+variable from that point, allowing you to add the variable normally.</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>@override:video{
+  @delete:vsync:b=no
+  vsync:b=yes
+}
+</pre></div>
+</div>
+<p>The code above ensures that <code class="docutils literal notranslate"><span class="pre">vsync</span></code> is deleted first. If there was a <code class="docutils literal notranslate"><span class="pre">vsync</span></code>
+before, it will be deleted; if not, then no action is taken. After that, <code class="docutils literal notranslate"><span class="pre">vsync</span></code>
+does not need to be overridden and can be added normally, regardless of the
+presence of <code class="docutils literal notranslate"><span class="pre">vsync</span></code> before it.</p>
+</section>
+<section id="directive-delete">
+<h4>Directive <code class="docutils literal notranslate"><span class="pre">&#64;delete</span></code><a class="headerlink" href="#directive-delete" title="Link to this heading"></a></h4>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;@delete:&lt;name_of_block_or_parameter&gt;&quot;
+</pre></div>
+</div>
+</section>
+<section id="directive-clone-last">
+<h4>Directive <code class="docutils literal notranslate"><span class="pre">&#64;clone-last</span></code><a class="headerlink" href="#directive-clone-last" title="Link to this heading"></a></h4>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;@clone-last:&lt;name_of_block_or_parameter&gt;&quot;
+</pre></div>
+</div>
+</section>
+<section id="comments">
+<h4>Comments<a class="headerlink" href="#comments" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">//</span></code>: single-line comment</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/*</span> <span class="pre">...</span> <span class="pre">*/</span></code>: multi-line comment</p></li>
+</ul>
+</section>
+</section>
+<section id="block-types">
+<h3>Block Types<a class="headerlink" href="#block-types" title="Link to this heading"></a></h3>
+<p>Blocks can be of the following types: <em>sequential</em>, <em>nested</em> and combination of
+<em>sequential</em> and <em>nested</em>.</p>
+<section id="sequential">
+<h4>Sequential<a class="headerlink" href="#sequential" title="Link to this heading"></a></h4>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">block_name</span><span class="ni">{</span>
+  <span class="no">param_name</span><span class="nt">:type=</span><span class="no">value</span>
+<span class="ni">}</span>
+<span class="se">block_name</span><span class="ni">{</span>
+  <span class="no">param_name</span><span class="nt">:type=</span><span class="nf">&quot;value&quot;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">lod</span><span class="ni">{</span>
+  <span class="no">range</span><span class="nt">:r=</span><span class="m">70</span><span class="gp">;</span>
+<span class="ni">}</span>
+<span class="se">lod</span><span class="ni">{</span>
+  <span class="no">range</span><span class="nt">:r=</span><span class="m">10000</span><span class="gp">;</span>
+  <span class="no">fname</span><span class="nt">:t=</span><span class="nf">&quot;billboard_octagon_impostor.lod01.dag&quot;</span><span class="gp">;</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="nested">
+<h4>Nested<a class="headerlink" href="#nested" title="Link to this heading"></a></h4>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">block_name</span><span class="ni">{</span>
+  <span class="no">param_name</span><span class="nt">:type=</span><span class="no">value</span>
+  <span class="se">block_name</span><span class="ni">{</span>
+    <span class="no">param_name</span><span class="nt">:type=</span><span class="nf">&quot;value&quot;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">contents</span><span class="ni">{</span>
+  <span class="se">lod</span><span class="ni">{</span>
+    <span class="no">range</span><span class="nt">:r=</span><span class="m">70</span><span class="gp">;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+<section id="combination-of-sequential-and-nested">
+<h4>Combination of sequential and nested<a class="headerlink" href="#combination-of-sequential-and-nested" title="Link to this heading"></a></h4>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">block_name</span><span class="ni">{</span>
+  <span class="no">param_name</span><span class="nt">:type=</span><span class="no">value</span>
+  <span class="se">block_name</span><span class="ni">{</span>
+    <span class="no">param_name</span><span class="nt">:type=</span><span class="nf">&quot;value&quot;</span>
+  <span class="ni">}</span>
+  <span class="se">block_name</span><span class="ni">{</span>
+    <span class="no">param_name</span><span class="nt">:type=</span><span class="no">value</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p><strong>Example:</strong></p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">contents</span><span class="ni">{</span>
+  <span class="se">lod</span><span class="ni">{</span>
+    <span class="no">range</span><span class="nt">:r=</span><span class="m">70</span><span class="gp">;</span>
+  <span class="ni">}</span>
+  <span class="se">lod</span><span class="ni">{</span>
+    <span class="no">range</span><span class="nt">:r=</span><span class="m">10000</span><span class="gp">;</span>
+    <span class="no">fname</span><span class="nt">:t=</span><span class="nf">&quot;billboard_octagon_impostor.lod01.dag&quot;</span><span class="gp">;</span>
+  <span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="binary-format-of-blk-file">
+<h2>Binary Format of <code class="docutils literal notranslate"><span class="pre">.blk</span></code> File<a class="headerlink" href="#binary-format-of-blk-file" title="Link to this heading"></a></h2>
+<p>Binary <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files are optimized for performance with a defined structure for
+efficient data storage and retrieval.</p>
+<section id="file-structure">
+<h3>File Structure<a class="headerlink" href="#file-structure" title="Link to this heading"></a></h3>
+<p>The data in a binary <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file consists of <em>header</em>, <em>name</em> and <em>string maps</em>,
+<em>parameters</em>, and <em>blocks</em>. The data is ordered as follows:</p>
+<ul class="simple">
+<li><p><strong>Header</strong></p></li>
+<li><p><strong>Name map</strong>: parameter and block names</p></li>
+<li><p><strong>String map</strong>: string parameters</p></li>
+<li><p><strong>Root parameters:</strong> (may be nested)</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramCnt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramNameId_1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramType_1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param_1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">...</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramNameId_Cnt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramType_Cnt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param_Cnt</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Root blocks:</strong> (may be nested)</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">blockCnt</span></code></p></li>
+<li><p><strong>Block1 parameters:</strong></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramCnt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramNameId_1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramTypeCnt_1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param_1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">...</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramNameId_Cnt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paramType_Cnt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param_Cnt</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Block1 blocks:</strong></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">blockCnt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Block1_1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Block1_2</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">...</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Block1_Cnt</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">...</span></code></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>Block_Cnt parameters</strong></p></li>
+<li><p><strong>Block_Cnt blocks</strong></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<section id="useful-tools">
+<h2>Useful tools<a class="headerlink" href="#useful-tools" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">dagor3_cdk</span></code> has some useful tools for working with <code class="docutils literal notranslate"><span class="pre">.blk</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">binBlk.exe</span></code>: converts binary and text <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files to and from each other.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">blkDiff.exe</span></code>: performs a syntactic diff between two <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">blkEditor-dev.exe</span></code>: Facilitates the creation of a GUI editor with dynamic
+views for <code class="docutils literal notranslate"><span class="pre">.blk</span></code> files.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="BLK File Format" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../building-resources/index.html" class="btn btn-neutral float-right" title="Building Resources" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

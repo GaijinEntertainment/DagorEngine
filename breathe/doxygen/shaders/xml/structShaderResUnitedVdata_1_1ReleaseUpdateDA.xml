@@ -1,0 +1,215 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kind="struct" language="C++" prot="protected" final="yes">
+    <compoundname>ShaderResUnitedVdata::ReleaseUpdateDA</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DelayedAction</basecompoundref>
+    <basecompoundref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" prot="public" virt="non-virtual">ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a4631ff2bfcb6421abbcf52b831ea4931" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref> *</type>
+        <definition>ShaderResUnitedVdata* ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA::unitedVdata</definition>
+        <argsstring></argsstring>
+        <name>unitedVdata</name>
+        <qualifiedname>ShaderResUnitedVdata::ReleaseUpdateDA::unitedVdata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="231" column="26" bodyfile="dag_shaderResUnitedData.h" bodystart="231" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1ae8db8cb5b1316940c55d944893cfc3ae" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">ReleaseUpdateDA</ref> *</type>
+        <definition>ReleaseUpdateDA* ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA::prev</definition>
+        <argsstring></argsstring>
+        <name>prev</name>
+        <qualifiedname>ShaderResUnitedVdata::ReleaseUpdateDA::prev</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="232" column="21" bodyfile="dag_shaderResUnitedData.h" bodystart="232" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a65c065f9f472acafca120490151d698e" prot="public" static="yes" mutable="no">
+        <type><ref refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA" kindref="compound">ReleaseUpdateDA</ref> *</type>
+        <definition>ReleaseUpdateDA* ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA::slist_tail</definition>
+        <argsstring></argsstring>
+        <name>slist_tail</name>
+        <qualifiedname>ShaderResUnitedVdata::ReleaseUpdateDA::slist_tail</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="233" column="35" bodyfile="dag_shaderResUnitedData.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a6d6700a55113a53d46e21f21c1383185" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA::ReleaseUpdateDA</definition>
+        <argsstring>(UpdateModelCtx &amp;&amp;ctx, ShaderResUnitedVdata *uvd)</argsstring>
+        <name>ReleaseUpdateDA</name>
+        <qualifiedname>ShaderResUnitedVdata::ReleaseUpdateDA::ReleaseUpdateDA</qualifiedname>
+        <param>
+          <type><ref refid="structShaderResUnitedVdata_1_1UpdateModelCtx" kindref="compound">UpdateModelCtx</ref> &amp;&amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref> *</type>
+          <declname>uvd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="234" column="5" bodyfile="dag_shaderResUnitedData.h" bodystart="234" bodyend="238"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1ad1f9b2ba8c38d94a7539b5b4e6767783" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA::~ReleaseUpdateDA</definition>
+        <argsstring>()</argsstring>
+        <name>~ReleaseUpdateDA</name>
+        <qualifiedname>ShaderResUnitedVdata::ReleaseUpdateDA::~ReleaseUpdateDA</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="239" column="5" bodyfile="dag_shaderResUnitedData.h" bodystart="239" bodyend="248"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1ab960a700695b5e445140c2dbe0167509" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA::performAction</definition>
+        <argsstring>() override</argsstring>
+        <name>performAction</name>
+        <qualifiedname>ShaderResUnitedVdata::ReleaseUpdateDA::performAction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="249" column="10" bodyfile="dag_shaderResUnitedData.h" bodystart="249" bodyend="249"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a40f1d0f77f3d9ba5d35cdd4ac8b90ac0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA::ceaseUpdateJob</definition>
+        <argsstring>()</argsstring>
+        <name>ceaseUpdateJob</name>
+        <qualifiedname>ShaderResUnitedVdata::ReleaseUpdateDA::ceaseUpdateJob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="250" column="10" bodyfile="dag_shaderResUnitedData.h" bodystart="250" bodyend="250"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DelayedAction</label>
+      </node>
+      <node id="3">
+        <label>ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx</label>
+        <link refid="structShaderResUnitedVdata_1_1UpdateModelCtx"/>
+      </node>
+      <node id="1">
+        <label>ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA</label>
+        <link refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DelayedAction</label>
+      </node>
+      <node id="4">
+        <label>ShaderResUnitedVdata&lt; RES &gt;</label>
+        <link refid="classShaderResUnitedVdata"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>buf</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>hints</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA</label>
+        <link refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>unitedVdata</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>prev</edgelabel>
+          <edgelabel>slist_tail</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderResUnitedVdata&lt; RES &gt;::UpdateModelCtx</label>
+        <link refid="structShaderResUnitedVdata_1_1UpdateModelCtx"/>
+      </node>
+      <node id="1">
+        <label>ShaderResUnitedVdata&lt; RES &gt;::ReleaseUpdateDA</label>
+        <link refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>unitedVdata</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>prev</edgelabel>
+          <edgelabel>slist_tail</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>unitedvdata::BufConfig</label>
+        <link refid="structunitedvdata_1_1BufConfig"/>
+      </node>
+      <node id="5">
+        <label>unitedvdata::BufPool</label>
+        <link refid="structunitedvdata_1_1BufPool"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shaderResUnitedData.h" line="229" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="230" bodyend="251"/>
+    <listofallmembers>
+      <member refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a40f1d0f77f3d9ba5d35cdd4ac8b90ac0" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>ceaseUpdateJob</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1a3477cad80e4d3e440c9e88efe0cd5304" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>cPrev</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1a95a44108651103083d312585b22b6c4b" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>dviOfs</name></member>
+      <member refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1ab960a700695b5e445140c2dbe0167509" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>performAction</name></member>
+      <member refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1ae8db8cb5b1316940c55d944893cfc3ae" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>prev</name></member>
+      <member refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a6d6700a55113a53d46e21f21c1383185" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>ReleaseUpdateDA</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1accb356834d2620b746f7097c77f8878c" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>reqLod</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1a3a830b4dad0bc91cfca9a426fb154231" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>res</name></member>
+      <member refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a65c065f9f472acafca120490151d698e" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>slist_tail</name></member>
+      <member refid="structShaderResUnitedVdata_1_1UpdateModelCtx_1acd1d0b9217f7a5e41ce50904a1e132e4" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>tmp_smvd</name></member>
+      <member refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1a4631ff2bfcb6421abbcf52b831ea4931" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>unitedVdata</name></member>
+      <member refid="structShaderResUnitedVdata_1_1ReleaseUpdateDA_1ad1f9b2ba8c38d94a7539b5b4e6767783" prot="public" virt="non-virtual"><scope>ShaderResUnitedVdata::ReleaseUpdateDA</scope><name>~ReleaseUpdateDA</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,227 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shaders</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Render State Overrides" href="shaders/Overrides.html" />
+    <link rel="prev" title="Resource and Execution Barriers" href="resource_and_execution_barriers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Shaders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="shaders/Overrides.html">Render State Overrides</a></li>
+<li class="toctree-l4"><a class="reference internal" href="shaders/global_shader_variables.html">Global Shader Variables</a></li>
+<li class="toctree-l4"><a class="reference internal" href="shaders/shader_material_system.html">Shader Material System</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Engine Render</a></li>
+      <li class="breadcrumb-item active">Shaders</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-render/index/shaders.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="shaders">
+<h1>Shaders<a class="headerlink" href="#shaders" title="Link to this heading"></a></h1>
+<p>This section contains the documentation of the C++ tools and classes that are used to manage the shaders and material system.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="shaders/Overrides.html">Render State Overrides</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shaders/Overrides.html#_CPPv47shaders"><code class="docutils literal notranslate"><span class="pre">shaders</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/Overrides.html#_CPPv4N7shaders15set_stencil_refE7uint8_t"><code class="docutils literal notranslate"><span class="pre">shaders::set_stencil_ref()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/Overrides.html#_CPPv4N7shaders13OverrideStateE"><code class="docutils literal notranslate"><span class="pre">shaders::OverrideState</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/Overrides.html#_CPPv4N7shaders12StencilStateE"><code class="docutils literal notranslate"><span class="pre">shaders::StencilState</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shaders/global_shader_variables.html">Global Shader Variables</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shaders/global_shader_variables.html#_CPPv410ManagedTex"><code class="docutils literal notranslate"><span class="pre">ManagedTex</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/global_shader_variables.html#_CPPv410ManagedBuf"><code class="docutils literal notranslate"><span class="pre">ManagedBuf</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/global_shader_variables.html#_CPPv413resptr_detail"><code class="docutils literal notranslate"><span class="pre">resptr_detail</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/global_shader_variables.html#_CPPv411VariableMap"><code class="docutils literal notranslate"><span class="pre">VariableMap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/global_shader_variables.html#_CPPv412ShaderGlobal"><code class="docutils literal notranslate"><span class="pre">ShaderGlobal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shaders/shader_material_system.html">Shader Material System</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv47Ibuffer"><code class="docutils literal notranslate"><span class="pre">Ibuffer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv47Vbuffer"><code class="docutils literal notranslate"><span class="pre">Vbuffer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv414ShaderReloadCb"><code class="docutils literal notranslate"><span class="pre">ShaderReloadCb</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv422get_shader_variable_idPKcb"><code class="docutils literal notranslate"><span class="pre">get_shader_variable_id()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv422get_shader_glob_var_idPKcb"><code class="docutils literal notranslate"><span class="pre">get_shader_glob_var_id()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv424shader_channel_type_sizei"><code class="docutils literal notranslate"><span class="pre">shader_channel_type_size()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv419new_shader_materialRK12MaterialDatabb"><code class="docutils literal notranslate"><span class="pre">new_shader_material()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv436new_shader_material_by_name_optionalPKcPKcb"><code class="docutils literal notranslate"><span class="pre">new_shader_material_by_name_optional()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv427new_shader_material_by_namePKcPKcb"><code class="docutils literal notranslate"><span class="pre">new_shader_material_by_name()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv413shader_existsPKc"><code class="docutils literal notranslate"><span class="pre">shader_exists()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv438get_shader_class_name_by_material_namePKc"><code class="docutils literal notranslate"><span class="pre">get_shader_class_name_by_material_name()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv416getMaxFSHVersionv"><code class="docutils literal notranslate"><span class="pre">getMaxFSHVersion()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv415startup_shadersPKcN3d3d11shadermodel7VersionE"><code class="docutils literal notranslate"><span class="pre">startup_shaders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv420load_shaders_bindumpPKcN3d3d11shadermodel7VersionEb"><code class="docutils literal notranslate"><span class="pre">load_shaders_bindump()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv422unload_shaders_bindumpb"><code class="docutils literal notranslate"><span class="pre">unload_shaders_bindump()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv446register_job_manager_requiring_shaders_bindumpi"><code class="docutils literal notranslate"><span class="pre">register_job_manager_requiring_shaders_bindump()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv431load_shaders_bindump_with_fencePKcN3d3d11shadermodel7VersionE"><code class="docutils literal notranslate"><span class="pre">load_shaders_bindump_with_fence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv426load_shaders_debug_bindumpN3d3d11shadermodel7VersionE"><code class="docutils literal notranslate"><span class="pre">load_shaders_debug_bindump()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv428unload_shaders_debug_bindumpN3d3d11shadermodel7VersionE"><code class="docutils literal notranslate"><span class="pre">unload_shaders_debug_bindump()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv429enable_shaders_use_stateblockb"><code class="docutils literal notranslate"><span class="pre">enable_shaders_use_stateblock()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv433enable_shaders_emulate_stateblockb"><code class="docutils literal notranslate"><span class="pre">enable_shaders_emulate_stateblock()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv427rebuild_shaders_stateblocksv"><code class="docutils literal notranslate"><span class="pre">rebuild_shaders_stateblocks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv426defrag_shaders_stateblocksb"><code class="docutils literal notranslate"><span class="pre">defrag_shaders_stateblocks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv424shaders_set_reload_flagsv"><code class="docutils literal notranslate"><span class="pre">shaders_set_reload_flags()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv422get_shader_global_timev"><code class="docutils literal notranslate"><span class="pre">get_shader_global_time()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv422set_shader_global_timef"><code class="docutils literal notranslate"><span class="pre">set_shader_global_time()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv426advance_shader_global_timef"><code class="docutils literal notranslate"><span class="pre">advance_shader_global_time()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv428get_shader_global_time_phaseff"><code class="docutils literal notranslate"><span class="pre">get_shader_global_time_phase()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv429set_stcode_special_tag_interpRRN6stcode24SpecialBlkTagInterpreterE"><code class="docutils literal notranslate"><span class="pre">set_stcode_special_tag_interp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv429dgs_all_shader_vars_optionals"><code class="docutils literal notranslate"><span class="pre">dgs_all_shader_vars_optionals</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv414ShaderMaterial"><code class="docutils literal notranslate"><span class="pre">ShaderMaterial</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv413ShaderElement"><code class="docutils literal notranslate"><span class="pre">ShaderElement</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="shaders/shader_material_system.html#_CPPv49dynrender"><code class="docutils literal notranslate"><span class="pre">dynrender</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="resource_and_execution_barriers.html" class="btn btn-neutral float-left" title="Resource and Execution Barriers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shaders/Overrides.html" class="btn btn-neutral float-right" title="Render State Overrides" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

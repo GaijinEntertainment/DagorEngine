@@ -1,0 +1,411 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderGlobal_1_1VarTable" kind="class" language="C++" prot="public">
+    <compoundname>ShaderGlobal::VarTable</compoundname>
+    <includes refid="globVar_8h" local="no">globVar.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderGlobal_1_1VarTable_1a749f85eebd0324c4c6a28b9bff179b21" prot="private" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; ShaderGlobal::VarTable::variableByNameId</definition>
+        <argsstring></argsstring>
+        <name>variableByNameId</name>
+        <qualifiedname>ShaderGlobal::VarTable::variableByNameId</qualifiedname>
+        <initializer>{midmem_ptr()}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="69" column="7" bodyfile="globVar.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1VarTable_1a1a5f206b12a39b22c1e6c2ffc24ddcaa" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &gt;</type>
+        <definition>Tab&lt;Var&gt; ShaderGlobal::VarTable::variableList</definition>
+        <argsstring></argsstring>
+        <name>variableList</name>
+        <qualifiedname>ShaderGlobal::VarTable::variableList</qualifiedname>
+        <initializer>{midmem_ptr()}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="70" column="7" bodyfile="globVar.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1VarTable_1a790c234a61227c4f1ef520e6d5e22948" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderGlobal::VarTable::variableByNameIdLastBuilt</definition>
+        <argsstring></argsstring>
+        <name>variableByNameIdLastBuilt</name>
+        <qualifiedname>ShaderGlobal::VarTable::variableByNameIdLastBuilt</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="71" column="7" bodyfile="globVar.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1VarTable_1aa27199f922f00b1a79524fc6cf39b3b5" prot="private" static="no" mutable="no">
+        <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref></type>
+        <definition>IntervalList ShaderGlobal::VarTable::intervals</definition>
+        <argsstring></argsstring>
+        <name>intervals</name>
+        <qualifiedname>ShaderGlobal::VarTable::intervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="72" column="16" bodyfile="globVar.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1VarTable_1a122e000fffa24dc7ae12325e76e8acf4" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+        <definition>const VarNameMap&amp; ShaderGlobal::VarTable::varNameMap</definition>
+        <argsstring></argsstring>
+        <name>varNameMap</name>
+        <qualifiedname>ShaderGlobal::VarTable::varNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="73" column="20" bodyfile="globVar.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1VarTable_1aaa62e21c9c24f9cc6c2b0c4ac5627ba4" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classHashStrings" kindref="compound">HashStrings</ref> &amp;</type>
+        <definition>const HashStrings&amp; ShaderGlobal::VarTable::intervalNameMap</definition>
+        <argsstring></argsstring>
+        <name>intervalNameMap</name>
+        <qualifiedname>ShaderGlobal::VarTable::intervalNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="74" column="21" bodyfile="globVar.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a5f726bf57c86ce86616a3d11b4fea4b6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderGlobal::VarTable::VarTable</definition>
+        <argsstring>(const VarNameMap &amp;var_name_map, const HashStrings &amp;interval_name_map)</argsstring>
+        <name>VarTable</name>
+        <qualifiedname>ShaderGlobal::VarTable::VarTable</qualifiedname>
+        <param>
+          <type>const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+          <declname>var_name_map</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classHashStrings" kindref="compound">HashStrings</ref> &amp;</type>
+          <declname>interval_name_map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="77" column="3" bodyfile="globVar.h" bodystart="77" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1aa516eab7004cd04b3e8a2aab611c9825" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::VarTable::emplaceVarsAndIntervals</definition>
+        <argsstring>(Tab&lt; Var &gt; &amp;&amp;variables, IntervalList &amp;&amp;intervals)</argsstring>
+        <name>emplaceVarsAndIntervals</name>
+        <qualifiedname>ShaderGlobal::VarTable::emplaceVarsAndIntervals</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &gt; &amp;&amp;</type>
+          <declname>variables</declname>
+        </param>
+        <param>
+          <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;&amp;</type>
+          <declname>intervals</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="81" column="8" bodyfile="globVar.h" bodystart="81" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a9fcfbaa4b082de7887ef1eefb1150e0d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::VarTable::getVarCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getVarCount</name>
+        <qualifiedname>ShaderGlobal::VarTable::getVarCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="88" column="7" bodyfile="globvar.cpp" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a5af47e2e25412b7f5368160f078fa9b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &amp;</type>
+        <definition>Var &amp; ShaderGlobal::VarTable::getVar</definition>
+        <argsstring>(int internal_index)</argsstring>
+        <name>getVar</name>
+        <qualifiedname>ShaderGlobal::VarTable::getVar</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>internal_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="89" column="7" bodyfile="globvar.cpp" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a99b8de0e63be204fbc7a2c45bc91b509" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &amp;</type>
+        <definition>const Var &amp; ShaderGlobal::VarTable::getVar</definition>
+        <argsstring>(int internal_index) const</argsstring>
+        <name>getVar</name>
+        <qualifiedname>ShaderGlobal::VarTable::getVar</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>internal_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="90" column="13" bodyfile="globVar.h" bodystart="90" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a32506906b0a38a425d34d63819410a2b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderGlobal::VarTable::getVarName</definition>
+        <argsstring>(const Var &amp;var) const</argsstring>
+        <name>getVarName</name>
+        <qualifiedname>ShaderGlobal::VarTable::getVarName</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &amp;</type>
+          <declname>var</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="92" column="14" bodyfile="globVar.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1ad1b40c16920f21e3fc22f1e1c16430b9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderGlobal::VarTable::getVarName</definition>
+        <argsstring>(int internal_index) const</argsstring>
+        <name>getVarName</name>
+        <qualifiedname>ShaderGlobal::VarTable::getVarName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>internal_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="93" column="14" bodyfile="globVar.h" bodystart="93" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a7ff46e733eb4c886cfa07c3c365910a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderGlobal::VarTable::getVarInternalIndex</definition>
+        <argsstring>(const int variable_id)</argsstring>
+        <name>getVarInternalIndex</name>
+        <qualifiedname>ShaderGlobal::VarTable::getVarInternalIndex</qualifiedname>
+        <param>
+          <type>const int</type>
+          <declname>variable_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="96" column="7" bodyfile="globvar.cpp" bodystart="41" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a0a64bbc239150ab70707959e5bbc011e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::VarTable::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>ShaderGlobal::VarTable::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="99" column="8" bodyfile="globvar.cpp" bodystart="32" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1ae7fedb0b5fab437ec34bffc83c00a222" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::VarTable::dumpToConsole</definition>
+        <argsstring>() const</argsstring>
+        <name>dumpToConsole</name>
+        <qualifiedname>ShaderGlobal::VarTable::dumpToConsole</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="102" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a0b410cf729a6079c55f497e2eab42ed0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::VarTable::setVarValue</definition>
+        <argsstring>(int internal_index, const char *str)</argsstring>
+        <name>setVarValue</name>
+        <qualifiedname>ShaderGlobal::VarTable::setVarValue</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>internal_index</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="105" column="8" bodyfile="globvar.cpp" bodystart="70" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1ae086b750cd83e12a1f62a310e8792fb1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+        <definition>const IntervalList &amp; ShaderGlobal::VarTable::getIntervalList</definition>
+        <argsstring>() const</argsstring>
+        <name>getIntervalList</name>
+        <qualifiedname>ShaderGlobal::VarTable::getIntervalList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="108" column="22" bodyfile="globvar.cpp" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1abe0f36dbf6ab831e9a00a9afef6aa972" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const Tab&lt; <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &gt; &amp;</type>
+        <definition>const Tab&lt; Var &gt; &amp; ShaderGlobal::VarTable::getVariableList</definition>
+        <argsstring>() const</argsstring>
+        <name>getVariableList</name>
+        <qualifiedname>ShaderGlobal::VarTable::getVariableList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="109" column="13" bodyfile="globvar.cpp" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1afd0083122930c0c8b8a5bbb82729d150" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+        <definition>IntervalList &amp; ShaderGlobal::VarTable::getMutableIntervalList</definition>
+        <argsstring>()</argsstring>
+        <name>getMutableIntervalList</name>
+        <qualifiedname>ShaderGlobal::VarTable::getMutableIntervalList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="110" column="16" bodyfile="globvar.cpp" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1a4dfe6c40fc24b107d212302fd8b4e6e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Tab&lt; <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &gt; &amp;</type>
+        <definition>Tab&lt; Var &gt; &amp; ShaderGlobal::VarTable::getMutableVariableList</definition>
+        <argsstring>()</argsstring>
+        <name>getMutableVariableList</name>
+        <qualifiedname>ShaderGlobal::VarTable::getMutableVariableList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="111" column="7" bodyfile="globvar.cpp" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1VarTable_1adaea19d3622b083f0956c64981055164" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderGlobal::VarTable::link</definition>
+        <argsstring>(const Tab&lt; Var &gt; &amp;variables, const IntervalList &amp;interval_list, Tab&lt; int &gt; &amp;global_var_link_table, Tab&lt; ShaderVariant::ExtType &gt; &amp;interval_link_table)</argsstring>
+        <name>link</name>
+        <qualifiedname>ShaderGlobal::VarTable::link</qualifiedname>
+        <param>
+          <type>const Tab&lt; <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &gt; &amp;</type>
+          <declname>variables</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+          <declname>interval_list</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>global_var_link_table</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ShaderVariant::ExtType</ref> &gt; &amp;</type>
+          <declname>interval_link_table</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="113" column="8" bodyfile="globvar.cpp" bodystart="123" bodyend="181"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="globVar.h" line="67" column="1" bodyfile="globVar.h" bodystart="68" bodyend="115"/>
+    <listofallmembers>
+      <member refid="classShaderGlobal_1_1VarTable_1a0a64bbc239150ab70707959e5bbc011e" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>clear</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1ae7fedb0b5fab437ec34bffc83c00a222" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>dumpToConsole</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1aa516eab7004cd04b3e8a2aab611c9825" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>emplaceVarsAndIntervals</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1ae086b750cd83e12a1f62a310e8792fb1" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getIntervalList</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1afd0083122930c0c8b8a5bbb82729d150" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getMutableIntervalList</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a4dfe6c40fc24b107d212302fd8b4e6e1" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getMutableVariableList</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a5af47e2e25412b7f5368160f078fa9b5" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getVar</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a99b8de0e63be204fbc7a2c45bc91b509" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getVar</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a9fcfbaa4b082de7887ef1eefb1150e0d" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getVarCount</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1abe0f36dbf6ab831e9a00a9afef6aa972" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getVariableList</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a7ff46e733eb4c886cfa07c3c365910a2" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getVarInternalIndex</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a32506906b0a38a425d34d63819410a2b" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getVarName</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1ad1b40c16920f21e3fc22f1e1c16430b9" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>getVarName</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1aaa62e21c9c24f9cc6c2b0c4ac5627ba4" prot="private" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>intervalNameMap</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1aa27199f922f00b1a79524fc6cf39b3b5" prot="private" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>intervals</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1adaea19d3622b083f0956c64981055164" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>link</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a0b410cf729a6079c55f497e2eab42ed0" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>setVarValue</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a749f85eebd0324c4c6a28b9bff179b21" prot="private" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>variableByNameId</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a790c234a61227c4f1ef520e6d5e22948" prot="private" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>variableByNameIdLastBuilt</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a1a5f206b12a39b22c1e6c2ffc24ddcaa" prot="private" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>variableList</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a122e000fffa24dc7ae12325e76e8acf4" prot="private" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>varNameMap</name></member>
+      <member refid="classShaderGlobal_1_1VarTable_1a5f726bf57c86ce86616a3d11b4fea4b6" prot="public" virt="non-virtual"><scope>ShaderGlobal::VarTable</scope><name>VarTable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

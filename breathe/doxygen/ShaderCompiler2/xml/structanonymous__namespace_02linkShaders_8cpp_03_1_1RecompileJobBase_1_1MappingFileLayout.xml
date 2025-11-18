@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout" kind="struct" language="C++" prot="public">
+    <compoundname>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1a0650299eadb4114d7da8c0310445ab98" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::ilSize</definition>
+        <argsstring></argsstring>
+        <name>ilSize</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::ilSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="352" column="14" bodyfile="linkShaders.cpp" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1abd72a6e175f18f6f50b2f84ad6af066b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::byteCodeVersion</definition>
+        <argsstring></argsstring>
+        <name>byteCodeVersion</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::byteCodeVersion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="353" column="14" bodyfile="linkShaders.cpp" bodystart="353" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1aaaa52c4254ff9a6603c0302d305d4540" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::byteCodeSize</definition>
+        <argsstring></argsstring>
+        <name>byteCodeSize</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::byteCodeSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="354" column="14" bodyfile="linkShaders.cpp" bodystart="354" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1ae5b9da23817ada97592549e931738841" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::byteCodeHash[HASH_SIZE]</definition>
+        <argsstring>[HASH_SIZE]</argsstring>
+        <name>byteCodeHash</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout::byteCodeHash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="355" column="13" bodyfile="linkShaders.cpp" bodystart="355" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="linkShaders.cpp" line="350" column="3" bodyfile="linkShaders.cpp" bodystart="351" bodyend="356"/>
+    <listofallmembers>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1ae5b9da23817ada97592549e931738841" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout</scope><name>byteCodeHash</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1aaaa52c4254ff9a6603c0302d305d4540" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout</scope><name>byteCodeSize</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1abd72a6e175f18f6f50b2f84ad6af066b" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout</scope><name>byteCodeVersion</name></member>
+      <member refid="structanonymous__namespace_02linkShaders_8cpp_03_1_1RecompileJobBase_1_1MappingFileLayout_1a0650299eadb4114d7da8c0310445ab98" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::RecompileJobBase::MappingFileLayout</scope><name>ilSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

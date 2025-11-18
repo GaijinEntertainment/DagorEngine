@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1RayDispatchParameters" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::RayDispatchParameters</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchParameters_1abf5ecf3f8a09d3fcae70babfa89ef4ab" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableSet" kindref="compound">ShaderBindingTableSet</ref></type>
+        <definition>ShaderBindingTableSet raytrace::RayDispatchParameters::shaderBindingTableSet</definition>
+        <argsstring></argsstring>
+        <name>shaderBindingTableSet</name>
+        <qualifiedname>raytrace::RayDispatchParameters::shaderBindingTableSet</qualifiedname>
+        <briefdescription>
+<para>Shader binding table set. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="979" column="25" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="979" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchParameters_1a102b14cc302a8776f611d68526482bbd" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::RayDispatchParameters::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>raytrace::RayDispatchParameters::width</qualifiedname>
+        <briefdescription>
+<para>Dispatch grid width. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="981" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="981" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchParameters_1adab47bf17373d165952e3fe45282719d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::RayDispatchParameters::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>raytrace::RayDispatchParameters::height</qualifiedname>
+        <briefdescription>
+<para>Dispatch grid height. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="983" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="983" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchParameters_1a3b852620e2c7859eae11c37402ed10c4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::RayDispatchParameters::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>raytrace::RayDispatchParameters::depth</qualifiedname>
+        <briefdescription>
+<para>Dispatch grid depth. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="985" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="985" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Parameters of a ray dispatch command. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="5">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="6">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="4">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::RayDispatchParameters</label>
+        <link refid="structraytrace_1_1RayDispatchParameters"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>shaderBindingTableSet</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>raytrace::ShaderBindingTableOffset</label>
+        <link refid="structraytrace_1_1ShaderBindingTableOffset"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>bindingTableBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::ShaderBindingTableSet</label>
+        <link refid="structraytrace_1_1ShaderBindingTableSet"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>rayGenGroup</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>callableGroup</edgelabel>
+          <edgelabel>hitGroup</edgelabel>
+          <edgelabel>missGroup</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>raytrace::ShaderBindingTableSubRange</label>
+        <link refid="structraytrace_1_1ShaderBindingTableSubRange"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="976" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="977" bodyend="986"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1RayDispatchParameters_1a3b852620e2c7859eae11c37402ed10c4" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchParameters</scope><name>depth</name></member>
+      <member refid="structraytrace_1_1RayDispatchParameters_1adab47bf17373d165952e3fe45282719d" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchParameters</scope><name>height</name></member>
+      <member refid="structraytrace_1_1RayDispatchParameters_1abf5ecf3f8a09d3fcae70babfa89ef4ab" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchParameters</scope><name>shaderBindingTableSet</name></member>
+      <member refid="structraytrace_1_1RayDispatchParameters_1a102b14cc302a8776f611d68526482bbd" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchParameters</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

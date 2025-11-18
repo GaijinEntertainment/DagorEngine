@@ -1,0 +1,323 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLockedBuffer" kind="class" language="C++" prot="public">
+    <compoundname>LockedBuffer</compoundname>
+    <includes refid="dag__lockSbuffer_8h" local="no">dag_lockSbuffer.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classLockedBuffer_1a0f3c89a0b50d31c4f5ce5a401236b03c" prot="private" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* LockedBuffer&lt; T &gt;::mLockedObject</definition>
+        <argsstring></argsstring>
+        <name>mLockedObject</name>
+        <qualifiedname>LockedBuffer::mLockedObject</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="16" column="11" bodyfile="dag_lockSbuffer.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLockedBuffer_1a59a378043eb5d52390be2c51d7211f29" prot="private" static="no" mutable="no">
+        <type>T *</type>
+        <definition>T* LockedBuffer&lt; T &gt;::mData</definition>
+        <argsstring></argsstring>
+        <name>mData</name>
+        <qualifiedname>LockedBuffer::mData</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="17" column="5" bodyfile="dag_lockSbuffer.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLockedBuffer_1ac21b0cd5da75fd65e945fc6685705d79" prot="private" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t LockedBuffer&lt; T &gt;::mCount</definition>
+        <argsstring></argsstring>
+        <name>mCount</name>
+        <qualifiedname>LockedBuffer::mCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="18" column="10" bodyfile="dag_lockSbuffer.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLockedBuffer_1af37074d8de877ad5be5e58c9d02275ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LockedBuffer&lt; T &gt;::LockedBuffer</definition>
+        <argsstring>()=default</argsstring>
+        <name>LockedBuffer</name>
+        <qualifiedname>LockedBuffer::LockedBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="21" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1ae9f119d008905b51fd41d60a345463ba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedBuffer&lt; T &gt;::LockedBuffer</definition>
+        <argsstring>(Sbuffer *locked_object, uint32_t ofs_bytes, uint32_t count, int flags)</argsstring>
+        <name>LockedBuffer</name>
+        <qualifiedname>LockedBuffer::LockedBuffer</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>locked_object</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="22" column="3" bodyfile="dag_lockSbuffer.h" bodystart="22" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1aac9d4f91d2470f70999fff76fe94df86" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LockedBuffer&lt; T &gt;::LockedBuffer</definition>
+        <argsstring>(const LockedBuffer &amp;rhs)=delete</argsstring>
+        <name>LockedBuffer</name>
+        <qualifiedname>LockedBuffer::LockedBuffer</qualifiedname>
+        <param>
+          <type>const <ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="36" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1a37b4e1d9bb0f401d4f85beee65e858ec" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedBuffer&lt; T &gt;::LockedBuffer</definition>
+        <argsstring>(LockedBuffer &amp;&amp;rhs) noexcept</argsstring>
+        <name>LockedBuffer</name>
+        <qualifiedname>LockedBuffer::LockedBuffer</qualifiedname>
+        <param>
+          <type><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="37" column="3" bodyfile="dag_lockSbuffer.h" bodystart="37" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1aba66018de3a91fe6d08c7faa55a5baf6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref></type>
+        <definition>LockedBuffer LockedBuffer&lt; T &gt;::operator=</definition>
+        <argsstring>(const LockedBuffer &amp;rhs)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>LockedBuffer::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="43" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1a635a600b526e3fb88a3b9de28cc136b7" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref> &amp;</type>
+        <definition>LockedBuffer &amp; LockedBuffer&lt; T &gt;::operator=</definition>
+        <argsstring>(LockedBuffer &amp;&amp;rhs) noexcept</argsstring>
+        <name>operator=</name>
+        <qualifiedname>LockedBuffer::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classLockedBuffer" kindref="compound">LockedBuffer</ref> &amp;&amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="44" column="16" bodyfile="dag_lockSbuffer.h" bodystart="44" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1a0949d1ada0d544f03e1ee82a44fa3d71" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedBuffer&lt; T &gt;::~LockedBuffer</definition>
+        <argsstring>()</argsstring>
+        <name>~LockedBuffer</name>
+        <qualifiedname>LockedBuffer::~LockedBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="51" column="3" bodyfile="dag_lockSbuffer.h" bodystart="51" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1a7d7b9df6ee643b4c1dd762ce266ed8e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void LockedBuffer&lt; T &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>LockedBuffer::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="57" column="8" bodyfile="dag_lockSbuffer.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1a39675dff8a35f9573c534a174066a4d1" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LockedBuffer&lt; T &gt;::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>LockedBuffer::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="59" column="12" bodyfile="dag_lockSbuffer.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1afe66d936aea5aecb39e505117290415d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T *</type>
+        <definition>T * LockedBuffer&lt; T &gt;::get</definition>
+        <argsstring>()</argsstring>
+        <name>get</name>
+        <qualifiedname>LockedBuffer::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="62" column="5" bodyfile="dag_lockSbuffer.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1afe5e40e27521f215497fafe59afee5a4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;</type>
+        <definition>T &amp; LockedBuffer&lt; T &gt;::operator[]</definition>
+        <argsstring>(size_t index)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>LockedBuffer::operator[]</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="64" column="5" bodyfile="dag_lockSbuffer.h" bodystart="64" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1aa44225aaad95504a4b8b806079ccb75b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const T &amp;</type>
+        <definition>const T &amp; LockedBuffer&lt; T &gt;::operator[]</definition>
+        <argsstring>(size_t index) const</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>LockedBuffer::operator[]</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="72" column="11" bodyfile="dag_lockSbuffer.h" bodystart="72" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="classLockedBuffer_1a4f28b8649231a58bf0b4a639aa73f795" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename InputIterator</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void LockedBuffer&lt; T &gt;::updateDataRange</definition>
+        <argsstring>(size_t index, InputIterator data, size_t count_elements)</argsstring>
+        <name>updateDataRange</name>
+        <qualifiedname>LockedBuffer::updateDataRange</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>InputIterator</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>count_elements</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockSbuffer.h" line="81" column="8" bodyfile="dag_lockSbuffer.h" bodystart="81" bodyend="85"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_lockSbuffer.h" line="14" column="1" bodyfile="dag_lockSbuffer.h" bodystart="15" bodyend="86"/>
+    <listofallmembers>
+      <member refid="classLockedBuffer_1a7d7b9df6ee643b4c1dd762ce266ed8e8" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>close</name></member>
+      <member refid="classLockedBuffer_1afe66d936aea5aecb39e505117290415d" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>get</name></member>
+      <member refid="classLockedBuffer_1af37074d8de877ad5be5e58c9d02275ff" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>LockedBuffer</name></member>
+      <member refid="classLockedBuffer_1ae9f119d008905b51fd41d60a345463ba" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>LockedBuffer</name></member>
+      <member refid="classLockedBuffer_1aac9d4f91d2470f70999fff76fe94df86" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>LockedBuffer</name></member>
+      <member refid="classLockedBuffer_1a37b4e1d9bb0f401d4f85beee65e858ec" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>LockedBuffer</name></member>
+      <member refid="classLockedBuffer_1ac21b0cd5da75fd65e945fc6685705d79" prot="private" virt="non-virtual"><scope>LockedBuffer</scope><name>mCount</name></member>
+      <member refid="classLockedBuffer_1a59a378043eb5d52390be2c51d7211f29" prot="private" virt="non-virtual"><scope>LockedBuffer</scope><name>mData</name></member>
+      <member refid="classLockedBuffer_1a0f3c89a0b50d31c4f5ce5a401236b03c" prot="private" virt="non-virtual"><scope>LockedBuffer</scope><name>mLockedObject</name></member>
+      <member refid="classLockedBuffer_1a39675dff8a35f9573c534a174066a4d1" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>operator bool</name></member>
+      <member refid="classLockedBuffer_1aba66018de3a91fe6d08c7faa55a5baf6" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>operator=</name></member>
+      <member refid="classLockedBuffer_1a635a600b526e3fb88a3b9de28cc136b7" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>operator=</name></member>
+      <member refid="classLockedBuffer_1afe5e40e27521f215497fafe59afee5a4" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>operator[]</name></member>
+      <member refid="classLockedBuffer_1aa44225aaad95504a4b8b806079ccb75b" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>operator[]</name></member>
+      <member refid="classLockedBuffer_1a4f28b8649231a58bf0b4a639aa73f795" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>updateDataRange</name></member>
+      <member refid="classLockedBuffer_1a0949d1ada0d544f03e1ee82a44fa3d71" prot="public" virt="non-virtual"><scope>LockedBuffer</scope><name>~LockedBuffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTMatrix" kind="class" language="C++" prot="public">
+    <compoundname>TMatrix</compoundname>
+    <includes refid="math3d_8h" local="no">math3d.h</includes>
+      <sectiondef kind="public-attrib">
+      <member refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kind="variable"><name>m</name></member>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <member refid="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" kind="variable"><name>IDENT</name></member>
+      <member refid="group__common_1ga716ae7b9d3451ea989f3d482106ea2ba" kind="variable"><name>ZERO</name></member>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <member refid="group__common_1ga3c968589426334c86f505e8e39b85c2c" kind="function"><name>TMatrix</name></member>
+      <member refid="group__common_1ga6e3960adc28d1e63fa96dded9bf1bc43" kind="function"><name>TMatrix</name></member>
+      <member refid="group__common_1gabf3dca27ffb42ec28d05902b8da9c4f4" kind="function"><name>identity</name></member>
+      <member refid="group__common_1ga5646d4c1b25b16718a9c6a524be8fe46" kind="function"><name>zero</name></member>
+      <member refid="group__common_1ga46c118dbdcbba185521d4254f4f9773f" kind="function"><name>operator[]</name></member>
+      <member refid="group__common_1ga8fb1737a53431c00077e9ae2c0dd9ad6" kind="function"><name>operator[]</name></member>
+      <member refid="group__common_1gad73b8a0580f547992e853a02cc0c4b0f" kind="function"><name>operator-</name></member>
+      <member refid="group__common_1ga2da93c1e1d81eabeef9fdde1a5f4d2ad" kind="function"><name>operator+</name></member>
+      <member refid="group__common_1ga6440e62695f784b65f7eeba4df11f70a" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1ga996a3faf2ac3503a92ce8fdc9d99380d" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1gaeeb84fdf51f3ddeed89b9981b29c4b69" kind="function"><name>operator%</name></member>
+      <member refid="group__common_1ga510553c05cf6d2bfad8816720114a8db" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1ga7d2d69864e69284f5083dff21db9196a" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1ga293c9f54c9fea11fc2dad05231536276" kind="function"><name>operator%</name></member>
+      <member refid="group__common_1gae654120db90124c052a5d13aeb5d642e" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1gab30f911bf1db2ddaed48209cabfb26c7" kind="function"><name>operator+</name></member>
+      <member refid="group__common_1ga2f36fede56333cebddd288032839cff2" kind="function"><name>operator-</name></member>
+      <member refid="group__common_1ga9701ca44d212053e7513409d42e7d947" kind="function"><name>operator+=</name></member>
+      <member refid="group__common_1ga5329520b0bd5ea6751cefda2e03688a4" kind="function"><name>operator-=</name></member>
+      <member refid="group__common_1ga0aeed5060941071d31283fa5d5afd3e0" kind="function"><name>operator*=</name></member>
+      <member refid="group__common_1ga9989557b5cbeec6323a531fb31f9e4d9" kind="function"><name>operator*=</name></member>
+      <member refid="group__common_1ga985682c921b22dffe00ab431a9fc78b7" kind="function"><name>det</name></member>
+      <member refid="group__common_1gae559bac88a1bece7ccbbe0f27ebb8165" kind="function"><name>setcol</name></member>
+      <member refid="group__common_1ga5cd36955a41d9670fa4553ba5bd4c6de" kind="function"><name>setcol</name></member>
+      <member refid="group__common_1ga83e0b4a3ffa3c4bfb00b28409cc819fa" kind="function"><name>getcol</name></member>
+      <member refid="group__common_1gafb0872a54fa8ba76fbf8f7490677239d" kind="function"><name>operator==</name></member>
+      <member refid="group__common_1gacfc0f2165a2b28915d27a70483e30b5d" kind="function"><name>operator!=</name></member>
+      <member refid="group__common_1ga6da9db13255a8aef43d6620208c1275b" kind="function"><name>rotxTM</name></member>
+      <member refid="group__common_1ga8975ac3f270da3a6e892a1a912f880a4" kind="function"><name>rotyTM</name></member>
+      <member refid="group__common_1ga0c4a708876b3fbc11b1f1a1d91c6c6c6" kind="function"><name>rotzTM</name></member>
+      <member refid="group__common_1ga4c639777f811ab17f8a1428971be15cd" kind="function"><name>makeTM</name></member>
+      <member refid="group__common_1gac495285a0e8683f73adb4244544cf7ab" kind="function"><name>makeTM</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>4x3 transformation matrix. last column (3rd, counting from zero) is translation <simplesect kind="see"><para>Matrix3 TMatrix4 Point3 Point2 Point4 </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>TMatrix</label>
+        <link refid="classTMatrix"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>IDENT</edgelabel>
+          <edgelabel>ZERO</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="math3d.h" line="356" column="1" bodyfile="math3d.h" bodystart="357" bodyend="591"/>
+    <listofallmembers>
+      <member refid="group__common_1ga985682c921b22dffe00ab431a9fc78b7" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>det</name></member>
+      <member refid="group__common_1ga83e0b4a3ffa3c4bfb00b28409cc819fa" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>getcol</name></member>
+      <member refid="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>IDENT</name></member>
+      <member refid="group__common_1gabf3dca27ffb42ec28d05902b8da9c4f4" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>identity</name></member>
+      <member refid="group__common_1ga30439c9be7994b5038d65159659f08ca" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>m</name></member>
+      <member refid="group__common_1ga4c639777f811ab17f8a1428971be15cd" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>makeTM</name></member>
+      <member refid="group__common_1gac495285a0e8683f73adb4244544cf7ab" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>makeTM</name></member>
+      <member refid="group__common_1gacfc0f2165a2b28915d27a70483e30b5d" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator!=</name></member>
+      <member refid="group__common_1gaeeb84fdf51f3ddeed89b9981b29c4b69" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator%</name></member>
+      <member refid="group__common_1ga293c9f54c9fea11fc2dad05231536276" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator%</name></member>
+      <member refid="group__common_1ga6440e62695f784b65f7eeba4df11f70a" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator*</name></member>
+      <member refid="group__common_1ga996a3faf2ac3503a92ce8fdc9d99380d" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator*</name></member>
+      <member refid="group__common_1ga510553c05cf6d2bfad8816720114a8db" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator*</name></member>
+      <member refid="group__common_1ga7d2d69864e69284f5083dff21db9196a" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator*</name></member>
+      <member refid="group__common_1gae654120db90124c052a5d13aeb5d642e" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator*</name></member>
+      <member refid="group__common_1ga0aeed5060941071d31283fa5d5afd3e0" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator*=</name></member>
+      <member refid="group__common_1ga9989557b5cbeec6323a531fb31f9e4d9" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator*=</name></member>
+      <member refid="group__common_1ga2da93c1e1d81eabeef9fdde1a5f4d2ad" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator+</name></member>
+      <member refid="group__common_1gab30f911bf1db2ddaed48209cabfb26c7" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator+</name></member>
+      <member refid="group__common_1ga9701ca44d212053e7513409d42e7d947" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator+=</name></member>
+      <member refid="group__common_1gad73b8a0580f547992e853a02cc0c4b0f" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator-</name></member>
+      <member refid="group__common_1ga2f36fede56333cebddd288032839cff2" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator-</name></member>
+      <member refid="group__common_1ga5329520b0bd5ea6751cefda2e03688a4" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator-=</name></member>
+      <member refid="group__common_1gafb0872a54fa8ba76fbf8f7490677239d" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator==</name></member>
+      <member refid="group__common_1ga46c118dbdcbba185521d4254f4f9773f" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator[]</name></member>
+      <member refid="group__common_1ga8fb1737a53431c00077e9ae2c0dd9ad6" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>operator[]</name></member>
+      <member refid="group__common_1ga6da9db13255a8aef43d6620208c1275b" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>rotxTM</name></member>
+      <member refid="group__common_1ga8975ac3f270da3a6e892a1a912f880a4" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>rotyTM</name></member>
+      <member refid="group__common_1ga0c4a708876b3fbc11b1f1a1d91c6c6c6" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>rotzTM</name></member>
+      <member refid="group__common_1gae559bac88a1bece7ccbbe0f27ebb8165" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>setcol</name></member>
+      <member refid="group__common_1ga5cd36955a41d9670fa4553ba5bd4c6de" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>setcol</name></member>
+      <member refid="group__common_1ga3c968589426334c86f505e8e39b85c2c" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>TMatrix</name></member>
+      <member refid="group__common_1ga6e3960adc28d1e63fa96dded9bf1bc43" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>TMatrix</name></member>
+      <member refid="group__common_1ga716ae7b9d3451ea989f3d482106ea2ba" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>ZERO</name></member>
+      <member refid="group__common_1ga5646d4c1b25b16718a9c6a524be8fe46" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>zero</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,226 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1Camera" kind="struct" language="C++" prot="public">
+    <compoundname>nv::Camera</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1Camera_1a04360618b16e4df732e967c07935e0b5" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 nv::Camera::projection</definition>
+        <argsstring></argsstring>
+        <name>projection</name>
+        <qualifiedname>nv::Camera::projection</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="31" column="12" bodyfile="dag_nvFeatures.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a095fc39fdeccd6b2659232704951269f" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 nv::Camera::projectionInverse</definition>
+        <argsstring></argsstring>
+        <name>projectionInverse</name>
+        <qualifiedname>nv::Camera::projectionInverse</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="32" column="12" bodyfile="dag_nvFeatures.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a9f1c0449a20e7741056db267a903f26f" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 nv::Camera::reprojection</definition>
+        <argsstring></argsstring>
+        <name>reprojection</name>
+        <qualifiedname>nv::Camera::reprojection</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="33" column="12" bodyfile="dag_nvFeatures.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a4cd88dd221432eefe75e0e54ce08b0ba" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 nv::Camera::reprojectionInverse</definition>
+        <argsstring></argsstring>
+        <name>reprojectionInverse</name>
+        <qualifiedname>nv::Camera::reprojectionInverse</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="34" column="12" bodyfile="dag_nvFeatures.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1af92ee040ebf4550d72e05a5d3f67973a" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 nv::Camera::worldToView</definition>
+        <argsstring></argsstring>
+        <name>worldToView</name>
+        <qualifiedname>nv::Camera::worldToView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="35" column="12" bodyfile="dag_nvFeatures.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1af6d050bf1d6bfa9a08ea157da3984967" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 nv::Camera::viewToWorld</definition>
+        <argsstring></argsstring>
+        <name>viewToWorld</name>
+        <qualifiedname>nv::Camera::viewToWorld</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="36" column="12" bodyfile="dag_nvFeatures.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1ab8ef56b6b6851ebb0c2bda2ef3eb92a0" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 nv::Camera::position</definition>
+        <argsstring></argsstring>
+        <name>position</name>
+        <qualifiedname>nv::Camera::position</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="38" column="10" bodyfile="dag_nvFeatures.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1aa8ba2524ea899c5f099d8401c6f94f12" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 nv::Camera::up</definition>
+        <argsstring></argsstring>
+        <name>up</name>
+        <qualifiedname>nv::Camera::up</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="39" column="10" bodyfile="dag_nvFeatures.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a3b571ba81cb4be49f86e004676158fea" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 nv::Camera::right</definition>
+        <argsstring></argsstring>
+        <name>right</name>
+        <qualifiedname>nv::Camera::right</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="40" column="10" bodyfile="dag_nvFeatures.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1aadf56a5683e050545f91b86d631425be" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 nv::Camera::forward</definition>
+        <argsstring></argsstring>
+        <name>forward</name>
+        <qualifiedname>nv::Camera::forward</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="41" column="10" bodyfile="dag_nvFeatures.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a5e7d4de8edfdbc3a37188b5c58957a98" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::Camera::nearZ</definition>
+        <argsstring></argsstring>
+        <name>nearZ</name>
+        <qualifiedname>nv::Camera::nearZ</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="43" column="9" bodyfile="dag_nvFeatures.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a8805139e4d921ba5250a3023051b1cfd" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::Camera::farZ</definition>
+        <argsstring></argsstring>
+        <name>farZ</name>
+        <qualifiedname>nv::Camera::farZ</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="44" column="9" bodyfile="dag_nvFeatures.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a7c570a78ebb50818f59b7b83574c61fa" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::Camera::fov</definition>
+        <argsstring></argsstring>
+        <name>fov</name>
+        <qualifiedname>nv::Camera::fov</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="45" column="9" bodyfile="dag_nvFeatures.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Camera_1a15d31852f2099555c93c0176512c2fda" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::Camera::aspect</definition>
+        <argsstring></argsstring>
+        <name>aspect</name>
+        <qualifiedname>nv::Camera::aspect</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="46" column="9" bodyfile="dag_nvFeatures.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="29" column="1" bodyfile="dag_nvFeatures.h" bodystart="30" bodyend="47"/>
+    <listofallmembers>
+      <member refid="structnv_1_1Camera_1a15d31852f2099555c93c0176512c2fda" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>aspect</name></member>
+      <member refid="structnv_1_1Camera_1a8805139e4d921ba5250a3023051b1cfd" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>farZ</name></member>
+      <member refid="structnv_1_1Camera_1aadf56a5683e050545f91b86d631425be" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>forward</name></member>
+      <member refid="structnv_1_1Camera_1a7c570a78ebb50818f59b7b83574c61fa" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>fov</name></member>
+      <member refid="structnv_1_1Camera_1a5e7d4de8edfdbc3a37188b5c58957a98" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>nearZ</name></member>
+      <member refid="structnv_1_1Camera_1ab8ef56b6b6851ebb0c2bda2ef3eb92a0" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>position</name></member>
+      <member refid="structnv_1_1Camera_1a04360618b16e4df732e967c07935e0b5" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>projection</name></member>
+      <member refid="structnv_1_1Camera_1a095fc39fdeccd6b2659232704951269f" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>projectionInverse</name></member>
+      <member refid="structnv_1_1Camera_1a9f1c0449a20e7741056db267a903f26f" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>reprojection</name></member>
+      <member refid="structnv_1_1Camera_1a4cd88dd221432eefe75e0e54ce08b0ba" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>reprojectionInverse</name></member>
+      <member refid="structnv_1_1Camera_1a3b571ba81cb4be49f86e004676158fea" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>right</name></member>
+      <member refid="structnv_1_1Camera_1aa8ba2524ea899c5f099d8401c6f94f12" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>up</name></member>
+      <member refid="structnv_1_1Camera_1af6d050bf1d6bfa9a08ea157da3984967" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>viewToWorld</name></member>
+      <member refid="structnv_1_1Camera_1af92ee040ebf4550d72e05a5d3f67973a" prot="public" virt="non-virtual"><scope>nv::Camera</scope><name>worldToView</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

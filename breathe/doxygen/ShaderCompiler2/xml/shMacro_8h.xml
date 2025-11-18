@@ -1,0 +1,616 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shMacro_8h" kind="file" language="C++">
+    <compoundname>shMacro.h</compoundname>
+    <includedby refid="shCompiler_8cpp" local="yes">shCompiler.cpp</includedby>
+    <includedby refid="shMacro_8cpp" local="yes">shMacro.cpp</includedby>
+    <includedby refid="shlexterm_8cpp" local="yes">shlexterm.cpp</includedby>
+    <includedby refid="shlexterm_8h" local="yes">shlexterm.h</includedby>
+    <invincdepgraph>
+      <node id="26">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="25">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>boolVar.cpp</label>
+        <link refid="boolVar_8cpp"/>
+      </node>
+      <node id="6">
+        <label>boolVar.h</label>
+        <link refid="boolVar_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="28">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="22">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="11">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="10">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="30">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="50">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="48">
+        <label>hwSemantic.h</label>
+        <link refid="hwSemantic_8h"/>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="35">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="34">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="38">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="36">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="52">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="51">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>shAssumes.cpp</label>
+        <link refid="shAssumes_8cpp"/>
+      </node>
+      <node id="53">
+        <label>shAssumes.h</label>
+        <link refid="shAssumes_8h"/>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="2">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="55">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="15">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="3">
+        <label>shMacro.cpp</label>
+        <link refid="shMacro_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="33">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="14">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="40">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="42">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="5">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="46">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>stcodeBytecode.cpp</label>
+        <link refid="stcodeBytecode_8cpp"/>
+      </node>
+      <node id="56">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="20">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="18">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="21">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShaderParser_1_1TokenInfo" prot="public">ShaderParser::TokenInfo</innerclass>
+    <innerclass refid="structShaderMacro" prot="public">ShaderMacro</innerclass>
+    <innerclass refid="structShaderMacro_1_1TokenData" prot="public">ShaderMacro::TokenData</innerclass>
+    <innerclass refid="classShaderMacroManager" prot="public">ShaderMacroManager</innerclass>
+    <innerclass refid="structShaderMacroManager_1_1MacroCode" prot="private">ShaderMacroManager::MacroCode</innerclass>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>macro<sp/>support<sp/>for<sp/>shaders</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;parser/bparser.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;parser/base_par.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="nameMap_8h" kindref="compound">nameMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory/dag_memBase.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_localConv.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//************************************************************************</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//*<sp/>forwards</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//************************************************************************</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classLexer" kindref="compound">Lexer</ref>;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderMacroManager" kindref="compound">ShaderMacroManager</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="26"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27" refid="structShaderParser_1_1TokenInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1TokenInfo" kindref="compound">TokenInfo</ref></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29" refid="structShaderParser_1_1TokenInfo_1a657464dbaabd0bed7acbed914f51a7db" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1TokenInfo_1a657464dbaabd0bed7acbed914f51a7db" kindref="member">file</ref>;</highlight></codeline>
+<codeline lineno="30" refid="structShaderParser_1_1TokenInfo_1a21500ff2d7a5ae4c1b933d92bac2b5ca" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1TokenInfo_1a21500ff2d7a5ae4c1b933d92bac2b5ca" kindref="member">line</ref>;</highlight></codeline>
+<codeline lineno="31" refid="structShaderParser_1_1TokenInfo_1ad6ad16601acddc4e7835b186fa09190a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1TokenInfo_1ad6ad16601acddc4e7835b186fa09190a" kindref="member">column</ref>;</highlight></codeline>
+<codeline lineno="32" refid="structShaderParser_1_1TokenInfo_1abd03427e0889aa2f537e8330f237abfc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1TokenInfo_1abd03427e0889aa2f537e8330f237abfc" kindref="member">token</ref>;</highlight></codeline>
+<codeline lineno="33" refid="structShaderParser_1_1TokenInfo_1a1ef44eeb587bbdae1f8fb647d8f518ef" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structShaderParser_1_1TokenInfo_1a1ef44eeb587bbdae1f8fb647d8f518ef" kindref="member">lexeme</ref>;</highlight></codeline>
+<codeline lineno="34" refid="structShaderParser_1_1TokenInfo_1a0787097a6cb11ce6356e20d080e56318" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1TokenInfo_1a0787097a6cb11ce6356e20d080e56318" kindref="member">isMacro</ref>;</highlight></codeline>
+<codeline lineno="35" refid="structShaderParser_1_1TokenInfo_1a5c4f0a3b18affc2ddb1474579ce8d8cc" refkind="member"><highlight class="normal"><sp/><sp/>BaseParNamespace::Symbol::MacroCallStack<sp/><ref refid="structShaderParser_1_1TokenInfo_1a5c4f0a3b18affc2ddb1474579ce8d8cc" kindref="member">macroCallStack</ref>;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="structShaderParser_1_1TokenInfo_1aab6c05478af06cfb7ccf2d89b5e56acb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1TokenInfo_1aab6c05478af06cfb7ccf2d89b5e56acb" kindref="member">TokenInfo</ref>()<sp/>:<sp/><ref refid="structShaderParser_1_1TokenInfo_1a657464dbaabd0bed7acbed914f51a7db" kindref="member">file</ref>(0),<sp/><ref refid="structShaderParser_1_1TokenInfo_1a21500ff2d7a5ae4c1b933d92bac2b5ca" kindref="member">line</ref>(0),<sp/><ref refid="structShaderParser_1_1TokenInfo_1ad6ad16601acddc4e7835b186fa09190a" kindref="member">column</ref>(0),<sp/><ref refid="structShaderParser_1_1TokenInfo_1abd03427e0889aa2f537e8330f237abfc" kindref="member">token</ref>(-1),<sp/><ref refid="structShaderParser_1_1TokenInfo_1a1ef44eeb587bbdae1f8fb647d8f518ef" kindref="member">lexeme</ref>(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">),<sp/><ref refid="structShaderParser_1_1TokenInfo_1a0787097a6cb11ce6356e20d080e56318" kindref="member">isMacro</ref>(false)<sp/>{}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderParser</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="comment">/*********************************</highlight></codeline>
+<codeline lineno="42"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="43"><highlight class="comment"><sp/>*<sp/>struct<sp/>ShaderMacro</highlight></codeline>
+<codeline lineno="44"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="45"><highlight class="comment"><sp/>*********************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="structShaderMacro" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="48" refid="structShaderMacro_1_1TokenData" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderMacro_1_1TokenData" kindref="compound">TokenData</ref></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50" refid="structShaderMacro_1_1TokenData_1a9d10067a2654abba99257f9620a38ca2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderMacro_1_1TokenData_1a9d10067a2654abba99257f9620a38ca2" kindref="member">paramIndex</ref>;</highlight></codeline>
+<codeline lineno="51" refid="structShaderMacro_1_1TokenData_1a7a4ec21b3913cb75abc904d6cb134ff3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref><sp/><ref refid="structShaderMacro_1_1TokenData_1a7a4ec21b3913cb75abc904d6cb134ff3" kindref="member">info</ref>;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="structShaderMacro_1_1TokenData_1a35e2a2197b6630374618db9f399d09cf" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structShaderMacro_1_1TokenData_1a35e2a2197b6630374618db9f399d09cf" kindref="member">TokenData</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_index<sp/>=<sp/>-1)<sp/>:<sp/><ref refid="structShaderMacro_1_1TokenData_1a9d10067a2654abba99257f9620a38ca2" kindref="member">paramIndex</ref>(param_index)<sp/>{}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>Tab&lt;TokenData&gt;<sp/><ref refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" kindref="member">TokenList</ref>;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="structShaderMacro_1ac25569b777606c8c07ce1ca05975177a" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structShaderMacro_1ac25569b777606c8c07ce1ca05975177a" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="59" refid="structShaderMacro_1a87993859308d45f8b47786a6d85d1683" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="structShaderMacro_1a87993859308d45f8b47786a6d85d1683" kindref="member">expandStr</ref>;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="structShaderMacro_1acde7bdbdbe11fbedf19685eafb4b8fc6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" kindref="member">TokenList</ref><sp/><ref refid="structShaderMacro_1acde7bdbdbe11fbedf19685eafb4b8fc6" kindref="member">textParts</ref>;<sp/></highlight><highlight class="comment">//<sp/>text<sp/>table</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structShaderMacro_1a2e0bb488f52cd60a908e326c4cf353c6" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;String&gt;<sp/><ref refid="structShaderMacro_1a2e0bb488f52cd60a908e326c4cf353c6" kindref="member">variables</ref>;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ctor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><ref refid="structShaderMacro_1a140d8a47d8150f13d15cd244a54079cb" kindref="member">ShaderMacro</ref>();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>retrun<sp/>macro<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="structShaderMacro_1a3efe165e8a61ecbedbcdda2a73454202" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="structShaderMacro_1a3efe165e8a61ecbedbcdda2a73454202" kindref="member">getName</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderMacro_1ac25569b777606c8c07ce1ca05975177a" kindref="member">name</ref>;<sp/>};</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>retern<sp/>desc</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="structShaderMacro_1a3558a5778b54e5dbf2865be76c6b3589" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="structShaderMacro_1a3558a5778b54e5dbf2865be76c6b3589" kindref="member">getDesc</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderMacro_1a87993859308d45f8b47786a6d85d1683" kindref="member">expandStr</ref>;<sp/>};</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>class<sp/>ShaderMacro</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="comment">/*********************************</highlight></codeline>
+<codeline lineno="77"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="78"><highlight class="comment"><sp/>*<sp/>class<sp/>ShaderMacroManager</highlight></codeline>
+<codeline lineno="79"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="80"><highlight class="comment"><sp/>*********************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classShaderMacroManager" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderMacroManager" kindref="compound">ShaderMacroManager</ref></highlight></codeline>
+<codeline lineno="82"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="83" refid="classShaderMacroManager_1ab0e75272caee18d4188578ba790aca69" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref>;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">MacroCode</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref><sp/>*macro;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" kindref="member">ShaderMacro::TokenList</ref><sp/>code;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curToken;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>caller_file<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>caller_line<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>MacroCode(<ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref><sp/>*m,<sp/><ref refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" kindref="member">ShaderMacro::TokenList</ref><sp/>&amp;init_code);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>next<sp/>token<sp/>or<sp/>false,<sp/>if<sp/>finished</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getToken(<ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref><sp/>&amp;out_info);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>Tab&lt;eastl::unique_ptr&lt;ShaderMacro&gt;&gt;<sp/>objList{};</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>FastNameMap<sp/>objNameMap{};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>Tab&lt;MacroCode<sp/>*&gt;<sp/>codeStack{};</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>parse<sp/>macro<sp/>declaration<sp/>(return<sp/>false<sp/>if<sp/>failed)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inMacroDefinition<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>parse<sp/>new<sp/>macro<sp/>definition<sp/>&amp;<sp/>add<sp/>new<sp/>macros;<sp/>return<sp/>false<sp/>if<sp/>failed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderMacroManager_1a99f538ae10fd51eae66fb2d3470ee4bb" kindref="member">parseDefinition</ref>(<ref refid="classLexer" kindref="compound">Lexer</ref><sp/>&amp;parser,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>optional);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>check<sp/>for<sp/>macros<sp/>&amp;<sp/>parse<sp/>it<sp/>if<sp/>nessesary</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderMacroManager_1a58334851d0aeec425a2a5ba3249d147a" kindref="member">tryExpandMacro</ref>(<ref refid="classLexer" kindref="compound">Lexer</ref><sp/>&amp;parser,<sp/><ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref><sp/>&amp;token);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>macro<sp/>description<sp/>(name,<sp/>file,<sp/>line,<sp/>column)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="classShaderMacroManager_1af009ed17c15add625be52ca0bc1e77f4" kindref="member">getMacroDesc</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>next<sp/>token<sp/>or<sp/>false,<sp/>if<sp/>finished</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderMacroManager_1a46de780ac1eafcd0e9c25b88748fb585" kindref="member">getToken</ref>(<ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref><sp/>&amp;out_info);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>current<sp/>macro<sp/>decription<sp/>for<sp/>error<sp/>message</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="classShaderMacroManager_1af28da1b0c28648241c8dc1e05e5ca4d9" kindref="member">getCurrentMacroDesc</ref>(<ref refid="classLexer" kindref="compound">Lexer</ref><sp/>&amp;lexer)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>find<sp/>macro<sp/>by<sp/>it&apos;s<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>findMacro(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>parse<sp/>macro<sp/>declaration<sp/>(return<sp/>false<sp/>if<sp/>failed)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>in<sp/>=<sp/>macro<sp/>&lt;macro_id&gt;([v1][,<sp/>v2]..[,<sp/>vn])<sp/>&lt;macro_body&gt;<sp/>endmacro</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>parseMacroDefinition(<ref refid="classLexer" kindref="compound">Lexer</ref><sp/>&amp;lexer,<sp/><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref><sp/>&amp;macro);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="shMacro.h"/>
+  </compounddef>
+</doxygen>

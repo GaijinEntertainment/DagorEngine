@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMatVdata_1_1ModelLoadStats" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderMatVdata::ModelLoadStats</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMatVdata_1_1ModelLoadStats_1a2d8a263c2bd44d2087b47ca2c78b147e" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::ModelLoadStats::reloadTimeMsec</definition>
+        <argsstring></argsstring>
+        <name>reloadTimeMsec</name>
+        <qualifiedname>ShaderMatVdata::ModelLoadStats::reloadTimeMsec</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="263" column="14" bodyfile="dag_shaderMesh.h" bodystart="263" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatVdata_1_1ModelLoadStats_1a559b6cc03e39b473cd2d7a6821be0cb9" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::ModelLoadStats::reloadDataSizeKb</definition>
+        <argsstring></argsstring>
+        <name>reloadDataSizeKb</name>
+        <qualifiedname>ShaderMatVdata::ModelLoadStats::reloadDataSizeKb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="264" column="14" bodyfile="dag_shaderMesh.h" bodystart="264" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatVdata_1_1ModelLoadStats_1ad695aaba7af79639b1f37ec7240b2a16" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::ModelLoadStats::reloadDataCount</definition>
+        <argsstring></argsstring>
+        <name>reloadDataCount</name>
+        <qualifiedname>ShaderMatVdata::ModelLoadStats::reloadDataCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="265" column="14" bodyfile="dag_shaderMesh.h" bodystart="265" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="261" column="3" bodyfile="dag_shaderMesh.h" bodystart="262" bodyend="266"/>
+    <listofallmembers>
+      <member refid="structShaderMatVdata_1_1ModelLoadStats_1ad695aaba7af79639b1f37ec7240b2a16" prot="public" virt="non-virtual"><scope>ShaderMatVdata::ModelLoadStats</scope><name>reloadDataCount</name></member>
+      <member refid="structShaderMatVdata_1_1ModelLoadStats_1a559b6cc03e39b473cd2d7a6821be0cb9" prot="public" virt="non-virtual"><scope>ShaderMatVdata::ModelLoadStats</scope><name>reloadDataSizeKb</name></member>
+      <member refid="structShaderMatVdata_1_1ModelLoadStats_1a2d8a263c2bd44d2087b47ca2c78b147e" prot="public" virt="non-virtual"><scope>ShaderMatVdata::ModelLoadStats</scope><name>reloadTimeMsec</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

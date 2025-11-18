@@ -1,0 +1,140 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCachedShader" kind="struct" language="C++" prot="public">
+    <compoundname>CachedShader</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="no">shaderBytecodeCache.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" prot="public" static="no" mutable="no">
+        <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+        <definition>HlslCompilationStage CachedShader::codeType</definition>
+        <argsstring></argsstring>
+        <name>codeType</name>
+        <qualifiedname>CachedShader::codeType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="73" column="24" bodyfile="shaderBytecodeCache.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" prot="public" static="no" mutable="no">
+        <type>Tab&lt; unsigned &gt;</type>
+        <definition>Tab&lt;unsigned&gt; CachedShader::relCode</definition>
+        <argsstring></argsstring>
+        <name>relCode</name>
+        <qualifiedname>CachedShader::relCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="74" column="7" bodyfile="shaderBytecodeCache.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCachedShader_1a1ac146f94af6082b0157df7eee64c7fe" prot="public" static="no" mutable="no">
+        <type><ref refid="structComputeShaderInfo" kindref="compound">ComputeShaderInfo</ref></type>
+        <definition>ComputeShaderInfo CachedShader::computeShaderInfo</definition>
+        <argsstring></argsstring>
+        <name>computeShaderInfo</name>
+        <qualifiedname>CachedShader::computeShaderInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="75" column="21" bodyfile="shaderBytecodeCache.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCachedShader_1a393f875e5a1d219514ec106f64e0448e" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String CachedShader::compileCtx</definition>
+        <argsstring></argsstring>
+        <name>compileCtx</name>
+        <qualifiedname>CachedShader::compileCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="76" column="10" bodyfile="shaderBytecodeCache.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCachedShader_1ae2d3aacefffd371aed1bb9a237235d32" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CachedShader::CachedShader</definition>
+        <argsstring>()</argsstring>
+        <name>CachedShader</name>
+        <qualifiedname>CachedShader::CachedShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="77" column="3" bodyfile="shaderBytecodeCache.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="structCachedShader_1a9f30a4f8a4449c048a685f652d0742b6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt; unsigned &gt; CachedShader::getShaderOutCode</definition>
+        <argsstring>(HlslCompilationStage type) const</argsstring>
+        <name>getShaderOutCode</name>
+        <qualifiedname>CachedShader::getShaderOutCode</qualifiedname>
+        <param>
+          <type><ref refid="hlslStage_8h_1a2c05326871fdf863346c90daec291c82" kindref="member">HlslCompilationStage</ref></type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="79" column="18" bodyfile="shaderBytecodeCache.h" bodystart="79" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structComputeShaderInfo" kindref="compound">ComputeShaderInfo</ref> &amp;</type>
+        <definition>const ComputeShaderInfo &amp; CachedShader::getComputeShaderInfo</definition>
+        <argsstring>() const</argsstring>
+        <name>getComputeShaderInfo</name>
+        <qualifiedname>CachedShader::getComputeShaderInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="84" column="27" bodyfile="shaderBytecodeCache.h" bodystart="84" bodyend="88"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>CachedShader</label>
+        <link refid="structCachedShader"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>computeShaderInfo</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ComputeShaderInfo</label>
+        <link refid="structComputeShaderInfo"/>
+      </node>
+    </collaborationgraph>
+    <location file="shaderBytecodeCache.h" line="71" column="1" bodyfile="shaderBytecodeCache.h" bodystart="72" bodyend="89"/>
+    <listofallmembers>
+      <member refid="structCachedShader_1ae2d3aacefffd371aed1bb9a237235d32" prot="public" virt="non-virtual"><scope>CachedShader</scope><name>CachedShader</name></member>
+      <member refid="structCachedShader_1a92e2e920374581e36fe6dc5f5715e6f2" prot="public" virt="non-virtual"><scope>CachedShader</scope><name>codeType</name></member>
+      <member refid="structCachedShader_1a393f875e5a1d219514ec106f64e0448e" prot="public" virt="non-virtual"><scope>CachedShader</scope><name>compileCtx</name></member>
+      <member refid="structCachedShader_1a1ac146f94af6082b0157df7eee64c7fe" prot="public" virt="non-virtual"><scope>CachedShader</scope><name>computeShaderInfo</name></member>
+      <member refid="structCachedShader_1aeaaeb52e869a61816ad958046354d5d7" prot="public" virt="non-virtual"><scope>CachedShader</scope><name>getComputeShaderInfo</name></member>
+      <member refid="structCachedShader_1a9f30a4f8a4449c048a685f652d0742b6" prot="public" virt="non-virtual"><scope>CachedShader</scope><name>getShaderOutCode</name></member>
+      <member refid="structCachedShader_1a71ffc9a0e81890739a3cccc744c6b676" prot="public" virt="non-virtual"><scope>CachedShader</scope><name>relCode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

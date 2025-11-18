@@ -1,0 +1,1007 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderVariableInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderVariableInfo</compoundname>
+    <basecompoundref refid="classIShaderBindumpReloadListener" prot="public" virt="non-virtual">IShaderBindumpReloadListener</basecompoundref>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structShaderVariableInfo_1aa0c8c022b7e7b151d795b6266da4aefb" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderVariableInfo::var_id</definition>
+        <argsstring></argsstring>
+        <name>var_id</name>
+        <qualifiedname>ShaderVariableInfo::var_id</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="232" column="7" bodyfile="dag_shaderVariableInfo.h" bodystart="232" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariableInfo_1a4e208a63e2cc81d976dc5ac03e4e4255" prot="protected" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t ShaderVariableInfo::iid</definition>
+        <argsstring></argsstring>
+        <name>iid</name>
+        <qualifiedname>ShaderVariableInfo::iid</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="233" column="11" bodyfile="dag_shaderVariableInfo.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariableInfo_1a4309281f52b872e0e055fcfdc0dd977f" prot="protected" static="no" mutable="no">
+        <type>int8_t</type>
+        <definition>int8_t ShaderVariableInfo::varType</definition>
+        <argsstring></argsstring>
+        <name>varType</name>
+        <qualifiedname>ShaderVariableInfo::varType</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="234" column="10" bodyfile="dag_shaderVariableInfo.h" bodystart="234" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariableInfo_1a14b9a4dbe2a11da325863f4f8fa421eb" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::optional</definition>
+        <argsstring></argsstring>
+        <name>optional</name>
+        <qualifiedname>ShaderVariableInfo::optional</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="235" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="235" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariableInfo_1a72e3162b0e3fcd0563d868464bd09007" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::enabled</definition>
+        <argsstring></argsstring>
+        <name>enabled</name>
+        <qualifiedname>ShaderVariableInfo::enabled</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="236" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariableInfo_1a1a5eb1ed6f4c407238b8a1de3dc99ba8" prot="protected" static="no" mutable="no">
+        <type>char *</type>
+        <definition>char* ShaderVariableInfo::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>ShaderVariableInfo::data</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="237" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="237" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-attrib">
+      <memberdef kind="variable" id="structShaderVariableInfo_1a91a4cdf63bd877e2a1e184f20df68e36" prot="protected" static="yes" mutable="no">
+        <type>char</type>
+        <definition>char ShaderVariableInfo::zero[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>zero</name>
+        <qualifiedname>ShaderVariableInfo::zero</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="238" column="15" bodyfile="dag_shaderVariableInfo.h" bodystart="238" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structShaderVariableInfo_1a175ae42501478d6da25bc347ec3c2a15" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct ScriptedShadersBinDumpOwner</definition>
+        <argsstring></argsstring>
+        <name>ScriptedShadersBinDumpOwner</name>
+        <qualifiedname>ShaderVariableInfo::ScriptedShadersBinDumpOwner</qualifiedname>
+        <param>
+          <type>ScriptedShadersBinDumpOwner</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="239" column="17" bodyfile="dag_shaderVariableInfo.h" bodystart="239" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderVariableInfo_1a85dbc9bdb31871b5fbcac317d95d7dc3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_int</definition>
+        <argsstring>(int v) const</argsstring>
+        <name>set_int</name>
+        <qualifiedname>ShaderVariableInfo::set_int</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="32" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="32" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1af85026ce032cca487996940d965f35c3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_real</definition>
+        <argsstring>(float v) const</argsstring>
+        <name>set_real</name>
+        <qualifiedname>ShaderVariableInfo::set_real</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="40" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="40" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a6f647bd6303c1f6cce3c7b2c466610df" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_color4</definition>
+        <argsstring>(const Color4 &amp;v) const</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderVariableInfo::set_color4</qualifiedname>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="55" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="55" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a031078a8b342de28a19efce784b53947" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_color4</definition>
+        <argsstring>(float r, float g, float b, float a) const</argsstring>
+        <name>set_color4</name>
+        <qualifiedname>ShaderVariableInfo::set_color4</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>g</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>b</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="68" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="68" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a1c1df44ae6074bc66768245a7ca4dd60" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_color4_array</definition>
+        <argsstring>(const Color4 *v, int count) const</argsstring>
+        <name>set_color4_array</name>
+        <qualifiedname>ShaderVariableInfo::set_color4_array</qualifiedname>
+        <param>
+          <type>const Color4 *</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="84" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="84" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a380af81644ba4d24325d2723def53db1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_int4</definition>
+        <argsstring>(const IPoint4 &amp;v) const</argsstring>
+        <name>set_int4</name>
+        <qualifiedname>ShaderVariableInfo::set_int4</qualifiedname>
+        <param>
+          <type>const IPoint4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="90" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="90" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a61085de47c8453f5862b8248c7c28192" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_int4</definition>
+        <argsstring>(int x, int y, int z, int w) const</argsstring>
+        <name>set_int4</name>
+        <qualifiedname>ShaderVariableInfo::set_int4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>z</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="96" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="96" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1ac2c119ec8c3e8a5ca07f5b2de64034d7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_int4_array</definition>
+        <argsstring>(const IPoint4 *v, int count) const</argsstring>
+        <name>set_int4_array</name>
+        <qualifiedname>ShaderVariableInfo::set_int4_array</qualifiedname>
+        <param>
+          <type>const IPoint4 *</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="105" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="105" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a17622d651e0e20c8fe695d7655b9763a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_texture</definition>
+        <argsstring>(TEXTUREID v) const</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>ShaderVariableInfo::set_texture</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="111" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="111" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1ac90afa6cd520061e315d16631cea72d4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_buffer</definition>
+        <argsstring>(D3DRESID v) const</argsstring>
+        <name>set_buffer</name>
+        <qualifiedname>ShaderVariableInfo::set_buffer</qualifiedname>
+        <param>
+          <type>D3DRESID</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="118" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="118" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1aec874b5bf4dca06860fa4461cd93fc25" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_tlas</definition>
+        <argsstring>(RaytraceTopAccelerationStructure *v) const</argsstring>
+        <name>set_tlas</name>
+        <qualifiedname>ShaderVariableInfo::set_tlas</qualifiedname>
+        <param>
+          <type>RaytraceTopAccelerationStructure *</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="124" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="124" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a09af853211333a641e75fadf6a9f841b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_sampler</definition>
+        <argsstring>(d3d::SamplerHandle v) const</argsstring>
+        <name>set_sampler</name>
+        <qualifiedname>ShaderVariableInfo::set_sampler</qualifiedname>
+        <param>
+          <type>d3d::SamplerHandle</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="130" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="130" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a0bd85c96a8da50e87e243faa7e77d998" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::set_float4x4</definition>
+        <argsstring>(const TMatrix4 &amp;v) const</argsstring>
+        <name>set_float4x4</name>
+        <qualifiedname>ShaderVariableInfo::set_float4x4</qualifiedname>
+        <param>
+          <type>const TMatrix4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="136" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="136" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a556567b0c81beee0e68c6e836080ec7d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderVariableInfo::get_int</definition>
+        <argsstring>() const</argsstring>
+        <name>get_int</name>
+        <qualifiedname>ShaderVariableInfo::get_int</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="150" column="7" bodyfile="dag_shaderVariableInfo.h" bodystart="150" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a78292fabc1d19d7b0d9f874f26658a03" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float ShaderVariableInfo::get_real</definition>
+        <argsstring>() const</argsstring>
+        <name>get_real</name>
+        <qualifiedname>ShaderVariableInfo::get_real</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="155" column="9" bodyfile="dag_shaderVariableInfo.h" bodystart="155" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a71ac00c17231ce751067af621163e86f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Color4 &amp;</type>
+        <definition>const Color4 &amp; ShaderVariableInfo::get_color4</definition>
+        <argsstring>() const</argsstring>
+        <name>get_color4</name>
+        <qualifiedname>ShaderVariableInfo::get_color4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="160" column="16" bodyfile="dag_shaderVariableInfo.h" bodystart="160" bodyend="164"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a9079023f9292c50859a743345af06bec" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const IPoint4 &amp;</type>
+        <definition>const IPoint4 &amp; ShaderVariableInfo::get_int4</definition>
+        <argsstring>() const</argsstring>
+        <name>get_int4</name>
+        <qualifiedname>ShaderVariableInfo::get_int4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="165" column="17" bodyfile="dag_shaderVariableInfo.h" bodystart="165" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a8ca5a7ef673a9988d386df2a53077ef9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ShaderVariableInfo::get_texture</definition>
+        <argsstring>() const</argsstring>
+        <name>get_texture</name>
+        <qualifiedname>ShaderVariableInfo::get_texture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="170" column="13" bodyfile="dag_shaderVariableInfo.h" bodystart="170" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a1fb7c466a5333e39c6259eb9ab1af139" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID ShaderVariableInfo::get_buffer</definition>
+        <argsstring>() const</argsstring>
+        <name>get_buffer</name>
+        <qualifiedname>ShaderVariableInfo::get_buffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="175" column="12" bodyfile="dag_shaderVariableInfo.h" bodystart="175" bodyend="179"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a69831cf0d33f8097f2069821892b1ed9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>RaytraceTopAccelerationStructure *</type>
+        <definition>RaytraceTopAccelerationStructure * ShaderVariableInfo::get_tlas</definition>
+        <argsstring>() const</argsstring>
+        <name>get_tlas</name>
+        <qualifiedname>ShaderVariableInfo::get_tlas</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="180" column="36" bodyfile="dag_shaderVariableInfo.h" bodystart="180" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a6f2676b03cdc6a8c3cbc48d6363ffec7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix4 &amp;</type>
+        <definition>const TMatrix4 &amp; ShaderVariableInfo::get_float4x4</definition>
+        <argsstring>() const</argsstring>
+        <name>get_float4x4</name>
+        <qualifiedname>ShaderVariableInfo::get_float4x4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="185" column="18" bodyfile="dag_shaderVariableInfo.h" bodystart="185" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a925013858cbae473f38b03397859c149" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::type_error</definition>
+        <argsstring>(int required, const char *fun) const</argsstring>
+        <name>type_error</name>
+        <qualifiedname>ShaderVariableInfo::type_error</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>required</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fun</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="191" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="191" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1ad3f003088403ad5bdf017cb872ecd18e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderVariableInfo::get_type</definition>
+        <argsstring>() const</argsstring>
+        <name>get_type</name>
+        <qualifiedname>ShaderVariableInfo::get_type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="202" column="7" bodyfile="dag_shaderVariableInfo.h" bodystart="202" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1ab206ef7a7ab7b6e055b9b9a9a07392bb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderVariableInfo::get_var_id</definition>
+        <argsstring>() const</argsstring>
+        <name>get_var_id</name>
+        <qualifiedname>ShaderVariableInfo::get_var_id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="203" column="7" bodyfile="dag_shaderVariableInfo.h" bodystart="203" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1aaba27b360b2ccbaba6e4b5eb56c4a3fb" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariableInfo::operator int</definition>
+        <argsstring>() const</argsstring>
+        <name>operator int</name>
+        <qualifiedname>ShaderVariableInfo::operator int</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="204" column="12" bodyfile="dag_shaderVariableInfo.h" bodystart="204" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a77432ead852567dda8bbaff561fba7ba" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariableInfo::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>ShaderVariableInfo::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="205" column="12" bodyfile="dag_shaderVariableInfo.h" bodystart="205" bodyend="205"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a34b53ef5ac79e2cba9bd47e07835b4f4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::operator==</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ShaderVariableInfo::operator==</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="206" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="206" bodyend="206"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1ad4ff57d0ee96e3c957a128ce6029e61c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::operator!=</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ShaderVariableInfo::operator!=</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="207" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="207" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a91e3dcb570a79e049b09a86c7f2c7b8c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::operator&gt;=</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>operator&gt;=</name>
+        <qualifiedname>ShaderVariableInfo::operator&gt;=</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="208" column="8" bodyfile="dag_shaderVariableInfo.h" bodystart="208" bodyend="208"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a0337f0ce52031a26743273fdffae4449" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::operator&lt;</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>operator&lt;</name>
+        <qualifiedname>ShaderVariableInfo::operator&lt;</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="209" column="3" bodyfile="dag_shaderVariableInfo.h" bodystart="209" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a81c062f443b4606893f18537009f3717" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariableInfo::operator&lt;=</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>operator&lt;=</name>
+        <qualifiedname>ShaderVariableInfo::operator&lt;=</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="210" column="3" bodyfile="dag_shaderVariableInfo.h" bodystart="210" bodyend="210"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a11da61ed98f7b9854e07a197cf38d097" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariableInfo::ShaderVariableInfo</definition>
+        <argsstring>(int v_id=-1)</argsstring>
+        <name>ShaderVariableInfo</name>
+        <qualifiedname>ShaderVariableInfo::ShaderVariableInfo</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v_id</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="211" column="3" bodyfile="dag_shaderVariableInfo.h" bodystart="211" bodyend="211"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a0392aaf4dbcdd95d09f1b053b06ee1e9" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariableInfo::ShaderVariableInfo</definition>
+        <argsstring>(const char *name, bool optional_=false, const char *tag_=nullptr)</argsstring>
+        <name>ShaderVariableInfo</name>
+        <qualifiedname>ShaderVariableInfo::ShaderVariableInfo</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>optional_</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tag_</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="212" column="12" bodyfile="dag_shaderVariableInfo.h" bodystart="212" bodyend="216"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a4de20bdd8023533d06df3c0ee5e9565d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+        <definition>ShaderVariableInfo &amp; ShaderVariableInfo::operator=</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ShaderVariableInfo::operator=</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="217" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1add92abb17c94e3781116c47eff8cda1c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+        <definition>ShaderVariableInfo &amp; ShaderVariableInfo::operator=</definition>
+        <argsstring>(const ShaderVariableInfo &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ShaderVariableInfo::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="218" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a4aff228d421bef64303cbad41f043193" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariableInfo::ShaderVariableInfo</definition>
+        <argsstring>(const ShaderVariableInfo &amp;)=delete</argsstring>
+        <name>ShaderVariableInfo</name>
+        <qualifiedname>ShaderVariableInfo::ShaderVariableInfo</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="219" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1af1593a73ca0144210e07228e8d5bb6f1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderVariableInfo::getName</definition>
+        <argsstring>() const</argsstring>
+        <name>getName</name>
+        <qualifiedname>ShaderVariableInfo::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="220" column="14"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="structShaderVariableInfo_1a63fdb345ca06c4d18bf0649ce8c8499d" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::set_texture_ool</definition>
+        <argsstring>(TEXTUREID texture_id) const</argsstring>
+        <name>set_texture_ool</name>
+        <qualifiedname>ShaderVariableInfo::set_texture_ool</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>texture_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="223" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1ab46547d4e6492bc8bfbb814575a57a5d" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::set_buffer_ool</definition>
+        <argsstring>(D3DRESID buf_id) const</argsstring>
+        <name>set_buffer_ool</name>
+        <qualifiedname>ShaderVariableInfo::set_buffer_ool</qualifiedname>
+        <param>
+          <type>D3DRESID</type>
+          <declname>buf_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="224" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a862298867c56e2a22ddd92eb1de59ddd" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::nanError</definition>
+        <argsstring>() const</argsstring>
+        <name>nanError</name>
+        <qualifiedname>ShaderVariableInfo::nanError</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="225" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a039a915ed8dedf81275dfe9ab5dc2336" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::set_int_var_interval</definition>
+        <argsstring>(int v) const</argsstring>
+        <name>set_int_var_interval</name>
+        <qualifiedname>ShaderVariableInfo::set_int_var_interval</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="226" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1adee3eb1f90fa65e67916d351875fc395" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::set_float_var_interval</definition>
+        <argsstring>(float v) const</argsstring>
+        <name>set_float_var_interval</name>
+        <qualifiedname>ShaderVariableInfo::set_float_var_interval</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="227" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1ab6b917c5f9b79a90e1de76d3d67e33f4" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::resolve</definition>
+        <argsstring>() override</argsstring>
+        <name>resolve</name>
+        <qualifiedname>ShaderVariableInfo::resolve</qualifiedname>
+        <reimplements refid="classIShaderBindumpReloadListener_1a47f555e4f12c10c438172dc7be1f14e4">resolve</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="229" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariableInfo_1a825bccddaa73228c011c4c1487784830" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderVariableInfo::setEnabled</definition>
+        <argsstring>(bool enabled_) override</argsstring>
+        <name>setEnabled</name>
+        <qualifiedname>ShaderVariableInfo::setEnabled</qualifiedname>
+        <reimplements refid="classIShaderBindumpReloadListener_1ab6ce205645939755755b2017f1923384">setEnabled</reimplements>
+        <param>
+          <type>bool</type>
+          <declname>enabled_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVariableInfo.h" line="230" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>IShaderBindumpReloadListener</label>
+        <link refid="classIShaderBindumpReloadListener"/>
+      </node>
+      <node id="1">
+        <label>ShaderVariableInfo</label>
+        <link refid="structShaderVariableInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IShaderBindumpReloadListener</label>
+        <link refid="classIShaderBindumpReloadListener"/>
+      </node>
+      <node id="1">
+        <label>ShaderVariableInfo</label>
+        <link refid="structShaderVariableInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shaderVariableInfo.h" line="24" column="1" bodyfile="dag_shaderVariableInfo.h" bodystart="25" bodyend="240"/>
+    <listofallmembers>
+      <member refid="structShaderVariableInfo_1a1a5eb1ed6f4c407238b8a1de3dc99ba8" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>data</name></member>
+      <member refid="structShaderVariableInfo_1a72e3162b0e3fcd0563d868464bd09007" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>enabled</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a82c0945593bdddc6ddc7676b360ddbee" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>forEach</name></member>
+      <member refid="structShaderVariableInfo_1a1fb7c466a5333e39c6259eb9ab1af139" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_buffer</name></member>
+      <member refid="structShaderVariableInfo_1a71ac00c17231ce751067af621163e86f" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_color4</name></member>
+      <member refid="structShaderVariableInfo_1a6f2676b03cdc6a8c3cbc48d6363ffec7" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_float4x4</name></member>
+      <member refid="structShaderVariableInfo_1a556567b0c81beee0e68c6e836080ec7d" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_int</name></member>
+      <member refid="structShaderVariableInfo_1a9079023f9292c50859a743345af06bec" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_int4</name></member>
+      <member refid="structShaderVariableInfo_1a78292fabc1d19d7b0d9f874f26658a03" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_real</name></member>
+      <member refid="structShaderVariableInfo_1a8ca5a7ef673a9988d386df2a53077ef9" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_texture</name></member>
+      <member refid="structShaderVariableInfo_1a69831cf0d33f8097f2069821892b1ed9" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_tlas</name></member>
+      <member refid="structShaderVariableInfo_1ad3f003088403ad5bdf017cb872ecd18e" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_type</name></member>
+      <member refid="structShaderVariableInfo_1ab206ef7a7ab7b6e055b9b9a9a07392bb" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>get_var_id</name></member>
+      <member refid="structShaderVariableInfo_1af1593a73ca0144210e07228e8d5bb6f1" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>getName</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a19c8b2e3934c22f8072520d78beacfea" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>getTag</name></member>
+      <member refid="structShaderVariableInfo_1a4e208a63e2cc81d976dc5ac03e4e4255" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>iid</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a3e443f460b5e8d52dd3279c76239a170" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>IShaderBindumpReloadListener</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a219f2c3b71f19681e1dd8b9835e26b08" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>IShaderBindumpReloadListener</name></member>
+      <member refid="structShaderVariableInfo_1a862298867c56e2a22ddd92eb1de59ddd" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>nanError</name></member>
+      <member refid="structShaderVariableInfo_1a77432ead852567dda8bbaff561fba7ba" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator bool</name></member>
+      <member refid="structShaderVariableInfo_1aaba27b360b2ccbaba6e4b5eb56c4a3fb" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator int</name></member>
+      <member refid="structShaderVariableInfo_1ad4ff57d0ee96e3c957a128ce6029e61c" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator!=</name></member>
+      <member refid="structShaderVariableInfo_1a0337f0ce52031a26743273fdffae4449" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator&lt;</name></member>
+      <member refid="structShaderVariableInfo_1a81c062f443b4606893f18537009f3717" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator&lt;=</name></member>
+      <member refid="structShaderVariableInfo_1a4de20bdd8023533d06df3c0ee5e9565d" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator=</name></member>
+      <member refid="structShaderVariableInfo_1add92abb17c94e3781116c47eff8cda1c" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator=</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a38c60d498b7aa90691d9094349b73995" prot="public" virt="non-virtual" ambiguityscope="IShaderBindumpReloadListener::"><scope>ShaderVariableInfo</scope><name>operator=</name></member>
+      <member refid="structShaderVariableInfo_1a34b53ef5ac79e2cba9bd47e07835b4f4" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator==</name></member>
+      <member refid="structShaderVariableInfo_1a91e3dcb570a79e049b09a86c7f2c7b8c" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>operator&gt;=</name></member>
+      <member refid="structShaderVariableInfo_1a14b9a4dbe2a11da325863f4f8fa421eb" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>optional</name></member>
+      <member refid="structShaderVariableInfo_1ab6b917c5f9b79a90e1de76d3d67e33f4" prot="protected" virt="virtual"><scope>ShaderVariableInfo</scope><name>resolve</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a048ca30af2dca91b12c4dd8f97ab9f92" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>resolveAll</name></member>
+      <member refid="structShaderVariableInfo_1a175ae42501478d6da25bc347ec3c2a15" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>ScriptedShadersBinDumpOwner</name></member>
+      <member refid="structShaderVariableInfo_1ac90afa6cd520061e315d16631cea72d4" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_buffer</name></member>
+      <member refid="structShaderVariableInfo_1ab46547d4e6492bc8bfbb814575a57a5d" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_buffer_ool</name></member>
+      <member refid="structShaderVariableInfo_1a6f647bd6303c1f6cce3c7b2c466610df" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_color4</name></member>
+      <member refid="structShaderVariableInfo_1a031078a8b342de28a19efce784b53947" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_color4</name></member>
+      <member refid="structShaderVariableInfo_1a1c1df44ae6074bc66768245a7ca4dd60" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_color4_array</name></member>
+      <member refid="structShaderVariableInfo_1a0bd85c96a8da50e87e243faa7e77d998" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_float4x4</name></member>
+      <member refid="structShaderVariableInfo_1adee3eb1f90fa65e67916d351875fc395" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_float_var_interval</name></member>
+      <member refid="structShaderVariableInfo_1a85dbc9bdb31871b5fbcac317d95d7dc3" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_int</name></member>
+      <member refid="structShaderVariableInfo_1a380af81644ba4d24325d2723def53db1" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_int4</name></member>
+      <member refid="structShaderVariableInfo_1a61085de47c8453f5862b8248c7c28192" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_int4</name></member>
+      <member refid="structShaderVariableInfo_1ac2c119ec8c3e8a5ca07f5b2de64034d7" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_int4_array</name></member>
+      <member refid="structShaderVariableInfo_1a039a915ed8dedf81275dfe9ab5dc2336" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_int_var_interval</name></member>
+      <member refid="structShaderVariableInfo_1af85026ce032cca487996940d965f35c3" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_real</name></member>
+      <member refid="structShaderVariableInfo_1a09af853211333a641e75fadf6a9f841b" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_sampler</name></member>
+      <member refid="structShaderVariableInfo_1a17622d651e0e20c8fe695d7655b9763a" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_texture</name></member>
+      <member refid="structShaderVariableInfo_1a63fdb345ca06c4d18bf0649ce8c8499d" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_texture_ool</name></member>
+      <member refid="structShaderVariableInfo_1aec874b5bf4dca06860fa4461cd93fc25" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>set_tlas</name></member>
+      <member refid="structShaderVariableInfo_1a825bccddaa73228c011c4c1487784830" prot="protected" virt="virtual"><scope>ShaderVariableInfo</scope><name>setEnabled</name></member>
+      <member refid="structShaderVariableInfo_1a11da61ed98f7b9854e07a197cf38d097" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>ShaderVariableInfo</name></member>
+      <member refid="structShaderVariableInfo_1a0392aaf4dbcdd95d09f1b053b06ee1e9" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>ShaderVariableInfo</name></member>
+      <member refid="structShaderVariableInfo_1a4aff228d421bef64303cbad41f043193" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>ShaderVariableInfo</name></member>
+      <member refid="structShaderVariableInfo_1a925013858cbae473f38b03397859c149" prot="public" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>type_error</name></member>
+      <member refid="structShaderVariableInfo_1aa0c8c022b7e7b151d795b6266da4aefb" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>var_id</name></member>
+      <member refid="structShaderVariableInfo_1a4309281f52b872e0e055fcfdc0dd977f" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>varType</name></member>
+      <member refid="structShaderVariableInfo_1a91a4cdf63bd877e2a1e184f20df68e36" prot="protected" virt="non-virtual"><scope>ShaderVariableInfo</scope><name>zero</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a06cf1cb39b7e469dd9fefd44fec42b39" prot="public" virt="virtual"><scope>ShaderVariableInfo</scope><name>~IShaderBindumpReloadListener</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

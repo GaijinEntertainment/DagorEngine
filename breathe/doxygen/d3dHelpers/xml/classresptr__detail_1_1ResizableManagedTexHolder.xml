@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ResizableManagedTexHolder" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ResizableManagedTexHolder</compoundname>
+    <basecompoundref refid="classresptr__detail_1_1ManagedResHolder" prot="public" virt="non-virtual">resptr_detail::ManagedResHolder&lt; ResizableManagedTex &gt;</basecompoundref>
+    <includes refid="dag__resizableTex_8h" local="no">dag_resizableTex.h</includes>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ResizableManagedTexHolder_1ae3af2f0692e4eab0da58bbdd13380c46" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResizableManagedTexHolder::ResizableManagedTexHolder</definition>
+        <argsstring>()=default</argsstring>
+        <name>ResizableManagedTexHolder</name>
+        <qualifiedname>resptr_detail::ResizableManagedTexHolder::ResizableManagedTexHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="68" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ResizableManagedTexHolder_1aa409ec3d60a8327758d02d82d9410791" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ResizableManagedTexHolder::resize</definition>
+        <argsstring>(int width, int height, int d=1)</argsstring>
+        <name>resize</name>
+        <qualifiedname>resptr_detail::ResizableManagedTexHolder::resize</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>d</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="71" column="8" bodyfile="dag_resizableTex.h" bodystart="71" bodyend="75"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>resptr_detail::ManagedResHolder&lt; ResizableManagedTex &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResHolder"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ManagedTex</label>
+        <link refid="classresptr__detail_1_1ManagedRes"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ResourceGetter&lt; ManagedRes&lt; ResType &gt;, ResType &gt;</label>
+      </node>
+      <node id="3">
+        <label>resptr_detail::ResizableManagedTex</label>
+        <link refid="classresptr__detail_1_1ResizableManagedTex"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ResizableManagedTexHolder</label>
+        <link refid="classresptr__detail_1_1ResizableManagedTexHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>resptr_detail::ManagedResHolder&lt; ResizableManagedTex &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResHolder"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ManagedTex</label>
+        <link refid="classresptr__detail_1_1ManagedRes"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ResourceGetter&lt; ManagedRes&lt; ResType &gt;, ResType &gt;</label>
+      </node>
+      <node id="3">
+        <label>resptr_detail::ResizableManagedTex</label>
+        <link refid="classresptr__detail_1_1ResizableManagedTex"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ResizableManagedTexHolder</label>
+        <link refid="classresptr__detail_1_1ResizableManagedTexHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resizableTex.h" line="65" column="1" bodyfile="dag_resizableTex.h" bodystart="66" bodyend="76"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1a919ac190d3991e98baea581b66c4c874" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>alias</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1ae61b9ed6358a729523c9aacb3899245e" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>AliasMap</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1a16d13f7cef415cd80e5a672b1017ec04" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>calcKey</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1a7b0e46e09b23bf7da84cda542bc87308" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>currentKey</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1a393a4255286b5a885f8a45e8f50373fa" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>dropAliases</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a41c7e0053c58260947a9dc51bac57ccc" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>getVarId</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1a2df5191163a30fa55a79a9cbb1ddb1e8" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>lastMResId</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1aa76a83d0445bfcc14e26befea6b3c6b3" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>mAliases</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1ab13b7fdadf748f7648a0dcfb9062bace" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>ManagedRes</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a07fe4bd986384a4c8843f07afbf8889a" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>ManagedResHolder</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a1a983a6801e83f76dc2aba7916f2c4d6" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>mResId</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a15f373fbfb4bba15870bb9213a20f17b" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>mResource</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a357fad680cca7d48d632b31c2f9e8d54" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>mShaderVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a0b05c8dd898c8597b05befff8acda242" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>operator bool</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a231af0b8226ebfde92f8bd76e6e3cb2c" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>operator-&gt;</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1aa08175cc13070f3314fbc8f3ce9ce768" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>originalTexture</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a1bc73c3c24c0175853b227531ed9cad6" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>PrivateDataGetter</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a961addbf9bc419d8ce5330b6d28e2a7d" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>resid_t</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1a79efab749a417642c78b95245958d37d" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>ResizableManagedTex</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTexHolder_1ae3af2f0692e4eab0da58bbdd13380c46" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>ResizableManagedTexHolder</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTexHolder_1aa409ec3d60a8327758d02d82d9410791" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>resize</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a001deffa988dfbb9cad7260375202ddb" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>resource_t</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a31e9999423935ef5b8decd88fe0bb84a" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>setVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1ac6c47350fb7e48a894b0abd8fa90e801" prot="public" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>setVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1aa6d32fa8912f504a4d08f415d82fda25" prot="protected" virt="non-virtual"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>swap</name></member>
+      <member refid="classresptr__detail_1_1ResizableManagedTex_1a607f58f06a75797613f01b41edfc6f56" prot="protected" virt="non-virtual" ambiguityscope="resptr_detail::ResizableManagedTex::"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>swap</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a9feed595d9973d71f23a7c0de6887c8f" prot="protected" virt="non-virtual" ambiguityscope="resptr_detail::ManagedRes::"><scope>resptr_detail::ResizableManagedTexHolder</scope><name>swap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

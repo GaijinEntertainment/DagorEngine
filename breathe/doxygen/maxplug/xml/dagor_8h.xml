@@ -1,0 +1,1122 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dagor_8h" kind="file" language="C++">
+    <compoundname>dagor.h</compoundname>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="dllmain_8cpp" local="yes">dllmain.cpp</includedby>
+    <includedby refid="dummy_8cpp" local="yes">dummy.cpp</includedby>
+    <includedby refid="expAnim_8cpp" local="yes">expAnim.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="expanim2_8cpp" local="yes">expanim2.cpp</includedby>
+    <includedby refid="font_8cpp" local="yes">font.cpp</includedby>
+    <includedby refid="freecam_8cpp" local="yes">freecam.cpp</includedby>
+    <includedby refid="matConvUtil_8cpp" local="yes">matConvUtil.cpp</includedby>
+    <includedby refid="mater_8cpp" local="yes">mater.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="milkShapeAnimImport_8cpp" local="yes">milkShapeAnimImport.cpp</includedby>
+    <includedby refid="objectPropertiesEditor_8cpp" local="yes">objectPropertiesEditor.cpp</includedby>
+    <includedby refid="objonsrf_8cpp" local="yes">objonsrf.cpp</includedby>
+    <includedby refid="physExport_8cpp" local="yes">physExport.cpp</includedby>
+    <includedby refid="polyBumpUtil_8cpp" local="yes">polyBumpUtil.cpp</includedby>
+    <includedby refid="rbDummy_8cpp" local="yes">rbDummy.cpp</includedby>
+    <includedby refid="ta_8cpp" local="yes">ta.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <includedby refid="vpconv_8cpp" local="yes">vpconv.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="1">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>dllmain.cpp</label>
+        <link refid="dllmain_8cpp"/>
+      </node>
+      <node id="4">
+        <label>dummy.cpp</label>
+        <link refid="dummy_8cpp"/>
+      </node>
+      <node id="5">
+        <label>expAnim.cpp</label>
+        <link refid="expAnim_8cpp"/>
+      </node>
+      <node id="6">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="7">
+        <label>expanim2.cpp</label>
+        <link refid="expanim2_8cpp"/>
+      </node>
+      <node id="8">
+        <label>font.cpp</label>
+        <link refid="font_8cpp"/>
+      </node>
+      <node id="9">
+        <label>freecam.cpp</label>
+        <link refid="freecam_8cpp"/>
+      </node>
+      <node id="10">
+        <label>matConvUtil.cpp</label>
+        <link refid="matConvUtil_8cpp"/>
+      </node>
+      <node id="11">
+        <label>mater.cpp</label>
+        <link refid="mater_8cpp"/>
+      </node>
+      <node id="12">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="13">
+        <label>milkShapeAnimImport.cpp</label>
+        <link refid="milkShapeAnimImport_8cpp"/>
+      </node>
+      <node id="14">
+        <label>objectPropertiesEditor.cpp</label>
+        <link refid="objectPropertiesEditor_8cpp"/>
+      </node>
+      <node id="15">
+        <label>objonsrf.cpp</label>
+        <link refid="objonsrf_8cpp"/>
+      </node>
+      <node id="16">
+        <label>physExport.cpp</label>
+        <link refid="physExport_8cpp"/>
+      </node>
+      <node id="17">
+        <label>polyBumpUtil.cpp</label>
+        <link refid="polyBumpUtil_8cpp"/>
+      </node>
+      <node id="18">
+        <label>rbDummy.cpp</label>
+        <link refid="rbDummy_8cpp"/>
+      </node>
+      <node id="19">
+        <label>ta.cpp</label>
+        <link refid="ta_8cpp"/>
+      </node>
+      <node id="20">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+      <node id="21">
+        <label>vpconv.cpp</label>
+        <link refid="vpconv_8cpp"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dagor_8h_1abb845c3ee105ad2b6e93802e40f15a73" prot="public" static="no">
+        <name>FontUtil_CID</name>
+        <initializer>Class_ID(0x3409613e, 0x754e4800)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="4" column="9" bodyfile="dagor.h" bodystart="4" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a9ead658a52f6878a9360e47eea9322e2" prot="public" static="no">
+        <name>DagorMat_CID</name>
+        <initializer>Class_ID(0x70a066e2, 0x18a04e07)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="5" column="9" bodyfile="dagor.h" bodystart="5" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1aaa6ea09f471b5e57f5b69b9996227c66" prot="public" static="no">
+        <name>DagorMat2_CID</name>
+        <initializer>Class_ID(0x72fcfac4, 0xddfb36f0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="6" column="9" bodyfile="dagor.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a5e6f306d5fac83f2543840ae6523928a" prot="public" static="no">
+        <name>ExpUtil_CID</name>
+        <initializer>Class_ID(0x53784107, 0x8a06f33)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="7" column="9" bodyfile="dagor.h" bodystart="7" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a6d186c5220f0d7c29e9ca9ce821cb963" prot="public" static="no">
+        <name>DAGIMP_CID</name>
+        <initializer>Class_ID(0x4306338e, 0x73f0114b)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="8" column="9" bodyfile="dagor.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a8ba8dc161676cc43f6c1c87292e5aa52" prot="public" static="no">
+        <name>DagUtil_CID</name>
+        <initializer>Class_ID(0x6eae3224, 0x38a2327b)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="9" column="9" bodyfile="dagor.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a3c99c6cc99ba27ff7f869c2901da2733" prot="public" static="no">
+        <name>Dummy_CID</name>
+        <initializer>Class_ID(0x1abf52ba, 0x256f0991)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="10" column="9" bodyfile="dagor.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1aa92de089f2ac292ce0c8f82ba8b751bf" prot="public" static="no">
+        <name>RBDummy_CID</name>
+        <initializer>Class_ID(0x319b7f66, 0x4e157c84)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="11" column="9" bodyfile="dagor.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a99239e9790a16497a4626fff345100bd" prot="public" static="no">
+        <name>Texmaps_CID</name>
+        <initializer>Class_ID(0x6c79794a, 0x2c9c5949)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="12" column="9" bodyfile="dagor.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a48e13fa478c2f8accd95b628726c7d1d" prot="public" static="no">
+        <name>VPNORM_CID</name>
+        <initializer>Class_ID(0x38bb0602, 0x636949ac)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="13" column="9" bodyfile="dagor.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a59dc17cc24637a4258d655d40e1bcea9" prot="public" static="no">
+        <name>VPZBUF_CID</name>
+        <initializer>Class_ID(0x3ca32dff, 0x5207050d)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="14" column="9" bodyfile="dagor.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a660c5d7de5abf7d2d01c92a3eb58022a" prot="public" static="no">
+        <name>DagUtilFreeCam_CID</name>
+        <initializer>Class_ID(0xc765357, 0x25063e74)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="15" column="9" bodyfile="dagor.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a57ff26a5ba080bf1d7ed56b79bde96d6" prot="public" static="no">
+        <name>TexAnimIO_CID</name>
+        <initializer>Class_ID(0x3ce771ac, 0x3663135a)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="16" column="9" bodyfile="dagor.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1afbe5a14a72f390c7fbcacb676b594e00" prot="public" static="no">
+        <name>PolyBumpUtil_CID</name>
+        <initializer>Class_ID(0x7d651a5f, 0x79bd1cf0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="17" column="9" bodyfile="dagor.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a521d38f8684ee5929182f5ac8cafa145" prot="public" static="no">
+        <name>ImpUtil_CID</name>
+        <initializer>Class_ID(0x5575310b, 0x5b5840b1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="18" column="9" bodyfile="dagor.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1aafcdf80783e0624903b280b9efc81e76" prot="public" static="no">
+        <name>MatConvUtil_CID</name>
+        <initializer>Class_ID(0x13354bd4, 0x29c32883)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="20" column="9" bodyfile="dagor.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1ab8b0e4433f1afdb81476a439a469ba3c" prot="public" static="no">
+        <name>OBJECT_PROPERTIES_EDITOR_CID</name>
+        <initializer>Class_ID(0x73c5685c, 0x71a47013)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="21" column="9" bodyfile="dagor.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1a4e4a64451d339c70f19503906ab95d33" prot="public" static="no">
+        <name>DAGEXP_CID</name>
+        <initializer>Class_ID(0x76BEE712, 0x7AB041AA)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="23" column="9" bodyfile="dagor.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dagor_8h_1acd02686cc7a7382c7c98ac719753ba8e" prot="public" static="no">
+        <name>DEGENERATE_VERTEX_DELTA</name>
+        <initializer>1e-5f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="87" column="9" bodyfile="dagor.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06c" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca6b7267d63b63440a7aa60ef3a099e71b" prot="public">
+          <name>EXP_HID</name>
+          <initializer>= 0x0001</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cac93b52a68dc3b54c1ad6d4f92faa7cb8" prot="public">
+          <name>EXP_SEL</name>
+          <initializer>= 0x0002</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7c997ef7aea4da936f1ca86659dba95f" prot="public">
+          <name>EXP_MESH</name>
+          <initializer>= 0x0004</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caff2dc62d0636cb92e42053636baf1360" prot="public">
+          <name>EXP_LT</name>
+          <initializer>= 0x0008</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8f58f8ccc99b7a781b3eed35ada98b40" prot="public">
+          <name>EXP_CAM</name>
+          <initializer>= 0x0010</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca11c244d530f173871feee7fa44df43ef" prot="public">
+          <name>EXP_HLP</name>
+          <initializer>= 0x0020</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caf81ae9ea1446789418685c688c161a40" prot="public">
+          <name>EXP_MAT</name>
+          <initializer>= 0x0040</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca956d9e2e9bf0cfa553e275e892b79bb0" prot="public">
+          <name>EXP_ARNG</name>
+          <initializer>= 0x0100</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca52345d6698f8b3a9ed2ec14f48894136" prot="public">
+          <name>EXP_LTARG</name>
+          <initializer>= 0x0200</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca32c6048fd40363320af58e6ce8bb7dd4" prot="public">
+          <name>EXP_CTARG</name>
+          <initializer>= 0x0400</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca2b1328b19dd43178c38e8dc685100949" prot="public">
+          <name>EXP_UKEYS</name>
+          <initializer>= 0x0800</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca1f4425ebaa08df4d936fe2dfe5827428" prot="public">
+          <name>EXP_UNTKEYS</name>
+          <initializer>= 0x1000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cae304ba10296381a1f92fa75aff1a6837" prot="public">
+          <name>EXP_SPLINE</name>
+          <initializer>= 0x2000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca0a62bfe82a87610fb653f54c5db745a6" prot="public">
+          <name>EXP_DONTCHKKEYS</name>
+          <initializer>= 0x4000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7726b8a815ab142189d736d669f85519" prot="public">
+          <name>EXP_NO_VNORM</name>
+          <initializer>= 0x8000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cabbf7c66e7c660f84d0a9f4a16791f755" prot="public">
+          <name>EXP_DONT_REDUCE_POS</name>
+          <initializer>= 0x00010000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cafb2e1e878c65f7ea4518fbd009d9e734" prot="public">
+          <name>EXP_DONT_REDUCE_ROT</name>
+          <initializer>= 0x00020000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca414ab861700663ad48785af6f890032e" prot="public">
+          <name>EXP_DONT_REDUCE_SCL</name>
+          <initializer>= 0x00040000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca586010b725db9fe896a4b4b427909710" prot="public">
+          <name>EXP_LOOPED_ANIM</name>
+          <initializer>= 0x00080000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca50d59afd84fb1166581bec94cb9eff6a" prot="public">
+          <name>EXP_MATOPT</name>
+          <initializer>= 0x00100000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8ec676346ed8c63ceb28bc171bd35c3a" prot="public">
+          <name>EXP_DONT_CALC_MOMJ</name>
+          <initializer>= 0x01000000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cac69eb6cee48db816e89b55bf744b32ea" prot="public">
+          <name>EXP_OBJECTS</name>
+          <initializer>= EXP_MESH | EXP_LT | EXP_CAM | EXP_HLP | EXP_SPLINE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cafc7caccb696d051101bce613a82ed7c8" prot="public">
+          <name>EXP_DEFAULT</name>
+          <initializer>= EXP_MESH | EXP_LT | EXP_CAM | EXP_HLP | EXP_SPLINE | EXP_MAT | EXP_MATOPT</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="54" column="1" bodyfile="dagor.h" bodystart="55" bodyend="84"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dagor_8h_1a325c848df9994c7cc15e7655503ef5a6" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char dagor_path[]</definition>
+        <argsstring>[]</argsstring>
+        <name>dagor_path</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="50" column="13" bodyfile="util.cpp" bodystart="39" bodyend="-1" declfile="dagor.h" declline="50" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="dagor_8h_1a74029128723095e7bf00a71d46af8b24" prot="public" static="no" mutable="no">
+        <type>HINSTANCE</type>
+        <definition>HINSTANCE hInstance</definition>
+        <argsstring></argsstring>
+        <name>hInstance</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="52" column="18" bodyfile="dllmain.cpp" bodystart="6" bodyend="-1" declfile="dagor.h" declline="52" declcolumn="18"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dagor_8h_1aa3cc63d87e712361670a0daa08a955da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetFontUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetFontUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="25" column="11" bodyfile="font.cpp" bodystart="95" bodyend="95" declfile="dagor.h" declline="25" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1aea94833ed89d839db0817676484aeba8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetMatConvUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetMatConvUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="26" column="11" bodyfile="matConvUtil.cpp" bodystart="95" bodyend="95" declfile="dagor.h" declline="26" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a19b802bb73c1ac5c42f7a248124e1c9f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetMaterCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetMaterCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="27" column="11" bodyfile="mater.cpp" bodystart="206" bodyend="206" declfile="dagor.h" declline="27" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a648d944ee20b47d93f2d7e3da3c8ffe1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetMaterCD2</definition>
+        <argsstring>()</argsstring>
+        <name>GetMaterCD2</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="28" column="11" bodyfile="mater2.cpp" bodystart="431" bodyend="431" declfile="dagor.h" declline="28" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a40fe9c6c4fd75189564015d351c7681a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetExpUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetExpUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="29" column="11" bodyfile="expUtil.cpp" bodystart="458" bodyend="458" declfile="dagor.h" declline="29" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a29bf723d61dbb94b9dde74ae7c3fe3e0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetDAGIMPCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetDAGIMPCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="30" column="11" bodyfile="dagimp.cpp" bodystart="422" bodyend="422" declfile="dagor.h" declline="30" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a1d8210e1722943c3147a9125a79fdbf5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetDagUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetDagUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="31" column="11" bodyfile="util.cpp" bodystart="574" bodyend="574" declfile="dagor.h" declline="31" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a8e31b6fa0d20015c2d397732b9ace88c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetDummyCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetDummyCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="32" column="11" bodyfile="dummy.cpp" bodystart="157" bodyend="157" declfile="dagor.h" declline="32" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a273f5592dd92108b41cf55c45a98a4c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetRBDummyCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetRBDummyCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="33" column="11" bodyfile="rbDummy.cpp" bodystart="154" bodyend="154" declfile="dagor.h" declline="33" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a2bece4085d8ae2809881b433b3b5e285" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetTexmapsCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetTexmapsCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="34" column="11" bodyfile="mater.cpp" bodystart="224" bodyend="224" declfile="dagor.h" declline="34" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a4456f7c1251078051260f3932fbc9584" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetVPnormCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetVPnormCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="35" column="11" bodyfile="vpconv.cpp" bodystart="148" bodyend="148" declfile="dagor.h" declline="35" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1ae4377332d5b625bf84821942642e3ba6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetVPzbufCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetVPzbufCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="36" column="11" bodyfile="vpconv.cpp" bodystart="167" bodyend="167" declfile="dagor.h" declline="36" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a8cc1dd80a4df65e008f91f543ee8822c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetDagFreeCamUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetDagFreeCamUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="37" column="11" bodyfile="freecam.cpp" bodystart="540" bodyend="540" declfile="dagor.h" declline="37" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1ad31546814d0958bee1a1042b7a2fb582" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetTexAnimIOCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetTexAnimIOCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="38" column="11" bodyfile="ta.cpp" bodystart="30" bodyend="30" declfile="dagor.h" declline="38" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1af20e98760027213d0aca5ea4e9aa52e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetPolyBumpCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetPolyBumpCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="39" column="11" bodyfile="polyBumpUtil.cpp" bodystart="195" bodyend="195" declfile="dagor.h" declline="39" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1aac208454072ecfdbe8427f0557853d64" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetObjectPropertiesEditorCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetObjectPropertiesEditorCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="40" column="11" bodyfile="objectPropertiesEditor.cpp" bodystart="68" bodyend="68" declfile="dagor.h" declline="40" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a3f889cd4c09a1ef307f5385e45e51d8b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetDAGEXPCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetDAGEXPCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="41" column="11" bodyfile="expUtil.cpp" bodystart="239" bodyend="239" declfile="dagor.h" declline="41" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a087ee67f0c94cc487312ccd5a4f327dc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetImpUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetImpUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="42" column="11" bodyfile="dagimp.cpp" bodystart="1282" bodyend="1282" declfile="dagor.h" declline="42" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1aeb87de5dfb5d632579574b4bc8709019" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TCHAR *</type>
+        <definition>TCHAR * GetString</definition>
+        <argsstring>(int id)</argsstring>
+        <name>GetString</name>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="44" column="7" bodyfile="dllmain.cpp" bodystart="8" bodyend="15" declfile="dagor.h" declline="44" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1ad6c7097e82be93eaca64c248fd4e8024" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * make_path_rel</definition>
+        <argsstring>(const TCHAR *)</argsstring>
+        <name>make_path_rel</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="46" column="13" bodyfile="util.cpp" bodystart="624" bodyend="643" declfile="dagor.h" declline="46" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a030c82e9618b053d19ace84d82225081" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_dagor_path</definition>
+        <argsstring>(const char *p)</argsstring>
+        <name>set_dagor_path</name>
+        <param>
+          <type>const char *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="48" column="6" bodyfile="util.cpp" bodystart="722" bodyend="746" declfile="dagor.h" declline="48" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1aab23fd0e38e24ce9c561438d4921945a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_equal_float</definition>
+        <argsstring>(float left, float right, float delta=1e-4f)</argsstring>
+        <name>is_equal_float</name>
+        <param>
+          <type>float</type>
+          <declname>left</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>right</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>delta</declname>
+          <defval>1e-4f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="89" column="13" bodyfile="dagor.h" bodystart="89" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1aa0d2949c6948162a2012fad86d181f69" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_equal_point</definition>
+        <argsstring>(Point3 &amp;left, Point3 &amp;right, float delta=1e-4f)</argsstring>
+        <name>is_equal_point</name>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>left</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>right</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>delta</declname>
+          <defval>1e-4f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="97" column="13" bodyfile="dagor.h" bodystart="97" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a0ab0a5c17c8fed4cac0335e19af84ef7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>Matrix3 get_scaled_stretch_node_tm</definition>
+        <argsstring>(INode *node, TimeValue time)</argsstring>
+        <name>get_scaled_stretch_node_tm</name>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>time</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="103" column="9" bodyfile="util.cpp" bodystart="5588" bodyend="5598" declfile="dagor.h" declline="103" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1a62bd0983642b5aa1bfeb95655f4272b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>Matrix3 get_scaled_object_tm</definition>
+        <argsstring>(INode *node, TimeValue time)</argsstring>
+        <name>get_scaled_object_tm</name>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>time</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="105" column="9" bodyfile="util.cpp" bodystart="5601" bodyend="5611" declfile="dagor.h" declline="105" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename ValueType</type>
+          </param>
+        </templateparamlist>
+        <type>BOOL</type>
+        <definition>BOOL pb_get_value</definition>
+        <argsstring>(IParamBlock &amp;pb, int i, TimeValue t, ValueType &amp;v)</argsstring>
+        <name>pb_get_value</name>
+        <param>
+          <type>IParamBlock &amp;</type>
+          <declname>pb</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>ValueType &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagor.h" line="108" column="6" bodyfile="dagor.h" bodystart="108" bodyend="112"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="dagor_8h_1abb845c3ee105ad2b6e93802e40f15a73" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FontUtil_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x3409613e,<sp/>0x754e4800)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5" refid="dagor_8h_1a9ead658a52f6878a9360e47eea9322e2" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DagorMat_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x70a066e2,<sp/>0x18a04e07)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="dagor_8h_1aaa6ea09f471b5e57f5b69b9996227c66" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DagorMat2_CID<sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x72fcfac4,<sp/>0xddfb36f0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="dagor_8h_1a5e6f306d5fac83f2543840ae6523928a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ExpUtil_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x53784107,<sp/>0x8a06f33)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="dagor_8h_1a6d186c5220f0d7c29e9ca9ce821cb963" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAGIMP_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x4306338e,<sp/>0x73f0114b)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="dagor_8h_1a8ba8dc161676cc43f6c1c87292e5aa52" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DagUtil_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x6eae3224,<sp/>0x38a2327b)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="dagor_8h_1a3c99c6cc99ba27ff7f869c2901da2733" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>Dummy_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x1abf52ba,<sp/>0x256f0991)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="dagor_8h_1aa92de089f2ac292ce0c8f82ba8b751bf" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RBDummy_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x319b7f66,<sp/>0x4e157c84)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="dagor_8h_1a99239e9790a16497a4626fff345100bd" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>Texmaps_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x6c79794a,<sp/>0x2c9c5949)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="dagor_8h_1a48e13fa478c2f8accd95b628726c7d1d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VPNORM_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x38bb0602,<sp/>0x636949ac)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="dagor_8h_1a59dc17cc24637a4258d655d40e1bcea9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VPZBUF_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x3ca32dff,<sp/>0x5207050d)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="dagor_8h_1a660c5d7de5abf7d2d01c92a3eb58022a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DagUtilFreeCam_CID<sp/>Class_ID(0xc765357,<sp/>0x25063e74)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="dagor_8h_1a57ff26a5ba080bf1d7ed56b79bde96d6" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TexAnimIO_CID<sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x3ce771ac,<sp/>0x3663135a)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="dagor_8h_1afbe5a14a72f390c7fbcacb676b594e00" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PolyBumpUtil_CID<sp/><sp/><sp/>Class_ID(0x7d651a5f,<sp/>0x79bd1cf0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="dagor_8h_1a521d38f8684ee5929182f5ac8cafa145" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ImpUtil_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x5575310b,<sp/>0x5b5840b1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="dagor_8h_1aafcdf80783e0624903b280b9efc81e76" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MatConvUtil_CID<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Class_ID(0x13354bd4,<sp/>0x29c32883)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="dagor_8h_1ab8b0e4433f1afdb81476a439a469ba3c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OBJECT_PROPERTIES_EDITOR_CID<sp/>Class_ID(0x73c5685c,<sp/>0x71a47013)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="dagor_8h_1a4e4a64451d339c70f19503906ab95d33" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DAGEXP_CID<sp/>Class_ID(0x76BEE712,<sp/>0x7AB041AA)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1aa3cc63d87e712361670a0daa08a955da" kindref="member">GetFontUtilCD</ref>();</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1aea94833ed89d839db0817676484aeba8" kindref="member">GetMatConvUtilCD</ref>();</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a19b802bb73c1ac5c42f7a248124e1c9f" kindref="member">GetMaterCD</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a648d944ee20b47d93f2d7e3da3c8ffe1" kindref="member">GetMaterCD2</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a40fe9c6c4fd75189564015d351c7681a" kindref="member">GetExpUtilCD</ref>();</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a29bf723d61dbb94b9dde74ae7c3fe3e0" kindref="member">GetDAGIMPCD</ref>();</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a1d8210e1722943c3147a9125a79fdbf5" kindref="member">GetDagUtilCD</ref>();</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a8e31b6fa0d20015c2d397732b9ace88c" kindref="member">GetDummyCD</ref>();</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a273f5592dd92108b41cf55c45a98a4c9" kindref="member">GetRBDummyCD</ref>();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a2bece4085d8ae2809881b433b3b5e285" kindref="member">GetTexmapsCD</ref>();</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a4456f7c1251078051260f3932fbc9584" kindref="member">GetVPnormCD</ref>();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1ae4377332d5b625bf84821942642e3ba6" kindref="member">GetVPzbufCD</ref>();</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a8cc1dd80a4df65e008f91f543ee8822c" kindref="member">GetDagFreeCamUtilCD</ref>();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1ad31546814d0958bee1a1042b7a2fb582" kindref="member">GetTexAnimIOCD</ref>();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1af20e98760027213d0aca5ea4e9aa52e4" kindref="member">GetPolyBumpCD</ref>();</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1aac208454072ecfdbe8427f0557853d64" kindref="member">GetObjectPropertiesEditorCD</ref>();</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a3f889cd4c09a1ef307f5385e45e51d8b" kindref="member">GetDAGEXPCD</ref>();</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">ClassDesc<sp/>*<ref refid="dagor_8h_1a087ee67f0c94cc487312ccd5a4f327dc" kindref="member">GetImpUtilCD</ref>();</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal">TCHAR<sp/>*<ref refid="dagor_8h_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="dagor_8h_1ad6c7097e82be93eaca64c248fd4e8024" kindref="member">make_path_rel</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a030c82e9618b053d19ace84d82225081" kindref="member">set_dagor_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a325c848df9994c7cc15e7655503ef5a6" kindref="member">dagor_path</ref>[];</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>HINSTANCE<sp/><ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca6b7267d63b63440a7aa60ef3a099e71b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca6b7267d63b63440a7aa60ef3a099e71b" kindref="member">EXP_HID</ref><sp/>=<sp/>0x0001,</highlight></codeline>
+<codeline lineno="57" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cac93b52a68dc3b54c1ad6d4f92faa7cb8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cac93b52a68dc3b54c1ad6d4f92faa7cb8" kindref="member">EXP_SEL</ref><sp/>=<sp/>0x0002,</highlight></codeline>
+<codeline lineno="58" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7c997ef7aea4da936f1ca86659dba95f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7c997ef7aea4da936f1ca86659dba95f" kindref="member">EXP_MESH</ref><sp/>=<sp/>0x0004,</highlight></codeline>
+<codeline lineno="59" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caff2dc62d0636cb92e42053636baf1360" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caff2dc62d0636cb92e42053636baf1360" kindref="member">EXP_LT</ref><sp/>=<sp/>0x0008,</highlight></codeline>
+<codeline lineno="60" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8f58f8ccc99b7a781b3eed35ada98b40" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8f58f8ccc99b7a781b3eed35ada98b40" kindref="member">EXP_CAM</ref><sp/>=<sp/>0x0010,</highlight></codeline>
+<codeline lineno="61" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca11c244d530f173871feee7fa44df43ef" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca11c244d530f173871feee7fa44df43ef" kindref="member">EXP_HLP</ref><sp/>=<sp/>0x0020,</highlight></codeline>
+<codeline lineno="62" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caf81ae9ea1446789418685c688c161a40" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caf81ae9ea1446789418685c688c161a40" kindref="member">EXP_MAT</ref><sp/>=<sp/>0x0040,</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>EXP_ANI<sp/>=<sp/>0x0080,<sp/><sp/><sp/>//<sp/>unused</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca956d9e2e9bf0cfa553e275e892b79bb0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca956d9e2e9bf0cfa553e275e892b79bb0" kindref="member">EXP_ARNG</ref><sp/>=<sp/>0x0100,</highlight></codeline>
+<codeline lineno="65" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca52345d6698f8b3a9ed2ec14f48894136" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca52345d6698f8b3a9ed2ec14f48894136" kindref="member">EXP_LTARG</ref><sp/>=<sp/>0x0200,</highlight></codeline>
+<codeline lineno="66" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca32c6048fd40363320af58e6ce8bb7dd4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca32c6048fd40363320af58e6ce8bb7dd4" kindref="member">EXP_CTARG</ref><sp/>=<sp/>0x0400,</highlight></codeline>
+<codeline lineno="67" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca2b1328b19dd43178c38e8dc685100949" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca2b1328b19dd43178c38e8dc685100949" kindref="member">EXP_UKEYS</ref><sp/>=<sp/>0x0800,</highlight></codeline>
+<codeline lineno="68" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca1f4425ebaa08df4d936fe2dfe5827428" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca1f4425ebaa08df4d936fe2dfe5827428" kindref="member">EXP_UNTKEYS</ref><sp/>=<sp/>0x1000,</highlight></codeline>
+<codeline lineno="69" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cae304ba10296381a1f92fa75aff1a6837" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cae304ba10296381a1f92fa75aff1a6837" kindref="member">EXP_SPLINE</ref><sp/>=<sp/>0x2000,</highlight></codeline>
+<codeline lineno="70" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca0a62bfe82a87610fb653f54c5db745a6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca0a62bfe82a87610fb653f54c5db745a6" kindref="member">EXP_DONTCHKKEYS</ref><sp/>=<sp/>0x4000,</highlight></codeline>
+<codeline lineno="71" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7726b8a815ab142189d736d669f85519" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7726b8a815ab142189d736d669f85519" kindref="member">EXP_NO_VNORM</ref><sp/>=<sp/>0x8000,</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cabbf7c66e7c660f84d0a9f4a16791f755" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cabbf7c66e7c660f84d0a9f4a16791f755" kindref="member">EXP_DONT_REDUCE_POS</ref><sp/>=<sp/>0x00010000,</highlight></codeline>
+<codeline lineno="74" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cafb2e1e878c65f7ea4518fbd009d9e734" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cafb2e1e878c65f7ea4518fbd009d9e734" kindref="member">EXP_DONT_REDUCE_ROT</ref><sp/>=<sp/>0x00020000,</highlight></codeline>
+<codeline lineno="75" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca414ab861700663ad48785af6f890032e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca414ab861700663ad48785af6f890032e" kindref="member">EXP_DONT_REDUCE_SCL</ref><sp/>=<sp/>0x00040000,</highlight></codeline>
+<codeline lineno="76" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca586010b725db9fe896a4b4b427909710" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca586010b725db9fe896a4b4b427909710" kindref="member">EXP_LOOPED_ANIM</ref><sp/>=<sp/>0x00080000,</highlight></codeline>
+<codeline lineno="77" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca50d59afd84fb1166581bec94cb9eff6a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca50d59afd84fb1166581bec94cb9eff6a" kindref="member">EXP_MATOPT</ref><sp/>=<sp/>0x00100000,</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8ec676346ed8c63ceb28bc171bd35c3a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8ec676346ed8c63ceb28bc171bd35c3a" kindref="member">EXP_DONT_CALC_MOMJ</ref><sp/>=<sp/>0x01000000,</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>EXP_BY_GROUP<sp/>=<sp/>0x02000000,<sp/>//<sp/>This<sp/>is<sp/>no<sp/>longer<sp/>used.<sp/>The<sp/>value<sp/>cannot<sp/>be<sp/>reused<sp/>because<sp/>expflg<sp/>is<sp/>saved<sp/>to<sp/>the<sp/>Max<sp/>files.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cac69eb6cee48db816e89b55bf744b32ea" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cac69eb6cee48db816e89b55bf744b32ea" kindref="member">EXP_OBJECTS</ref><sp/>=<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7c997ef7aea4da936f1ca86659dba95f" kindref="member">EXP_MESH</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caff2dc62d0636cb92e42053636baf1360" kindref="member">EXP_LT</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8f58f8ccc99b7a781b3eed35ada98b40" kindref="member">EXP_CAM</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca11c244d530f173871feee7fa44df43ef" kindref="member">EXP_HLP</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cae304ba10296381a1f92fa75aff1a6837" kindref="member">EXP_SPLINE</ref>,</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cafc7caccb696d051101bce613a82ed7c8" kindref="member">EXP_DEFAULT</ref><sp/>=<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca7c997ef7aea4da936f1ca86659dba95f" kindref="member">EXP_MESH</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caff2dc62d0636cb92e42053636baf1360" kindref="member">EXP_LT</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca8f58f8ccc99b7a781b3eed35ada98b40" kindref="member">EXP_CAM</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca11c244d530f173871feee7fa44df43ef" kindref="member">EXP_HLP</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cae304ba10296381a1f92fa75aff1a6837" kindref="member">EXP_SPLINE</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06caf81ae9ea1446789418685c688c161a40" kindref="member">EXP_MAT</ref><sp/>|<sp/><ref refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06ca50d59afd84fb1166581bec94cb9eff6a" kindref="member">EXP_MATOPT</ref></highlight></codeline>
+<codeline lineno="84" refid="dagor_8h_1adc29c2ff13d900c2f185ee95427fb06cafc7caccb696d051101bce613a82ed7c8" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="dagor_8h_1acd02686cc7a7382c7c98ac719753ba8e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DEGENERATE_VERTEX_DELTA<sp/>1e-5f<sp/></highlight><highlight class="comment">//<sp/>0.01mm</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="dagor_8h_1aab23fd0e38e24ce9c561438d4921945a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aab23fd0e38e24ce9c561438d4921945a" kindref="member">is_equal_float</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>left,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>right,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>delta<sp/>=<sp/>1e-4f)</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>diff<sp/>=<sp/>left<sp/>-<sp/>right;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>(*(DWORD<sp/>*)&amp;diff)<sp/>&amp;=<sp/>0x7FFFFFFF;<sp/></highlight><highlight class="comment">//<sp/>fabsf()</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>diff<sp/>&lt;<sp/>delta;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="dagor_8h_1aa0d2949c6948162a2012fad86d181f69" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aa0d2949c6948162a2012fad86d181f69" kindref="member">is_equal_point</ref>(Point3<sp/>&amp;left,<sp/>Point3<sp/>&amp;right,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>delta<sp/>=<sp/>1e-4f)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aab23fd0e38e24ce9c561438d4921945a" kindref="member">is_equal_float</ref>(left.x,<sp/>right.x,<sp/>delta)<sp/>&amp;&amp;<sp/><ref refid="dagor_8h_1aab23fd0e38e24ce9c561438d4921945a" kindref="member">is_equal_float</ref>(left.y,<sp/>right.y,<sp/>delta)<sp/>&amp;&amp;<sp/><ref refid="dagor_8h_1aab23fd0e38e24ce9c561438d4921945a" kindref="member">is_equal_float</ref>(left.z,<sp/>right.z,<sp/>delta);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal">Matrix3<sp/><ref refid="dagor_8h_1a0ab0a5c17c8fed4cac0335e19af84ef7" kindref="member">get_scaled_stretch_node_tm</ref>(INode<sp/>*node,<sp/>TimeValue<sp/>time);</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal">Matrix3<sp/><ref refid="dagor_8h_1a62bd0983642b5aa1bfeb95655f4272b3" kindref="member">get_scaled_object_tm</ref>(INode<sp/>*node,<sp/>TimeValue<sp/>time);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>ValueType&gt;</highlight></codeline>
+<codeline lineno="108" refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" refkind="member"><highlight class="normal">BOOL<sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(IParamBlock<sp/>&amp;pb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i,<sp/>TimeValue<sp/>t,<sp/>ValueType<sp/>&amp;v)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>Interval<sp/>valid<sp/>=<sp/>FOREVER;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>pb.GetValue(i,<sp/>t,<sp/>v,<sp/>valid);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="dagor.h"/>
+  </compounddef>
+</doxygen>

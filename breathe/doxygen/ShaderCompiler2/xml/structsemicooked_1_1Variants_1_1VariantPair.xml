@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemicooked_1_1Variants_1_1VariantPair" kind="struct" language="C++" prot="public">
+    <compoundname>semicooked::Variants::VariantPair</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1_1VariantPair_1a64f8e16b8d52663174eda3e5d1d21f27" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semicooked::Variants::VariantPair::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>semicooked::Variants::VariantPair::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="380" column="9" bodyfile="makeShBinDump.cpp" bodystart="380" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemicooked_1_1Variants_1_1VariantPair_1a1721d68d06c95c2a30dd68eff714ec7b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semicooked::Variants::VariantPair::codeId</definition>
+        <argsstring></argsstring>
+        <name>codeId</name>
+        <qualifiedname>semicooked::Variants::VariantPair::codeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="381" column="9" bodyfile="makeShBinDump.cpp" bodystart="381" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structsemicooked_1_1Variants_1_1VariantPair_1a24cbda98827b35cad3a0900ca8afd73f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int semicooked::Variants::VariantPair::cmpCode</definition>
+        <argsstring>(const VariantPair *a, const VariantPair *b)</argsstring>
+        <name>cmpCode</name>
+        <qualifiedname>semicooked::Variants::VariantPair::cmpCode</qualifiedname>
+        <param>
+          <type>const <ref refid="structsemicooked_1_1Variants_1_1VariantPair" kindref="compound">VariantPair</ref> *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structsemicooked_1_1Variants_1_1VariantPair" kindref="compound">VariantPair</ref> *</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.cpp" line="383" column="16" bodyfile="makeShBinDump.cpp" bodystart="383" bodyend="383"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="makeShBinDump.cpp" line="378" column="3" bodyfile="makeShBinDump.cpp" bodystart="379" bodyend="384"/>
+    <listofallmembers>
+      <member refid="structsemicooked_1_1Variants_1_1VariantPair_1a24cbda98827b35cad3a0900ca8afd73f" prot="public" virt="non-virtual"><scope>semicooked::Variants::VariantPair</scope><name>cmpCode</name></member>
+      <member refid="structsemicooked_1_1Variants_1_1VariantPair_1a64f8e16b8d52663174eda3e5d1d21f27" prot="public" virt="non-virtual"><scope>semicooked::Variants::VariantPair</scope><name>code</name></member>
+      <member refid="structsemicooked_1_1Variants_1_1VariantPair_1a1721d68d06c95c2a30dd68eff714ec7b" prot="public" virt="non-virtual"><scope>semicooked::Variants::VariantPair</scope><name>codeId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

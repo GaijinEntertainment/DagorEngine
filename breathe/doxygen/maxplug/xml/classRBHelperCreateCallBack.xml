@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRBHelperCreateCallBack" kind="class" language="C++" prot="public">
+    <compoundname>RBHelperCreateCallBack</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">CreateMouseCallBack</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classRBHelperCreateCallBack_1a4a8357034ad8ddbd6bdb8497f3ec058e" prot="private" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 RBHelperCreateCallBack::sp1</definition>
+        <argsstring></argsstring>
+        <name>sp1</name>
+        <qualifiedname>RBHelperCreateCallBack::sp1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="208" column="11" bodyfile="rbDummy.cpp" bodystart="208" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRBHelperCreateCallBack_1a519dd1a33038792bf514d35e580b0c54" prot="private" static="no" mutable="no">
+        <type><ref refid="classRBHelper" kindref="compound">RBHelper</ref> *</type>
+        <definition>RBHelper* RBHelperCreateCallBack::ob</definition>
+        <argsstring></argsstring>
+        <name>ob</name>
+        <qualifiedname>RBHelperCreateCallBack::ob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="209" column="12" bodyfile="rbDummy.cpp" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRBHelperCreateCallBack_1ae05794a28025527ebba780d9923721eb" prot="private" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RBHelperCreateCallBack::p0</definition>
+        <argsstring></argsstring>
+        <name>p0</name>
+        <qualifiedname>RBHelperCreateCallBack::p0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="210" column="10" bodyfile="rbDummy.cpp" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRBHelperCreateCallBack_1a39fb72ef14b7c7e1b3f4914730a237a3" prot="private" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 RBHelperCreateCallBack::p1</definition>
+        <argsstring></argsstring>
+        <name>p1</name>
+        <qualifiedname>RBHelperCreateCallBack::p1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="210" column="13" bodyfile="rbDummy.cpp" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRBHelperCreateCallBack_1adc707344b114c98dc357eb83a44fa7ac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RBHelperCreateCallBack::proc</definition>
+        <argsstring>(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3 &amp;mat) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>RBHelperCreateCallBack::proc</qualifiedname>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>point</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="213" column="7" bodyfile="rbDummy.cpp" bodystart="217" bodyend="253"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelperCreateCallBack_1ab04311694ec6a8f06fcbafecd181dcbc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RBHelperCreateCallBack::SetObj</definition>
+        <argsstring>(RBHelper *obj)</argsstring>
+        <name>SetObj</name>
+        <qualifiedname>RBHelperCreateCallBack::SetObj</qualifiedname>
+        <param>
+          <type><ref refid="classRBHelper" kindref="compound">RBHelper</ref> *</type>
+          <declname>obj</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="214" column="8" bodyfile="rbDummy.cpp" bodystart="214" bodyend="214"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CreateMouseCallBack</label>
+      </node>
+      <node id="1">
+        <label>RBHelperCreateCallBack</label>
+        <link refid="classRBHelperCreateCallBack"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CreateMouseCallBack</label>
+      </node>
+      <node id="1">
+        <label>RBHelperCreateCallBack</label>
+        <link refid="classRBHelperCreateCallBack"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rbDummy.cpp" line="206" column="1" bodyfile="rbDummy.cpp" bodystart="207" bodyend="215"/>
+    <listofallmembers>
+      <member refid="classRBHelperCreateCallBack_1a519dd1a33038792bf514d35e580b0c54" prot="private" virt="non-virtual"><scope>RBHelperCreateCallBack</scope><name>ob</name></member>
+      <member refid="classRBHelperCreateCallBack_1ae05794a28025527ebba780d9923721eb" prot="private" virt="non-virtual"><scope>RBHelperCreateCallBack</scope><name>p0</name></member>
+      <member refid="classRBHelperCreateCallBack_1a39fb72ef14b7c7e1b3f4914730a237a3" prot="private" virt="non-virtual"><scope>RBHelperCreateCallBack</scope><name>p1</name></member>
+      <member refid="classRBHelperCreateCallBack_1adc707344b114c98dc357eb83a44fa7ac" prot="public" virt="non-virtual"><scope>RBHelperCreateCallBack</scope><name>proc</name></member>
+      <member refid="classRBHelperCreateCallBack_1ab04311694ec6a8f06fcbafecd181dcbc" prot="public" virt="non-virtual"><scope>RBHelperCreateCallBack</scope><name>SetObj</name></member>
+      <member refid="classRBHelperCreateCallBack_1a4a8357034ad8ddbd6bdb8497f3ec058e" prot="private" virt="non-virtual"><scope>RBHelperCreateCallBack</scope><name>sp1</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

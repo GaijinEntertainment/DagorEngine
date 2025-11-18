@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderGlobal_1_1Var" kind="class" language="C++" prot="public">
+    <compoundname>ShaderGlobal::Var</compoundname>
+    <includes refid="globVar_8h" local="no">globVar.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" prot="public" static="no" mutable="no">
+        <type><ref refid="unionShaderGlobal_1_1StVarValue" kindref="compound">StVarValue</ref></type>
+        <definition>StVarValue ShaderGlobal::Var::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>ShaderGlobal::Var::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="50" column="14" bodyfile="globVar.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" prot="public" static="no" mutable="no">
+        <type><ref refid="classNameId" kindref="compound">NameId</ref>&lt; <ref refid="structVarMapAdapter" kindref="compound">VarMapAdapter</ref> &gt;</type>
+        <definition>NameId&lt;VarMapAdapter&gt; ShaderGlobal::Var::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <qualifiedname>ShaderGlobal::Var::nameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="51" column="10" bodyfile="globVar.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderGlobal::Var::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ShaderGlobal::Var::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="52" column="11" bodyfile="globVar.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1a6fabc3dfee0c8ce739a0d2f321a5d154" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::Var::isAlwaysReferenced</definition>
+        <argsstring></argsstring>
+        <name>isAlwaysReferenced</name>
+        <qualifiedname>ShaderGlobal::Var::isAlwaysReferenced</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="53" column="8" bodyfile="globVar.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1a882dd4c34d67600e188a16178d8a91f3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::Var::shouldIgnoreValue</definition>
+        <argsstring></argsstring>
+        <name>shouldIgnoreValue</name>
+        <qualifiedname>ShaderGlobal::Var::shouldIgnoreValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="53" column="27" bodyfile="globVar.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1ab9e07558ccdf936baa8164f38258a518" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::Var::isImplicitlyReferenced</definition>
+        <argsstring></argsstring>
+        <name>isImplicitlyReferenced</name>
+        <qualifiedname>ShaderGlobal::Var::isImplicitlyReferenced</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="54" column="8" bodyfile="globVar.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1ad2a1e988b4eb2da7cb42c8e36b293cb1" prot="public" static="no" mutable="no">
+        <type>bindump::string</type>
+        <definition>bindump::string ShaderGlobal::Var::fileName</definition>
+        <argsstring></argsstring>
+        <name>fileName</name>
+        <qualifiedname>ShaderGlobal::Var::fileName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="55" column="19" bodyfile="globVar.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1acaaeaf1082772680c6d059565eba21ca" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderGlobal::Var::array_size</definition>
+        <argsstring></argsstring>
+        <name>array_size</name>
+        <qualifiedname>ShaderGlobal::Var::array_size</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="56" column="7" bodyfile="globVar.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderGlobal_1_1Var_1a215fdcf749e52594b2ea408fd03f3f30" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderGlobal::Var::index</definition>
+        <argsstring></argsstring>
+        <name>index</name>
+        <qualifiedname>ShaderGlobal::Var::index</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="57" column="7" bodyfile="globVar.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderGlobal_1_1Var_1a74afbb3dc2eb30591c860b809f7b9df0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderGlobal::Var::Var</definition>
+        <argsstring>()</argsstring>
+        <name>Var</name>
+        <qualifiedname>ShaderGlobal::Var::Var</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="59" column="3" bodyfile="globVar.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1Var_1a802b67d3bcbf635b6ac9229ded402eb0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::Var::operator==</definition>
+        <argsstring>(const Var &amp;right) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ShaderGlobal::Var::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &amp;</type>
+          <declname>right</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="61" column="8" bodyfile="globvar.cpp" bodystart="102" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderGlobal_1_1Var_1a2830e2b3564d203a98476a2811e99b39" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::Var::operator!=</definition>
+        <argsstring>(const Var &amp;right) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ShaderGlobal::Var::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref> &amp;</type>
+          <declname>right</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="globVar.h" line="62" column="8" bodyfile="globVar.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="5">
+        <label>NameId&lt; VarMapAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="2">
+        <label>ShaderGlobal::StVarValue</label>
+        <link refid="unionShaderGlobal_1_1StVarValue"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>c4</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>i4</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderGlobal::Var</label>
+        <link refid="classShaderGlobal_1_1Var"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>value</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>nameId</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shc::Col4</label>
+        <link refid="structshc_1_1Col4"/>
+      </node>
+      <node id="4">
+        <label>shc::Int4</label>
+        <link refid="structshc_1_1Int4"/>
+      </node>
+    </collaborationgraph>
+    <location file="globVar.h" line="47" column="1" bodyfile="globVar.h" bodystart="48" bodyend="63"/>
+    <listofallmembers>
+      <member refid="classShaderGlobal_1_1Var_1acaaeaf1082772680c6d059565eba21ca" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>array_size</name></member>
+      <member refid="classShaderGlobal_1_1Var_1ad2a1e988b4eb2da7cb42c8e36b293cb1" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>fileName</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a215fdcf749e52594b2ea408fd03f3f30" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>index</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a6fabc3dfee0c8ce739a0d2f321a5d154" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>isAlwaysReferenced</name></member>
+      <member refid="classShaderGlobal_1_1Var_1ab9e07558ccdf936baa8164f38258a518" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>isImplicitlyReferenced</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>nameId</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a2830e2b3564d203a98476a2811e99b39" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>operator!=</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a802b67d3bcbf635b6ac9229ded402eb0" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>operator==</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a882dd4c34d67600e188a16178d8a91f3" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>shouldIgnoreValue</name></member>
+      <member refid="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>type</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>value</name></member>
+      <member refid="classShaderGlobal_1_1Var_1a74afbb3dc2eb30591c860b809f7b9df0" prot="public" virt="non-virtual"><scope>ShaderGlobal::Var</scope><name>Var</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

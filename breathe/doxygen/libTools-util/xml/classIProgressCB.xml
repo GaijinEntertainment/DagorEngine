@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIProgressCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IProgressCB</compoundname>
+    <derivedcompoundref refid="classSimpleProgressCB" prot="public" virt="non-virtual">SimpleProgressCB</derivedcompoundref>
+    <includes refid="progressInd_8h" local="no">progressInd.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIProgressCB_1a3e6f85179a67dce57a01ffd3c9fdf1d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IProgressCB::onCancel</definition>
+        <argsstring>()=0</argsstring>
+        <name>onCancel</name>
+        <qualifiedname>IProgressCB::onCancel</qualifiedname>
+        <reimplementedby refid="classSimpleProgressCB_1a6c574f8aea3798731697a86820dedf24">onCancel</reimplementedby>
+        <briefdescription>
+<para>calls on user press &quot;Cancel&quot; button </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="15" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Progress callback. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>IProgressCB</label>
+        <link refid="classIProgressCB"/>
+      </node>
+      <node id="2">
+        <label>SimpleProgressCB</label>
+        <link refid="classSimpleProgressCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="progressInd.h" line="11" column="1" bodyfile="progressInd.h" bodystart="12" bodyend="16"/>
+    <listofallmembers>
+      <member refid="classIProgressCB_1a3e6f85179a67dce57a01ffd3c9fdf1d4" prot="public" virt="pure-virtual"><scope>IProgressCB</scope><name>onCancel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

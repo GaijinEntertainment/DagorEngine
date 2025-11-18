@@ -1,0 +1,199 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classENodeCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ENodeCB</compoundname>
+    <derivedcompoundref refid="classCameraNodeEnumerator" prot="public" virt="non-virtual">CameraNodeEnumerator</derivedcompoundref>
+    <derivedcompoundref refid="classDag2DagCB" prot="public" virt="non-virtual">Dag2DagCB</derivedcompoundref>
+    <derivedcompoundref refid="classDag2DagnewCB" prot="public" virt="non-virtual">Dag2DagnewCB</derivedcompoundref>
+    <derivedcompoundref refid="classDag2EnumeratorCB" prot="public" virt="non-virtual">Dag2EnumeratorCB</derivedcompoundref>
+    <derivedcompoundref refid="classDag2StdCB" prot="public" virt="non-virtual">Dag2StdCB</derivedcompoundref>
+    <derivedcompoundref refid="classDag2UniqueCB" prot="public" virt="non-virtual">Dag2UniqueCB</derivedcompoundref>
+    <derivedcompoundref refid="classExportENCB" prot="public" virt="non-virtual">ExportENCB</derivedcompoundref>
+    <derivedcompoundref refid="classFontENCB" prot="public" virt="non-virtual">FontENCB</derivedcompoundref>
+    <derivedcompoundref refid="classGetLightsCB" prot="public" virt="non-virtual">GetLightsCB</derivedcompoundref>
+    <derivedcompoundref refid="structGetMeshesCB" prot="public" virt="non-virtual">GetMeshesCB</derivedcompoundref>
+    <derivedcompoundref refid="classHideMapsCB" prot="public" virt="non-virtual">HideMapsCB</derivedcompoundref>
+    <derivedcompoundref refid="classMultiBooleanCB" prot="public" virt="non-virtual">MultiBooleanCB</derivedcompoundref>
+    <derivedcompoundref refid="classPhysExportENodeCB" prot="public" virt="non-virtual">PhysExportENodeCB</derivedcompoundref>
+    <derivedcompoundref refid="classSelectionChanged" prot="public" virt="non-virtual">SelectionChanged</derivedcompoundref>
+    <derivedcompoundref refid="classShowMapsCB" prot="public" virt="non-virtual">ShowMapsCB</derivedcompoundref>
+    <derivedcompoundref refid="classStd2DagCB" prot="public" virt="non-virtual">Std2DagCB</derivedcompoundref>
+    <derivedcompoundref refid="classSyncMaxParams" prot="public" virt="non-virtual">SyncMaxParams</derivedcompoundref>
+    <derivedcompoundref refid="classSyncPanelParams" prot="public" virt="non-virtual">SyncPanelParams</derivedcompoundref>
+    <includes refid="enumnode_8h" local="no">enumnode.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual ENodeCB::~ENodeCB</definition>
+        <argsstring>()</argsstring>
+        <name>~ENodeCB</name>
+        <qualifiedname>ENodeCB::~ENodeCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="enumnode.h" line="9" column="11" bodyfile="enumnode.h" bodystart="9" bodyend="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ENodeCB::proc</definition>
+        <argsstring>(INode *)=0</argsstring>
+        <name>proc</name>
+        <qualifiedname>ENodeCB::proc</qualifiedname>
+        <reimplementedby refid="classExportENCB_1a727d0043d1b0ca8432e492868ef29631">proc</reimplementedby>
+        <reimplementedby refid="classFontENCB_1ac12bf659c8a7253cfa4f74a41e9ae7ec">proc</reimplementedby>
+        <reimplementedby refid="classSelectionChanged_1a675edd26b192f6d24e28da90495f209a">proc</reimplementedby>
+        <reimplementedby refid="classSyncMaxParams_1a1c4ab46f99e16ae2d0f697c72f578603">proc</reimplementedby>
+        <reimplementedby refid="classSyncPanelParams_1ad77034d89c36259620fc3ac4d4c4aa68">proc</reimplementedby>
+        <reimplementedby refid="classDag2DagnewCB_1afa8454887a6669ccd470f94ee6f909f5">proc</reimplementedby>
+        <reimplementedby refid="classShowMapsCB_1af60f5a7309994f0501808b7d452aff1b">proc</reimplementedby>
+        <reimplementedby refid="classHideMapsCB_1ab6e07cfd1a05648a4ba8360443668d1f">proc</reimplementedby>
+        <reimplementedby refid="classStd2DagCB_1ad14f95141788091acf7e600bf6e5f442">proc</reimplementedby>
+        <reimplementedby refid="classDag2StdCB_1a0986d977895c309dbb655c234b88688a">proc</reimplementedby>
+        <reimplementedby refid="classDag2EnumeratorCB_1ab0dd63e3747e4aa77978092e2ce1403f">proc</reimplementedby>
+        <reimplementedby refid="classDag2UniqueCB_1a6fffc0a8528ecd25ae1b86a683e0867d">proc</reimplementedby>
+        <reimplementedby refid="classDag2DagCB_1a5df50369583ae29cba6d0af8da67b1fe">proc</reimplementedby>
+        <reimplementedby refid="classMultiBooleanCB_1ab971b0d038490233599f27c194f99b5c">proc</reimplementedby>
+        <reimplementedby refid="classGetLightsCB_1a7cf4c5e1a7681c37f3d1df8959b46b41">proc</reimplementedby>
+        <reimplementedby refid="structGetMeshesCB_1a3a7e908f75e67194944d8dc66dfe387f">proc</reimplementedby>
+        <reimplementedby refid="classCameraNodeEnumerator_1a089cb25fff1321f7de656609a098e858">proc</reimplementedby>
+        <reimplementedby refid="classPhysExportENodeCB_1aa9ed376c3273d34d9b96beb3ae4727fa">proc</reimplementedby>
+        <param>
+          <type>INode *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="enumnode.h" line="10" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CameraNodeEnumerator</label>
+        <link refid="classCameraNodeEnumerator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>Dag2DagCB</label>
+        <link refid="classDag2DagCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Dag2DagnewCB</label>
+        <link refid="classDag2DagnewCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>Dag2EnumeratorCB</label>
+        <link refid="classDag2EnumeratorCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>Dag2StdCB</label>
+        <link refid="classDag2StdCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>Dag2UniqueCB</label>
+        <link refid="classDag2UniqueCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="8">
+        <label>ExportENCB</label>
+        <link refid="classExportENCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>FontENCB</label>
+        <link refid="classFontENCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>GetLightsCB</label>
+        <link refid="classGetLightsCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>GetMeshesCB</label>
+        <link refid="structGetMeshesCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>HideMapsCB</label>
+        <link refid="classHideMapsCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>MultiBooleanCB</label>
+        <link refid="classMultiBooleanCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>PhysExportENodeCB</label>
+        <link refid="classPhysExportENodeCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>SelectionChanged</label>
+        <link refid="classSelectionChanged"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>ShowMapsCB</label>
+        <link refid="classShowMapsCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>Std2DagCB</label>
+        <link refid="classStd2DagCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>SyncMaxParams</label>
+        <link refid="classSyncMaxParams"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>SyncPanelParams</label>
+        <link refid="classSyncPanelParams"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="enumnode.h" line="6" column="1" bodyfile="enumnode.h" bodystart="7" bodyend="11"/>
+    <listofallmembers>
+      <member refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17" prot="public" virt="pure-virtual"><scope>ENodeCB</scope><name>proc</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>ENodeCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

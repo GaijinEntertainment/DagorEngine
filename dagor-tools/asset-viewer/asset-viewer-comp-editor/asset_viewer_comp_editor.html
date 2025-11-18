@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asset Viewer Composite Editor</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Collision Generation for Assets in Asset Viewer" href="../collision-generation/index.html" />
+    <link rel="prev" title="Asset Viewer Composite Editor" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Asset Viewer</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Asset Viewer Composite Editor</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Asset Viewer Composite Editor</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#how-to-enable">How to Enable</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#creating-a-new-composite">Creating a New Composite</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#composite-editor-interface">Composite Editor Interface</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#composite-outliner">Composite Outliner</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#identifying-random-nodes">Identifying Random Nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#editor-properties">Editor Properties</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#visual-editing">Visual Editing</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../collision-generation/index.html">Collision Generation for Assets in Asset Viewer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Asset Viewer</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Asset Viewer Composite Editor</a></li>
+      <li class="breadcrumb-item active">Asset Viewer Composite Editor</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/asset-viewer/asset-viewer-comp-editor/asset_viewer_comp_editor.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="asset-viewer-composite-editor">
+<h1>Asset Viewer Composite Editor<a class="headerlink" href="#asset-viewer-composite-editor" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Before proceeding, it is highly recommended to review the main article on
+<a class="reference internal" href="../../../assets/all-about-blk/composit_blk.html"><span class="std std-doc">composite structures</span></a>.</p>
+</section>
+<section id="how-to-enable">
+<h2>How to Enable<a class="headerlink" href="#how-to-enable" title="Link to this heading"></a></h2>
+<p>You can now edit composites directly from the <a class="reference internal" href="../asset-viewer/asset_viewer.html"><span class="std std-doc">Asset
+Viewer</span></a>. To enable the Composite Editor,
+navigate to the <strong>View</strong> menu:</p>
+<img alt="How to enable, option 1" class="align-center" src="../../../_images/av_comp_edit_01.jpg" />
+<p>If you prefer the editor to open automatically when a composite is selected in
+the Asset Tree and close when any other type of object is selected, you can
+enable this option in the <strong>Settings</strong>:</p>
+<img alt="How to enable, option 2" class="align-center" src="../../../_images/av_comp_edit_02.jpg" />
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The <em>Composite Editor</em> is still under development, and it may significantly
+impact performance when working with large composites that have many nested
+elements. This is especially relevant, for example, for houses with complex
+indoor structures in daNetGame-based games. For this reason, the auto-open
+option is disabled by default. Use it at your own risk.</p>
+</div>
+</section>
+<section id="creating-a-new-composite">
+<h2>Creating a New Composite<a class="headerlink" href="#creating-a-new-composite" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>In the <strong>Asset Tree</strong>, select the directory where you want to place the
+composite.</p></li>
+<li><p>Right-click and select <strong>Create new composite asset</strong> from the context menu.</p>
+<img alt="Creating a new composite" class="align-center" src="../../../_images/av_comp_edit_03.jpg" />
+</li>
+<li><p>In the pop-up window, enter the desired name, making sure to follow the
+naming conventions. If an asset with this name already exists, a warning will
+be displayed when you attempt to create it.</p>
+<img alt="Creating a new composite" class="align-center" src="../../../_images/av_comp_edit_04.jpg" />
+</li>
+</ol>
+</section>
+<section id="composite-editor-interface">
+<h2>Composite Editor Interface<a class="headerlink" href="#composite-editor-interface" title="Link to this heading"></a></h2>
+<p>The interface is divided into two main sections: <strong>Outliner</strong> and <strong>Properties</strong>.</p>
+<img alt="Composite editor interface" class="align-center" src="../../../_images/av_comp_edit_05.jpg" />
+<section id="composite-outliner">
+<h3>Composite Outliner<a class="headerlink" href="#composite-outliner" title="Link to this heading"></a></h3>
+<p>The <strong>Composite Outliner</strong> functions similarly to the <strong>Asset Tree</strong> but is
+specific to composites. The composite itself serves as the “root” of the
+structure.</p>
+<p>When you create a new composite, it will initially contain only the root block
+with its name. To add a new node, click on this sole element and select <strong>Add
+Node</strong> from the context menu.</p>
+<p>A newly created node does not contain any parameters, making it equivalent to an
+empty <code class="docutils literal notranslate"><span class="pre">node{}</span></code>.</p>
+<p>Through the context menu, you can define the type of the node:</p>
+<ul class="simple">
+<li><p><strong>Change asset</strong> allows you to select an asset for rendering, analogous to
+<code class="docutils literal notranslate"><span class="pre">name:t</span> <span class="pre">=</span></code>.</p></li>
+<li><p><strong>Add entity</strong>: turns the node into a random entity, analogous to <code class="docutils literal notranslate"><span class="pre">ent{}</span></code>.</p></li>
+<li><p><strong>Add node</strong>: adds a child node.</p></li>
+<li><p><strong>Delete node</strong>: deletes a node.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>Adding an asset hides the option to add an entity, and vice versa – a node
+cannot simultaneously contain both <code class="docutils literal notranslate"><span class="pre">name:t</span></code> and <code class="docutils literal notranslate"><span class="pre">ent{}</span></code>.</p></li>
+<li><p>You can also delete a node using the <strong>Delete</strong> key, but in both cases,
+confirmation is required.</p></li>
+<li><p>Deleting a node will also remove all its child nodes since they are
+technically nested within it (e.g., <code class="docutils literal notranslate"><span class="pre">node{node{}}</span></code>). Keep this in mind.</p></li>
+</ul>
+</div>
+<p>If a node already contains an asset, you can open it by double-clicking. This is
+useful when you need to edit a subcomposite. However, since there is currently
+no history of recently opened assets, returning to the “main” composite will
+only be possible by finding it again in the <strong>Asset Tree</strong>. Therefore, the
+editor will ask for confirmation before switching to another asset.</p>
+<section id="identifying-random-nodes">
+<h4>Identifying Random Nodes<a class="headerlink" href="#identifying-random-nodes" title="Link to this heading"></a></h4>
+<p>A random node is displayed with the same icon as an empty node, but it will be
+named <code class="docutils literal notranslate"><span class="pre">random</span></code> instead of <code class="docutils literal notranslate"><span class="pre">node</span></code>.</p>
+<p>All possible entities are listed one level lower in the hierarchy.</p>
+<p>Since a random node can have child nodes, this can cause significant confusion –
+these <em>children</em> are also displayed one level lower. To address this, all
+<code class="docutils literal notranslate"><span class="pre">ent{}</span></code> entries are shown with an additional icon. The first icon represents an
+empty node, while the second indicates the entity type.</p>
+<img alt="Identifying random nodes" class="align-center" src="../../../_images/av_comp_edit_06.jpg" />
+<p>In the <code class="docutils literal notranslate"><span class="pre">.composit.blk</span></code> file, what is shown in the screenshot might look
+something like this:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="se">node</span><span class="ni">{</span>
+  <span class="se">ent</span><span class="ni">{</span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;table_a:rendinst&quot;</span><span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;table_b:rendinst&quot;</span><span class="ni">}</span>
+  <span class="se">node</span><span class="ni">{</span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;cup_a:rendinst&quot;</span><span class="ni">}</span>
+  <span class="se">ent</span><span class="ni">{</span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;&quot;</span><span class="ni">}</span>
+  <span class="se">node</span><span class="ni">{</span><span class="no">name</span><span class="nt">:t=</span><span class="nf">&quot;&quot;</span><span class="ni">}</span>
+<span class="ni">}</span>
+</pre></div>
+</div>
+<p>To improve readability, it’s recommended to add all <code class="docutils literal notranslate"><span class="pre">ent{}</span></code> entries first,
+followed by the child nodes. However, it will work either way.</p>
+</section>
+</section>
+<section id="editor-properties">
+<h3>Editor Properties<a class="headerlink" href="#editor-properties" title="Link to this heading"></a></h3>
+<p>Do not confuse this with the <strong>Properties</strong> of the entire composite asset.</p>
+<img alt="Editor properties" class="align-center" src="../../../_images/av_comp_edit_07.jpg" />
+<p>This section contains the properties of the selected node, along with options to
+save or revert changes.</p>
+<p><strong>Entities</strong></p>
+<p>This panel lists all <code class="docutils literal notranslate"><span class="pre">ent{}</span></code> nodes. Here, you can set the weight for existing
+entities, change the asset (via a large button displaying the asset’s name, or
+<strong>“–”</strong> if no asset is selected), and add a new entity to the end of the list
+using the <strong>“+”</strong> button. The context menu (accessed by the <strong>“…”</strong> button)
+allows you to add an entity after any existing one (instead of at the end of the
+list) or delete the selected entity.</p>
+<p><strong>Children</strong></p>
+<p>A similar panel exists for <em>child</em> nodes, although weight is not assigned here
+for obvious reasons. This panel may be removed in the future, as it impacts the
+performance of heavy composites (some buildings have thousands of <em>child</em>
+nodes), and the same functionality is available through the <strong>Outliner</strong>.</p>
+<p><strong>Node Parameters</strong></p>
+<p>This section contains the properties of the selected node. To move the node, you
+need to enable the <strong>Use transformation matrix</strong> checkbox, which corresponds to
+the <code class="docutils literal notranslate"><span class="pre">tm:m=</span></code> block. If this checkbox is enabled, you can edit the matrix in a
+human-readable format:</p>
+<img alt="Node parameters" class="align-center" src="../../../_images/av_comp_edit_08.jpg" />
+<p><strong>Add Parameters</strong></p>
+<p>Here, you can set additional parameters for the node. Since the transformation
+matrix takes precedence over random offsets, attempting to add both will trigger
+a warning, and the parameter fields will be locked for editing.</p>
+<img alt="Add parameters" class="align-center" src="../../../_images/av_comp_edit_09.jpg" />
+<p>To apply random transforms, disable the <strong>Use transformation matrix</strong> checkbox.</p>
+<p><strong>Composit</strong></p>
+<p>The <strong>Composit</strong> tab offers only two options: <strong>cancel</strong> or <strong>save changes</strong>. If
+you try to switch from the composite to another asset, the editor will also ask
+how to handle the current changes.</p>
+</section>
+</section>
+<section id="visual-editing">
+<h2>Visual Editing<a class="headerlink" href="#visual-editing" title="Link to this heading"></a></h2>
+<p>Now we have reached the interesting part. In addition to text-based editing, you
+can make adjustments directly in the viewport. You can left-click on any object,
+and the corresponding node will be selected in both the 3D view and the
+<strong>Outliner</strong>. Pressing <code class="docutils literal notranslate"><span class="pre">Z</span></code> will center the camera on the selected node and zoom
+in on it. Unfortunately, selecting multiple nodes simultaneously is not yet
+supported. However, you can edit matrices using the gizmo.</p>
+<p>When the Composite Editor is open, new icons appear in the toolbar: <strong>Select</strong>,
+<strong>Move</strong>, <strong>Rotate</strong>, and <strong>Scale</strong>. The <strong>Select</strong> icon is always active, but
+for the other tools to have an effect, the transformation matrix must be enabled
+for the selected node using the checkbox mentioned earlier. Random offsets
+cannot be applied via the gizmo. These tools can be activated using the standard
+hotkeys: <code class="docutils literal notranslate"><span class="pre">Q</span></code>, <code class="docutils literal notranslate"><span class="pre">W</span></code>, <code class="docutils literal notranslate"><span class="pre">E</span></code>, and <code class="docutils literal notranslate"><span class="pre">R</span></code>, respectively.</p>
+<img alt="Visual editing" class="align-center" src="../../../_images/av_comp_edit_10.jpg" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Asset Viewer Composite Editor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../collision-generation/index.html" class="btn btn-neutral float-right" title="Collision Generation for Assets in Asset Viewer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

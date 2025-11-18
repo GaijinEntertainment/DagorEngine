@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__resizableTex_8h" kind="file" language="C++">
+    <compoundname>dag_resizableTex.h</compoundname>
+    <includes refid="dag__resPtr_8h" local="yes">dag_resPtr.h</includes>
+    <includes local="no">EASTL/vector_map.h</includes>
+    <includes local="no">cstdint</includes>
+    <incdepgraph>
+      <node id="3">
+        <label>dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_resPtr.h</label>
+        <link refid="dag__resPtr_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_resizableTex.h</label>
+        <link refid="dag__resizableTex_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="24">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="27">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="28">
+        <label>cstdint</label>
+      </node>
+      <node id="22">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="19">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_commands.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_heap.h</label>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_renderTarget.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="16">
+        <label>drv/3d/dag_texture.h</label>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_vertexIndexBuffer.h</label>
+      </node>
+      <node id="21">
+        <label>gameRes/dag_gameResources.h</label>
+      </node>
+      <node id="26">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="12">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="6">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="20">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="8">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="25">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter" prot="public">resptr_detail::resizeable_detail::D3dDeleter</innerclass>
+    <innerclass refid="classresptr__detail_1_1ResizableManagedTex" prot="public">resptr_detail::ResizableManagedTex</innerclass>
+    <innerclass refid="classresptr__detail_1_1ResizableManagedTexHolder" prot="public">resptr_detail::ResizableManagedTexHolder</innerclass>
+    <innernamespace refid="namespaceresptr__detail">resptr_detail</innernamespace>
+    <innernamespace refid="namespaceresptr__detail_1_1resizeable__detail">resptr_detail::resizeable_detail</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__resizableTex_8h_1ab5f0c4295fcf4e236f0b06ef88861c3a" prot="public" static="no">
+        <type><ref refid="namespaceresptr__detail_1adfcc57734bc1b6e952f7fd76c20c0886" kindref="member">resptr_detail::ResizableTex</ref></type>
+        <definition>using ResizableTex =  resptr_detail::ResizableTex</definition>
+        <argsstring></argsstring>
+        <name>ResizableTex</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="83" column="1" bodyfile="dag_resizableTex.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__resizableTex_8h_1a6f310fa306890f16726bf60bc1a6bb32" prot="public" static="no">
+        <type><ref refid="namespaceresptr__detail_1aa0306c8f31acc85489dfb27d1265ca83" kindref="member">resptr_detail::ResizableTexHolder</ref></type>
+        <definition>using ResizableTexHolder =  resptr_detail::ResizableTexHolder</definition>
+        <argsstring></argsstring>
+        <name>ResizableTexHolder</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="84" column="1" bodyfile="dag_resizableTex.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dag__resPtr_8h" kindref="compound">dag_resPtr.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector_map.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>dynamically<sp/>resizable<sp/>texture<sp/>baked<sp/>by<sp/>single<sp/>memory<sp/>area<sp/>(heap)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>resize<sp/>to<sp/>smaller<sp/>size<sp/>works<sp/>only<sp/>when<sp/>heaps<sp/>&amp;<sp/>resource<sp/>aliasing<sp/>are<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="namespaceresptr__detail" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceresptr__detail" kindref="compound">resptr_detail</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="namespaceresptr__detail_1a96bf0f1207e8ca9187ea3ff4665bf87c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaceresptr__detail_1a96bf0f1207e8ca9187ea3ff4665bf87c" kindref="member">key_t</ref><sp/>=<sp/>uint64_t;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="namespaceresptr__detail_1_1resizeable__detail" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">resizeable_detail</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21" refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter" kindref="compound">D3dDeleter</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23" refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter_1a7beacd0ce20df72a8a30e525965e6881" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter_1a7beacd0ce20df72a8a30e525965e6881" kindref="member">operator()</ref>(BaseTexture<sp/>*tex)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/>del_d3dres(tex);<sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25" refid="namespaceresptr__detail_1_1resizeable__detail_1af6b240ee725630e27b9c32ec6ec63f1a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaceresptr__detail_1_1resizeable__detail_1af6b240ee725630e27b9c32ec6ec63f1a" kindref="member">UniqueBaseTex</ref><sp/>=<sp/>eastl::unique_ptr&lt;BaseTexture,<sp/>D3dDeleter&gt;;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>resizeable_detail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classresptr__detail_1_1ResizableManagedTex" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ResizableManagedTex" kindref="compound">ResizableManagedTex</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedTex</ref></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="31" refid="classresptr__detail_1_1ResizableManagedTex_1ae61b9ed6358a729523c9aacb3899245e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ResizableManagedTex_1ae61b9ed6358a729523c9aacb3899245e" kindref="member">AliasMap</ref><sp/>=<sp/>eastl::vector_map&lt;key_t,<sp/>resizeable_detail::UniqueBaseTex&gt;;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="34" refid="classresptr__detail_1_1ResizableManagedTex_1aa76a83d0445bfcc14e26befea6b3c6b3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1ae61b9ed6358a729523c9aacb3899245e" kindref="member">AliasMap</ref><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1aa76a83d0445bfcc14e26befea6b3c6b3" kindref="member">mAliases</ref>;</highlight></codeline>
+<codeline lineno="35" refid="classresptr__detail_1_1ResizableManagedTex_1a7b0e46e09b23bf7da84cda542bc87308" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceresptr__detail_1a96bf0f1207e8ca9187ea3ff4665bf87c" kindref="member">key_t</ref><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a7b0e46e09b23bf7da84cda542bc87308" kindref="member">currentKey</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="36" refid="classresptr__detail_1_1ResizableManagedTex_1a2df5191163a30fa55a79a9cbb1ddb1e8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1ManagedRes_1a961addbf9bc419d8ce5330b6d28e2a7d" kindref="member">resid_t</ref><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a2df5191163a30fa55a79a9cbb1ddb1e8" kindref="member">lastMResId</ref><sp/>=<sp/><ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper&lt;ManagedTex&gt;::BAD_ID</ref>;</highlight></codeline>
+<codeline lineno="37" refid="classresptr__detail_1_1ResizableManagedTex_1aa08175cc13070f3314fbc8f3ce9ce768" refkind="member"><highlight class="normal"><sp/><sp/>BaseTexture<sp/>*<ref refid="classresptr__detail_1_1ResizableManagedTex_1aa08175cc13070f3314fbc8f3ce9ce768" kindref="member">originalTexture</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classresptr__detail_1_1ResizableManagedTex_1a607f58f06a75797613f01b41edfc6f56" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a607f58f06a75797613f01b41edfc6f56" kindref="member">swap</ref>(<ref refid="classresptr__detail_1_1ResizableManagedTex" kindref="compound">ResizableManagedTex</ref><sp/>&amp;other)</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1ManagedRes_1a9feed595d9973d71f23a7c0de6887c8f" kindref="member">ManagedTex::swap</ref>(other);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(<ref refid="classresptr__detail_1_1ResizableManagedTex_1aa76a83d0445bfcc14e26befea6b3c6b3" kindref="member">mAliases</ref>,<sp/>other.<ref refid="classresptr__detail_1_1ResizableManagedTex_1aa76a83d0445bfcc14e26befea6b3c6b3" kindref="member">mAliases</ref>);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(<ref refid="classresptr__detail_1_1ResizableManagedTex_1a7b0e46e09b23bf7da84cda542bc87308" kindref="member">currentKey</ref>,<sp/>other.<ref refid="classresptr__detail_1_1ResizableManagedTex_1a7b0e46e09b23bf7da84cda542bc87308" kindref="member">currentKey</ref>);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(<ref refid="classresptr__detail_1_1ResizableManagedTex_1a2df5191163a30fa55a79a9cbb1ddb1e8" kindref="member">lastMResId</ref>,<sp/>other.<ref refid="classresptr__detail_1_1ResizableManagedTex_1a2df5191163a30fa55a79a9cbb1ddb1e8" kindref="member">lastMResId</ref>);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::swap(<ref refid="classresptr__detail_1_1ResizableManagedTex_1aa08175cc13070f3314fbc8f3ce9ce768" kindref="member">originalTexture</ref>,<sp/>other.<ref refid="classresptr__detail_1_1ResizableManagedTex_1aa08175cc13070f3314fbc8f3ce9ce768" kindref="member">originalTexture</ref>);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47" refid="classresptr__detail_1_1ResizableManagedTex_1a79efab749a417642c78b95245958d37d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a79efab749a417642c78b95245958d37d" kindref="member">ResizableManagedTex</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classresptr__detail_1_1ResizableManagedTex_1a919ac190d3991e98baea581b66c4c874" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a919ac190d3991e98baea581b66c4c874" kindref="member">alias</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>depth,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>levels);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="52" refid="classresptr__detail_1_1ResizableManagedTex_1a16d13f7cef415cd80e5a672b1017ec04" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a16d13f7cef415cd80e5a672b1017ec04" kindref="member">calcKey</ref>();</highlight></codeline>
+<codeline lineno="53" refid="classresptr__detail_1_1ResizableManagedTex_1afdd1ab3648fe8fe8fa329db1ee9b7d37" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1afdd1ab3648fe8fe8fa329db1ee9b7d37" kindref="member">resize</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>1);</highlight></codeline>
+<codeline lineno="54" refid="classresptr__detail_1_1ResizableManagedTex_1a393a4255286b5a885f8a45e8f50373fa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a393a4255286b5a885f8a45e8f50373fa" kindref="member">dropAliases</ref>()</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!_TARGET_C1<sp/>&amp;&amp;<sp/>!_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1aa76a83d0445bfcc14e26befea6b3c6b3" kindref="member">mAliases</ref>.clear();</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a7b0e46e09b23bf7da84cda542bc87308" kindref="member">currentKey</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1a2df5191163a30fa55a79a9cbb1ddb1e8" kindref="member">lastMResId</ref><sp/>=<sp/><ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper&lt;ManagedTex&gt;::BAD_ID</ref>;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1aa08175cc13070f3314fbc8f3ce9ce768" kindref="member">originalTexture</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classresptr__detail_1_1ResizableManagedTexHolder" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ResizableManagedTexHolder" kindref="compound">ResizableManagedTexHolder</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ManagedResHolder" kindref="compound">ManagedResHolder</ref>&lt;ResizableManagedTex&gt;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="68" refid="classresptr__detail_1_1ResizableManagedTexHolder_1ae3af2f0692e4eab0da58bbdd13380c46" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTexHolder_1ae3af2f0692e4eab0da58bbdd13380c46" kindref="member">ResizableManagedTexHolder</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="71" refid="classresptr__detail_1_1ResizableManagedTexHolder_1aa409ec3d60a8327758d02d82d9410791" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classresptr__detail_1_1ResizableManagedTexHolder_1aa409ec3d60a8327758d02d82d9410791" kindref="member">resize</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>1)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1ResizableManagedTex_1afdd1ab3648fe8fe8fa329db1ee9b7d37" kindref="member">ResizableManagedTex::resize</ref>(width,<sp/>height,<sp/>d);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classresptr__detail_1_1ManagedResHolder_1a31e9999423935ef5b8decd88fe0bb84a" kindref="member">setVar</ref>();</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="namespaceresptr__detail_1adfcc57734bc1b6e952f7fd76c20c0886" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">ResizableTex</ref><sp/>=<sp/><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes&lt;ResizableManagedTex&gt;</ref>;</highlight></codeline>
+<codeline lineno="79" refid="namespaceresptr__detail_1aa0306c8f31acc85489dfb27d1265ca83" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ResizableTexHolder</ref><sp/>=<sp/><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ConcreteResHolder&lt;UniqueRes&lt;ResizableManagedTexHolder&gt;</ref>&gt;;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>resptr_detail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="dag__resizableTex_8h_1ab5f0c4295fcf4e236f0b06ef88861c3a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">ResizableTex</ref><sp/>=<sp/><ref refid="namespaceresptr__detail_1adfcc57734bc1b6e952f7fd76c20c0886" kindref="member">resptr_detail::ResizableTex</ref>;</highlight></codeline>
+<codeline lineno="84" refid="dag__resizableTex_8h_1a6f310fa306890f16726bf60bc1a6bb32" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ResizableTexHolder</ref><sp/>=<sp/><ref refid="namespaceresptr__detail_1aa0306c8f31acc85489dfb27d1265ca83" kindref="member">resptr_detail::ResizableTexHolder</ref>;</highlight></codeline>
+    </programlisting>
+    <location file="dag_resizableTex.h"/>
+  </compounddef>
+</doxygen>

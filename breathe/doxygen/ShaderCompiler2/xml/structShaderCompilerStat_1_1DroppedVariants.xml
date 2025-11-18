@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCompilerStat_1_1DroppedVariants" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCompilerStat::DroppedVariants</compoundname>
+    <includes refid="sh__stat_8h" local="no">sh_stat.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCompilerStat_1_1DroppedVariants_1a1d249da750ea3b7894177b34c8b22487" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCompilerStat::DroppedVariants::dueToAssumeVar</definition>
+        <argsstring></argsstring>
+        <name>dueToAssumeVar</name>
+        <qualifiedname>ShaderCompilerStat::DroppedVariants::dueToAssumeVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="sh_stat.h" line="20" column="7" bodyfile="sh_stat.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="sh_stat.h" line="18" column="1" bodyfile="sh_stat.h" bodystart="19" bodyend="21"/>
+    <listofallmembers>
+      <member refid="structShaderCompilerStat_1_1DroppedVariants_1a1d249da750ea3b7894177b34c8b22487" prot="public" virt="non-virtual"><scope>ShaderCompilerStat::DroppedVariants</scope><name>dueToAssumeVar</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

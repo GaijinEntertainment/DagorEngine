@@ -1,0 +1,332 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lights Creation Guide</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Lights" href="lights.html" />
+    <link rel="prev" title="Lighting" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Lighting</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Lights Creation Guide</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#main-point">Main Point</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#light-source">Light Source</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#ies-textures">IES Textures</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#flickering-source">Flickering Source</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#visual-model">Visual Model</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#emission-strength">Emission Strength</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#gameobj">GameObj</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#restriction-box">Restriction Box</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#composite">Composite</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#placing-light-sources">Placing Light Sources</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lights.html">Lights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flickering_lights.html">Flickering Lights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="photometric_lights.html">Photometric Lights (IES)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adding_light_fixtures_to_building_composites.html">Adding Light Fixtures to Building Composites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="replacing_or_modifying_lights.html">Replacing or Modifying Lights in Props</a></li>
+<li class="toctree-l3"><a class="reference internal" href="in_game_placeable_light_source.html">Placeable In-Game Light with Render Instance and Dynamic Model Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lighting_catalog.html">Lighting Catalog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Lighting</a></li>
+      <li class="breadcrumb-item active">Lights Creation Guide</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/lighting/lights_creation_guide.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="lights-creation-guide">
+<h1>Lights Creation Guide<a class="headerlink" href="#lights-creation-guide" title="Link to this heading"></a></h1>
+<section id="main-point">
+<h2>Main Point<a class="headerlink" href="#main-point" title="Link to this heading"></a></h2>
+<p>The key rule when working with lighting is to carefully check the source
+placement results. The radius of light sources should be sufficient to
+illuminate the necessary parts of a room or area, but not exceed reasonable
+limits. For instance, it’s inappropriate to use a light source designed for a
+small guardhouse to illuminate a large hangar.</p>
+</section>
+<section id="light-source">
+<h2>Light Source<a class="headerlink" href="#light-source" title="Link to this heading"></a></h2>
+<p>Templates for light sources are located in the <code class="docutils literal notranslate"><span class="pre">lights.blk</span></code> file within the
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog</span></code> directory. For example, in <em>daNetGame</em>-based projects, it
+can be found here:</p>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog/gameBase/content/common/gamedata/templates/lights.blk</span></code></p>
+<p>Details about light source settings are discussed in the <a class="reference internal" href="lights.html"><span class="std std-doc">Lights</span></a>
+article.</p>
+<p><strong>Key points:</strong></p>
+<ul class="simple">
+<li><p>For each new visual model, create and configure a new light source, including
+the visual model’s name in the light source name (along with functional
+parameters such as light radius if needed).</p></li>
+<li><p>Prefer to use <strong>spot</strong> lights over <strong>omni</strong> lights.</p></li>
+<li><p>Light sources can be adjusted via the mission editor (<code class="docutils literal notranslate"><span class="pre">F12</span></code> in-game). These
+changes won’t be saved but can be previewed immediately.</p></li>
+<li><p>To change the time of day, use the browser-based tool <a class="reference external" href="http://127.0.0.1:23456/editvar">Var
+Editor</a>.</p></li>
+<li><p>Balance brightness and maximum radius when configuring light sources.</p></li>
+<li><p>If creating an <strong>omni</strong> light for outdoor use (outside an <code class="docutils literal notranslate"><span class="pre">envi_probe</span></code>),
+ensure the <code class="docutils literal notranslate"><span class="pre">light__use_box</span></code> parameter is disabled; otherwise, the light won’t
+be rendered outside.</p></li>
+<li><p>Avoid activating shadows if possible.</p></li>
+<li><p>If shadows are enabled, they should only apply to static objects. Dynamic
+objects may have a unique light source if necessary.</p></li>
+<li><p>Always check shadows in-game, as enabled shadows may degrade the scene in
+certain situations, depending on the light source’s position relative to the
+visual model.</p></li>
+<li><p>If the light source’s visual model can be destroyed, add the parameter
+<code class="docutils literal notranslate"><span class="pre">destroyable_with_rendinst:tag</span></code> to the light source template.</p></li>
+<li><p>If the light source is only active during nighttime (e.g., a street lamp), add
+the parameter <code class="docutils literal notranslate"><span class="pre">light__nightly:b=yes</span></code> to the template.</p></li>
+</ul>
+<section id="ies-textures">
+<h3>IES Textures<a class="headerlink" href="#ies-textures" title="Link to this heading"></a></h3>
+<p>Details on creating IES textures are covered in the <a class="reference internal" href="photometric_lights.html"><span class="std std-doc">Photometric
+Lights</span></a> article. Don’t hesitate to generate multiple
+IES textures. Name them according to the light source and/or visual model.</p>
+</section>
+<section id="flickering-source">
+<h3>Flickering Source<a class="headerlink" href="#flickering-source" title="Link to this heading"></a></h3>
+<p>For more information on flickering light sources, refer to the <a class="reference internal" href="flickering_lights.html"><span class="std std-doc">Flickering
+Lights</span></a> article.</p>
+<p>To correctly set up a flickering light source, the following entities must be
+created:</p>
+<ol class="arabic">
+<li><p>A flickering light source.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is not the same as a light source; refer to the
+<a class="reference internal" href="flickering_lights.html"><span class="std std-doc">article</span></a> for details.</p>
+</div>
+</li>
+<li><p>A dynamic visual model with an animation controller.</p></li>
+<li><p>A template linking the animChar of the dynamic model to the flickering
+source. Don’t forget to specify destructibility if the dynamic model can be
+destroyed.</p></li>
+<li><p>A gameObj template linking the animChar of the dynamic model to the
+flickering source.</p></li>
+<li><p>A light source.</p></li>
+<li><p>A template linking the light source to the flickering source.</p></li>
+<li><p>A gameObj template linking the light source to the flickering source.</p></li>
+<li><p>A composite file combining the two gameObjects: one for linking the
+flickering source to the dynamic model and the other for linking the
+flickering source to the light source.</p></li>
+</ol>
+</section>
+</section>
+<section id="visual-model">
+<h2>Visual Model<a class="headerlink" href="#visual-model" title="Link to this heading"></a></h2>
+<p>This refers to the geometric model of the light source, such as a lamp,
+spotlight, torch, or any other visual representation of a light source.</p>
+<p>Consider whether the light source requires flickering. For emergency lights,
+torches, and most lamps (since many can have flickering variants), create a
+dynamic model with an emissive surface and, if necessary, a render instance
+base. The logic behind separating the visual model into render instances and
+dynamic models, as well as their preparation, is detailed in the <a class="reference internal" href="flickering_lights.html"><span class="std std-doc">Flickering
+Lights</span></a> article.</p>
+<section id="emission-strength">
+<h3>Emission Strength<a class="headerlink" href="#emission-strength" title="Link to this heading"></a></h3>
+<p>There are no exact values for emission strength since it depends on factors like
+the albedo, emission mask, and the size of the emissive surface. Configure the
+emission strength individually, keeping in mind that lower values are generally
+better. Excessive emission can disrupt the camera’s adaptation and negatively
+impact gameplay.</p>
+<p>More details on configuring emission can be found in <a class="reference internal" href="../shaders/dng-shaders/rendinst_emissive.html"><span class="std std-doc">this
+article</span></a>.</p>
+</section>
+</section>
+<section id="gameobj">
+<h2>GameObj<a class="headerlink" href="#gameobj" title="Link to this heading"></a></h2>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see
+<a class="reference internal" href="#../about-assets/gameobjects/gameobjects.md"><span class="xref myst">gameObjects</span></a>.</p>
+</div>
+<p>Create a gameObj for both the light source and the dynamic visual model. In
+<em>daNetGame</em>-based projects, for example, they are located here:</p>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/develop/assets/common/gameRes/gameObjects</span></code></p>
+<p>For convenience, ensure to define a reference model in the gameObj. For example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ref_dynmodel:t=&quot;lamppost_d_glass_flicker_dynmodel&quot;</span></code></p>
+<p>This is necessary to display the geometry in the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a>.</p>
+</section>
+<section id="restriction-box">
+<h2>Restriction Box<a class="headerlink" href="#restriction-box" title="Link to this heading"></a></h2>
+<p>The <em>Restriction Box</em> is a gameObj used to cut off light. It’s required for
+light sources that don’t cast shadows, to prevent light from passing through
+walls. Typically, it’s not included in the composite file with the light source,
+but rather placed manually at the location or added to the composite file for
+the entire building.</p>
+<p>The object is named:</p>
+<p><code class="docutils literal notranslate"><span class="pre">omni_light_restriction_box.gameObj.blk</span></code></p>
+</section>
+<section id="composite">
+<h2>Composite<a class="headerlink" href="#composite" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../all-about-blk/composit_blk.html"><span class="std std-doc">Composite</span></a> file can use the same visual model
+but have different light sources. In such cases, make sure to include the light
+source functionality in the composite file name. Always specify the radius in
+the names of composites containing light sources, e.g.:</p>
+<p><code class="docutils literal notranslate"><span class="pre">factory_lamp_a_flicker_10m_cmp.composit.blk</span></code></p>
+<p>A composite containing a light source may consist of:</p>
+<ul class="simple">
+<li><p><strong>RendInst</strong> – static base, which can be destructible and include destruction
+logic.</p></li>
+<li><p><strong>GameObj</strong> template describing the light source or linking the light source
+to the flickering source.</p></li>
+<li><p><strong>GameObj</strong> template using a dynamic model, in case the light source has a
+flickering variant.</p></li>
+<li><p><strong>Restriction Box</strong> for cutting off light, though it is often placed
+separately and not included in the composite with the light source.</p></li>
+</ul>
+</section>
+<section id="placing-light-sources">
+<h2>Placing Light Sources<a class="headerlink" href="#placing-light-sources" title="Link to this heading"></a></h2>
+<p>Remember to account for the light radius when placing light sources. The same
+light source cannot be used to illuminate both a small room and a large hall.
+This would either leave the hall under-illuminated or cause the small room to be
+over-lit. Excessive brightness not only breaks visual immersion but also
+disrupts gameplay.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Lighting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lights.html" class="btn btn-neutral float-right" title="Lights" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

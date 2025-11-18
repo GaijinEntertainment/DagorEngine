@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resource and Execution Barriers</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Shaders" href="shaders.html" />
+    <link rel="prev" title="ResourceSlotCore Daslang Module" href="resourceSlot/ResourceSlotCore.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Resource and Execution Barriers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-is-barrier-required">When is Barrier Required?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#uav-barrier-rb-flush-uav">UAV Barrier (<code class="docutils literal notranslate"><span class="pre">RB_FLUSH_UAV</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#begin-end-barriers">Begin/End Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#release-acquire-ownership-barriers">Release/Acquire Ownership Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#implicit-barriers">Implicit Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#implementation-details-of-dx12-driver">Implementation Details of DX12 Driver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#validation">Validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#implementation-details-of-vulkan-driver">Implementation Details of Vulkan Driver</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Engine Render</a></li>
+      <li class="breadcrumb-item active">Resource and Execution Barriers</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-render/index/resource_and_execution_barriers.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="resource-and-execution-barriers">
+<h1>Resource and Execution Barriers<a class="headerlink" href="#resource-and-execution-barriers" title="Link to this heading"></a></h1>
+<p>With low-level Graphics APIs (GAPI) comes the responsibility of managing
+resource states explicitly.</p>
+<section id="when-is-barrier-required">
+<h2>When is Barrier Required?<a class="headerlink" href="#when-is-barrier-required" title="Link to this heading"></a></h2>
+<p>Textures and buffers that are modified by CPU write access are typically in a
+“generic read” state once CPU access completes. This state allows the resource
+to be used as a Shader Resource View (SRV), Constant Buffer View (CBV), or any
+other read source in GPU commands (corresponding to all <code class="docutils literal notranslate"><span class="pre">RB_RO_*</span></code> barrier
+states).</p>
+<p>Barriers are necessary to transition resources into the appropriate state after
+a GPU operation has modified the resource. For example, resources may need to
+transition to a state for use as a render target, depth-stencil target,
+unordered access view (UAV), blit target, or copy target (corresponding to
+<code class="docutils literal notranslate"><span class="pre">RB_RW_*</span></code> barrier states). Many commands that write to resources automatically
+trigger an implicit transition without the need for an additional barrier.</p>
+<p>Using a resource in a read state will <em>not</em> implicitly transition the resource
+to the required state. Manually generating the correct barrier for all future
+read states can be expensive and requires knowledge of the entire frame’s
+execution. This is why explicit barrier management was introduced in the
+Direct3D (D3D) interface.</p>
+<p>Render targets with automatic mip generation (MipGen) will automatically be in a
+state that supports SRV access in the pixel shader without additional barriers
+(e.g., <code class="docutils literal notranslate"><span class="pre">RB_RO_SRV</span> <span class="pre">|</span> <span class="pre">RB_STAGE_PIXEL</span></code>). A barrier is only required if the resource
+will be used differently after mip generation completes.</p>
+<p>Readback operations automatically transition the resource to the correct state
+for copying its contents into a readback buffer during the next flush (e.g.,
+frame present or a blocking readback is an implicit flush). Drivers assume that
+the resource is not used for other purposes until the next flush. After a
+readback completes, the resource must be transitioned to its next intended
+state, unless the transition is handled implicitly.</p>
+<p>Issuing barriers on resources with pending asynchronous readback is invalid and
+results in undefined behavior. For instance, if a texture is read back using a
+blocking readback and is later used as an SRV in a pixel shader, the user must
+manually insert a barrier to transition the resource into the SRV state for the
+pixel shader stage.</p>
+</section>
+<section id="uav-barrier-rb-flush-uav">
+<h2>UAV Barrier (<code class="docutils literal notranslate"><span class="pre">RB_FLUSH_UAV</span></code>)<a class="headerlink" href="#uav-barrier-rb-flush-uav" title="Link to this heading"></a></h2>
+<p>A UAV barrier ensures that multiple sequential operations, such as dispatches,
+on the same resource are completed in the correct issue order, preventing race
+conditions on the UAV resource. For example, if resource X is accessed by
+dispatch A followed by dispatch B, and dispatch B depends on the changes made by
+dispatch A, a UAV barrier is required between A and B.</p>
+<p>If A and B access X in an order-independent manner (such as atomic operations or
+non-overlapping sections), a UAV barrier is not needed and should not be issued.
+In this case, the device can overlap the execution of A and B if it has
+available resources, achieving similar effects to async compute queues but
+within the same queue. In GAPIs that do not offer explicit barrier control,
+sequential consistency is maintained by default, and drivers are unlikely to
+allow overlapping work where a barrier is necessary.</p>
+<p>Drivers implementing the D3D barrier interface may issue warnings if they detect
+dependency chains missing barriers. To suppress these warnings, insert a
+<code class="docutils literal notranslate"><span class="pre">RB_NONE</span></code> barrier for the affected resource, which will remove it from the
+dependency chain test. A <code class="docutils literal notranslate"><span class="pre">RB_NONE</span></code> barrier is a no-op.</p>
+<p>UAV barriers require defining both source and destination stages. Source stages
+are selected using <code class="docutils literal notranslate"><span class="pre">RB_SOURCE_STAGE_*</span></code> flags, while destination stages are
+specified with <code class="docutils literal notranslate"><span class="pre">RB_STAGE_*</span></code>. Multiple stages can be selected for both source and
+destination. The device waits at the earliest destination stage on the latest
+source stage.</p>
+<p>UAV barriers can also be issued with a null resource (using the
+<code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc</span></code> overload that only takes a <code class="docutils literal notranslate"><span class="pre">ResourceBarrier</span></code> parameter).
+In this case, all pending UAV accesses from the selected source stages will
+complete before execution continues in the destination stages.</p>
+<p>UAV barriers are generally unnecessary between draw calls, as the relative order
+of draw calls remains the same as in older GAPIs, where the order between draw
+calls is preserved (though ordering within draw calls is undefined).</p>
+<p>Resource barriers that transition a resource to a state other than UAV (e.g.,
+SRV) implicitly handle UAV barriers and do not require additional barriers, and
+doing so may negatively impact performance.</p>
+</section>
+<section id="begin-end-barriers">
+<h2>Begin/End Barriers<a class="headerlink" href="#begin-end-barriers" title="Link to this heading"></a></h2>
+<p>Begin and end barriers mark the start and end of a resource state transition,
+enabling the device to execute parallel work while transitioning the resource.
+This parallel execution minimizes the overhead of the barrier, making the
+transition process nearly free. These begin/end pairs can only be used on
+textures currently in use as render targets (color and depth/stencil),
+transitioning the resource into a different state.</p>
+<p>Both the begin and end barriers must use the same state and target shader stage
+(when applicable). If they do not, the behavior is undefined. Best practices
+recommend issuing the begin barrier as early as possible (e.g., immediately
+after the last use as a render target) and the end barrier as late as possible.</p>
+<p>If there is no work between the begin and end barrier pair, the driver will
+automatically merge them into a standard barrier. Validation may issue a warning
+in this case if enabled.</p>
+<p>A resource is considered inaccessible from the begin barrier until the end
+barrier is reached. Violating this by using the resource or issuing other
+barriers in between results in undefined behavior.</p>
+</section>
+<section id="release-acquire-ownership-barriers">
+<h2>Release/Acquire Ownership Barriers<a class="headerlink" href="#release-acquire-ownership-barriers" title="Link to this heading"></a></h2>
+<p>When a texture is used across multiple queues, the ownership of the resource
+must be transferred from one queue to another. Textures created with the
+<code class="docutils literal notranslate"><span class="pre">TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE</span></code> flag or static textures are exempt from
+this rule and can be accessed by any queue in their current state. Failing to
+properly transfer ownership may corrupt the resource’s contents.</p>
+<p>A resource is considered inaccessible from the release barrier until the acquire
+barrier. Violating this rule by using the resource or issuing other barriers
+during this period results in undefined behavior. A release/acquire pair can
+also perform state transitions simultaneously, but both the release and acquire
+barriers must match in state and target shader stage (when applicable);
+otherwise, the behavior is undefined. Ensure that the release on one queue is
+completed before the acquire on another queue begins (e.g., use a queue sync
+fence).</p>
+<p>If a resource is currently owned by queue A and the next use is, for example, as
+a UAV resource on queue B, and the operation on queue B will completely replace
+the resource’s contents, ownership transfer may be skipped. In this case, the
+driver will automatically perform a fast, uninitialized transfer. Ownership
+transfer is only required when the resource’s content must be preserved. Ensure
+that all previous accesses by other queues are complete before skipping the
+transfer, or undefined behavior may occur.</p>
+</section>
+<section id="implicit-barriers">
+<h2>Implicit Barriers<a class="headerlink" href="#implicit-barriers" title="Link to this heading"></a></h2>
+<p>As a general rule, you can expect the driver to automatically insert a resource
+barrier for any operation that requires write access to a (sub-)resource. This
+is because write states are unique in that they prevent simultaneous use with
+other read or write operations, making it efficient for the driver to handle
+this transition implicitly.</p>
+<p>To be more specific, the following D3D commands will automatically execute an
+implicit resource barrier to transition the resource to the required state
+before the command is executed:</p>
+<ul>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">stretch_rect</span></code></strong>:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">RB_RW_BLIT_DEST</span></code> barrier is applied to the destination resource.</p></li>
+<li><p>No implicit barrier is applied to the source, except when the source is the
+swapchain color target (e.g., passing <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> or the return value of
+<code class="docutils literal notranslate"><span class="pre">get_backbuffer_tex</span></code>), in which case a <code class="docutils literal notranslate"><span class="pre">RB_RO_BLIT_SOURCE</span></code> barrier is
+applied.</p></li>
+</ul>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">copy_from_current_render_target</span></code></strong>:</p>
+<ul class="simple">
+<li><p>Similar to <code class="docutils literal notranslate"><span class="pre">stretch_rect</span></code>, as it typically shares the same underlying
+implementation.</p></li>
+</ul>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">set_rwtex</span></code>, <code class="docutils literal notranslate"><span class="pre">clear_rwtex{i|f}</span></code>, <code class="docutils literal notranslate"><span class="pre">zero_rwbuf{i|f}</span></code>, <code class="docutils literal notranslate"><span class="pre">set_rwbuffer</span></code></strong>:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">RB_RW_UAV</span></code> barrier is applied for the affected subresource range of the
+resource.</p></li>
+</ul>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">set_depth</span></code></strong>:</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">readonly</span></code> is false, a <code class="docutils literal notranslate"><span class="pre">RB_RW_RENDER_TARGET</span></code> barrier is applied to the
+affected subresource.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">readonly</span></code> is true, no implicit barrier is applied.</p></li>
+</ul>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">set_render_target</span></code></strong>:</p>
+<ul>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">RB_RW_RENDER_TARGET</span></code> barrier is applied to the affected subresource range
+of the resource.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For volumetric textures, all slices of a mip level are considered the same
+subresource, so applying different barriers per slice is not feasible.</p>
+</div>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="implementation-details-of-dx12-driver">
+<h2>Implementation Details of DX12 Driver<a class="headerlink" href="#implementation-details-of-dx12-driver" title="Link to this heading"></a></h2>
+<p>DirectX 12 (DX12) lacks fine-grained control for targeting specific shader
+stages for resource state transitions. There are only three primary states: UAV,
+SRV for non-pixel shader stages, and SRV for pixel shader stages. Additionally,
+DX12 does not distinguish between blit source and blit destination states; these
+are treated as SRV for the pixel shader stage and RTV, respectively. DX12 also
+does not have a concept of resource ownership; as long as a resource is in a
+state that is usable by a queue, the resource can be accessed by that queue. The
+driver only manages pipeline stage-independent UAV resource-specific and global
+barriers, meaning the source and destination flags of UAV barriers have no
+effect.</p>
+<p>On PC platforms, the driver tracks buffer states because buffers are subject to
+decay and auto-promotion to intermediate states between command buffer
+submission and execution. This special behavior, which is not predictable by the
+user of the D3D interface, means that the driver continuously monitors buffer
+states and automatically inserts barriers as needed to maintain consistency.
+Consequently, missing barriers may still work in some cases because the driver
+compensates for them. This is specific to PC platforms, and for Xbox (One and
+Scarlett), the driver does not support such automatic behavior. In these cases,
+resources do not decay or auto-promote, as we have moved away from PC
+compatibility mode.</p>
+</section>
+<section id="validation">
+<h2>Validation<a class="headerlink" href="#validation" title="Link to this heading"></a></h2>
+<p>The DX12 driver includes an extensive set of checks to detect erroneous,
+missing, or superfluous barriers. These issues will be reported as warnings to
+avoid excessive error messages in the debug overlay. It is important to note
+that the driver can only validate states that are crucial for correct
+functionality and may not catch errors that other drivers may report.</p>
+<p>The driver is capable of detecting the following issues:</p>
+<ul>
+<li><p>Missing barriers for expected resource states.</p></li>
+<li><p>Missing UAV barriers</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>UAV barriers apply to the entire resource, and the driver cannot identify
+which subresource is affected.</p>
+</div>
+</li>
+<li><p>Redundant resource state barriers.</p></li>
+<li><p>Missing split barrier begin/end pairs.</p></li>
+<li><p>Ending a split barrier set with a non-end barrier.</p></li>
+<li><p>Using split barriers where no advantage is gained (e.g., when an end
+immediately follows the begin without other work in between).</p></li>
+</ul>
+<p>When operating in threaded mode, the driver can also suggest locations for split
+barrier begin and end pairs. It will report the “path” (e.g.,
+beginEvent/endEvent hierarchy) for the identified locations. However, this only
+works if no other barriers for the resource are generated by the user within the
+possible span of a split barrier set.</p>
+<p>When barrier validation is enabled, it is possible that some barriers may not be
+generated exactly when requested by the user but slightly earlier. This occurs
+because the automatic barrier generation behavior may trigger a barrier slightly
+earlier when validation is enabled.</p>
+</section>
+<section id="implementation-details-of-vulkan-driver">
+<h2>Implementation Details of Vulkan Driver<a class="headerlink" href="#implementation-details-of-vulkan-driver" title="Link to this heading"></a></h2>
+<p>These details are preliminary and reflect expectations for a future
+implementation.</p>
+<p>Begin and end barriers will be implemented as standard barriers at the end
+barrier stage (implementation still requires further research).</p>
+<p>UAV flush barriers will be translated into execution barriers for the source and
+destination stages.</p>
+<p>Stages in Vulkan map directly to the selected stages, with resources becoming
+available at the earliest stage of the barrier and implicitly becoming available
+in subsequent stages (e.g., targeting the vertex stage makes the resource
+available to the pixel stage without additional specification).</p>
+<p>For all buffers, static textures, and non-static textures with the
+<code class="docutils literal notranslate"><span class="pre">TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE</span></code> flag, the driver will use
+<code class="docutils literal notranslate"><span class="pre">VK_SHARING_MODE_CONCURRENT</span></code> for all queues that access the resource. For other
+textures, <code class="docutils literal notranslate"><span class="pre">VK_SHARING_MODE_EXCLUSIVE</span></code> is used, requiring an explicit resource
+ownership transfer.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="resourceSlot/ResourceSlotCore.html" class="btn btn-neutral float-left" title="ResourceSlotCore Daslang Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shaders.html" class="btn btn-neutral float-right" title="Shaders" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

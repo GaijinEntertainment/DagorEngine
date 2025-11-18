@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImportedFileHash" kind="struct" language="C++" prot="public">
+    <compoundname>ImportedFileHash</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structImportedFileHash_1a0d124532bd78f91c7774b053098ff9a2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t ImportedFileHash::operator()</definition>
+        <argsstring>(const ImportedFile &amp;imp) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ImportedFileHash::operator()</qualifiedname>
+        <param>
+          <type>const <ref refid="structImportedFile" kindref="compound">ImportedFile</ref> &amp;</type>
+          <declname>imp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="330" column="10" bodyfile="dagimp.cpp" bodystart="330" bodyend="335"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="328" column="1" bodyfile="dagimp.cpp" bodystart="329" bodyend="336"/>
+    <listofallmembers>
+      <member refid="structImportedFileHash_1a0d124532bd78f91c7774b053098ff9a2" prot="public" virt="non-virtual"><scope>ImportedFileHash</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

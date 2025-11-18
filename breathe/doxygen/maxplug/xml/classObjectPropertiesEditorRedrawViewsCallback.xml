@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classObjectPropertiesEditorRedrawViewsCallback" kind="class" language="C++" prot="public">
+    <compoundname>ObjectPropertiesEditorRedrawViewsCallback</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">RedrawViewsCallback</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classObjectPropertiesEditorRedrawViewsCallback_1a56aca0c169917b880dfd03209bf7bcea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectPropertiesEditorRedrawViewsCallback::proc</definition>
+        <argsstring>(Interface *interface_pointer) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>ObjectPropertiesEditorRedrawViewsCallback::proc</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>interface_pointer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="59" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="74" bodyend="77"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ObjectPropertiesEditorRedrawViewsCallback</label>
+        <link refid="classObjectPropertiesEditorRedrawViewsCallback"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RedrawViewsCallback</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ObjectPropertiesEditorRedrawViewsCallback</label>
+        <link refid="classObjectPropertiesEditorRedrawViewsCallback"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RedrawViewsCallback</label>
+      </node>
+    </collaborationgraph>
+    <location file="objectPropertiesEditor.cpp" line="56" column="1" bodyfile="objectPropertiesEditor.cpp" bodystart="57" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classObjectPropertiesEditorRedrawViewsCallback_1a56aca0c169917b880dfd03209bf7bcea" prot="public" virt="non-virtual"><scope>ObjectPropertiesEditorRedrawViewsCallback</scope><name>proc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

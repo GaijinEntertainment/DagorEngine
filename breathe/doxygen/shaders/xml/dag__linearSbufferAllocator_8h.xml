@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__linearSbufferAllocator_8h" kind="file" language="C++">
+    <compoundname>dag_linearSbufferAllocator.h</compoundname>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">3d/dag_resPtr.h</includes>
+    <includes local="no">drv/3d/dag_info.h</includes>
+    <includedby refid="dag__linearMatrixBufferAllocator_8h" local="no">dag_linearMatrixBufferAllocator.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_linearSbufferAllocator.h</label>
+        <link refid="dag__linearSbufferAllocator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_info.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>dag_bindposeBufferManager.h</label>
+        <link refid="dag__bindposeBufferManager_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>dag_dynSceneRes.h</label>
+        <link refid="dag__dynSceneRes_8h_source"/>
+      </node>
+      <node id="2">
+        <label>dag_linearMatrixBufferAllocator.h</label>
+        <link refid="dag__linearMatrixBufferAllocator_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_linearSbufferAllocator.h</label>
+        <link refid="dag__linearSbufferAllocator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structSbufferHeapManager" prot="public">SbufferHeapManager</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__linearSbufferAllocator_8h_1acc00903e07fe8a47511b4adb6352069b" prot="public" static="no">
+        <type><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocator</ref>&lt; <ref refid="structSbufferHeapManager" kindref="compound">SbufferHeapManager</ref> &gt;</type>
+        <definition>typedef LinearHeapAllocator&lt;SbufferHeapManager&gt; LinearHeapAllocatorSbuffer</definition>
+        <argsstring></argsstring>
+        <name>LinearHeapAllocatorSbuffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="60" column="29" bodyfile="dag_linearSbufferAllocator.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_resPtr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_info.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="structSbufferHeapManager" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structSbufferHeapManager" kindref="compound">SbufferHeapManager</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>UniqueBuf<sp/>Heap;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><ref refid="structSbufferHeapManager" kindref="compound">SbufferHeapManager</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>uint32_t<sp/>elem_sz,<sp/>uint32_t<sp/>flags_,<sp/>uint32_t<sp/>texfmt_<sp/>=<sp/>0)<sp/>:</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/>baseName(name),<sp/>elementSize(elem_sz),<sp/>flags(flags_),<sp/>texfmt(texfmt_)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>copy(Heap<sp/>&amp;to,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>to_offset,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Heap<sp/>&amp;from,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>from_offset,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len)</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>todo:<sp/>if<sp/>no<sp/>overlappedCopy<sp/>flag,<sp/>do<sp/>it<sp/>with<sp/>intermediary<sp/>buffer/tempBuffer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!shouldCopy<sp/>||<sp/>!to.getBuf()<sp/>||<sp/>!from.getBuf())</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(from.getBuf()<sp/>!=<sp/>to.getBuf()<sp/>||<sp/>overlappedCopy);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>from.getBuf()-&gt;copyTo(to.getBuf(),<sp/>to_offset,<sp/>from_offset,<sp/>len);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>canCopyInSameHeap()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>overlappedCopy;<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>canCopyOverlapped()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>overlappedRegionCopy;<sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>create(Heap<sp/>&amp;h,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sz)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>overlappedCopy<sp/>=<sp/>d3d::get_driver_desc().caps.hasBufferOverlapCopy;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>do<sp/>it<sp/>each<sp/>create.<sp/>not<sp/>too<sp/>often<sp/>and<sp/>safer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>than<sp/>constructor<sp/>for<sp/>static<sp/>variable</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>overlappedRegionCopy<sp/>=<sp/>d3d::get_driver_desc().caps.hasBufferOverlapRegionsCopy;<sp/></highlight><highlight class="comment">//<sp/>do<sp/>it<sp/>each<sp/>create.<sp/>not<sp/>too</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>often<sp/>and<sp/>safer<sp/>than</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>constructor<sp/>for<sp/>static</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>variable</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>h.close();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sz<sp/>&gt;<sp/>0)<sp/></highlight><highlight class="comment">//<sp/>resize<sp/>with<sp/>0<sp/>closes<sp/>the<sp/>buffer<sp/>on-demand</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::string<sp/>name;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>name.sprintf(</highlight><highlight class="stringliteral">&quot;%s_%d&quot;</highlight><highlight class="normal">,<sp/>baseName.c_str(),<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">++);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>h<sp/>=<sp/>dag::create_sbuffer(elementSize,<sp/>(sz<sp/>+<sp/>elementSize<sp/>-<sp/>1)<sp/>/<sp/>elementSize,<sp/>flags,<sp/>texfmt,<sp/>name.c_str());</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>generation++;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)h;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>orphan(Heap<sp/>&amp;h)<sp/>{<sp/>h.close();<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getName()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>baseName.c_str();<sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setShouldCopyToNewHeap(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>on)<sp/>{<sp/>shouldCopy<sp/>=<sp/>on;<sp/>}<sp/></highlight><highlight class="comment">//<sp/>if<sp/>we<sp/>have<sp/>some<sp/>other<sp/>way<sp/>to<sp/>restore<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>uint32_t<sp/>getHeapGeneration()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>generation;<sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>uint32_t<sp/>elementSize<sp/>=<sp/>0,<sp/>flags<sp/>=<sp/>0,<sp/>texfmt<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>0,<sp/>generation<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>overlappedCopy<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/>overlappedRegionCopy<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/>shouldCopy<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>eastl::string<sp/>baseName;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Heap<sp/>tempBuffer;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocator</ref>;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocator&lt;SbufferHeapManager&gt;</ref><sp/><ref refid="structLinearHeapAllocator" kindref="compound">LinearHeapAllocatorSbuffer</ref>;</highlight></codeline>
+    </programlisting>
+    <location file="dag_linearSbufferAllocator.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceAttributesTVOS" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceAttributesTVOS</compoundname>
+    <basecompoundref refid="structDeviceAttributesBase" prot="public" virt="non-virtual">DeviceAttributesBase</basecompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceAttributesTVOS_1af110dc1bb886698bc0cf29fd9a0754de" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref></type>
+        <definition>constexpr GpuVendor DeviceAttributesTVOS::vendor</definition>
+        <argsstring></argsstring>
+        <name>vendor</name>
+        <qualifiedname>DeviceAttributesTVOS::vendor</qualifiedname>
+        <initializer>= <ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70a4c462d6dd59d782386bb1cdad0060c70" kindref="member">GpuVendor::APPLE</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="533" column="30" bodyfile="dag_consts.h" bodystart="533" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \tvos. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceAttributesBase</label>
+        <link refid="structDeviceAttributesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceAttributesTVOS</label>
+        <link refid="structDeviceAttributesTVOS"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceAttributesBase</label>
+        <link refid="structDeviceAttributesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceAttributesTVOS</label>
+        <link refid="structDeviceAttributesTVOS"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="531" column="1" bodyfile="dag_consts.h" bodystart="532" bodyend="534"/>
+    <listofallmembers>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959afb278931552df2b98cdc853594cb0484" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>AD100</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a685dbabe70fbdeca2e4574ff3cc9eee2" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ALCHEMIST</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a1b99b96a43c8e3a2adcafa9a5d748775" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ALDERLAKE_N</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873ab29c221ea9fd55f297051c42f23e0194" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ALDERLAKE_P</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a2405fa1e2490aa6af3cf8779cddd5ce6" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ALDERLAKE_S</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fc" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>AmdFamily</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873aa0c6720a060744c825d6493cf3342b78" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ARROWLAKE_H</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a37394dd33b945bf32176d6ab72b9ce1c" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ARROWLAKE_S</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a67f64eaaade2510e16d11f5562c326a3" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>BATTLEMAGE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a066932924697524c3ab7ccf05bae894f" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>BROADWELL</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873accecf74828a968bd6f2728f2375e623f" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>BROXTON</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a5409f402fcc02231237ab10e6088e3cd" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>CANNONLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873ae23bbb4e0e89072e7e59f477daa9d087" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>CHERRYVIEW</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a08d146b8d25442e908baee8d7adecafd" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>COFFEELAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a0e9f89f7b030131845fa6a0ce1170fb4" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>COMETLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873aa09e09adc765b0c7d77dca25566452e4" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>DG1</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a81abacb0b80ea80febbd6125e71efd1d" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ELKHARTLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a9b2e2b7a51137ff648b4e27ec23801b2" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>family</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959af570443d762fa157e8cd05f31ac3f327" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>G78</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959af5cd595c8a33831c2aebdf9a4052bc71" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>G80</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a8ae615b9d1387fb616fa94ec508725c3" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>G90</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a30bb4c05db4084f97e408fb5ab66e16d" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GA100</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a6f723a216a46d711095f439598940aa0" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GB200</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fcaf001fba451acc54741f4a681360bae36" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GCN1</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fca5fd21c9ad72532fa36aff7b2e276e9fe" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GCN2</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fca948b4383b021d3737d8ea1b9c5f1ca28" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GCN3</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fca44733faee81d75098f0db8326d39aef4" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GCN4</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873aaadd140697ed68795dde5957b9f57b11" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GEMINILAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959af2687ee99ed9b141f5eacc5d85e66ccf" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GF100</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a7d481505e3e39f065f6b0121de5749af" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GF110</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a7eb563845e46f4e498fd662145192aa4" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GK100</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a5a060bee0b0b4cb273ba672f17e91dbd" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GK110</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a6e90422921bf64f0cf12d5ba4f78e8a4" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GK200</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a978bec323620c3c8d8fb6049a15cea16" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GM000</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959aed47c060e4aca816e28a5c4454822ad7" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GM200</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a355536cccbca98f21196412643caea28" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GP100</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a1ab44ce29e07103fed437a9266ed1da7" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GT200</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a1a8057856bb03512b5b15d91661f7006" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GV100</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a7bf0a999f5cb527e4cbeaee34717b607" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>GV110</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a8a9742e3a253e38143477a1c8e3c635d" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>HASWELL</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873ae8294f40f54936f0c3afc6a1e7364ffa" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ICELAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873af233f23626be43d69fa06622fd655204" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ICELAKE_LP</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>IntelFamily</name></member>
+      <member refid="structDeviceAttributesBase_1ab7195fa8064a41d0e4b93090b41b195e" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>isUMA</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a03192918d0e0401ccff112e450b62a4d" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>IVYBRIDGE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a7408998b5cfa158a7cd843f3e05709cb" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>JASPERLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a8855f6211aba7384b9037b22b1fe5c4b" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>KABYLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a393262eb45a2c9b8dd32eaaa2b3ad184" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>LAKEFIELD</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a39c8ccdc90b0ac7fe731ce8b1e606e97" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>LUNARLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a672fdd45ca931bccdc75288ac7d3de9a" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>METEORLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a8137ebdb90357facc4d4a5c0f003af96" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>NV40</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a2a36fb0cae088cb63687095eb64b0c82" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>NV50</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>NvidiaFamily</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873ada6328dbe0c9411c370e0ddad21c074a" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>PANTHERLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873ac8b8708cdd76e0473c81437a6b93a2f5" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>PONTEVECCHIO</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fca12426d2c55bc69abff8d6b6a696c56a9" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>PRE_GCN</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a0bc4f43195b44a1295fa79f2bc8a6532" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>RAPTORLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873aa5ddc55435c3ad0dbcafe6ab09671928" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>RAPTORLAKE_P</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a9f63681038c02b5f9a0c36066625df57" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>RAPTORLAKE_S</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fcaffa82e8a918ca601a6de05f594b7efc2" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>RDNA</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fca0dd45887a6138c5b199a361371150913" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>RDNA2</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fcaacc7375ff00ca2b2fa8805314c919cec" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>RDNA3</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fca455c69e26bd7332142d33f49f12e016d" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>RDNA4</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a9954568bd0e5b48d35c21b2cdcff35ec" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>ROCKETLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a035227671530663e11113926d48c0311" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>SANDYBRIDGE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a1b903d7cb0ac58fd014b3a9e00874774" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>SKYLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a7b068a482845f32e698f426f7724babc" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>T12X</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a35f0af04d38e5e4fd503c563059aec2e" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>T2X</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a48d746eb1ab115a8770ef6ff91334942" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>T3X</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a110c2c05976d00ac9abf8f5f83962786" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>T4X</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a9dddbe40f35d6b9badf4b53965e5b5b7" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>TIGERLAKE_LP</name></member>
+      <member refid="structDeviceAttributesBase_1a12124c11aea71be08e0d23c938e73959a2923e025d02cfb580207386f28a5f616" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>TU100</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873ad2b33ab0de5ff7d9590386afb4a8cfee" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>TWINLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a88a15de97029a1c9d6ceee58d9b3d909" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>UNKNOWN</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873ac300e246f84d6a62b821d1cf1eb53408" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>VALLEYVIEW</name></member>
+      <member refid="structDeviceAttributesBase_1a38b8c9fbea798fc4ac63aa349908b2fca91358982543cbe63e603a45e47fc797a" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>Vega</name></member>
+      <member refid="structDeviceAttributesTVOS_1af110dc1bb886698bc0cf29fd9a0754de" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>vendor</name></member>
+      <member refid="structDeviceAttributesBase_1a94077fec595442fec1f78d494640c60f" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>vendorId</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a9d24806c8ca0434b7dd46487a3691aa8" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>WHISKEYLAKE</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873a7c6c69430abe750f746f2e376e30640e" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>WILLOWVIEW</name></member>
+      <member refid="structDeviceAttributesBase_1a76c0bb5419ef5e4273f5efee025aa873aa6649a722c33774ef44989266be1431c" prot="public" virt="non-virtual"><scope>DeviceAttributesTVOS</scope><name>XE_HP_SDV</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

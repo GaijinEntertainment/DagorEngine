@@ -1,0 +1,762 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGeneralEditorData" kind="class" language="C++" prot="public">
+    <compoundname>GeneralEditorData</compoundname>
+    <includes refid="ec__geneditordata_8h" local="no">ec_geneditordata.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Viewport functions</header>
+      <memberdef kind="variable" id="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" prot="public" static="no" mutable="no">
+        <type><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> *</type>
+        <definition>IGenEventHandler* GeneralEditorData::curEH</definition>
+        <argsstring></argsstring>
+        <name>curEH</name>
+        <qualifiedname>GeneralEditorData::curEH</qualifiedname>
+        <briefdescription>
+<para>Default event handler. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="120" column="20" bodyfile="ec_geneditordata.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGeneralEditorData_1ae670a9f9e2d2c5e5302c601b7a738296" prot="public" static="no" mutable="no">
+        <type><ref refid="classToolBarManager" kindref="compound">ToolBarManager</ref> *</type>
+        <definition>ToolBarManager* GeneralEditorData::tbManager</definition>
+        <argsstring></argsstring>
+        <name>tbManager</name>
+        <qualifiedname>GeneralEditorData::tbManager</qualifiedname>
+        <briefdescription>
+<para>Toolbar manager. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="123" column="18" bodyfile="ec_geneditordata.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGeneralEditorData_1a90e91531e038d69f39851acd4dbc0d8c" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref> * &gt;</type>
+        <definition>Tab&lt;ViewportWindow *&gt; GeneralEditorData::vpw</definition>
+        <argsstring></argsstring>
+        <name>vpw</name>
+        <qualifiedname>GeneralEditorData::vpw</qualifiedname>
+        <briefdescription>
+<para>Array of pointers to viewports. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="130" column="7" bodyfile="ec_geneditordata.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGeneralEditorData_1a6a50e7165e9cdf1c04c841d57b239da7" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GeneralEditorData::viewportLayout</definition>
+        <argsstring></argsstring>
+        <name>viewportLayout</name>
+        <qualifiedname>GeneralEditorData::viewportLayout</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Viewports layout. Posible values is defined in <ref refid="ec__cm_8h_1a4f0501b0a22228fbf610b0f6778655d9" kindref="member">EditorCoreCM</ref>:<linebreak/>
+ <verbatim>/// CM_VIEWPORT_LAYOUT_1     - one viewport
+/// CM_VIEWPORT_LAYOUT_2VERT - two vertical viewports
+/// CM_VIEWPORT_LAYOUT_2HOR  - two horizontal viewports
+/// CM_VIEWPORT_LAYOUT_4     - four viewports  </verbatim> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="139" column="7" bodyfile="ec_geneditordata.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGeneralEditorData_1a42b4601dc86b91becda475d92c2a6334" prot="private" static="no" mutable="no">
+        <type><ref refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" kindref="member">IEditorCoreEngine::ViewportCacheMode</ref></type>
+        <definition>IEditorCoreEngine::ViewportCacheMode GeneralEditorData::vcmode</definition>
+        <argsstring></argsstring>
+        <name>vcmode</name>
+        <qualifiedname>GeneralEditorData::vcmode</qualifiedname>
+        <briefdescription>
+<para>Viewport cache mode. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="142" column="40" bodyfile="ec_geneditordata.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGeneralEditorData_1a4f759209807ce6408e33c24c59ccd885" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GeneralEditorData::currentViewportId</definition>
+        <argsstring></argsstring>
+        <name>currentViewportId</name>
+        <qualifiedname>GeneralEditorData::currentViewportId</qualifiedname>
+        <briefdescription>
+<para>Last active viewport number. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="145" column="7" bodyfile="ec_geneditordata.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a1784d2847962cf5cc7fd4e840c7074c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::addViewport</definition>
+        <argsstring>(void *parent, IGenEventHandler *eh, IWndManager *manager, ViewportWindow *v)</argsstring>
+        <name>addViewport</name>
+        <qualifiedname>GeneralEditorData::addViewport</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> *</type>
+          <declname>eh</declname>
+        </param>
+        <param>
+          <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+          <declname>manager</declname>
+        </param>
+        <param>
+          <type><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref> *</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+<para>Use this instead of createViewport if you want to add a subclassed <ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1aada83643da494e0e01b8dcad31951643" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref> *</type>
+        <definition>ViewportWindow * GeneralEditorData::createViewport</definition>
+        <argsstring>(void *parent, int x, int y, int w, int h, IGenEventHandler *eh, IWndManager *manager)</argsstring>
+        <name>createViewport</name>
+        <qualifiedname>GeneralEditorData::createViewport</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> *</type>
+          <declname>eh</declname>
+        </param>
+        <param>
+          <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+          <declname>manager</declname>
+        </param>
+        <briefdescription>
+<para>Creates new viewport. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="39" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a7cded99df3b311b610e5b48fc476540c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::deleteViewport</definition>
+        <argsstring>(int n)</argsstring>
+        <name>deleteViewport</name>
+        <qualifiedname>GeneralEditorData::deleteViewport</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+<para>Deletes viewport with specified index. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="41" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a6ad24e4025cb68f505fd8e7903254ab2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int GeneralEditorData::getViewportCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getViewportCount</name>
+        <qualifiedname>GeneralEditorData::getViewportCount</qualifiedname>
+        <briefdescription>
+<para>Gets viewport count. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="44" column="14" bodyfile="ec_geneditordata.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a5d5a7c6190fedb61670d44c8f0d2528b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::setEH</definition>
+        <argsstring>(IGenEventHandler *eh)</argsstring>
+        <name>setEH</name>
+        <qualifiedname>GeneralEditorData::setEH</qualifiedname>
+        <param>
+          <type><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> *</type>
+          <declname>eh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set event handler for all viewports. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">eh</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to event handler </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="48" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a43b735c61a754700c00042903d292f9f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref> *</type>
+        <definition>ViewportWindow * GeneralEditorData::getActiveViewport</definition>
+        <argsstring>() const</argsstring>
+        <name>getActiveViewport</name>
+        <qualifiedname>GeneralEditorData::getActiveViewport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get active viewport. <simplesect kind="return"><para>- pointer to active viewport, <linebreak/>
+- <bold>NULL</bold> if all viewports are not active </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="53" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a2f32f3e533bc8b69cfc2d855e10464ca" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::activateCurrentViewport</definition>
+        <argsstring>() const</argsstring>
+        <name>activateCurrentViewport</name>
+        <qualifiedname>GeneralEditorData::activateCurrentViewport</qualifiedname>
+        <briefdescription>
+<para>Activate current viewport. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="56" column="15" bodyfile="ec_geneditordata.h" bodystart="56" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a366e3b86ef59bdb87e5867465bffe642" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref> *</type>
+        <definition>ViewportWindow * GeneralEditorData::getCurrentViewport</definition>
+        <argsstring>() const</argsstring>
+        <name>getCurrentViewport</name>
+        <qualifiedname>GeneralEditorData::getCurrentViewport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get last active viewport. <simplesect kind="return"><para>- pointer to the last active viewport <linebreak/>
+- <bold>NULL</bold> if no viewports were active yet </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="66" column="25" bodyfile="ec_geneditordata.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a163e4958dad7b115fb673188f8f18f25" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int GeneralEditorData::getCurrentViewportId</definition>
+        <argsstring>() const</argsstring>
+        <name>getCurrentViewportId</name>
+        <qualifiedname>GeneralEditorData::getCurrentViewportId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get ID of last active viewport. <simplesect kind="return"><para>- index of last active viewport <linebreak/>
+- <bold>-1</bold> if no viewports were active yet </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="71" column="14" bodyfile="ec_geneditordata.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1adccc85f3b85a68c592676b04ff7a30cf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::setCurrentViewportId</definition>
+        <argsstring>(int id)</argsstring>
+        <name>setCurrentViewportId</name>
+        <qualifiedname>GeneralEditorData::setCurrentViewportId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="73" column="15" bodyfile="ec_geneditordata.h" bodystart="73" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a7df6b335bf552301524ee753982a0eb8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref> *</type>
+        <definition>ViewportWindow * GeneralEditorData::getRenderViewport</definition>
+        <argsstring>() const</argsstring>
+        <name>getRenderViewport</name>
+        <qualifiedname>GeneralEditorData::getRenderViewport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get rendering viewport. <simplesect kind="return"><para>- pointer to viewport that is rendering now <linebreak/>
+- <bold>NULL</bold> if no rendering viewports </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="78" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a5a7856e6cb53d6d055e9c50bb21b7656" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref> *</type>
+        <definition>ViewportWindow * GeneralEditorData::getViewport</definition>
+        <argsstring>(int n) const</argsstring>
+        <name>getViewport</name>
+        <qualifiedname>GeneralEditorData::getViewport</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get viewport by index. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">n</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport index </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>pointer to viewport </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="83" column="25" bodyfile="ec_geneditordata.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a3950ac1d6680c32feda9cf927d30b0be" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int GeneralEditorData::findViewportIndex</definition>
+        <argsstring>(IGenViewportWnd *w) const</argsstring>
+        <name>findViewportIndex</name>
+        <qualifiedname>GeneralEditorData::findViewportIndex</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>w</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Find viewport index. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>- viewport index <linebreak/>
+ - <bold>#VIEWPORT_NUM - 1</bold> if viewport not found </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="89" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1ab1dd3427e2e840dd9da4301c1de0145e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+        <definition>IGenViewportWnd * GeneralEditorData::screenToViewport</definition>
+        <argsstring>(int &amp;x, int &amp;y) const</argsstring>
+        <name>screenToViewport</name>
+        <qualifiedname>GeneralEditorData::screenToViewport</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns pointer to viewport containing specified point. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- point coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">x</parametername>
+<parametername direction="out">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport point coordinates </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>pointer to viewport containing specified point </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="95" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a4652c2eccf787ab978cb6460276a1e21" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::setViewportCacheMode</definition>
+        <argsstring>(IEditorCoreEngine::ViewportCacheMode mode)</argsstring>
+        <name>setViewportCacheMode</name>
+        <qualifiedname>GeneralEditorData::setViewportCacheMode</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" kindref="member">IEditorCoreEngine::ViewportCacheMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set viewports cache mode. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport cache mode (see <ref refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" kindref="member">IEditorCoreEngine::ViewportCacheMode</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="100" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a3fc5703d760f39696fe5f6a60e7498d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::invalidateCache</definition>
+        <argsstring>()</argsstring>
+        <name>invalidateCache</name>
+        <qualifiedname>GeneralEditorData::invalidateCache</qualifiedname>
+        <briefdescription>
+<para>Update viewports cache. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="102" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a3d4f163ac518223aa5daca7f1e705679" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::setZnearZfar</definition>
+        <argsstring>(real zn, real zf)</argsstring>
+        <name>setZnearZfar</name>
+        <qualifiedname>GeneralEditorData::setZnearZfar</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>zn</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>zf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera clipping for all viewports. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">zn</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- z-near, a distance to nearest visible parts of scene (all parts more close to camera will be invisible) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">zf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- z-far, a distance to the farthest visible parts of scene (all parts more distant from camera will be invisible) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="108" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a9690de5aa9ee137c3cd68632cd31b371" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::act</definition>
+        <argsstring>(real dt)</argsstring>
+        <name>act</name>
+        <qualifiedname>GeneralEditorData::act</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>dt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Called by EditorCore at the act stage. This function calls <ref refid="classGeneralEditorData_1a9690de5aa9ee137c3cd68632cd31b371" kindref="member">act()</ref> function of viewports and toolbar manager, stores last active viewport. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="114" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1afd5e025c7bdb1df1220c9fd25421880b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::redrawClientRect</definition>
+        <argsstring>()</argsstring>
+        <name>redrawClientRect</name>
+        <qualifiedname>GeneralEditorData::redrawClientRect</qualifiedname>
+        <briefdescription>
+<para>The function calls <ref refid="classViewportWindow_1a2f456bf6f1203665b0f4c18e814b7d91" kindref="member">ViewportWindow::redrawClientRect()</ref> for all viewports. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="117" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a13b7784f99b800aa042ac98a09a72b23" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int GeneralEditorData::getViewportLayout</definition>
+        <argsstring>()</argsstring>
+        <name>getViewportLayout</name>
+        <qualifiedname>GeneralEditorData::getViewportLayout</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="125" column="14" bodyfile="ec_geneditordata.h" bodystart="125" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a3ff6cebeefdedb98887200279670bebf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::setViewportLayout</definition>
+        <argsstring>(int value)</argsstring>
+        <name>setViewportLayout</name>
+        <qualifiedname>GeneralEditorData::setViewportLayout</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="126" column="15" bodyfile="ec_geneditordata.h" bodystart="126" bodyend="126"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGeneralEditorData_1a77e2ddda98b67848e14882b7f394c885" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GeneralEditorData::GeneralEditorData</definition>
+        <argsstring>()</argsstring>
+        <name>GeneralEditorData</name>
+        <qualifiedname>GeneralEditorData::GeneralEditorData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">main_wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to main Editor&apos;s window. Used as parent window in viewport creating functions. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="21" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1addabcce454f5506f69bad037cf24f795" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GeneralEditorData::~GeneralEditorData</definition>
+        <argsstring>()</argsstring>
+        <name>~GeneralEditorData</name>
+        <qualifiedname>GeneralEditorData::~GeneralEditorData</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="24" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a92cad25d65d7a97970d21723f2d00266" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::load</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>load</name>
+        <qualifiedname>GeneralEditorData::load</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load data from blk file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to load (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="28" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGeneralEditorData_1a97f6c931e63df7c68a9227bb0289c88e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GeneralEditorData::save</definition>
+        <argsstring>(DataBlock &amp;blk) const</argsstring>
+        <name>save</name>
+        <qualifiedname>GeneralEditorData::save</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Save data to blk file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to save (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_geneditordata.h" line="31" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>A class for storing general Editor parameters. </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>GeneralEditorData</label>
+        <link refid="classGeneralEditorData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>curEH</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>tbManager</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="4">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="3">
+        <label>ToolBarManager</label>
+        <link refid="classToolBarManager"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_geneditordata.h" line="15" column="1" bodyfile="ec_geneditordata.h" bodystart="16" bodyend="146"/>
+    <listofallmembers>
+      <member refid="classGeneralEditorData_1a9690de5aa9ee137c3cd68632cd31b371" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>act</name></member>
+      <member refid="classGeneralEditorData_1a2f32f3e533bc8b69cfc2d855e10464ca" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>activateCurrentViewport</name></member>
+      <member refid="classGeneralEditorData_1a1784d2847962cf5cc7fd4e840c7074c9" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>addViewport</name></member>
+      <member refid="classGeneralEditorData_1aada83643da494e0e01b8dcad31951643" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>createViewport</name></member>
+      <member refid="classGeneralEditorData_1a0e1693f6650be222d8146111de893948" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>curEH</name></member>
+      <member refid="classGeneralEditorData_1a4f759209807ce6408e33c24c59ccd885" prot="private" virt="non-virtual"><scope>GeneralEditorData</scope><name>currentViewportId</name></member>
+      <member refid="classGeneralEditorData_1a7cded99df3b311b610e5b48fc476540c" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>deleteViewport</name></member>
+      <member refid="classGeneralEditorData_1a3950ac1d6680c32feda9cf927d30b0be" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>findViewportIndex</name></member>
+      <member refid="classGeneralEditorData_1a77e2ddda98b67848e14882b7f394c885" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>GeneralEditorData</name></member>
+      <member refid="classGeneralEditorData_1a43b735c61a754700c00042903d292f9f" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>getActiveViewport</name></member>
+      <member refid="classGeneralEditorData_1a366e3b86ef59bdb87e5867465bffe642" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>getCurrentViewport</name></member>
+      <member refid="classGeneralEditorData_1a163e4958dad7b115fb673188f8f18f25" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>getCurrentViewportId</name></member>
+      <member refid="classGeneralEditorData_1a7df6b335bf552301524ee753982a0eb8" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>getRenderViewport</name></member>
+      <member refid="classGeneralEditorData_1a5a7856e6cb53d6d055e9c50bb21b7656" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>getViewport</name></member>
+      <member refid="classGeneralEditorData_1a6ad24e4025cb68f505fd8e7903254ab2" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>getViewportCount</name></member>
+      <member refid="classGeneralEditorData_1a13b7784f99b800aa042ac98a09a72b23" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>getViewportLayout</name></member>
+      <member refid="classGeneralEditorData_1a3fc5703d760f39696fe5f6a60e7498d6" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>invalidateCache</name></member>
+      <member refid="classGeneralEditorData_1a92cad25d65d7a97970d21723f2d00266" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>load</name></member>
+      <member refid="classGeneralEditorData_1afd5e025c7bdb1df1220c9fd25421880b" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>redrawClientRect</name></member>
+      <member refid="classGeneralEditorData_1a97f6c931e63df7c68a9227bb0289c88e" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>save</name></member>
+      <member refid="classGeneralEditorData_1ab1dd3427e2e840dd9da4301c1de0145e" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>screenToViewport</name></member>
+      <member refid="classGeneralEditorData_1adccc85f3b85a68c592676b04ff7a30cf" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>setCurrentViewportId</name></member>
+      <member refid="classGeneralEditorData_1a5d5a7c6190fedb61670d44c8f0d2528b" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>setEH</name></member>
+      <member refid="classGeneralEditorData_1a4652c2eccf787ab978cb6460276a1e21" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>setViewportCacheMode</name></member>
+      <member refid="classGeneralEditorData_1a3ff6cebeefdedb98887200279670bebf" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>setViewportLayout</name></member>
+      <member refid="classGeneralEditorData_1a3d4f163ac518223aa5daca7f1e705679" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>setZnearZfar</name></member>
+      <member refid="classGeneralEditorData_1ae670a9f9e2d2c5e5302c601b7a738296" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>tbManager</name></member>
+      <member refid="classGeneralEditorData_1a42b4601dc86b91becda475d92c2a6334" prot="private" virt="non-virtual"><scope>GeneralEditorData</scope><name>vcmode</name></member>
+      <member refid="classGeneralEditorData_1a6a50e7165e9cdf1c04c841d57b239da7" prot="private" virt="non-virtual"><scope>GeneralEditorData</scope><name>viewportLayout</name></member>
+      <member refid="classGeneralEditorData_1a90e91531e038d69f39851acd4dbc0d8c" prot="private" virt="non-virtual"><scope>GeneralEditorData</scope><name>vpw</name></member>
+      <member refid="classGeneralEditorData_1addabcce454f5506f69bad037cf24f795" prot="public" virt="non-virtual"><scope>GeneralEditorData</scope><name>~GeneralEditorData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

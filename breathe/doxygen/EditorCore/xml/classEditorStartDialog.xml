@@ -1,0 +1,580 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classEditorStartDialog" kind="class" language="C++" prot="public">
+    <compoundname>EditorStartDialog</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::IDelayedCallbackHandler</basecompoundref>
+    <includes refid="ec__startDlg_8h" local="no">ec_startDlg.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classEditorStartDialog_1a4f0fcb95f0ec2cf782267722be2f6d88" prot="protected" static="no" mutable="no">
+        <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+        <definition>EditorWorkspace&amp; EditorStartDialog::wsp</definition>
+        <argsstring></argsstring>
+        <name>wsp</name>
+        <qualifiedname>EditorStartDialog::wsp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="46" column="19" bodyfile="ec_startDlg.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classEditorStartDialog_1adb10149114d8fc57e44ffc6a6ce071e4" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorStartDialog::startWsp</definition>
+        <argsstring></argsstring>
+        <name>startWsp</name>
+        <qualifiedname>EditorStartDialog::startWsp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="67" column="10" bodyfile="ec_startDlg.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorStartDialog_1a0c14cf48d765f3e6e24208f6d73f5752" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String EditorStartDialog::blkName</definition>
+        <argsstring></argsstring>
+        <name>blkName</name>
+        <qualifiedname>EditorStartDialog::blkName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="68" column="10" bodyfile="ec_startDlg.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorStartDialog_1a59c1bc4b18475677388fcbf033197304" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool EditorStartDialog::editWsp</definition>
+        <argsstring></argsstring>
+        <name>editWsp</name>
+        <qualifiedname>EditorStartDialog::editWsp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="70" column="8" bodyfile="ec_startDlg.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorStartDialog_1a2388b5e173538d1f6b0e4d7ca527a39f" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool EditorStartDialog::wspInited</definition>
+        <argsstring></argsstring>
+        <name>wspInited</name>
+        <qualifiedname>EditorStartDialog::wspInited</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="71" column="8" bodyfile="ec_startDlg.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorStartDialog_1a6e5e0b506c640b5019233b2d7350471f" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool EditorStartDialog::showAddWorkspaceDialog</definition>
+        <argsstring></argsstring>
+        <name>showAddWorkspaceDialog</name>
+        <qualifiedname>EditorStartDialog::showAddWorkspaceDialog</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="72" column="8" bodyfile="ec_startDlg.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorStartDialog_1aa0edc16ab89210311641db33386acc14" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool EditorStartDialog::selectedWorkspaceValid</definition>
+        <argsstring></argsstring>
+        <name>selectedWorkspaceValid</name>
+        <qualifiedname>EditorStartDialog::selectedWorkspaceValid</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="73" column="8" bodyfile="ec_startDlg.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorStartDialog_1acc4dd2d2238d4188bdd7fdb5027c17c3" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int EditorStartDialog::customTop</definition>
+        <argsstring></argsstring>
+        <name>customTop</name>
+        <qualifiedname>EditorStartDialog::customTop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="75" column="7" bodyfile="ec_startDlg.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classEditorStartDialog_1ac21640bf4857468dd9e5ebad6fc6f505" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>EditorStartDialog::EditorStartDialog</definition>
+        <argsstring>(const char *caption, EditorWorkspace &amp;wsp, const char *wsp_blk, const char *select_wsp)</argsstring>
+        <name>EditorStartDialog</name>
+        <qualifiedname>EditorStartDialog::EditorStartDialog</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <param>
+          <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+          <declname>wsp</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>wsp_blk</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>select_wsp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="24" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a57078863a417d9c32b061aa314efaec7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>EditorStartDialog::~EditorStartDialog</definition>
+        <argsstring>() override</argsstring>
+        <name>~EditorStartDialog</name>
+        <qualifiedname>EditorStartDialog::~EditorStartDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="25" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1ac03896b75077229e433f2b8464afaa90" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::editWorkspace</definition>
+        <argsstring>()</argsstring>
+        <name>editWorkspace</name>
+        <qualifiedname>EditorStartDialog::editWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="27" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a3952b2032f4dc435cbdb638d87348e37" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; EditorStartDialog::getStartWorkspace</definition>
+        <argsstring>() const</argsstring>
+        <name>getStartWorkspace</name>
+        <qualifiedname>EditorStartDialog::getStartWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="29" column="16" bodyfile="ec_startDlg.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a731531b5b7f68859f745e5932fa63d13" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int EditorStartDialog::getWorkspaceIndex</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getWorkspaceIndex</name>
+        <qualifiedname>EditorStartDialog::getWorkspaceIndex</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="30" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a06052241b1bf3741bb1822088cf3d79a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorStartDialog::onOk</definition>
+        <argsstring>() override</argsstring>
+        <name>onOk</name>
+        <qualifiedname>EditorStartDialog::onOk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="34" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1ad27a0991f8d6d6ab9f94d9999414661e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorStartDialog::onCancel</definition>
+        <argsstring>() override</argsstring>
+        <name>onCancel</name>
+        <qualifiedname>EditorStartDialog::onCancel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="35" column="8" bodyfile="ec_startDlg.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a5bd9d03c28c9e2f750af415d49667994" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>EditorStartDialog::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="39" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a8eda70c74f3577a4dd615b8b834fa78a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::onClick</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onClick</name>
+        <qualifiedname>EditorStartDialog::onClick</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="40" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a57dc29e7f4a172964be72e5aef365d56" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void EditorStartDialog::onCustomFillPanel</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;panel)</argsstring>
+        <name>onCustomFillPanel</name>
+        <qualifiedname>EditorStartDialog::onCustomFillPanel</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="42" column="16" bodyfile="ec_startDlg.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a863f2c0b36001704133b293b8eac82b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool EditorStartDialog::onCustomSettings</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;panel)</argsstring>
+        <name>onCustomSettings</name>
+        <qualifiedname>EditorStartDialog::onCustomSettings</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="43" column="16" bodyfile="ec_startDlg.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classEditorStartDialog_1a935e6c755a01e6aaf7a795e83af3ac3f" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int EditorStartDialog::getCustomTop</definition>
+        <argsstring>() const</argsstring>
+        <name>getCustomTop</name>
+        <qualifiedname>EditorStartDialog::getCustomTop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="48" column="14" bodyfile="ec_startDlg.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a54152d9fbb8112c00c1b227b7f2b9325" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorStartDialog::isWspEditing</definition>
+        <argsstring>() const</argsstring>
+        <name>isWspEditing</name>
+        <qualifiedname>EditorStartDialog::isWspEditing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="49" column="15" bodyfile="ec_startDlg.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1ac703647d83080262eb419accbfba00d9" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::onImguiDelayedCallback</definition>
+        <argsstring>(void *user_data) override</argsstring>
+        <name>onImguiDelayedCallback</name>
+        <qualifiedname>EditorStartDialog::onImguiDelayedCallback</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>user_data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="52" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a4e49e9003393621712a84e1ebf108df1" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::updateImguiDialog</definition>
+        <argsstring>() override</argsstring>
+        <name>updateImguiDialog</name>
+        <qualifiedname>EditorStartDialog::updateImguiDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="54" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1ab928c6bd3ee0fefa2d9fdd58934a9a98" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void EditorStartDialog::createCustom</definition>
+        <argsstring>()</argsstring>
+        <name>createCustom</name>
+        <qualifiedname>EditorStartDialog::createCustom</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="56" column="16" bodyfile="ec_startDlg.h" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a6b39472605c55a7b145b65012041ee85" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void EditorStartDialog::onChangeWorkspace</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>onChangeWorkspace</name>
+        <qualifiedname>EditorStartDialog::onChangeWorkspace</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="58" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a131141199fa1b205989eacef2b8d4520" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void EditorStartDialog::onAddWorkspace</definition>
+        <argsstring>()</argsstring>
+        <name>onAddWorkspace</name>
+        <qualifiedname>EditorStartDialog::onAddWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="60" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a58007415bf7865b6bd69a8633f10a75c" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void EditorStartDialog::onEditWorkspace</definition>
+        <argsstring>()</argsstring>
+        <name>onEditWorkspace</name>
+        <qualifiedname>EditorStartDialog::onEditWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="61" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1aeaa2eaa724c3009335995f4777eadc7e" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::reloadWsp</definition>
+        <argsstring>()</argsstring>
+        <name>reloadWsp</name>
+        <qualifiedname>EditorStartDialog::reloadWsp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="63" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorStartDialog_1a3df08fd42e0f5f2606f976dabef315a2" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::updateOkButtonState</definition>
+        <argsstring>()</argsstring>
+        <name>updateOkButtonState</name>
+        <qualifiedname>EditorStartDialog::updateOkButtonState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="64" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classEditorStartDialog_1a712999fd7b832f9a5437e817f833360f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorStartDialog::initWsp</definition>
+        <argsstring>(bool init_combo)</argsstring>
+        <name>initWsp</name>
+        <qualifiedname>EditorStartDialog::initWsp</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>init_combo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="77" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>EditorStartDialog</label>
+        <link refid="classEditorStartDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+      <node id="3">
+        <label>PropPanel::IDelayedCallbackHandler</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>EditorStartDialog</label>
+        <link refid="classEditorStartDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>wsp</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EditorWorkspace</label>
+        <link refid="classEditorWorkspace"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>wspData</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>EditorWorkspace::Workspaces</label>
+        <link refid="structEditorWorkspace_1_1Workspaces"/>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+      <node id="3">
+        <label>PropPanel::IDelayedCallbackHandler</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_startDlg.h" line="21" column="1" bodyfile="ec_startDlg.h" bodystart="22" bodyend="78"/>
+    <listofallmembers>
+      <member refid="classEditorStartDialog_1a0c14cf48d765f3e6e24208f6d73f5752" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>blkName</name></member>
+      <member refid="classEditorStartDialog_1ab928c6bd3ee0fefa2d9fdd58934a9a98" prot="protected" virt="virtual"><scope>EditorStartDialog</scope><name>createCustom</name></member>
+      <member refid="classEditorStartDialog_1acc4dd2d2238d4188bdd7fdb5027c17c3" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>customTop</name></member>
+      <member refid="classEditorStartDialog_1ac21640bf4857468dd9e5ebad6fc6f505" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>EditorStartDialog</name></member>
+      <member refid="classEditorStartDialog_1ac03896b75077229e433f2b8464afaa90" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>editWorkspace</name></member>
+      <member refid="classEditorStartDialog_1a59c1bc4b18475677388fcbf033197304" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>editWsp</name></member>
+      <member refid="classEditorStartDialog_1a935e6c755a01e6aaf7a795e83af3ac3f" prot="protected" virt="non-virtual"><scope>EditorStartDialog</scope><name>getCustomTop</name></member>
+      <member refid="classEditorStartDialog_1a3952b2032f4dc435cbdb638d87348e37" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>getStartWorkspace</name></member>
+      <member refid="classEditorStartDialog_1a731531b5b7f68859f745e5932fa63d13" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>getWorkspaceIndex</name></member>
+      <member refid="classEditorStartDialog_1a712999fd7b832f9a5437e817f833360f" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>initWsp</name></member>
+      <member refid="classEditorStartDialog_1a54152d9fbb8112c00c1b227b7f2b9325" prot="protected" virt="non-virtual"><scope>EditorStartDialog</scope><name>isWspEditing</name></member>
+      <member refid="classEditorStartDialog_1a131141199fa1b205989eacef2b8d4520" prot="protected" virt="virtual"><scope>EditorStartDialog</scope><name>onAddWorkspace</name></member>
+      <member refid="classEditorStartDialog_1ad27a0991f8d6d6ab9f94d9999414661e" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>onCancel</name></member>
+      <member refid="classEditorStartDialog_1a5bd9d03c28c9e2f750af415d49667994" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>onChange</name></member>
+      <member refid="classEditorStartDialog_1a6b39472605c55a7b145b65012041ee85" prot="protected" virt="virtual"><scope>EditorStartDialog</scope><name>onChangeWorkspace</name></member>
+      <member refid="classEditorStartDialog_1a8eda70c74f3577a4dd615b8b834fa78a" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>onClick</name></member>
+      <member refid="classEditorStartDialog_1a57dc29e7f4a172964be72e5aef365d56" prot="public" virt="virtual"><scope>EditorStartDialog</scope><name>onCustomFillPanel</name></member>
+      <member refid="classEditorStartDialog_1a863f2c0b36001704133b293b8eac82b2" prot="public" virt="virtual"><scope>EditorStartDialog</scope><name>onCustomSettings</name></member>
+      <member refid="classEditorStartDialog_1a58007415bf7865b6bd69a8633f10a75c" prot="protected" virt="virtual"><scope>EditorStartDialog</scope><name>onEditWorkspace</name></member>
+      <member refid="classEditorStartDialog_1ac703647d83080262eb419accbfba00d9" prot="protected" virt="non-virtual"><scope>EditorStartDialog</scope><name>onImguiDelayedCallback</name></member>
+      <member refid="classEditorStartDialog_1a06052241b1bf3741bb1822088cf3d79a" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>onOk</name></member>
+      <member refid="classEditorStartDialog_1aeaa2eaa724c3009335995f4777eadc7e" prot="protected" virt="non-virtual"><scope>EditorStartDialog</scope><name>reloadWsp</name></member>
+      <member refid="classEditorStartDialog_1aa0edc16ab89210311641db33386acc14" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>selectedWorkspaceValid</name></member>
+      <member refid="classEditorStartDialog_1a6e5e0b506c640b5019233b2d7350471f" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>showAddWorkspaceDialog</name></member>
+      <member refid="classEditorStartDialog_1adb10149114d8fc57e44ffc6a6ce071e4" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>startWsp</name></member>
+      <member refid="classEditorStartDialog_1a4e49e9003393621712a84e1ebf108df1" prot="protected" virt="non-virtual"><scope>EditorStartDialog</scope><name>updateImguiDialog</name></member>
+      <member refid="classEditorStartDialog_1a3df08fd42e0f5f2606f976dabef315a2" prot="protected" virt="non-virtual"><scope>EditorStartDialog</scope><name>updateOkButtonState</name></member>
+      <member refid="classEditorStartDialog_1a4f0fcb95f0ec2cf782267722be2f6d88" prot="protected" virt="non-virtual"><scope>EditorStartDialog</scope><name>wsp</name></member>
+      <member refid="classEditorStartDialog_1a2388b5e173538d1f6b0e4d7ca527a39f" prot="private" virt="non-virtual"><scope>EditorStartDialog</scope><name>wspInited</name></member>
+      <member refid="classEditorStartDialog_1a57078863a417d9c32b061aa314efaec7" prot="public" virt="non-virtual"><scope>EditorStartDialog</scope><name>~EditorStartDialog</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

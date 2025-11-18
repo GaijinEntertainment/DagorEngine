@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__Cameras" kind="group">
+    <compoundname>Cameras</compoundname>
+    <title>Cameras</title>
+    <innerclass refid="structInertia" prot="public">Inertia</innerclass>
+    <innerclass refid="structCameraConfig" prot="public">CameraConfig</innerclass>
+    <innerclass refid="structFpsCameraConfig" prot="public">FpsCameraConfig</innerclass>
+    <innerclass refid="classCCameraElem" prot="public">CCameraElem</innerclass>
+    <innerclass refid="classICustomCameras" prot="public">ICustomCameras</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

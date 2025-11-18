@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Check Degenerated Faces Tool</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor Custom Groups Export Tool" href="custom_groups_export_tool.html" />
+    <link rel="prev" title="Dagor Ambient Occlusion Baker" href="ambient_occlusion_baker.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor MaxScript Toolbox</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor Ambient Occlusion Baker</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor Check Degenerated Faces Tool</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-check-degenerated-faces-tool">Accessing Check Degenerated Faces Tool</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-check-degenerated-faces-tool">Using Check Degenerated Faces Tool</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#running-test">Running Test</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor Simple CMP Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor Transfer Vertex Position to Vertex Color Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor MaxScript Toolbox</a></li>
+      <li class="breadcrumb-item active">Dagor Check Degenerated Faces Tool</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/check_degenerated_faces_tool.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-check-degenerated-faces-tool">
+<h1>Dagor Check Degenerated Faces Tool<a class="headerlink" href="#dagor-check-degenerated-faces-tool" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This script requires <strong>3ds Max 2014 or later</strong>.</p>
+</div>
+</section>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This tool is designed to identify degenerate triangles in a scene by evaluating
+two key criteria: the minimum area of triangles and the minimum angle within
+triangles.</p>
+<p>Example of the tool’s output:</p>
+<video controls="True" preload="auto" width="90%"><source src="../../../../_images/check_deg_faces_00.webm" type="video/webm"></video></section>
+<section id="accessing-check-degenerated-faces-tool">
+<h2>Accessing Check Degenerated Faces Tool<a class="headerlink" href="#accessing-check-degenerated-faces-tool" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Navigate to <strong>Gaijin Tools</strong> <span class="cnum">1</span> <strong>&gt; Degenerated Triangles
+Checker…</strong>. This will open the <strong>Error Log</strong> window.</p></li>
+<li><p>To verify the version <span class="cnum">3</span> of the script, go to <strong>Gaijin Tools</strong>
+<span class="cnum">1</span> <strong>&gt; About</strong> <span class="cnum">2</span>. The <strong>About</strong> window will display the
+current version. It’s important to check this regularly to ensure your script
+is up to date.</p>
+<a class="reference internal image-reference" href="../../../../_images/check_deg_faces_01.png"><img alt="Check Degenerated Faces Tool" class="align-center" src="../../../../_images/check_deg_faces_01.png" style="width: 60em;" />
+</a>
+<div class="warning admonition">
+<p class="admonition-title">Plugin Version Requirement</p>
+<p>Requires plugin version <strong>1.7 or higher</strong>.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="using-check-degenerated-faces-tool">
+<h2>Using Check Degenerated Faces Tool<a class="headerlink" href="#using-check-degenerated-faces-tool" title="Link to this heading"></a></h2>
+<p>To get started, download the following test scene:
+<a class="reference download internal" download="" href="../../../../_downloads/db4ecc72f46facbd3cdc48a45ec112ff/degenerated_triangles_test_2021.zip"><code class="xref download docutils literal notranslate"><span class="pre">degenerated_triangles_test_2021.max</span></code></a>.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This scene requires <strong>3ds Max 2021 or later</strong>.</p>
+</div>
+<p>Open the script by navigating to the menu <span class="cnum">1</span> and selecting the script
+option <span class="cnum">2</span>.</p>
+<a class="reference internal image-reference" href="../../../../_images/check_deg_faces_02.png"><img alt="Check Degenerated Faces Tool" class="align-center" src="../../../../_images/check_deg_faces_02.png" style="width: 60em;" />
+</a>
+<p>The script window will appear with several key options:</p>
+<ul class="simple">
+<li><p><strong>Minimum face area size</strong> <span class="cnum">3</span>: specifies the minimum area of triangles
+to be considered degenerate. The value is based on the current scene units
+(e.g., meters, inches).</p></li>
+<li><p><strong>Minimum face angle</strong> <span class="cnum">4</span>: sets the minimum angle for triangle
+evaluation. If any angle within a triangle is smaller than this value, the
+triangle will be marked as degenerate. The default values in these fields are
+typically optimal for scenes imported from a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file, as the correct size
+and scale are automatically set.</p></li>
+<li><p><strong>Show Log Window</strong> <span class="cnum">5</span>: enables a log that lists all objects and any
+degenerate triangles found.</p></li>
+<li><p><strong>Show Degenerated Face(s)</strong> <span class="cnum">6</span>: automatically adds a new modifier to
+all objects checked for degenerate triangles, highlighting the problematic
+areas for easy identification.</p></li>
+<li><p><strong>Check Degenerated Triangles!</strong> <span class="cnum">7</span>: initiates the check process.</p></li>
+<li><p><strong>Save Settings</strong> <span class="cnum">8</span>: saves the current script settings.</p></li>
+<li><p><strong>Default Settings</strong> <span class="cnum">9</span>: loads the default settings.</p></li>
+<li><p><strong>Open Local Documentation</strong> <span class="cnum">10</span>: links to this documentation.</p></li>
+<li><p><strong>Contact with Developer</strong> <span class="cnum">11</span>: provides contact information for the
+developer if assistance is needed.</p></li>
+<li><p><strong>Progress Bar Blue</strong> <span class="cnum">12</span>: displays the overall progress.</p></li>
+<li><p><strong>Progress Bar Green</strong> <span class="cnum">13</span>: shows the progress for the currently
+selected object.</p></li>
+</ul>
+<section id="running-test">
+<h3>Running Test<a class="headerlink" href="#running-test" title="Link to this heading"></a></h3>
+<p>To test the loaded scene, select an object and press the start button <span class="cnum">7</span>.
+For example, if you select a simple object, the results will appear quickly:</p>
+<a class="reference internal image-reference" href="../../../../_images/check_deg_faces_03.png"><img alt="Check Degenerated Faces Tool" class="align-center" src="../../../../_images/check_deg_faces_03.png" style="width: 60em;" />
+</a>
+<p>As shown in the log, the object <code class="docutils literal notranslate"><span class="pre">stalingrad_water_tower_roof_lod01_col_tra_wood</span></code>
+<span class="cnum">1</span> contains 20 degenerate triangles <span class="cnum">2</span>. These problematic
+triangles are highlighted in the Viewport <span class="cnum">3</span> using the modifier
+<span class="cnum">4</span>. If you need to revert the scene to its original state, simply remove
+the added modifier from the highlighted objects.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On average, the tool processes around 1,000 triangles in about two seconds, so
+larger objects or scenes may take longer.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ambient_occlusion_baker.html" class="btn btn-neutral float-left" title="Dagor Ambient Occlusion Baker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="custom_groups_export_tool.html" class="btn btn-neutral float-right" title="Dagor Custom Groups Export Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

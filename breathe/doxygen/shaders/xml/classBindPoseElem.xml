@@ -1,0 +1,239 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBindPoseElem" kind="class" language="C++" prot="public">
+    <compoundname>BindPoseElem</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classBindPoseElem_1ae1fe85d664494bc13c98a29add8897dd" prot="public" static="no">
+        <type>LinearHeapAllocatorMatrixBuffer::Region</type>
+        <definition>using BindPoseElem::Region =  LinearHeapAllocatorMatrixBuffer::Region</definition>
+        <argsstring></argsstring>
+        <name>Region</name>
+        <qualifiedname>BindPoseElem::Region</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="21" column="3" bodyfile="dag_bindposeBufferManager.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classBindPoseElem_1acdeec82dae49a36aa80c3cec56d0a5d6" prot="public" static="no">
+        <type>LinearHeapAllocatorMatrixBuffer::RegionId</type>
+        <definition>using BindPoseElem::RegionId =  LinearHeapAllocatorMatrixBuffer::RegionId</definition>
+        <argsstring></argsstring>
+        <name>RegionId</name>
+        <qualifiedname>BindPoseElem::RegionId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="22" column="3" bodyfile="dag_bindposeBufferManager.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classBindPoseElem_1a41e2776bdb4bfd02b651b0d25d4af01b" prot="private" static="no" mutable="no">
+        <type>friend</type>
+        <definition>friend BindPoseElem::BindPoseBufferManager</definition>
+        <argsstring></argsstring>
+        <name>BindPoseBufferManager</name>
+        <qualifiedname>BindPoseElem::BindPoseBufferManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="18" column="10" bodyfile="dag_bindposeBufferManager.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classBindPoseElem_1a59999fd9ef0273a1e8f3fa1901e9ea30" prot="protected" static="no" mutable="no">
+        <type>RegionId</type>
+        <definition>RegionId BindPoseElem::regionId</definition>
+        <argsstring></argsstring>
+        <name>regionId</name>
+        <qualifiedname>BindPoseElem::regionId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="33" column="12" bodyfile="dag_bindposeBufferManager.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBindPoseElem_1aa7981dcc4e5df66a4ac82ecd244f7764" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BindPoseElem::cachedRegionOffset</definition>
+        <argsstring></argsstring>
+        <name>cachedRegionOffset</name>
+        <qualifiedname>BindPoseElem::cachedRegionOffset</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="34" column="7" bodyfile="dag_bindposeBufferManager.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBindPoseElem_1a7507711e201e120cea359fbdf3fea735" prot="protected" static="no" mutable="no">
+        <type><ref refid="classBindPoseBufferManager" kindref="compound">BindPoseBufferManager</ref> *</type>
+        <definition>BindPoseBufferManager* BindPoseElem::manager</definition>
+        <argsstring></argsstring>
+        <name>manager</name>
+        <qualifiedname>BindPoseElem::manager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="35" column="25" bodyfile="dag_bindposeBufferManager.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBindPoseElem_1a48da967684537f126e0b8c505e935e25" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BindPoseElem::BindPoseElem</definition>
+        <argsstring>(BindPoseBufferManager &amp;manager, RegionId region_id)</argsstring>
+        <name>BindPoseElem</name>
+        <qualifiedname>BindPoseElem::BindPoseElem</qualifiedname>
+        <param>
+          <type><ref refid="classBindPoseBufferManager" kindref="compound">BindPoseBufferManager</ref> &amp;</type>
+          <declname>manager</declname>
+        </param>
+        <param>
+          <type>RegionId</type>
+          <declname>region_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="24" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseElem_1a0babe0f7c3c238c37477bea4a98b1170" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BindPoseElem::BindPoseElem</definition>
+        <argsstring>(const BindPoseElem &amp;)=delete</argsstring>
+        <name>BindPoseElem</name>
+        <qualifiedname>BindPoseElem::BindPoseElem</qualifiedname>
+        <param>
+          <type>const <ref refid="classBindPoseElem" kindref="compound">BindPoseElem</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="25" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseElem_1aef7a5187f84bedd62633149e4e54f318" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BindPoseElem::~BindPoseElem</definition>
+        <argsstring>()</argsstring>
+        <name>~BindPoseElem</name>
+        <qualifiedname>BindPoseElem::~BindPoseElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="26" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseElem_1ac7e6d4189929437d4ee78372382faf33" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BindPoseElem::getBufferOffset</definition>
+        <argsstring>() const</argsstring>
+        <name>getBufferOffset</name>
+        <qualifiedname>BindPoseElem::getBufferOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="28" column="7" bodyfile="dag_bindposeBufferManager.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classBindPoseElem_1aece1e7e993275a459a9dc755c2450bf9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool BindPoseElem::checkBindPoseArr</definition>
+        <argsstring>(dag::ConstSpan&lt; TMatrix &gt; target_bind_pose_arr) const</argsstring>
+        <name>checkBindPoseArr</name>
+        <qualifiedname>BindPoseElem::checkBindPoseArr</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; TMatrix &gt;</type>
+          <declname>target_bind_pose_arr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindposeBufferManager.h" line="30" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>BindPoseElem</label>
+        <link refid="classBindPoseElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>BindPoseBufferManager</label>
+        <link refid="classBindPoseBufferManager"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>bindposeAllocator</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>BindPoseElem</label>
+        <link refid="classBindPoseElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>manager</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="4">
+        <label>LinearHeapAllocator&lt; MatrixBufferHeapManager &gt;</label>
+        <link refid="structLinearHeapAllocator"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_bindposeBufferManager.h" line="16" column="1" bodyfile="dag_bindposeBufferManager.h" bodystart="17" bodyend="36"/>
+    <listofallmembers>
+      <member refid="classBindPoseElem_1a41e2776bdb4bfd02b651b0d25d4af01b" prot="private" virt="non-virtual"><scope>BindPoseElem</scope><name>BindPoseBufferManager</name></member>
+      <member refid="classBindPoseElem_1a48da967684537f126e0b8c505e935e25" prot="public" virt="non-virtual"><scope>BindPoseElem</scope><name>BindPoseElem</name></member>
+      <member refid="classBindPoseElem_1a0babe0f7c3c238c37477bea4a98b1170" prot="public" virt="non-virtual"><scope>BindPoseElem</scope><name>BindPoseElem</name></member>
+      <member refid="classBindPoseElem_1aa7981dcc4e5df66a4ac82ecd244f7764" prot="protected" virt="non-virtual"><scope>BindPoseElem</scope><name>cachedRegionOffset</name></member>
+      <member refid="classBindPoseElem_1aece1e7e993275a459a9dc755c2450bf9" prot="public" virt="non-virtual"><scope>BindPoseElem</scope><name>checkBindPoseArr</name></member>
+      <member refid="classBindPoseElem_1ac7e6d4189929437d4ee78372382faf33" prot="public" virt="non-virtual"><scope>BindPoseElem</scope><name>getBufferOffset</name></member>
+      <member refid="classBindPoseElem_1a7507711e201e120cea359fbdf3fea735" prot="protected" virt="non-virtual"><scope>BindPoseElem</scope><name>manager</name></member>
+      <member refid="classBindPoseElem_1ae1fe85d664494bc13c98a29add8897dd" prot="public" virt="non-virtual"><scope>BindPoseElem</scope><name>Region</name></member>
+      <member refid="classBindPoseElem_1acdeec82dae49a36aa80c3cec56d0a5d6" prot="public" virt="non-virtual"><scope>BindPoseElem</scope><name>RegionId</name></member>
+      <member refid="classBindPoseElem_1a59999fd9ef0273a1e8f3fa1901e9ea30" prot="protected" virt="non-virtual"><scope>BindPoseElem</scope><name>regionId</name></member>
+      <member refid="classBindPoseElem_1aef7a5187f84bedd62633149e4e54f318" prot="public" virt="non-virtual"><scope>BindPoseElem</scope><name>~BindPoseElem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

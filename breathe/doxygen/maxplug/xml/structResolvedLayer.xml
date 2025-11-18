@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResolvedLayer" kind="struct" language="C++" prot="public">
+    <compoundname>ResolvedLayer</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResolvedLayer_1afba1c104ce9fe1188941f1a1bbe3eca9" prot="public" static="no" mutable="no">
+        <type>ILayer *</type>
+        <definition>ILayer* ResolvedLayer::layer</definition>
+        <argsstring></argsstring>
+        <name>layer</name>
+        <qualifiedname>ResolvedLayer::layer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="2509" column="10" bodyfile="dagimp.cpp" bodystart="2509" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResolvedLayer_1a8f9b461b2beca88642a04443f742211a" prot="public" static="no" mutable="no">
+        <type>const TSTR</type>
+        <definition>const TSTR ResolvedLayer::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ResolvedLayer::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="2510" column="14" bodyfile="dagimp.cpp" bodystart="2510" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structResolvedLayer_1ad72ad98c6b20088e96ab4adc9596daac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResolvedLayer::ResolvedLayer</definition>
+        <argsstring>(ILayer *l, const TSTR &amp;n)</argsstring>
+        <name>ResolvedLayer</name>
+        <qualifiedname>ResolvedLayer::ResolvedLayer</qualifiedname>
+        <param>
+          <type>ILayer *</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="2512" column="3" bodyfile="dagimp.cpp" bodystart="2512" bodyend="2512"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="2507" column="1" bodyfile="dagimp.cpp" bodystart="2508" bodyend="2513"/>
+    <listofallmembers>
+      <member refid="structResolvedLayer_1afba1c104ce9fe1188941f1a1bbe3eca9" prot="public" virt="non-virtual"><scope>ResolvedLayer</scope><name>layer</name></member>
+      <member refid="structResolvedLayer_1a8f9b461b2beca88642a04443f742211a" prot="public" virt="non-virtual"><scope>ResolvedLayer</scope><name>name</name></member>
+      <member refid="structResolvedLayer_1ad72ad98c6b20088e96ab4adc9596daac" prot="public" virt="non-virtual"><scope>ResolvedLayer</scope><name>ResolvedLayer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1DLSSFrameGeneration" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>nv::DLSSFrameGeneration</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structnv_1_1DLSSFrameGeneration_1a854af821a0592fc4fdb98264dd1c3965" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void nv::DLSSFrameGeneration::setEnabled</definition>
+        <argsstring>(int frames_to_generate)=0</argsstring>
+        <name>setEnabled</name>
+        <qualifiedname>nv::DLSSFrameGeneration::setEnabled</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>frames_to_generate</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="178" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSSFrameGeneration_1a83acb8101122dc3bffe0ea8806c0691f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool nv::DLSSFrameGeneration::isEnabled</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isEnabled</name>
+        <qualifiedname>nv::DLSSFrameGeneration::isEnabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="179" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSSFrameGeneration_1a9d98b895ac012e0106776adf220f8f26" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned</type>
+        <definition>virtual unsigned nv::DLSSFrameGeneration::getActualFramesPresented</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getActualFramesPresented</name>
+        <qualifiedname>nv::DLSSFrameGeneration::getActualFramesPresented</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="180" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="structnv_1_1DLSSFrameGeneration_1a3654e0e3241da5164dd28c2b26e1690b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void nv::DLSSFrameGeneration::setSuppressed</definition>
+        <argsstring>(bool suppressed)=0</argsstring>
+        <name>setSuppressed</name>
+        <qualifiedname>nv::DLSSFrameGeneration::setSuppressed</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>suppressed</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="181" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="176" column="1" bodyfile="dag_nvFeatures.h" bodystart="177" bodyend="182"/>
+    <listofallmembers>
+      <member refid="structnv_1_1DLSSFrameGeneration_1a9d98b895ac012e0106776adf220f8f26" prot="public" virt="pure-virtual"><scope>nv::DLSSFrameGeneration</scope><name>getActualFramesPresented</name></member>
+      <member refid="structnv_1_1DLSSFrameGeneration_1a83acb8101122dc3bffe0ea8806c0691f" prot="public" virt="pure-virtual"><scope>nv::DLSSFrameGeneration</scope><name>isEnabled</name></member>
+      <member refid="structnv_1_1DLSSFrameGeneration_1a854af821a0592fc4fdb98264dd1c3965" prot="public" virt="pure-virtual"><scope>nv::DLSSFrameGeneration</scope><name>setEnabled</name></member>
+      <member refid="structnv_1_1DLSSFrameGeneration_1a3654e0e3241da5164dd28c2b26e1690b" prot="public" virt="pure-virtual"><scope>nv::DLSSFrameGeneration</scope><name>setSuppressed</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

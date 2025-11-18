@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classEditorMainWindow" kind="class" language="C++" prot="public">
+    <compoundname>EditorMainWindow</compoundname>
+    <includes refid="ec__mainWindow_8h" local="no">ec_mainWindow.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" prot="public" static="no">
+        <type>eastl::function&lt; bool(const dag::Vector&lt; String &gt; &amp;files)&gt;</type>
+        <definition>typedef eastl::function&lt;bool(const dag::Vector&lt;String&gt; &amp;files)&gt; EditorMainWindow::FileDropHandler</definition>
+        <argsstring></argsstring>
+        <name>FileDropHandler</name>
+        <qualifiedname>EditorMainWindow::FileDropHandler</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="17" column="27" bodyfile="ec_mainWindow.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classEditorMainWindow_1a5407348e9de65ff3267ec07578265a15" prot="private" static="no" mutable="no">
+        <type><ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref> &amp;</type>
+        <definition>IWndManagerEventHandler&amp; EditorMainWindow::eventHandler</definition>
+        <argsstring></argsstring>
+        <name>eventHandler</name>
+        <qualifiedname>EditorMainWindow::eventHandler</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="37" column="27" bodyfile="ec_mainWindow.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorMainWindow_1aed875ecf3bd0fb5fa343c9e791ff95dd" prot="private" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* EditorMainWindow::mainHwnd</definition>
+        <argsstring></argsstring>
+        <name>mainHwnd</name>
+        <qualifiedname>EditorMainWindow::mainHwnd</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="38" column="8" bodyfile="ec_mainWindow.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorMainWindow_1a8616184b391b98943e87341d82dfb90a" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="classIWndManager" kindref="compound">IWndManager</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;IWndManager&gt; EditorMainWindow::wndManager</definition>
+        <argsstring></argsstring>
+        <name>wndManager</name>
+        <qualifiedname>EditorMainWindow::wndManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="39" column="21" bodyfile="ec_mainWindow.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classEditorMainWindow_1a52c6052023ae287bc5f56b487b4a34e4" prot="private" static="no" mutable="no">
+        <type><ref refid="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" kindref="member">FileDropHandler</ref></type>
+        <definition>FileDropHandler EditorMainWindow::fileDropHandler</definition>
+        <argsstring></argsstring>
+        <name>fileDropHandler</name>
+        <qualifiedname>EditorMainWindow::fileDropHandler</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="40" column="19" bodyfile="ec_mainWindow.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classEditorMainWindow_1ab42d20e38811ba0b23f7daaa31e7613e" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>EditorMainWindow::EditorMainWindow</definition>
+        <argsstring>(IWndManagerEventHandler &amp;event_handler)</argsstring>
+        <name>EditorMainWindow</name>
+        <qualifiedname>EditorMainWindow::EditorMainWindow</qualifiedname>
+        <param>
+          <type><ref refid="classIWndManagerEventHandler" kindref="compound">IWndManagerEventHandler</ref> &amp;</type>
+          <declname>event_handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="19" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorMainWindow_1ae9d9bb4299055c630a5cab49a9728131" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorMainWindow::run</definition>
+        <argsstring>(const char *caption, const char *icon, FileDropHandler file_drop_handler=nullptr, E3DCOLOR bg_color=E3DCOLOR(229, 229, 229))</argsstring>
+        <name>run</name>
+        <qualifiedname>EditorMainWindow::run</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>icon</declname>
+        </param>
+        <param>
+          <type><ref refid="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" kindref="member">FileDropHandler</ref></type>
+          <declname>file_drop_handler</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>bg_color</declname>
+          <defval>E3DCOLOR(229, 229, 229)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="23" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorMainWindow_1af39e0848a4f81e14471856c95a511a2f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>intptr_t</type>
+        <definition>intptr_t EditorMainWindow::windowProc</definition>
+        <argsstring>(void *h_wnd, unsigned msg, void *w_param, void *l_param)</argsstring>
+        <name>windowProc</name>
+        <qualifiedname>EditorMainWindow::windowProc</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>h_wnd</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>w_param</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>l_param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="26" column="12"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classEditorMainWindow_1a56539654a5c9e03c1dbcea804d10637e" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+        <definition>IWndManager * EditorMainWindow::createWindowManager</definition>
+        <argsstring>()</argsstring>
+        <name>createWindowManager</name>
+        <qualifiedname>EditorMainWindow::createWindowManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="29" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorMainWindow_1a647e315ff50b3ef1898213145f88291c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorMainWindow::onMainWindowCreated</definition>
+        <argsstring>()</argsstring>
+        <name>onMainWindowCreated</name>
+        <qualifiedname>EditorMainWindow::onMainWindowCreated</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="30" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorMainWindow_1a2a3234bdac5da77a7a0962e3d5faf02b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorMainWindow::onClose</definition>
+        <argsstring>()</argsstring>
+        <name>onClose</name>
+        <qualifiedname>EditorMainWindow::onClose</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="31" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorMainWindow_1a9bd6838af38586a7341c8398e6f3d190" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void EditorMainWindow::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>EditorMainWindow::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="32" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorMainWindow_1ab4e5d4c0f5854efefd3cf9502d13810a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorMainWindow::onMouseButtonDown</definition>
+        <argsstring>(int button)</argsstring>
+        <name>onMouseButtonDown</name>
+        <qualifiedname>EditorMainWindow::onMouseButtonDown</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="34" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classEditorMainWindow_1a5ce2191051f1dcdb2280add15466be24" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool EditorMainWindow::onMouseButtonUp</definition>
+        <argsstring>(int button)</argsstring>
+        <name>onMouseButtonUp</name>
+        <qualifiedname>EditorMainWindow::onMouseButtonUp</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_mainWindow.h" line="35" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_mainWindow.h" line="13" column="1" bodyfile="ec_mainWindow.h" bodystart="14" bodyend="41"/>
+    <listofallmembers>
+      <member refid="classEditorMainWindow_1a9bd6838af38586a7341c8398e6f3d190" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>close</name></member>
+      <member refid="classEditorMainWindow_1a56539654a5c9e03c1dbcea804d10637e" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>createWindowManager</name></member>
+      <member refid="classEditorMainWindow_1ab42d20e38811ba0b23f7daaa31e7613e" prot="public" virt="non-virtual"><scope>EditorMainWindow</scope><name>EditorMainWindow</name></member>
+      <member refid="classEditorMainWindow_1a5407348e9de65ff3267ec07578265a15" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>eventHandler</name></member>
+      <member refid="classEditorMainWindow_1ad02ecfb277317644bb25c68924ac8283" prot="public" virt="non-virtual"><scope>EditorMainWindow</scope><name>FileDropHandler</name></member>
+      <member refid="classEditorMainWindow_1a52c6052023ae287bc5f56b487b4a34e4" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>fileDropHandler</name></member>
+      <member refid="classEditorMainWindow_1aed875ecf3bd0fb5fa343c9e791ff95dd" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>mainHwnd</name></member>
+      <member refid="classEditorMainWindow_1a2a3234bdac5da77a7a0962e3d5faf02b" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>onClose</name></member>
+      <member refid="classEditorMainWindow_1a647e315ff50b3ef1898213145f88291c" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>onMainWindowCreated</name></member>
+      <member refid="classEditorMainWindow_1ab4e5d4c0f5854efefd3cf9502d13810a" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>onMouseButtonDown</name></member>
+      <member refid="classEditorMainWindow_1a5ce2191051f1dcdb2280add15466be24" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>onMouseButtonUp</name></member>
+      <member refid="classEditorMainWindow_1ae9d9bb4299055c630a5cab49a9728131" prot="public" virt="non-virtual"><scope>EditorMainWindow</scope><name>run</name></member>
+      <member refid="classEditorMainWindow_1af39e0848a4f81e14471856c95a511a2f" prot="public" virt="non-virtual"><scope>EditorMainWindow</scope><name>windowProc</name></member>
+      <member refid="classEditorMainWindow_1a8616184b391b98943e87341d82dfb90a" prot="private" virt="non-virtual"><scope>EditorMainWindow</scope><name>wndManager</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

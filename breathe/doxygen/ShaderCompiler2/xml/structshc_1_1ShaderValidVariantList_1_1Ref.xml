@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1ShaderValidVariantList_1_1Ref" kind="struct" language="C++" prot="public">
+    <compoundname>shc::ShaderValidVariantList::Ref</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1_1Ref_1aac4aa970ab1fa061ee016b6e69ab84bd" prot="public" static="no" mutable="no">
+        <type>short</type>
+        <definition>short shc::ShaderValidVariantList::Ref::startIdx</definition>
+        <argsstring></argsstring>
+        <name>startIdx</name>
+        <qualifiedname>shc::ShaderValidVariantList::Ref::startIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="668" column="11" bodyfile="shCompiler.cpp" bodystart="668" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1_1Ref_1af18f1182ab10eb5e89dc31cf0f6436db" prot="public" static="no" mutable="no">
+        <type>short</type>
+        <definition>short shc::ShaderValidVariantList::Ref::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>shc::ShaderValidVariantList::Ref::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="668" column="20" bodyfile="shCompiler.cpp" bodystart="668" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shCompiler.cpp" line="666" column="3" bodyfile="shCompiler.cpp" bodystart="667" bodyend="669"/>
+    <listofallmembers>
+      <member refid="structshc_1_1ShaderValidVariantList_1_1Ref_1af18f1182ab10eb5e89dc31cf0f6436db" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList::Ref</scope><name>count</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1_1Ref_1aac4aa970ab1fa061ee016b6e69ab84bd" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList::Ref</scope><name>startIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1NamedConstInitializerElement_1_1VarBase" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::NamedConstInitializerElement::VarBase</compoundname>
+    <derivedcompoundref refid="structsemantic_1_1NamedConstInitializerElement_1_1GlobalVar" prot="public" virt="non-virtual">semantic::NamedConstInitializerElement::GlobalVar</derivedcompoundref>
+    <derivedcompoundref refid="structsemantic_1_1NamedConstInitializerElement_1_1MaterialVar" prot="public" virt="non-virtual">semantic::NamedConstInitializerElement::MaterialVar</derivedcompoundref>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a75b50df98a899ff8ce51bf80f30a98ee" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::NamedConstInitializerElement::VarBase::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::VarBase::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="178" column="9" bodyfile="variantSemantic.h" bodystart="178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a56dccdfa05e50e11febb4812fd51fdcb" prot="public" static="no" mutable="no">
+        <type>ShaderVarType</type>
+        <definition>ShaderVarType semantic::NamedConstInitializerElement::VarBase::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::VarBase::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="179" column="19" bodyfile="variantSemantic.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a083cc6e1b2b02ba263c43a076664b112" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* semantic::NamedConstInitializerElement::VarBase::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::VarBase::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="180" column="16" bodyfile="variantSemantic.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>semantic::NamedConstInitializerElement::GlobalVar</label>
+        <link refid="structsemantic_1_1NamedConstInitializerElement_1_1GlobalVar"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>semantic::NamedConstInitializerElement::MaterialVar</label>
+        <link refid="structsemantic_1_1NamedConstInitializerElement_1_1MaterialVar"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>semantic::NamedConstInitializerElement::VarBase</label>
+        <link refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase"/>
+      </node>
+    </inheritancegraph>
+    <location file="variantSemantic.h" line="176" column="3" bodyfile="variantSemantic.h" bodystart="177" bodyend="181"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a75b50df98a899ff8ce51bf80f30a98ee" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement::VarBase</scope><name>id</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a083cc6e1b2b02ba263c43a076664b112" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement::VarBase</scope><name>name</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase_1a56dccdfa05e50e11febb4812fd51fdcb" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement::VarBase</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

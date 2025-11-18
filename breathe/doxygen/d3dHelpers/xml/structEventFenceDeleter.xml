@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structEventFenceDeleter" kind="struct" language="C++" prot="public">
+    <compoundname>EventFenceDeleter</compoundname>
+    <includes refid="dag__eventQueryHolder_8h" local="no">dag_eventQueryHolder.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structEventFenceDeleter_1aff88b11c73c817decca963e008b25fe4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void EventFenceDeleter::operator()</definition>
+        <argsstring>(D3dEventQuery *ptr)</argsstring>
+        <name>operator()</name>
+        <qualifiedname>EventFenceDeleter::operator()</qualifiedname>
+        <param>
+          <type>D3dEventQuery *</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_eventQueryHolder.h" line="12" column="8" bodyfile="dag_eventQueryHolder.h" bodystart="12" bodyend="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_eventQueryHolder.h" line="10" column="1" bodyfile="dag_eventQueryHolder.h" bodystart="11" bodyend="13"/>
+    <listofallmembers>
+      <member refid="structEventFenceDeleter_1aff88b11c73c817decca963e008b25fe4" prot="public" virt="non-virtual"><scope>EventFenceDeleter</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

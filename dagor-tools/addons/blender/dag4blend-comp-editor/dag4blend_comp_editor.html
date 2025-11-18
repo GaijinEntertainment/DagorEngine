@@ -1,0 +1,701 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dag4blend Composite Editor</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="dag4blend Texture Baker" href="../dag4blend-texture-baker/index.html" />
+    <link rel="prev" title="dag4blend Composite Editor" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for Blender</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dag4blend/index.html">dag4blend</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">dag4blend Composite Editor</a><ul class="current">
+<li class="toctree-l5 current"><a class="current reference internal" href="#">dag4blend Composite Editor</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#how-to-enable">How to Enable</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#cmp-import">CMP Import</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#blend-file-structure">Blend File Structure</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#creating-nodes">Creating Nodes</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#editing-nodes">Editing Nodes</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#setting-node-types-and-changing-display">Setting Node Types and Changing Display</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#node-hierarchy-in-composite">Node Hierarchy in Composite</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#using-blenders-built-in-features">Using Blender’s Built-in Features</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#replacing-multiple-nodes-content">Replacing Multiple Nodes Content</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#selecting-identical-nodes">Selecting Identical Nodes</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#snap-to-surface">Snap to Surface</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#cmp-tools">CMP Tools</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#scenes">Scenes</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#basic-converters">Basic Converters</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#nodes-to-asset">Nodes to Asset</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#parent-node">Parent Node</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#naming-mode">Naming Mode</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#operators">Operators</a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#edit-sub-composites">Edit Sub-Composites</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#split-node">Split Node</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#revert">Revert</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#rebuild">Rebuild</a></li>
+<li class="toctree-l8"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#cmp-export">CMP Export</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#limitations-of-the-composite-editor">Limitations of the Composite Editor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dag4blend-texture-baker/index.html">dag4blend Texture Baker</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../3ds-max/index.html">Add-ons for 3ds Max</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for Blender</a></li>
+          <li class="breadcrumb-item"><a href="index.html">dag4blend Composite Editor</a></li>
+      <li class="breadcrumb-item active">dag4blend Composite Editor</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/blender/dag4blend-comp-editor/dag4blend_comp_editor.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dag4blend-composite-editor">
+<h1>dag4blend Composite Editor<a class="headerlink" href="#dag4blend-composite-editor" title="Link to this heading"></a></h1>
+<section id="how-to-enable">
+<h2>How to Enable<a class="headerlink" href="#how-to-enable" title="Link to this heading"></a></h2>
+<p>The Composite Editor is currently under development and is considered an
+experimental feature. As such, it is hidden by default. To enable its
+visibility, you need to check the <strong>Composite Editor</strong> box in the add-on
+settings.</p>
+<img alt="How to enable" class="align-center" src="../../../../_images/dag4blend_comp_ed_01.png" />
+<p>The Composite Editor can be found in the <strong>N-panel</strong> under the <strong>Dagor</strong> tab.
+The panel is divided into four main sections: <strong>Import</strong>, <strong>Export</strong>, <strong>Tools</strong>
+and <strong>Node Properties</strong>:</p>
+<img alt="How to enable" class="align-center" src="../../../../_images/dag4blend_comp_ed_02.png" />
+</section>
+<section id="cmp-import">
+<h2>CMP Import<a class="headerlink" href="#cmp-import" title="Link to this heading"></a></h2>
+<img alt="CMP import" class="align-center" src="../../../../_images/dag4blend_comp_ed_03.png" />
+<ul>
+<li><p><strong>import path</strong>: this is the full path to the <code class="docutils literal notranslate"><span class="pre">name.composit.blk</span></code> file.
+However, if the correct project is selected, you can simply specify
+<code class="docutils literal notranslate"><span class="pre">name.composit.blk</span></code> or even just <code class="docutils literal notranslate"><span class="pre">name</span></code>, the add-on will locate and import it.</p></li>
+<li><p><strong>refresh cache</strong>: to import subcomposites and geometry, the add-on needs to
+know where to find them. When this option is checked, the importer will scan
+all files in the active project directory once and record where everything is
+located. This list is then used during the import process, which significantly
+speeds up the operation compared to the previous version, where the directory
+might be searched multiple times across several levels of nesting.</p>
+<p>If you’re importing composites from the same project, you can uncheck this box
+to save a few seconds, but only if you’re certain the paths are up-to-date. A
+separate cache is maintained for each project.</p>
+</li>
+<li><p><strong>recursive</strong>: this option imports not only the specified composite but also
+its subcomposites, which are nodes, and their subcomposites. The algorithm
+should be self-explanatory.</p></li>
+<li><p><strong>with dags</strong>: imports <code class="docutils literal notranslate"><span class="pre">.lod00.dag</span></code> rendinsts and <code class="docutils literal notranslate"><span class="pre">.dag</span></code> prefabs for all
+composites.</p>
+<p>If <strong>recursive</strong> is disabled, the import will only place the models found in
+the <code class="docutils literal notranslate"><span class="pre">.blend</span></code> file, and for all others, it will create empty collections.</p>
+<p>It makes sense to disable this option if you only need to slightly adjust the
+position of a specific node, or if you know that the required rendinsts are
+already present in the file.</p>
+</li>
+<li><p><strong>with lods</strong>: available only when the <strong>with dags</strong> option is enabled. Allows
+importing not only <code class="docutils literal notranslate"><span class="pre">lod00</span></code>, but all other LODs (level of detail) as well.</p>
+<p>Keep in mind that this will significantly slow down the import process and
+make the scene heavier. It’s only reasonable to enable it when you need to
+modify the mesh (not node positions) in a small composite. For example, if you
+need to move a couple of apples so they don’t stick through the side of a box
+in a composite, and the pile of apples is a single mesh, you still need to
+update all LODs, not just the base one.</p>
+</li>
+</ul>
+<p>If a collection named after the composite already exists, it will be cleared and
+reused for import. If it doesn’t exist, a new collection will be created.</p>
+<p>The importer respects the hierarchy of the <code class="docutils literal notranslate"><span class="pre">.blend</span></code> scene. Rendinsts and prefabs
+are imported into the <strong>GEOMETRY</strong> scene, while composites are imported into
+<strong>COMPOSITS</strong>.</p>
+<p>If a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> collection (rendinst or prefab) already existed before importing the
+composite, that asset will not be re-imported.</p>
+<p>The node type and name are explicitly written to the <strong>Collection Properties</strong>.
+For rendinsts, this is not critical (since the name is stored in the <code class="docutils literal notranslate"><span class="pre">*.lods</span></code>
+file, not in nested geometry collections), but for prefabs, this is important,
+the <strong>Override Name</strong> option will use the overridden collection name.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Don’t forget to check the log.</p>
+</div>
+<section id="blend-file-structure">
+<h3>Blend File Structure<a class="headerlink" href="#blend-file-structure" title="Link to this heading"></a></h3>
+<p>The Composite Editor also introduces a new file structure for <code class="docutils literal notranslate"><span class="pre">.blend</span></code> files.
+Instead of having everything in a single scene, the new approach suggests using
+multiple scenes, each organized by content type.</p>
+<img alt="New blend file structure" class="align-center" src="../../../../_images/dag4blend_comp_ed_04.png" />
+<p>Scenes in Blender can be thought of as “<code class="docutils literal notranslate"><span class="pre">.blend</span></code> files within a <code class="docutils literal notranslate"><span class="pre">.blend</span></code>
+file”. They are independent of each other, meaning that settings like checkbox
+states, export paths, and other parameters are unique to each scene.</p>
+<ul class="simple">
+<li><p><strong>COMPOSITS</strong>. This scene is where all composites are imported.</p></li>
+<li><p><strong>GAMEOBJ</strong>. Collections for game objects are created here. These objects are
+not automatically readable, so placeholders for previews (and some tools,
+discussed later) must be manually added.</p></li>
+<li><p><strong>GEOMETRY</strong>. This is where all <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files are imported, including through
+dag-imports if the scene exists.</p></li>
+<li><p><strong>Scene</strong>. The default scene that exists in a new <code class="docutils literal notranslate"><span class="pre">.blend</span></code> file. Any scenes
+you create will also appear in this list; tools do not delete user-created
+resources.</p></li>
+<li><p><strong>TECH_STUFF</strong>. Ideally, you should never need to use this scene. It contains
+temporary collections of random nodes, and in the future, other resources
+required for the add-on’s internal tasks.</p></li>
+</ul>
+<p>These scenes are not linked to each other. To transfer resources between them,
+the add-on adds a collection called <strong>TRANSFER_COLLECTION</strong> to each scene. This
+collection isn’t a copy but the same entity across all scenes. For example, you
+can enter the <strong>GEOMETRY</strong> scene, create nodes from the necessary rendinsts,
+place them in this collection, and then switch to the <strong>COMPOSITS</strong> scene to
+start assembling your composite using those nodes.</p>
+<p>If you want to set up this scene structure without importing a composite, or if
+you’ve accidentally deleted the <strong>TRANSFER_COLLECTION</strong>, don’t worry. The <strong>CMP
+Tools &gt; Scenes</strong> section includes a button for creating or updating the scene
+structure, along with a duplicate scene switcher. This dropdown differs from the
+standard one in that it prevents accidental deletion or duplication of scenes.</p>
+<img alt="Blend file structure" class="align-center" src="../../../../_images/dag4blend_comp_ed_05.png" />
+</section>
+<section id="creating-nodes">
+<h3>Creating Nodes<a class="headerlink" href="#creating-nodes" title="Link to this heading"></a></h3>
+<p>Let’s start by exploring the different methods for creating nodes. There are
+several approaches:</p>
+<ol class="arabic">
+<li><p><strong>Adding an Empty Object</strong></p>
+<p>You can add an Empty object to the scene, enable instancing in the
+<strong>Entities</strong> panel, and select the desired object’s collection from the
+dropdown menu. If instancing is disabled, or the collection is not specified,
+the node will be exported as empty.</p>
+<img alt="Creating nodes" class="align-center" src="../../../../_images/dag4blend_comp_ed_06.png" />
+</li>
+<li><p><strong>Dragging a Collection</strong></p>
+<p>In the <strong>Outliner</strong>, you can drag the collection containing the desired asset
+into the 3D view.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 center-grid docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row sd-align-major-center center-cell docutils">
+<a class="image-gap reference internal image-reference" href="../../../../_images/dag4blend_comp_ed_07.png"><img alt="../../../../_images/dag4blend_comp_ed_07.png" class="image-gap" src="../../../../_images/dag4blend_comp_ed_07.png" style="height: 25em;" />
+</a>
+<a class="reference internal image-reference" href="../../../../_images/dag4blend_comp_ed_08.png"><img alt="../../../../_images/dag4blend_comp_ed_08.png" src="../../../../_images/dag4blend_comp_ed_08.png" style="height: 25em;" />
+</a>
+</div>
+</div>
+</div>
+<p>In this case, there is no need to enable instancing.</p>
+</li>
+<li><p><strong>Enabling Instancing via Object Properties</strong></p>
+<p>Add an Empty object and enable instancing through the <strong>Object Properties</strong>
+panel (Blender’s native properties, not the add-on’s).</p>
+<img alt="Creating nodes" class="align-center" src="../../../../_images/dag4blend_comp_ed_09.png" />
+</li>
+</ol>
+<p>The first method is effectively a more flexible version of the third. Why is it
+more flexible? This will be explained below.</p>
+</section>
+<section id="editing-nodes">
+<h3>Editing Nodes<a class="headerlink" href="#editing-nodes" title="Link to this heading"></a></h3>
+<p>To convert a standard node into a random node, simply click the <strong>“+”</strong> button
+in the <strong>Entities</strong> panel.</p>
+<img alt="Editing nodes" class="align-center" src="../../../../_images/dag4blend_comp_ed_10.png" />
+<p>The second entity will initially be empty, and you can assign a collection to it
+either through the dropdown menu, by entering the collection name manually, or
+by dragging it from the <strong>Outliner</strong> into the field.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>There is no safeguard against incorrect selections, so all collections are
+available for selection. Ensure that the chosen collection is indeed a node.</p>
+</div>
+<p>To set a weight different from the default value of <code class="docutils literal notranslate"><span class="pre">1.0</span></code>, click <strong>Init weight</strong>
+and enter the desired value in the newly generated field.</p>
+<p>By default, all entities are displayed immediately, which may hinder your
+workflow. To hide one or more entities in a random node, click the <strong>Monitor</strong>
+icon next to its name.</p>
+<p>To delete an entity, click the <strong>Trash</strong> icon. Once only one entity remains, the
+node will revert to a non-random state.</p>
+</section>
+<section id="setting-node-types-and-changing-display">
+<h3>Setting Node Types and Changing Display<a class="headerlink" href="#setting-node-types-and-changing-display" title="Link to this heading"></a></h3>
+<p>In composites, it’s possible (and sometimes necessary) to specify the node type,
+whether the asset is a rendinst, game object, composite, or prefab. The importer
+determines the type automatically, but when creating new nodes, you’ll need to
+specify it manually.</p>
+<p>In Blender’s editor, an asset is represented by a collection that is drawn over
+an Empty object. Therefore, the type needs to be set in the collection’s
+properties. When the Composite Editor is enabled, a new panel, <strong>Type</strong>, is
+added to the <strong>Collection Properties</strong>.</p>
+<p>To specify the type, click the <strong>circle</strong> next to the appropriate type, and your
+selection will be highlighted. A newly created collection will show
+<strong>Undefined</strong> as the active value until a type is set.</p>
+<img alt="Setting node types" class="align-center" src="../../../../_images/dag4blend_comp_ed_11.png" />
+<p>During export, the collection’s name (without any suffix like <code class="docutils literal notranslate"><span class="pre">.lodNN</span></code>, <code class="docutils literal notranslate"><span class="pre">.lods</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">.002</span></code>) and its type, if specified, will be recorded. Nodes with instanced
+collections such as:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">asset</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">asset.lods</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">asset.lod01</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">asset.001</span></code></p></li>
+</ul>
+<p>are treated equivalently by the exporter (assuming their types are the same).
+The “suffix trimming” allows you to toggle the display of all rendinst LODs at
+once (by default), switch to only the base LOD for cleaner and more accurate
+display, or focus on the LOD with collision to check for intersections between
+the <em>parent</em> and <em>child</em> colliders for proper destruction setup.</p>
+<p>To hide a mesh from the composite preview, you can disable its original in the
+source collection for the viewport using the monitor icon, as you did with
+entities in the previous section. This is useful for disabling collision meshes,
+for example, when you want to view LODs with collisions but not the colliders
+themselves, or temporarily disabling decals if Z-fighting is visually
+distracting.</p>
+<p>Any collection can be used:</p>
+<img alt="Setting node types" class="align-center" src="../../../../_images/dag4blend_comp_ed_12.png" />
+</section>
+<section id="node-hierarchy-in-composite">
+<h3>Node Hierarchy in Composite<a class="headerlink" href="#node-hierarchy-in-composite" title="Link to this heading"></a></h3>
+<p>To establish a <em>parent</em>-<em>child</em> relationship among nodes and build a more
+complex hierarchy, use Blender’s standard tools.</p>
+<p>You can set a <em>parent</em> for a node through the object’s properties. However, this
+will cause the matrix to recalculate, resulting in the object visually “jumping”
+as its new “zero” point changes.</p>
+<img alt="Node hierarchy in composite" class="align-center" src="../../../../_images/dag4blend_comp_ed_13.png" />
+<p>To maintain the node’s visual position, use the <strong>Set Parent</strong> command, either
+by pressing <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">Ctrl+P</span> or through the <strong>Object &gt; Parent</strong> menu.</p>
+<p>To reverse this process and remove the parent while preserving the matrix, use
+the <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">Alt+P</span> shortcut or select the option in the same <strong>Object &gt;
+Parent</strong> menu.</p>
+</section>
+<section id="using-blenders-built-in-features">
+<h3>Using Blender’s Built-in Features<a class="headerlink" href="#using-blenders-built-in-features" title="Link to this heading"></a></h3>
+<p>To display nodes as Empty objects, the Composite Editor uses Blender’s built-in
+feature: <strong>collection instancing</strong>. As a result, tools that work with collection
+instancing also work with composites.</p>
+<section id="replacing-multiple-nodes-content">
+<h4>Replacing Multiple Nodes Content<a class="headerlink" href="#replacing-multiple-nodes-content" title="Link to this heading"></a></h4>
+<p>If you need to quickly replace the content of multiple nodes with the same
+asset:</p>
+<ol class="arabic">
+<li><p>Select all the nodes you want to replace.</p></li>
+<li><p>Assign the desired collection to the active node (the order of this step and
+the first one can be swapped – both work the same).</p></li>
+<li><p>Then, link the same collection to all the selected Empty objects. You can do
+this by pressing <span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">Ctrl+L</span> and selecting <strong>Link Instance
+Collection</strong> (the default hotkey),</p>
+<img alt="Replacing Multiple Nodes Content" class="align-center" src="../../../../_images/dag4blend_comp_ed_14.png" />
+<p>or by accessing the same option through the <strong>Object &gt; Link/Transfer Data</strong>
+menu if your hotkeys have been customized.</p>
+<img alt="Replacing Multiple Nodes Content" class="align-center" src="../../../../_images/dag4blend_comp_ed_15.png" />
+</li>
+</ol>
+</section>
+<section id="selecting-identical-nodes">
+<h4>Selecting Identical Nodes<a class="headerlink" href="#selecting-identical-nodes" title="Link to this heading"></a></h4>
+<p>Nodes that share the same instance collection can not only be merged, but also
+selected together:</p>
+<ol class="arabic">
+<li><p>Select the node containing the asset you want to locate in the scene.</p></li>
+<li><p>Use <strong>Select &gt; Select Linked &gt; Instanced Collection</strong> to select all other
+nodes that reference the same collection.</p>
+<img alt="Selecting Identical Nodes" class="align-center" src="../../../../_images/dag4blend_comp_ed_16.png" />
+<p>In the default keymap, this menu can be accessed with
+<span class="sd-sphinx-override sd-badge sd-outline-dark sd-text-dark">Shift+L</span>.</p>
+</li>
+</ol>
+</section>
+<section id="snap-to-surface">
+<h4>Snap to Surface<a class="headerlink" href="#snap-to-surface" title="Link to this heading"></a></h4>
+<p>Remember that snapping also works here. For placing objects on an uneven
+surface, you might find the <strong>Face</strong> snapping mode with <strong>Project Individual
+Elements</strong> active to be useful. This ensures that all selected nodes will snap
+their pivot points to the surface. Optionally, you can also enable rotation to
+match the surface normal.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Do not confuse this with the <code class="docutils literal notranslate"><span class="pre">place_type:i</span></code> setting for exported nodes, this
+specific snapping needs to be set in the <strong>dagObject Properties</strong> of the Empty
+object if required.</p>
+</div>
+</section>
+</section>
+</section>
+<section id="cmp-tools">
+<h2>CMP Tools<a class="headerlink" href="#cmp-tools" title="Link to this heading"></a></h2>
+<p>Contains several main sections.</p>
+<section id="scenes">
+<h3>Scenes<a class="headerlink" href="#scenes" title="Link to this heading"></a></h3>
+<p>A single button initializes the file structure with separate scenes for game
+objects, geometry, composites, etc.</p>
+<p>Pressing the button again restores this structure. For example, to recreate a
+deleted <code class="docutils literal notranslate"><span class="pre">TRANSFER_COLLECTION</span></code> or missing scenes.</p>
+<img alt="Scenes" class="align-center" src="../../../../_images/dag4blend_comp_ed_17.png" />
+</section>
+<section id="basic-converters">
+<h3>Basic Converters<a class="headerlink" href="#basic-converters" title="Link to this heading"></a></h3>
+<p>Operators that convert the selected object into another type. For example, an
+instance collection into a mesh, and vice versa.</p>
+<img alt="Simple Converters" class="align-center" src="../../../../_images/dag4blend_comp_ed_18.png" />
+<ul>
+<li><p><strong>Nodes to mesh</strong>: converts each selected node into a single mesh.</p>
+<p>This operator does not analyze the node contents. If the node includes several
+LODs or collisions, all of their geometry will be merged into one mesh without
+any object properties. Custom normals are also not preserved.</p>
+<p>The operator was primarily designed for exporting composites as <code class="docutils literal notranslate"><span class="pre">.dag</span></code> files
+to 3ds Max, which currently cannot import composites directly.</p>
+<p>It can also be useful in combination with the following operator.</p>
+</li>
+<li><p><strong>Mesh BBOX to node</strong>: converts the bounding boxes of all selected objects
+into instances of the selected collection. This is intended to simplify
+placement of objects such as <code class="docutils literal notranslate"><span class="pre">indoor_wall</span></code>, <code class="docutils literal notranslate"><span class="pre">envi_probe</span></code>, <code class="docutils literal notranslate"><span class="pre">wall_hole</span></code>, and so
+on.</p>
+<p>The required collections must be created manually.</p>
+<p>After that, you can hide the collection completely and leave it untouched.
+Simply add a few meshes for future game objects and transform them however you
+like, either in <em>Object</em> mode or <em>Edit</em> mode. The pivot position does not
+matter. The replacement will work correctly as long as the bounding box is
+correct before conversion (its display can be enabled in <strong>Object
+Properties</strong>).</p>
+<p>An extreme example (such rotations are unlikely to be needed in practice):</p>
+<img alt="Mesh BBOX to Node" class="align-center" src="../../../../_images/dag4blend_comp_ed_19.png" />
+<img alt="Mesh BBOX to Node" class="align-center" src="../../../../_images/dag4blend_comp_ed_20.png" />
+<img alt="Mesh BBOX to Node" class="align-center" src="../../../../_images/dag4blend_comp_ed_21.png" />
+<p>It’s recommended to add a 1-meter cube with a <code class="docutils literal notranslate"><span class="pre">gi_black</span></code> material to the
+collection of the future game object for clarity. This way, you can later
+temporarily convert it back into a mesh for adjustments.</p>
+</li>
+</ul>
+</section>
+<section id="nodes-to-asset">
+<h3>Nodes to Asset<a class="headerlink" href="#nodes-to-asset" title="Link to this heading"></a></h3>
+<p>This section contains more advanced converters with similar functionality. They
+allow you to create a new rendinst or composite from the selected nodes.</p>
+<img alt="Mesh BBOX to Node" class="align-center" src="../../../../_images/dag4blend_comp_ed_22.png" />
+<section id="parent-node">
+<h4>Parent Node<a class="headerlink" href="#parent-node" title="Link to this heading"></a></h4>
+<p>Expects an Empty object. If not specified, the center of the new asset will be
+placed at the scene’s origin. If specified, the pivot of the new asset will be
+placed at the position of that Empty.</p>
+<p>If a selected node is accidentally deleted from the scene, it will still remain
+in the <code class="docutils literal notranslate"><span class="pre">.blend</span></code> file. The button on the right allows you to re-link a mistakenly
+deleted Empty back into the scene.</p>
+</section>
+<section id="naming-mode">
+<h4>Naming Mode<a class="headerlink" href="#naming-mode" title="Link to this heading"></a></h4>
+<ul>
+<li><p>In <strong>Collection</strong> mode, you can choose the collection to which the new asset
+will be sent.</p>
+<p>If none is specified but the parent node has an <strong>Instance Collection</strong>, the
+new asset will be placed there, replacing its previous contents.</p>
+<p>If no collection is specified either directly or through the parent node, the
+asset will be named <code class="docutils literal notranslate"><span class="pre">new_asset</span></code> and placed into a collection of the same name.</p>
+</li>
+<li><p>In <strong>Name</strong> mode, a collection will be automatically created in the correct
+scene, and the user only needs to enter the desired asset name.</p></li>
+</ul>
+</section>
+<section id="operators">
+<h4>Operators<a class="headerlink" href="#operators" title="Link to this heading"></a></h4>
+<ul>
+<li><p><strong>To sub-composite</strong>: creates a new collection containing a composite and
+moves the selected nodes into it. The new composite will be assigned as the
+entity of the <strong>Parent Node</strong>.</p></li>
+<li><p><strong>To rendinst node</strong>: breaks down the selected nodes to the rendinst level and
+organizes the LODs into subcollections so that the rendinsts can be easily
+exported in <strong>Collections Separated</strong> mode.</p>
+<p>This operator does not take LOD distances into account; it simply checks how
+many LODs exist in the root objects. All <code class="docutils literal notranslate"><span class="pre">lod00</span></code> objects are placed into a
+<code class="docutils literal notranslate"><span class="pre">*.lod00</span></code> collection, all <code class="docutils literal notranslate"><span class="pre">lod01</span></code> objects into <code class="docutils literal notranslate"><span class="pre">*.lod01</span></code>, and so on.</p>
+<p>The operator will not execute correctly if any of the selected nodes lack the
+standard hierarchy, i.e. a collection named <code class="docutils literal notranslate"><span class="pre">name.lods</span></code> containing
+<code class="docutils literal notranslate"><span class="pre">name.lod00</span></code>, etc.</p>
+</li>
+</ul>
+</section>
+</section>
+<section id="edit-sub-composites">
+<h3>Edit Sub-Composites<a class="headerlink" href="#edit-sub-composites" title="Link to this heading"></a></h3>
+<p>These operators are designed to modify the hierarchy within composites.</p>
+<img alt="Edit Sub-Composites" class="align-center" src="../../../../_images/dag4blend_comp_ed_23.png" />
+<section id="split-node">
+<h4>Split Node<a class="headerlink" href="#split-node" title="Link to this heading"></a></h4>
+<p>Breaks down a composite node into its components. For example, it can replace a
+node like <code class="docutils literal notranslate"><span class="pre">some_building_indoor_stuff_cmp</span></code> with the individual props contained
+within that composite.</p>
+<ul class="simple">
+<li><p>If the <strong>recursive</strong> checkbox is enabled, not only the selected composite will
+be unpacked, but all its sub-composites as well, down to the individual
+rendinst nodes. Otherwise, only one level will be unpacked.</p></li>
+<li><p>If the <strong>destructive</strong> checkbox is enabled, the extracted nodes will appear
+directly in the root of the collection, and the original node will be
+permanently deleted. If not enabled, the original node will remain in place
+but with instancing disabled, and the new nodes will be parented to it. In
+this case, the following operators can be used.</p></li>
+</ul>
+</section>
+<section id="revert">
+<h4>Revert<a class="headerlink" href="#revert" title="Link to this heading"></a></h4>
+<p>Works only on nodes previously unpacked using <strong>Split Node</strong>. It deletes all
+child nodes of the unpacked subcomposite and restores instancing, the composite
+will once again be drawn inside the node.</p>
+</section>
+<section id="rebuild">
+<h4>Rebuild<a class="headerlink" href="#rebuild" title="Link to this heading"></a></h4>
+<p>Also works only on previously unpacked nodes, but is intended to apply changes
+rather than revert them. The contents of the unpacked composite are replaced
+with the current child nodes of the processed instance.</p>
+</section>
+<section id="usage-examples">
+<h4>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h4>
+<ol class="arabic">
+<li><p>You’ve imported a building composite with all nested levels. Inside
+<code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code>, a picture is positioned incorrectly, it floats in the air
+with a visible gap from the wall.</p>
+<p>In the building composite, select the <code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code> node and apply <strong>Split
+Node</strong>, ensuring both checkboxes are disabled. Now you can move the
+<code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code> nodes while seeing their correct position within the final
+asset. Move the picture flush against the wall, select the original
+<code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code> node, and click <strong>Rebuild</strong>. Done, the <code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code>
+collection has been updated and can now be exported so the changes appear in
+Asset Viewer.</p>
+<p>If, after unpacking the composite, you accidentally deleted a table, you can
+use <strong>Revert</strong> instead of <strong>Rebuild</strong> to return the node to its original
+state and try again.</p>
+</li>
+<li><p>You’ve imported a building composite created in daEditorX, where all nodes
+are placed in the root.</p>
+<p>You need to divide it into subcomposites. Select the decorative wall assets
+and, in <strong>Name</strong> mode, create a new subcomposite called <code class="docutils literal notranslate"><span class="pre">my_building_decor</span></code>
+with its origin at the scene center. Repeat the process for <code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code>
+and other groups.</p>
+</li>
+<li><p>A level designer assembled wooden floors from many separate planks. It looks
+good, but destruction behaves poorly, and there are too many nodes per cell
+in the level.</p>
+<p>Import the composite, select all planks, and create one rendinst instead of a
+composite made up of dozens of individual planks, assigning meaningful names
+to each rendinst. If needed, merge nodes within the rendinst and optimize
+collisions and LODs. The process isn;t fully automated, but it;s a solid
+starting point for cleanup and optimization.</p>
+</li>
+</ol>
+</section>
+</section>
+</section>
+<section id="cmp-export">
+<h2>CMP Export<a class="headerlink" href="#cmp-export" title="Link to this heading"></a></h2>
+<p>The <strong>CMP Export</strong> section is straightforward: specify the directory path where
+the composite should be exported, along with the collection representing the
+composite to be exported.</p>
+<img alt="CMP export" class="align-center" src="../../../../_images/dag4blend_comp_ed_24.png" />
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<p>Export parameters, such as random offsets, are specified in the <strong>Object
+Properties</strong> of the Empty object. These parameters do not appear
+in the viewport. During import, only the initial state (the first part of the
+value) is applied, but any random deviation (the value after the comma) will not
+be.</p>
+<p>If a node has at least one random field specified, its transformation matrix
+will not be saved. If the imported node has both a matrix and random fields, the
+random parameters will be ignored, and a corresponding notification will be
+logged.</p>
+<img alt="Parameters" class="align-center" src="../../../../_images/dag4blend_comp_ed_25.png" />
+<p>Some of the parameters are also displayed in the Composite Editor, under the
+<strong>Node Properties</strong> panel:</p>
+<img alt="Parameters" class="align-center" src="../../../../_images/dag4blend_comp_ed_26.png" />
+<p>This section shows the list of Entities, their weights, and the special
+parameter <strong>Place Type</strong>. Internally, this is a numerical value, it can still be
+viewed in the standard <strong>Object Properties</strong> list, but here it’s presented in a
+more user-friendly way, displaying mode names instead of numeric indices.</p>
+</section>
+<section id="limitations-of-the-composite-editor">
+<h3>Limitations of the Composite Editor<a class="headerlink" href="#limitations-of-the-composite-editor" title="Link to this heading"></a></h3>
+<ul>
+<li><p><strong>Includes Not Supported</strong></p>
+<p>Currently, includes are not supported. Lines with the <code class="docutils literal notranslate"><span class="pre">include</span></code> directive are
+ignored during import, which may lead to some data loss. This will be noted in
+the log.</p>
+</li>
+<li><p><strong>Blender’s Limitation</strong></p>
+<p>Blender supports a maximum of 7 levels of nesting. Multi-level composites may
+experience performance issues and may not display correctly – starting from
+the 8th level of nesting, the content will not be rendered. However, import
+and export are still possible.</p>
+<p>For example, a node-rendinst represents one level of nesting. A random node
+with several rendinsts represents two levels. A subcomposite with these random
+nodes would be three levels, and so on. This issue mainly arises when
+importing buildings with interiors, such as in daNetGame-based games, where
+<code class="docutils literal notranslate"><span class="pre">indoor_stuff</span></code> includes numerous nested composites with randomness – like
+random cabinets with objects placed on the shelves, each with random offsets.</p>
+</li>
+<li><p><strong>Axis Mismatch</strong></p>
+<p>In Blender, the Z-axis is up, while in Dagor, the Y-axis is up. While matrix
+adjustments are handled automatically, preventing scenes from tilting, it’s
+important to remember that <code class="docutils literal notranslate"><span class="pre">offset_y:p2</span></code> refers to up/down movement despite
+the name. The same logic applies to rotation and scaling.</p>
+</li>
+<li><p><strong>Random Offset Parameters</strong></p>
+<p>Currently, random offset parameters do not automatically display in the
+viewport. During import, the add-on sets the initial offset, but if you add or
+modify a random parameter, you’ll need to manually adjust the node’s position.</p>
+</li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="dag4blend Composite Editor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dag4blend-texture-baker/index.html" class="btn btn-neutral float-right" title="dag4blend Texture Baker" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

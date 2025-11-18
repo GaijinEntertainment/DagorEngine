@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="sideEffects_8h" kind="file" language="C++">
+    <compoundname>sideEffects.h</compoundname>
+    <includedby refid="registry_8h" local="no">registry.h</includedby>
+    <invincdepgraph>
+      <node id="3">
+        <label>daFG.h</label>
+        <link refid="daFG_8h"/>
+      </node>
+      <node id="2">
+        <label>registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>sideEffects.h</label>
+        <link refid="sideEffects_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90" refkind="member"><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90" kindref="member">SideEffects</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90a6adf97f83acf6453d4a6a4b1070f3754" kindref="member">None</ref>,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90aafbf0897a5a83fdd873dfb032ec695d3" kindref="member">Internal</ref>,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90ab206a1b4ea1097761f78e8876f6da779" kindref="member">External</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="sideEffects.h"/>
+  </compounddef>
+</doxygen>

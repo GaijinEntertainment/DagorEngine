@@ -1,0 +1,259 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1DlssGParams" kind="struct" language="C++" prot="public">
+    <compoundname>nv::DlssGParams</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename HandleType</type>
+        <defval>BaseTexture</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1ae85c139f816330653826f341227a2d4b" prot="public" static="no" mutable="no">
+        <type>HandleType *</type>
+        <definition>HandleType* nv::DlssGParams&lt; HandleType &gt;::inHUDless</definition>
+        <argsstring></argsstring>
+        <name>inHUDless</name>
+        <qualifiedname>nv::DlssGParams::inHUDless</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="99" column="14" bodyfile="dag_nvFeatures.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a5ff3b6998b74a6a4322243db41973751" prot="public" static="no" mutable="no">
+        <type>HandleType *</type>
+        <definition>HandleType* nv::DlssGParams&lt; HandleType &gt;::inUI</definition>
+        <argsstring></argsstring>
+        <name>inUI</name>
+        <qualifiedname>nv::DlssGParams::inUI</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="100" column="14" bodyfile="dag_nvFeatures.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1afab611118f9989543bbcca87a1cf829c" prot="public" static="no" mutable="no">
+        <type>HandleType *</type>
+        <definition>HandleType* nv::DlssGParams&lt; HandleType &gt;::inDepth</definition>
+        <argsstring></argsstring>
+        <name>inDepth</name>
+        <qualifiedname>nv::DlssGParams::inDepth</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="101" column="14" bodyfile="dag_nvFeatures.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a79c61ac7ae698dd65be43ecccc626e73" prot="public" static="no" mutable="no">
+        <type>HandleType *</type>
+        <definition>HandleType* nv::DlssGParams&lt; HandleType &gt;::inMotionVectors</definition>
+        <argsstring></argsstring>
+        <name>inMotionVectors</name>
+        <qualifiedname>nv::DlssGParams::inMotionVectors</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="102" column="14" bodyfile="dag_nvFeatures.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1af6acc3dc860250d6729fc64d7a483c52" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssGParams&lt; HandleType &gt;::inJitterOffsetX</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetX</name>
+        <qualifiedname>nv::DlssGParams::inJitterOffsetX</qualifiedname>
+        <initializer>= .0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="104" column="9" bodyfile="dag_nvFeatures.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1aa8446f351c2f886de4b54d93e248c452" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssGParams&lt; HandleType &gt;::inJitterOffsetY</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetY</name>
+        <qualifiedname>nv::DlssGParams::inJitterOffsetY</qualifiedname>
+        <initializer>= .0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="105" column="9" bodyfile="dag_nvFeatures.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a0ad5da57ae5de2680a33845bb5da9efc" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssGParams&lt; HandleType &gt;::inMVScaleX</definition>
+        <argsstring></argsstring>
+        <name>inMVScaleX</name>
+        <qualifiedname>nv::DlssGParams::inMVScaleX</qualifiedname>
+        <initializer>= .0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="106" column="9" bodyfile="dag_nvFeatures.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1afb236746859f426ea2a226c37ee1ecbf" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssGParams&lt; HandleType &gt;::inMVScaleY</definition>
+        <argsstring></argsstring>
+        <name>inMVScaleY</name>
+        <qualifiedname>nv::DlssGParams::inMVScaleY</qualifiedname>
+        <initializer>= .0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="107" column="9" bodyfile="dag_nvFeatures.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a3fd3f29eb0d6b641583058abd47652ba" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DlssGParams&lt; HandleType &gt;::frameId</definition>
+        <argsstring></argsstring>
+        <name>frameId</name>
+        <qualifiedname>nv::DlssGParams::frameId</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="108" column="12" bodyfile="dag_nvFeatures.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a2f25901aec26f345a22eb67b432af4a9" prot="public" static="no" mutable="no">
+        <type><ref refid="structnv_1_1Camera" kindref="compound">Camera</ref></type>
+        <definition>Camera nv::DlssGParams&lt; HandleType &gt;::camera</definition>
+        <argsstring></argsstring>
+        <name>camera</name>
+        <qualifiedname>nv::DlssGParams::camera</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="110" column="10" bodyfile="dag_nvFeatures.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a63d943f3183f9a5fac4341709b0cb8cb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DlssGParams&lt; HandleType &gt;::inHUDlessState</definition>
+        <argsstring></argsstring>
+        <name>inHUDlessState</name>
+        <qualifiedname>nv::DlssGParams::inHUDlessState</qualifiedname>
+        <initializer>= UINT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="112" column="12" bodyfile="dag_nvFeatures.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a2b2b29c58d5fed8d5765e2d6bc510bea" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DlssGParams&lt; HandleType &gt;::inUIState</definition>
+        <argsstring></argsstring>
+        <name>inUIState</name>
+        <qualifiedname>nv::DlssGParams::inUIState</qualifiedname>
+        <initializer>= UINT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="113" column="12" bodyfile="dag_nvFeatures.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1ad8e33ebb00882585b5870dc28dfcbe3e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DlssGParams&lt; HandleType &gt;::inDepthState</definition>
+        <argsstring></argsstring>
+        <name>inDepthState</name>
+        <qualifiedname>nv::DlssGParams::inDepthState</qualifiedname>
+        <initializer>= UINT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="114" column="12" bodyfile="dag_nvFeatures.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssGParams_1a4380e24c99d33ce2433193425c62ce52" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DlssGParams&lt; HandleType &gt;::inMotionVectorsState</definition>
+        <argsstring></argsstring>
+        <name>inMotionVectorsState</name>
+        <qualifiedname>nv::DlssGParams::inMotionVectorsState</qualifiedname>
+        <initializer>= UINT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="115" column="12" bodyfile="dag_nvFeatures.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>nv::Camera</label>
+        <link refid="structnv_1_1Camera"/>
+      </node>
+      <node id="1">
+        <label>nv::DlssGParams&lt; HandleType &gt;</label>
+        <link refid="structnv_1_1DlssGParams"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>camera</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_nvFeatures.h" line="97" column="1" bodyfile="dag_nvFeatures.h" bodystart="98" bodyend="116"/>
+    <listofallmembers>
+      <member refid="structnv_1_1DlssGParams_1a2f25901aec26f345a22eb67b432af4a9" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>camera</name></member>
+      <member refid="structnv_1_1DlssGParams_1a3fd3f29eb0d6b641583058abd47652ba" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>frameId</name></member>
+      <member refid="structnv_1_1DlssGParams_1afab611118f9989543bbcca87a1cf829c" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inDepth</name></member>
+      <member refid="structnv_1_1DlssGParams_1ad8e33ebb00882585b5870dc28dfcbe3e" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inDepthState</name></member>
+      <member refid="structnv_1_1DlssGParams_1ae85c139f816330653826f341227a2d4b" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inHUDless</name></member>
+      <member refid="structnv_1_1DlssGParams_1a63d943f3183f9a5fac4341709b0cb8cb" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inHUDlessState</name></member>
+      <member refid="structnv_1_1DlssGParams_1af6acc3dc860250d6729fc64d7a483c52" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inJitterOffsetX</name></member>
+      <member refid="structnv_1_1DlssGParams_1aa8446f351c2f886de4b54d93e248c452" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inJitterOffsetY</name></member>
+      <member refid="structnv_1_1DlssGParams_1a79c61ac7ae698dd65be43ecccc626e73" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inMotionVectors</name></member>
+      <member refid="structnv_1_1DlssGParams_1a4380e24c99d33ce2433193425c62ce52" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inMotionVectorsState</name></member>
+      <member refid="structnv_1_1DlssGParams_1a0ad5da57ae5de2680a33845bb5da9efc" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inMVScaleX</name></member>
+      <member refid="structnv_1_1DlssGParams_1afb236746859f426ea2a226c37ee1ecbf" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inMVScaleY</name></member>
+      <member refid="structnv_1_1DlssGParams_1a5ff3b6998b74a6a4322243db41973751" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inUI</name></member>
+      <member refid="structnv_1_1DlssGParams_1a2b2b29c58d5fed8d5765e2d6bc510bea" prot="public" virt="non-virtual"><scope>nv::DlssGParams</scope><name>inUIState</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

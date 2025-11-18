@@ -1,0 +1,376 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderCode" kind="class" language="C++" prot="public">
+    <compoundname>ShaderCode</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+    <innerclass refid="structShaderCode_1_1Pass" prot="public">ShaderCode::Pass</innerclass>
+    <innerclass refid="structShaderCode_1_1PassTab" prot="public">ShaderCode::PassTab</innerclass>
+    <innerclass refid="structShaderCode_1_1StVarMapping" prot="public">ShaderCode::StVarMapping</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderCode_1ae2d89e351341ad71ff1ddf415730a61a" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderVariant_1_1VariantTable" kindref="compound">ShaderVariant::VariantTable</ref></type>
+        <definition>ShaderVariant::VariantTable ShaderCode::dynVariants</definition>
+        <argsstring></argsstring>
+        <name>dynVariants</name>
+        <qualifiedname>ShaderCode::dynVariants</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="54" column="31" bodyfile="shcode.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1a769c07a6bbe80c0b095305767e65b453" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; ShaderChannelId &gt;</type>
+        <definition>SerializableTab&lt;ShaderChannelId&gt; ShaderCode::channel</definition>
+        <argsstring></argsstring>
+        <name>channel</name>
+        <qualifiedname>ShaderCode::channel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="56" column="19" bodyfile="shcode.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1af08607fbfc2596265f1479a33b708bfd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::varsize</definition>
+        <argsstring></argsstring>
+        <name>varsize</name>
+        <qualifiedname>ShaderCode::varsize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="58" column="7" bodyfile="shcode.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1a3f1c696950cae074dbbf278d2ecd0ca5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::regsize</definition>
+        <argsstring></argsstring>
+        <name>regsize</name>
+        <qualifiedname>ShaderCode::regsize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="58" column="15" bodyfile="shcode.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1ac99942179d18ba4169439667d7682396" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; int &gt;</type>
+        <definition>SerializableTab&lt;int&gt; ShaderCode::initcode</definition>
+        <argsstring></argsstring>
+        <name>initcode</name>
+        <qualifiedname>ShaderCode::initcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="60" column="19" bodyfile="shcode.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1a49dad6ed8f7f32427b944b5fc4f3d617" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; ShaderVarTextureType &gt;</type>
+        <definition>SerializableTab&lt;ShaderVarTextureType&gt; ShaderCode::staticTextureTypes</definition>
+        <argsstring></argsstring>
+        <name>staticTextureTypes</name>
+        <qualifiedname>ShaderCode::staticTextureTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="61" column="19" bodyfile="shcode.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1a8f3bcc390fc20994f8679e0d7b207788" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structShaderCode_1_1StVarMapping" kindref="compound">StVarMapping</ref> &gt;</type>
+        <definition>SerializableTab&lt;StVarMapping&gt; ShaderCode::stvarmap</definition>
+        <argsstring></argsstring>
+        <name>stvarmap</name>
+        <qualifiedname>ShaderCode::stvarmap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="67" column="19" bodyfile="shcode.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1a036e9771fd21e59f772c4f71eb9a25e5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>ShaderCode::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="69" column="7" bodyfile="shcode.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1a227fbd7a7e7ff62446e82fbd70256c13" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::branchedCppStcodeId</definition>
+        <argsstring></argsstring>
+        <name>branchedCppStcodeId</name>
+        <qualifiedname>ShaderCode::branchedCppStcodeId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="71" column="7" bodyfile="shcode.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1a768ed57f31c3e3fa2370c503d57f3e4f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCode::branchedCppStblkcodeId</definition>
+        <argsstring></argsstring>
+        <name>branchedCppStblkcodeId</name>
+        <qualifiedname>ShaderCode::branchedCppStblkcodeId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="72" column="7" bodyfile="shcode.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1aa9442b7b4eee7a82ae4f54a789eb5485" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structShaderCode_1_1Pass" kindref="compound">Pass</ref> &gt;</type>
+        <definition>SerializableTab&lt;Pass&gt; ShaderCode::allPasses</definition>
+        <argsstring></argsstring>
+        <name>allPasses</name>
+        <qualifiedname>ShaderCode::allPasses</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="103" column="19" bodyfile="shcode.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderCode_1af53120898b8c255961827e8bef4f5b5f" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structShaderCode_1_1PassTab" kindref="compound">PassTab</ref> * &gt;</type>
+        <definition>SerializableTab&lt;PassTab *&gt; ShaderCode::passes</definition>
+        <argsstring></argsstring>
+        <name>passes</name>
+        <qualifiedname>ShaderCode::passes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="104" column="19" bodyfile="shcode.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderCode_1a98ad21f12fb5b2c653362fa4e3912c1f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int ShaderCode::getVertexStride</definition>
+        <argsstring>() const</argsstring>
+        <name>getVertexStride</name>
+        <qualifiedname>ShaderCode::getVertexStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="74" column="16" bodyfile="shCode.cpp" bodystart="44" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderCode_1ae6e3dad36e7b670bedac778ae199c467" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderCode_1_1PassTab" kindref="compound">PassTab</ref> *</type>
+        <definition>ShaderCode::PassTab * ShaderCode::createPasses</definition>
+        <argsstring>(int variant)</argsstring>
+        <name>createPasses</name>
+        <qualifiedname>ShaderCode::createPasses</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>variant</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="107" column="11" bodyfile="shCode.cpp" bodystart="15" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderCode_1adea24d0b76a8117da6e1209ffe75b090" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderCode::ShaderCode</definition>
+        <argsstring>(IMemAlloc *mem=codemem)</argsstring>
+        <name>ShaderCode</name>
+        <qualifiedname>ShaderCode::ShaderCode</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>mem</declname>
+          <defval><ref refid="shcode_8h_1a7d2ffffa4da294f2091ed84da32517ee" kindref="member">codemem</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="109" column="3" bodyfile="shCode.cpp" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderCode_1abff311a223480b989003781646e3f660" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderCode::~ShaderCode</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderCode</name>
+        <qualifiedname>ShaderCode::~ShaderCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="111" column="3" bodyfile="shcode.h" bodystart="111" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderCode_1aeacbc3074b48f0c895b1359d340b9879" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderCode::link</definition>
+        <argsstring>(shc::TargetContext &amp;ctx)</argsstring>
+        <name>link</name>
+        <qualifiedname>ShaderCode::link</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="118" column="8" bodyfile="shCode.cpp" bodystart="27" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>SerializableTab&lt; ShaderChannelId &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>SerializableTab&lt; ShaderCode::Pass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>SerializableTab&lt; ShaderCode::PassTab * &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>SerializableTab&lt; ShaderCode::StVarMapping &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; ShaderVarTextureType &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>SerializableTab&lt; int &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderCode</label>
+        <link refid="classShaderCode"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>dynVariants</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>channel</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>initcode</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>staticTextureTypes</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>stvarmap</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>allPasses</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>passes</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderVariant::VariantTable</label>
+        <link refid="classShaderVariant_1_1VariantTable"/>
+      </node>
+      <node id="4">
+        <label>Tab&lt; ShaderChannelId &gt;</label>
+      </node>
+      <node id="12">
+        <label>Tab&lt; ShaderCode::Pass &gt;</label>
+      </node>
+      <node id="14">
+        <label>Tab&lt; ShaderCode::PassTab * &gt;</label>
+      </node>
+      <node id="10">
+        <label>Tab&lt; ShaderCode::StVarMapping &gt;</label>
+      </node>
+      <node id="8">
+        <label>Tab&lt; ShaderVarTextureType &gt;</label>
+      </node>
+      <node id="6">
+        <label>Tab&lt; int &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="shcode.h" line="49" column="1" bodyfile="shcode.h" bodystart="50" bodyend="119"/>
+    <listofallmembers>
+      <member refid="classShaderCode_1aa9442b7b4eee7a82ae4f54a789eb5485" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>allPasses</name></member>
+      <member refid="classShaderCode_1a768ed57f31c3e3fa2370c503d57f3e4f" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>branchedCppStblkcodeId</name></member>
+      <member refid="classShaderCode_1a227fbd7a7e7ff62446e82fbd70256c13" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>branchedCppStcodeId</name></member>
+      <member refid="classShaderCode_1a769c07a6bbe80c0b095305767e65b453" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>channel</name></member>
+      <member refid="classShaderCode_1ae6e3dad36e7b670bedac778ae199c467" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>createPasses</name></member>
+      <member refid="classShaderCode_1ae2d89e351341ad71ff1ddf415730a61a" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>dynVariants</name></member>
+      <member refid="classShaderCode_1a036e9771fd21e59f772c4f71eb9a25e5" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>flags</name></member>
+      <member refid="classShaderCode_1a98ad21f12fb5b2c653362fa4e3912c1f" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>getVertexStride</name></member>
+      <member refid="classShaderCode_1ac99942179d18ba4169439667d7682396" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>initcode</name></member>
+      <member refid="classShaderCode_1aeacbc3074b48f0c895b1359d340b9879" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>link</name></member>
+      <member refid="classShaderCode_1af53120898b8c255961827e8bef4f5b5f" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>passes</name></member>
+      <member refid="classShaderCode_1a3f1c696950cae074dbbf278d2ecd0ca5" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>regsize</name></member>
+      <member refid="classShaderCode_1adea24d0b76a8117da6e1209ffe75b090" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>ShaderCode</name></member>
+      <member refid="classShaderCode_1a49dad6ed8f7f32427b944b5fc4f3d617" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>staticTextureTypes</name></member>
+      <member refid="classShaderCode_1a8f3bcc390fc20994f8679e0d7b207788" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>stvarmap</name></member>
+      <member refid="classShaderCode_1af08607fbfc2596265f1479a33b708bfd" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>varsize</name></member>
+      <member refid="classShaderCode_1abff311a223480b989003781646e3f660" prot="public" virt="non-virtual"><scope>ShaderCode</scope><name>~ShaderCode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

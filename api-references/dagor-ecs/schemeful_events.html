@@ -1,0 +1,570 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schemeful Events (daScript, Quirrel, C++, Net)</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Dagor Shading Language (DSHL) docs" href="../dagor-dshl/index.html" />
+    <link rel="prev" title="Dagor ECS" href="dagor_ecs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Dagor ECS</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="dagor_ecs.html">Dagor ECS</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Schemeful Events (daScript, Quirrel, C++, Net)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#advantages-of-schemeful-events">Advantages of Schemeful Events</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#declaring-event">Declaring Event</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#creating-event">Creating Event</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#subscribing-to-event">Subscribing to Event</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sending-events-server-to-server-client-to-client">Sending Events (Server-to-Server, Client-to-Client)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sending-events-over-network">Sending Events Over Network</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#network-protocol-version">Network Protocol Version</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#event-version">Event Version</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sending-containers-offline-and-online">Sending Containers (Offline and Online)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sending-bitstream">Sending BitStream</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reflection">Reflection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#c-event-cpp-event">C++ Event (cpp_event)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#quirrel-stubs-c-code-generation">Quirrel Stubs / C++ Code Generation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#filters">Filters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#filters-in-squirrel">Filters in Squirrel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#filters-in-cpp-event">Filters in cpp_event</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#event-delivery-reliability">Event Delivery Reliability</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#enums">Enums</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utilities">Utilities</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#faq">FAQ</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#i-have-a-c-network-event-and-want-to-move-its-declaration-to-dascript-while-keeping-the-event-in-c-example-ecs-register-net-event-eventusermarkdisabled-net-er-unicast-net-routing-server-to-client-rcptf-entity-ctrl-conn-eventusermarkdisablednetmsg-rcptf-target-entity">I have a C++ network event and want to move its declaration to daScript while keeping the event in C++. (Example: <code class="docutils literal notranslate"><span class="pre">ECS_REGISTER_NET_EVENT(EventUserMarkDisabled,</span> <span class="pre">net::Er::Unicast,</span> <span class="pre">net::ROUTING_SERVER_TO_CLIENT,</span> <span class="pre">(&amp;rcptf::entity_ctrl_conn&lt;EventUserMarkDisabledNetMsg,</span> <span class="pre">rcptf::TARGET_ENTITY&gt;));</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#i-have-a-c-network-event-and-want-to-move-it-entirely-to-scripts-no-need-for-it-in-c">I have a C++ network event and want to move it entirely to scripts (no need for it in C++).</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#i-have-a-script-based-event-and-need-to-migrate-it-to-c">I have a script-based event and need to migrate it to C++.</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#i-added-an-event-but-i-see-the-following-error-in-squirrel-e-darg-the-index-cmdherospeech-does-not-exist">I added an event, but I see the following error in Squirrel: <code class="docutils literal notranslate"><span class="pre">[E]</span> <span class="pre">daRg:</span> <span class="pre">the</span> <span class="pre">index</span> <span class="pre">'CmdHeroSpeech'</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist</span></code>.</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#gendasevents-bat-shows-compilation-errors-and-wont-run"><code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code> shows compilation errors and won’t run.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor ECS</a></li>
+      <li class="breadcrumb-item active">Schemeful Events (daScript, Quirrel, C++, Net)</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api-references/dagor-ecs/schemeful_events.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="schemeful-events-dascript-quirrel-c-net">
+<h1>Schemeful Events (daScript, Quirrel, C++, Net)<a class="headerlink" href="#schemeful-events-dascript-quirrel-c-net" title="Link to this heading"></a></h1>
+<section id="advantages-of-schemeful-events">
+<h2>Advantages of Schemeful Events<a class="headerlink" href="#advantages-of-schemeful-events" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Events are universally compatible across scripting languages (daScript,
+Quirrel).</p></li>
+<li><p>They can be transmitted both locally and over the network.</p></li>
+<li><p>They can be modified in real-time without restarting the game.</p></li>
+<li><p>They have a strict, validated structure, making all fields visible in Quirrel
+and accessible as an instance, e.g., <code class="docutils literal notranslate"><span class="pre">evt.someField</span></code>.</p></li>
+<li><p>Full runtime information on the event structure (reflection) is available.</p></li>
+<li><p>C++ API support is provided for handling these events, if required.</p></li>
+</ul>
+</section>
+<section id="declaring-event">
+<h2>Declaring Event<a class="headerlink" href="#declaring-event" title="Link to this heading"></a></h2>
+<p>Each game directory contains an event declaration file, named in the format
+<code class="docutils literal notranslate"><span class="pre">events_&lt;game_name&gt;.das</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">events_cuisine_royale.das</span></code>). The event
+declaration consists of an annotation and a description of the event structure.
+The annotation specifies whether the event is <code class="docutils literal notranslate"><span class="pre">unicast</span></code> or <code class="docutils literal notranslate"><span class="pre">broadcast</span></code>, and
+network routing, if needed, which is covered below.</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">events_&lt;game&gt;.das</span></code></p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span><span class="nf">[event(unicast)]</span>
+<span class="k">struct</span> <span class="n">CmdCreateMapPoint</span>
+  <span class="nv">x</span><span class="p">: </span><span class="kt">float</span>
+  <span class="nv">z</span><span class="p">: </span><span class="kt">float</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All events in the file <code class="docutils literal notranslate"><span class="pre">events_&lt;game_name&gt;.das</span></code> are loaded before Quirrel,
+enabling them to be accessed within it. Therefore, events declared for Quirrel
+should be placed in this file. Although not mandatory for other events, it is
+recommended for consistency.</p>
+</div>
+</section>
+<section id="creating-event">
+<h2>Creating Event<a class="headerlink" href="#creating-event" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>daScript:</strong> An event is created like any regular instance structure, e.g.,
+<code class="docutils literal notranslate"><span class="pre">[[RqUseAbility</span> <span class="pre">ability_type=ability_type]]</span></code>.</p></li>
+<li><p><strong>Quirrel:</strong> Here, strict validation ensures no typographical errors or
+extraneous fields are included, <code class="docutils literal notranslate"><span class="pre">RqUseAbility({ability_type=&quot;ultimate&quot;})</span></code>.</p></li>
+</ul>
+</section>
+<section id="subscribing-to-event">
+<h2>Subscribing to Event<a class="headerlink" href="#subscribing-to-event" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>daScript:</strong> Use <code class="docutils literal notranslate"><span class="pre">on_event=RqUseAbility</span></code>, or explicitly set the type of the
+first argument in the system (e.g., <code class="docutils literal notranslate"><span class="pre">evt:</span> <span class="pre">RqUseAbility...</span></code>).</p></li>
+<li><p><strong>Quirrel:</strong> Use <code class="docutils literal notranslate"><span class="pre">local</span> <span class="pre">{OnAbilityCanceled}</span> <span class="pre">=</span> <span class="pre">require(&quot;dasevents&quot;)...</span> <span class="pre">::ecs.register_es(&quot;ability_canceling_es&quot;,</span> <span class="pre">{</span> <span class="pre">[OnAbilityCanceled]</span> <span class="pre">=</span> <span class="pre">&#64;(</span> <span class="pre">evt,</span> <span class="pre">eid,</span> <span class="pre">comp)</span> <span class="pre">::dlog(evt.ability_type)</span></code>.</p></li>
+<li><p><strong>C++:</strong> Events can be listened to by subscribing to the event name, e.g.,
+<code class="docutils literal notranslate"><span class="pre">ECS_ON_EVENT(eastl::integral_constant&lt;ecs::event_type_t,</span> <span class="pre">str_hash_fnv1(&quot;EventOnSeatOwnersChanged&quot;)&gt;)</span></code>.</p></li>
+</ul>
+</section>
+<section id="sending-events-server-to-server-client-to-client">
+<h2>Sending Events (Server-to-Server, Client-to-Client)<a class="headerlink" href="#sending-events-server-to-server-client-to-client" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>daScript:</strong> Use the standard <code class="docutils literal notranslate"><span class="pre">sendEvent</span></code>, <code class="docutils literal notranslate"><span class="pre">broadcastEvent</span></code>.</p></li>
+<li><p><strong>Quirrel:</strong> Similarly, use <code class="docutils literal notranslate"><span class="pre">::ecs.g_entity_mgr.sendEvent</span></code>,
+<code class="docutils literal notranslate"><span class="pre">::ecs.g_entity_mgr.broadcastEvent</span></code>.</p></li>
+</ul>
+</section>
+<section id="sending-events-over-network">
+<h2>Sending Events Over Network<a class="headerlink" href="#sending-events-over-network" title="Link to this heading"></a></h2>
+<p>When declaring an event, specify the routing to determine its network path,
+e.g., <code class="docutils literal notranslate"><span class="pre">[event(unicast,</span> <span class="pre">routing=ROUTING_SERVER_TO_CLIENT)]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ROUTING_CLIENT_TO_SERVER</span></code>, or <code class="docutils literal notranslate"><span class="pre">ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER</span></code>.</p>
+<ul class="simple">
+<li><p><strong>daScript:</strong> Use <code class="docutils literal notranslate"><span class="pre">require</span> <span class="pre">net</span> <span class="pre">...</span> <span class="pre">send_net_event(eid,</span> <span class="pre">evt)</span></code> or
+<code class="docutils literal notranslate"><span class="pre">broadcast_net_event(evt)</span></code>.</p></li>
+<li><p><strong>Quirrel:</strong> Use <code class="docutils literal notranslate"><span class="pre">local</span> <span class="pre">{CmdBlinkMarker,</span> <span class="pre">sendNetEvent,</span> <span class="pre">broadcastNetEvent}</span> <span class="pre">=</span> <span class="pre">require(&quot;dasevents&quot;)</span> <span class="pre">...</span> <span class="pre">sendNetEvent(eid,</span> <span class="pre">CmdBlinkMarker())</span> <span class="pre">...</span> <span class="pre">broadcastNetEvent(CmdBlinkMarker(...))</span></code>.</p></li>
+</ul>
+</section>
+<section id="network-protocol-version">
+<h2>Network Protocol Version<a class="headerlink" href="#network-protocol-version" title="Link to this heading"></a></h2>
+<p>All declared network events contribute to the protocol version. If the server
+and client versions do not match, the client will disconnect from the session.
+For script events (<code class="docutils literal notranslate"><span class="pre">[event]</span></code>), you can control this behavior by excluding
+certain events from protocol calculations. In cases of a mismatch, this may
+result in either an on-screen error or no notification.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">event(...</span> <span class="pre">net_liable=strict</span> <span class="pre">...)</span></code> – The event participates in protocol
+versioning; any mismatch triggers a disconnect (default behavior).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">event(...</span> <span class="pre">net_liable=logerr</span> <span class="pre">...)</span></code> – The event does not affect protocol
+versioning; a log error is recorded if a mismatch occurs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">event(...</span> <span class="pre">net_liable=ignore</span> <span class="pre">...)</span></code> – The event does not affect protocol
+versioning; a log warning (<code class="docutils literal notranslate"><span class="pre">logwarn</span></code>) is recorded if a mismatch occurs.</p></li>
+</ul>
+<p>C++ events follow a similar logic but use the <code class="docutils literal notranslate"><span class="pre">NET_PROTO_VERSION</span></code> constant and
+the count of network C++ events, without exceptions.</p>
+</section>
+<section id="event-version">
+<h2>Event Version<a class="headerlink" href="#event-version" title="Link to this heading"></a></h2>
+<p>An explicit version can be assigned to an event. By default, all events are set
+to version <code class="docutils literal notranslate"><span class="pre">0</span></code>. When working with <code class="docutils literal notranslate"><span class="pre">BitStream</span></code>, the version is required and will
+assist in adapting the protocol if the stream content changes significantly.</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">code.das</span></code></p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span><span class="nf">[event(broadcast, version=1)]</span>
+<span class="k">struct</span> <span class="n">TestEvent</span> <span class="nt">{}</span>
+</pre></div>
+</div>
+</section>
+<section id="sending-containers-offline-and-online">
+<h2>Sending Containers (Offline and Online)<a class="headerlink" href="#sending-containers-offline-and-online" title="Link to this heading"></a></h2>
+<p>Dynamic arrays/containers can be sent along with events. Currently, the
+supported types are <code class="docutils literal notranslate"><span class="pre">ecs::Object</span></code>, <code class="docutils literal notranslate"><span class="pre">ecs::IntList</span></code>, <code class="docutils literal notranslate"><span class="pre">ecs::FloatList</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ecs::Point3List</span></code>, and <code class="docutils literal notranslate"><span class="pre">ecs::Point4List</span></code>.</p>
+<p>Here’s an example of sending such an event from daScript:</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">code.das</span></code></p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span><span class="nf">[event(broadcast)]</span>
+<span class="k">struct</span> <span class="n">TestEvent</span>
+  <span class="nv">str</span><span class="p"> : </span><span class="kt">string</span>
+  <span class="nv">i</span><span class="p"> : </span><span class="kt">int</span>
+  <span class="nv">obj</span><span class="p"> : </span><span class="kt">ecs</span><span class="nt">::</span><span class="n">Object</span> <span class="k">const</span><span class="nt">?</span>
+
+<span class="nt">...</span>
+  <span class="n">using</span><span class="nt">()</span> <span class="se">&lt;|</span> <span class="nt">$(</span><span class="k">var</span> <span class="nv">obj</span><span class="p"> : </span><span class="kt">Object</span><span class="nt">)</span>
+    <span class="n">obj</span> <span class="se">|&gt;</span> <span class="n">set</span><span class="nt">(</span><span class="s">&quot;foo&quot;</span><span class="nt">,</span> <span class="mi">1</span><span class="nt">)</span>
+    <span class="n">broadcastEvent</span><span class="nt">([[</span><span class="n">TestEvent</span> <span class="n">str</span><span class="nt">=</span><span class="s">&quot;test event&quot;</span><span class="nt">,</span> <span class="n">i</span> <span class="nt">=</span> <span class="mi">42</span><span class="nt">,</span> <span class="n">obj</span><span class="nt">=</span><span class="n">ecs_addr</span><span class="nt">(</span><span class="n">obj</span><span class="nt">)]])</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ol class="arabic simple">
+<li><p>All container types in an event are stored as pointers.</p></li>
+<li><p>When sending a container in an event, use the helper function
+<code class="docutils literal notranslate"><span class="pre">ecs_addr(container)</span></code>.</p></li>
+</ol>
+</div>
+<p>Sending events from Quirrel follows a similar process:</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">code.nut</span></code></p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="kd">let</span><span class="w"> </span><span class="p">{</span><span class="nx">CompObject</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;ecs&quot;</span><span class="p">)</span>
+<span class="kd">let</span><span class="w"> </span><span class="p">{</span><span class="nx">TestEvent</span><span class="p">,</span><span class="w"> </span><span class="nx">broadcastNetEvent</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;dasevents&quot;</span><span class="p">)</span>
+<span class="p">...</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">CompObject</span><span class="p">()</span>
+<span class="nx">obj</span><span class="p">[</span><span class="s2">&quot;foo&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1</span>
+<span class="nx">broadcastNetEvent</span><span class="p">(</span><span class="nx">TestEvent</span><span class="p">({</span><span class="nx">str</span><span class="o">=</span><span class="s2">&quot;test event&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="o">=</span><span class="mf">42</span><span class="p">,</span><span class="w"> </span><span class="nx">obj</span><span class="o">=</span><span class="nx">obj</span><span class="p">}))</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p>Any <code class="docutils literal notranslate"><span class="pre">ecs::Object</span></code> within an event will automatically include a field called
+<code class="docutils literal notranslate"><span class="pre">fromconnid</span></code>, which stores the sender’s connection ID (on the client side,
+this is always <code class="docutils literal notranslate"><span class="pre">0</span></code>, indicating the server; on the server side, it holds the
+actual connection number).</p></li>
+<li><p>If the container contents undergo substantial changes, it is advisable to
+specify an event version (e.g., <code class="docutils literal notranslate"><span class="pre">[event(...</span> <span class="pre">version=1)]</span></code>). This will ensure
+that clients or servers with outdated versions will no longer support the
+event.</p></li>
+</ul>
+</div>
+</section>
+<section id="sending-bitstream">
+<h2>Sending BitStream<a class="headerlink" href="#sending-bitstream" title="Link to this heading"></a></h2>
+<p>Similar to containers, a raw data stream (<code class="docutils literal notranslate"><span class="pre">BitStream</span></code>) can also be sent in an
+event. When sending a <code class="docutils literal notranslate"><span class="pre">BitStream</span></code>, specifying an event version is mandatory.</p>
+</section>
+<section id="reflection">
+<h2>Reflection<a class="headerlink" href="#reflection" title="Link to this heading"></a></h2>
+<p>Events possess an exact schema, accessible at runtime and retrievable from any
+script or C++ code.</p>
+<ul class="simple">
+<li><p><strong>C++:</strong> All event structure information is stored in <code class="docutils literal notranslate"><span class="pre">ecs::EventsDB</span></code>, which
+provides various methods such as <code class="docutils literal notranslate"><span class="pre">getEventScheme</span></code>, <code class="docutils literal notranslate"><span class="pre">hasEventScheme</span></code>,
+<code class="docutils literal notranslate"><span class="pre">getFieldsCount</span></code> (for argument count), <code class="docutils literal notranslate"><span class="pre">getFieldOffset</span></code> (for field offset),
+<code class="docutils literal notranslate"><span class="pre">getFieldName</span></code> (for field name), <code class="docutils literal notranslate"><span class="pre">findFieldIndex</span></code> (for field index), and
+<code class="docutils literal notranslate"><span class="pre">getEventFieldValue&lt;T&gt;</span></code> (for direct access to parameter values).</p></li>
+<li><p><strong>daScript:</strong> All of functions for C++ are also available in the <code class="docutils literal notranslate"><span class="pre">ecs</span></code> module
+for daScript (e.g., <code class="docutils literal notranslate"><span class="pre">events_db_getFieldsCount</span></code>). For example, the <strong>Events
+DB</strong> window in <em>ImGui</em> uses this API, see
+<code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog/scripts/game/es/imgui/ecs_events_db.das</span></code>.</p></li>
+<li><p><strong>Quirrel:</strong> A detailed event printout is available when calling <code class="docutils literal notranslate"><span class="pre">::log(evt)</span></code>,
+which outputs all event fields. An API with reflection support is also
+provided, as demonstrated below:</p></li>
+</ul>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">describe_event.nut</span></code></p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">describeEvent</span><span class="p">(</span><span class="nx">evt</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">evt</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">::</span><span class="nx">dlog</span><span class="p">(</span><span class="s2">&quot;null event&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nx">eventType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">evt</span><span class="p">.</span><span class="nx">getType</span><span class="p">()</span>
+<span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nx">eventId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">g_entity_mgr</span><span class="p">.</span><span class="nx">getEventsDB</span><span class="p">().</span><span class="nx">findEvent</span><span class="p">(</span><span class="nx">eventType</span><span class="p">)</span>
+
+<span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nx">hasScheme</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">g_entity_mgr</span><span class="p">.</span><span class="nx">getEventsDB</span><span class="p">().</span><span class="nx">hasEventScheme</span><span class="p">(</span><span class="nx">eventId</span><span class="p">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">hasScheme</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">::</span><span class="nx">dlog</span><span class="p">(</span><span class="nx">$</span><span class="s2">&quot;event without scheme #{eventType}&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nx">fieldsCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">g_entity_mgr</span><span class="p">.</span><span class="nx">getEventsDB</span><span class="p">().</span><span class="nx">getFieldsCount</span><span class="p">(</span><span class="nx">eventId</span><span class="p">)</span>
+<span class="w">  </span><span class="o">::</span><span class="nx">dlog</span><span class="p">(</span><span class="nx">$</span><span class="s2">&quot;Event {eventType} fields count #{fieldsCount}&quot;</span><span class="p">)</span>
+
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">local</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="nx">fieldsCount</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">g_entity_mgr</span><span class="p">.</span><span class="nx">getEventsDB</span><span class="p">().</span><span class="nx">getFieldName</span><span class="p">(</span><span class="nx">eventId</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">g_entity_mgr</span><span class="p">.</span><span class="nx">getEventsDB</span><span class="p">().</span><span class="nx">getFieldType</span><span class="p">(</span><span class="nx">eventId</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nx">offset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">g_entity_mgr</span><span class="p">.</span><span class="nx">getEventsDB</span><span class="p">().</span><span class="nx">getFieldOffset</span><span class="p">(</span><span class="nx">eventId</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">local</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">::</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">g_entity_mgr</span><span class="p">.</span><span class="nx">getEventsDB</span><span class="p">().</span><span class="nx">getEventFieldValue</span><span class="p">(</span><span class="nx">evt</span><span class="p">,</span><span class="w"> </span><span class="nx">eventId</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span>
+<span class="w">    </span><span class="o">::</span><span class="nx">dlog</span><span class="p">(</span><span class="nx">$</span><span class="s2">&quot;field #{i} {name} &lt;{type}&gt; offset={offset} = &#39;{value}&#39;&quot;</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="c-event-cpp-event">
+<h2>C++ Event (cpp_event)<a class="headerlink" href="#c-event-cpp-event" title="Link to this heading"></a></h2>
+<p>In addition to dynamic events, it is possible to declare C++ events, for which
+C++ code and SQ bindings will be generated. In Quirrel, handling these events is
+identical to working with standard events, as is the case in daScript.</p>
+<p>When declaring a C++ event, the <code class="docutils literal notranslate"><span class="pre">with_scheme</span></code> argument is required. This is
+necessary because some events cannot be converted into schemeful events due to
+restrictions (fields must be basic ECS types or compatible containers only).</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">events_&lt;game&gt;.das</span></code></p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span><span class="nf">[cpp_event(unicast, with_scheme)]</span>
+<span class="k">struct</span> <span class="n">EventOnPlayerDash</span>
+  <span class="nv">from</span><span class="p">: </span><span class="kt">float3</span>
+  <span class="nv">to</span><span class="p">: </span><span class="kt">float3</span>
+</pre></div>
+</div>
+<p>The utility <code class="docutils literal notranslate"><span class="pre">&lt;game&gt;/scripts/genDasevents.bat</span></code> will generate a <code class="docutils literal notranslate"><span class="pre">.h</span></code> and <code class="docutils literal notranslate"><span class="pre">.cpp</span></code>
+file for this event (currently located at <code class="docutils literal notranslate"><span class="pre">prog/game/dasEvents.h/cpp</span></code>).</p>
+</section>
+<section id="quirrel-stubs-c-code-generation">
+<h2>Quirrel Stubs / C++ Code Generation<a class="headerlink" href="#quirrel-stubs-c-code-generation" title="Link to this heading"></a></h2>
+<p>To generate the Quirrel stubs and C++ code automatically, run the batch file
+<code class="docutils literal notranslate"><span class="pre">&lt;game&gt;/scripts/genDasevents.bat</span></code>. If the batch file does not work, build the
+daScript compiler manually once by running <code class="docutils literal notranslate"><span class="pre">jam</span> <span class="pre">-sPlatform=win64</span> <span class="pre">-sCheckedContainers=yes</span></code> in <code class="docutils literal notranslate"><span class="pre">&lt;project_name&gt;/prog/aot</span></code>.</p>
+</section>
+<section id="filters">
+<h2>Filters<a class="headerlink" href="#filters" title="Link to this heading"></a></h2>
+<p>You can manage the list of recipients for server-side das-events using filters.
+This is helpful for targeting specific groups, such as only the player or the
+player’s team. When sending an event, specify the filter as an additional
+argument. For instance, <code class="docutils literal notranslate"><span class="pre">send_net_event(eid,</span> <span class="pre">[[EnableSpectator]],</span> <span class="pre">target_entity_conn(eid))</span></code>. The following filters are currently supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">broadcast</span></code> (default) – Sends to all recipients.</p>
+<ul>
+<li><p>equivalent in C++: <code class="docutils literal notranslate"><span class="pre">&amp;net::broadcast_rcptf</span></code>.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_entity_conn</span></code> – Sends the event only to the player (the <code class="docutils literal notranslate"><span class="pre">eid</span></code> receiving
+the event must be the player’s hero or player <code class="docutils literal notranslate"><span class="pre">eid</span></code>).</p>
+<ul>
+<li><p>equivalent in C++: <code class="docutils literal notranslate"><span class="pre">&amp;rcptf::entity_ctrl_conn&lt;SomeNetMsg,</span> <span class="pre">rcptf::TARGET_ENTITY&gt;</span></code>.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">entity_team</span></code> – Sends the event to the player’s hero and team.</p>
+<ul>
+<li><p>equivalent in C++: <code class="docutils literal notranslate"><span class="pre">&amp;rcptf::entity_team&lt;SomeNetMsg,</span> <span class="pre">rcptf::TARGET_ENTITY&gt;</span></code>.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">possessed_and_spectated</span></code> – Sends the event to the player and any spectators
+watching them.</p>
+<ul>
+<li><p>equivalent in C++: <code class="docutils literal notranslate"><span class="pre">&amp;rcptf::possessed_and_spectated</span></code>.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">possessed_and_spectated_player</span></code> – Similar to <code class="docutils literal notranslate"><span class="pre">possessed_and_spectated</span></code> but
+targets the player instead of the hero.</p>
+<ul>
+<li><p>equivalent in C++: <code class="docutils literal notranslate"><span class="pre">&amp;rcptf::possessed_and_spectated_player</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+<p>In daScript, a filter is a function returning an <code class="docutils literal notranslate"><span class="pre">array&lt;net::IConnection&gt;</span></code>,
+which is referred to as a “filter” for consistency with C++ terminology.</p>
+</section>
+<section id="filters-in-squirrel">
+<h2>Filters in Squirrel<a class="headerlink" href="#filters-in-squirrel" title="Link to this heading"></a></h2>
+<p>In Squirrel, as in daScript, event-sending methods have an optional parameter
+where you can pass an array of connection IDs (i.e., an array of <code class="docutils literal notranslate"><span class="pre">int</span></code>). Below
+is an example filter implemented in Squirrel:</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">sq_filter.nut</span></code></p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span><span class="w"> </span><span class="nx">filtered_by_team_query</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ecs</span><span class="p">.</span><span class="nx">SqQuery</span><span class="p">(</span><span class="s2">&quot;filtered_by_team_query&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="nx">comps_ro</span><span class="o">=</span><span class="p">[[</span><span class="s2">&quot;team&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">ecs</span><span class="p">.</span><span class="nx">TYPE_INT</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;connid&quot;</span><span class="p">,</span><span class="nx">ecs</span><span class="p">.</span><span class="nx">TYPE_INT</span><span class="p">]],</span><span class="w"> </span><span class="nx">comps_rq</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;player&quot;</span><span class="p">],</span><span class="w"> </span><span class="nx">comps_no</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;playerIsBot&quot;</span><span class="p">]})</span>
+
+<span class="kd">local</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">filter_connids_by_team</span><span class="p">(</span><span class="nx">team</span><span class="p">){</span>
+<span class="w">  </span><span class="kd">local</span><span class="w"> </span><span class="nx">connids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">  </span><span class="nx">filtered_by_team_query</span><span class="p">.</span><span class="nx">perform</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">eid</span><span class="p">,</span><span class="w"> </span><span class="nx">comp</span><span class="p">){</span>
+<span class="w">    </span><span class="nx">connids</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="nx">comp</span><span class="p">[</span><span class="s2">&quot;connid&quot;</span><span class="p">])</span>
+<span class="w">  </span><span class="p">},</span><span class="s2">&quot;and(ne(connid,{0}), eq(team,{1}))&quot;</span><span class="p">.</span><span class="nx">subst</span><span class="p">(</span><span class="nx">INVALID_CONNECTION_ID</span><span class="p">,</span><span class="w"> </span><span class="nx">team</span><span class="p">))</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">connids</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>And here is an example of sending an event using this filter:</p>
+<p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">sq_send_event.nut</span></code></p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="nx">sendNetEvent</span><span class="p">(</span><span class="nx">eid</span><span class="p">,</span><span class="w"> </span><span class="nx">RequestNextRespawnEntity</span><span class="p">({</span><span class="nx">memberEid</span><span class="o">=</span><span class="nx">eid</span><span class="p">}),</span><span class="w"> </span><span class="nx">filter_connids_by_team</span><span class="p">(</span><span class="nx">target_team</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="filters-in-cpp-event">
+<h2>Filters in cpp_event<a class="headerlink" href="#filters-in-cpp-event" title="Link to this heading"></a></h2>
+<p>When annotating a <code class="docutils literal notranslate"><span class="pre">cpp_event</span></code> with the <code class="docutils literal notranslate"><span class="pre">filter=</span></code> parameter and one of the
+filters listed above, the code generation process will produce C++ code that
+includes the specified filter as described above in parentheses.</p>
+</section>
+<section id="event-delivery-reliability">
+<h2>Event Delivery Reliability<a class="headerlink" href="#event-delivery-reliability" title="Link to this heading"></a></h2>
+<p>By default, all events are sent with a reliability level of <code class="docutils literal notranslate"><span class="pre">RELIABLE_ORDERED</span></code>.
+This can be modified using the <code class="docutils literal notranslate"><span class="pre">reliability</span></code> argument. Available reliability
+levels include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRELIABLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRELIABLE_SEQUENCED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RELIABLE_ORDERED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RELIABLE_UNORDERED</span></code></p></li>
+</ul>
+</section>
+<section id="enums">
+<h2>Enums<a class="headerlink" href="#enums" title="Link to this heading"></a></h2>
+<p>If you need an enumerated type available in both scripts, there’s no need to
+write it in C++ and bind it separately for each language. The <code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code>
+utility now supports generating Squirrel code with enums directly from daScript.</p>
+<p><strong>Follow these steps:</strong></p>
+<ol class="arabic simple">
+<li><p>Define the enum in daScript where needed (preferably in a separate file for
+easy parsing during code generation).</p></li>
+<li><p>Explicitly mark the enum with the <code class="docutils literal notranslate"><span class="pre">[export_enum]</span></code> annotation.</p></li>
+<li><p>Add the file path to <code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code> with the <code class="docutils literal notranslate"><span class="pre">--module</span> <span class="pre">scripts/file_with_enum.das</span></code> argument.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code>.</p></li>
+<li><p>Constructors for all enums will be available in
+<code class="docutils literal notranslate"><span class="pre">&lt;game_prog&gt;/sq_globals/dasenums.nut</span></code>.</p></li>
+</ol>
+</section>
+<section id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ecs.dump_events</span></code> – This console command prints all events, their schemas, and
+schema hashes. If there are mismatches between client and server events, this
+command can be run on both to compare outputs (the log will already contain
+all necessary information for analysis).</p></li>
+<li><p>Additionally, there’s an in-game window with detailed event information: open
+the <strong>ImGui menu</strong> (<code class="docutils literal notranslate"><span class="pre">F2</span></code>) ▸ <strong>Window</strong> ▸ <strong>ECS</strong> ▸ <strong>Events db</strong>.</p></li>
+</ul>
+<img alt="Events db" class="align-center" src="../../_images/schemeful_events_01.png" />
+<br>
+</section>
+<section id="faq">
+<h2>FAQ<a class="headerlink" href="#faq" title="Link to this heading"></a></h2>
+<section id="i-have-a-c-network-event-and-want-to-move-its-declaration-to-dascript-while-keeping-the-event-in-c-example-ecs-register-net-event-eventusermarkdisabled-net-er-unicast-net-routing-server-to-client-rcptf-entity-ctrl-conn-eventusermarkdisablednetmsg-rcptf-target-entity">
+<h3>I have a C++ network event and want to move its declaration to daScript while keeping the event in C++. (Example: <code class="docutils literal notranslate"><span class="pre">ECS_REGISTER_NET_EVENT(EventUserMarkDisabled,</span> <span class="pre">net::Er::Unicast,</span> <span class="pre">net::ROUTING_SERVER_TO_CLIENT,</span> <span class="pre">(&amp;rcptf::entity_ctrl_conn&lt;EventUserMarkDisabledNetMsg,</span> <span class="pre">rcptf::TARGET_ENTITY&gt;));</span></code><a class="headerlink" href="#i-have-a-c-network-event-and-want-to-move-its-declaration-to-dascript-while-keeping-the-event-in-c-example-ecs-register-net-event-eventusermarkdisabled-net-er-unicast-net-routing-server-to-client-rcptf-entity-ctrl-conn-eventusermarkdisablednetmsg-rcptf-target-entity" title="Link to this heading"></a></h3>
+<p>Define the event in daScript with the <code class="docutils literal notranslate"><span class="pre">[cpp_event(unicast,</span> <span class="pre">with_scheme,</span> <span class="pre">routing=ROUTING_SERVER_TO_CLIENT,</span> <span class="pre">filter=direct_connection)]</span></code> annotation, then
+run <code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code>. This will generate stubs, and the event will appear or
+update in the <code class="docutils literal notranslate"><span class="pre">.h</span></code> and <code class="docutils literal notranslate"><span class="pre">.cpp</span></code> files. (<code class="docutils literal notranslate"><span class="pre">cpp_event</span> <span class="pre">+</span> <span class="pre">with_scheme</span></code> activates code
+generation).</p>
+</section>
+<hr class="docutils" />
+<section id="i-have-a-c-network-event-and-want-to-move-it-entirely-to-scripts-no-need-for-it-in-c">
+<h3>I have a C++ network event and want to move it entirely to scripts (no need for it in C++).<a class="headerlink" href="#i-have-a-c-network-event-and-want-to-move-it-entirely-to-scripts-no-need-for-it-in-c" title="Link to this heading"></a></h3>
+<p>Follow the same steps as above, but use <code class="docutils literal notranslate"><span class="pre">[event(unicast,</span> <span class="pre">routing=ROUTING_SERVER_TO_CLIENT)]</span></code>. Replace all <code class="docutils literal notranslate"><span class="pre">sendEvent</span></code> calls with
+<code class="docutils literal notranslate"><span class="pre">send_net_event/sendNetEvent</span></code>, passing a filter function call like
+<code class="docutils literal notranslate"><span class="pre">target_entity_conn(eid)</span></code> as the final argument. Running <code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code> will
+still be necessary to generate the stubs.</p>
+</section>
+<hr class="docutils" />
+<section id="i-have-a-script-based-event-and-need-to-migrate-it-to-c">
+<h3>I have a script-based event and need to migrate it to C++.<a class="headerlink" href="#i-have-a-script-based-event-and-need-to-migrate-it-to-c" title="Link to this heading"></a></h3>
+<p>Simply change the event annotation from <code class="docutils literal notranslate"><span class="pre">event</span></code> to <code class="docutils literal notranslate"><span class="pre">cpp_event</span></code>. Then, replace
+all <code class="docutils literal notranslate"><span class="pre">send_net_event</span></code> calls with standard <code class="docutils literal notranslate"><span class="pre">sendEvent</span></code> calls. Run
+<code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code> to generate the stubs and C++ code.</p>
+</section>
+<hr class="docutils" />
+<section id="i-added-an-event-but-i-see-the-following-error-in-squirrel-e-darg-the-index-cmdherospeech-does-not-exist">
+<h3>I added an event, but I see the following error in Squirrel: <code class="docutils literal notranslate"><span class="pre">[E]</span> <span class="pre">daRg:</span> <span class="pre">the</span> <span class="pre">index</span> <span class="pre">'CmdHeroSpeech'</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist</span></code>.<a class="headerlink" href="#i-added-an-event-but-i-see-the-following-error-in-squirrel-e-darg-the-index-cmdherospeech-does-not-exist" title="Link to this heading"></a></h3>
+<p>Make sure the event is registered in the system before Quirrel loads. Each game
+has an initialization script (e.g., <code class="docutils literal notranslate"><span class="pre">&lt;game&gt;_init.das</span></code>). Load the script
+containing the event in this initialization script to resolve the error.</p>
+</section>
+<hr class="docutils" />
+<section id="gendasevents-bat-shows-compilation-errors-and-wont-run">
+<h3><code class="docutils literal notranslate"><span class="pre">genDasevents.bat</span></code> shows compilation errors and won’t run.<a class="headerlink" href="#gendasevents-bat-shows-compilation-errors-and-wont-run" title="Link to this heading"></a></h3>
+<p>Rebuild the compiler.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information, see <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=profelis.dascript-plugin">daScript plugin for
+VSCode</a>.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dagor_ecs.html" class="btn btn-neutral float-left" title="Dagor ECS" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dagor-dshl/index.html" class="btn btn-neutral float-right" title="Dagor Shading Language (DSHL) docs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

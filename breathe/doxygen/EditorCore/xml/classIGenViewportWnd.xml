@@ -1,0 +1,1296 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGenViewportWnd" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGenViewportWnd</compoundname>
+    <derivedcompoundref refid="classViewportWindow" prot="public" virt="non-virtual">ViewportWindow</derivedcompoundref>
+    <includes refid="ec__interface_8h" local="no">ec_interface.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Methods to set / get viewport parameters.</header>
+      <memberdef kind="function" id="classIGenViewportWnd_1a53bd17e37d3dd817fd6bf223bfb9736f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setProjection</definition>
+        <argsstring>(bool orthogonal, real fov, real near_plane, real far_plane)=0</argsstring>
+        <name>setProjection</name>
+        <qualifiedname>IGenViewportWnd::setProjection</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ae489ed4564f03f71ab20d4febb9b4713">setProjection</reimplementedby>
+        <param>
+          <type>bool</type>
+          <declname>orthogonal</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>fov</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>near_plane</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>far_plane</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set viewport projection parameters <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">orthogonal</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if <bold>true</bold> the view will be orthogonal, if <bold>false</bold> - perspective </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">fov</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera&apos;s <bold>F</bold>ield <bold>O</bold>f <bold>V</bold>iew </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">near_plane</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- z-near, a distance to nearest visible parts of scene (all parts more close to camera will be invisible) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">far_plane</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- z-far, a distance to the farthest visible parts of scene (all parts more distant from camera will be invisible) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="63" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a747f3d2cb6050a7c6c374c5ad6ecbe75" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::getZnearZfar</definition>
+        <argsstring>(real &amp;zn, real &amp;zf) const =0</argsstring>
+        <name>getZnearZfar</name>
+        <qualifiedname>IGenViewportWnd::getZnearZfar</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a208a2b1ada13968bbc828d6cb2776cfe">getZnearZfar</reimplementedby>
+        <param>
+          <type>real &amp;</type>
+          <declname>zn</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>zf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="65" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a4e734f3ffad867748b1cc5411a01b5e5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setFov</definition>
+        <argsstring>(real fov)=0</argsstring>
+        <name>setFov</name>
+        <qualifiedname>IGenViewportWnd::setFov</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a559112555ee9b6e3ff1102e108c7b14e">setFov</reimplementedby>
+        <param>
+          <type>real</type>
+          <declname>fov</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera&apos;s FOV (<bold>F</bold>ield <bold>O</bold>f <bold>V</bold>iew). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">fov</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera&apos;s angle of view (in radians) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="70" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a0bf6a8efd7b75c62bb00acdebfd37664" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>real</type>
+        <definition>virtual real IGenViewportWnd::getFov</definition>
+        <argsstring>()=0</argsstring>
+        <name>getFov</name>
+        <qualifiedname>IGenViewportWnd::getFov</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a602b90d38493d11d3efa6b389ebd61c7">getFov</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get camera&apos;s FOV (<bold>F</bold>ield <bold>O</bold>f <bold>V</bold>iew). <simplesect kind="return"><para>fov (in radians) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="74" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a7c1a2425e5167fc540a710b550303463" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setCameraDirection</definition>
+        <argsstring>(const Point3 &amp;forward, const Point3 &amp;up)=0</argsstring>
+        <name>setCameraDirection</name>
+        <qualifiedname>IGenViewportWnd::setCameraDirection</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1adb723d94a5f2f215a7d659c648a82019">setCameraDirection</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>forward</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>up</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera&apos;s direction. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">forward</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- direction of camera&apos;s view </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">up</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- direction of camera&apos;s top </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="79" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1ae12785aec7d0dc3840796a81c49f4f7b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setCameraMode</definition>
+        <argsstring>(bool camera_mode)=0</argsstring>
+        <name>setCameraMode</name>
+        <qualifiedname>IGenViewportWnd::setCameraMode</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a979302826b304c84c6805f536a82def0">setCameraMode</reimplementedby>
+        <param>
+          <type>bool</type>
+          <declname>camera_mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera&apos;s mode (orthogonal/perspective). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">camera_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if <bold>true</bold> the view will be orthogonal, if <bold>false</bold> - perspective </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="84" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1aa8b267ac38cf2c400710bc30df8328e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setCameraViewProjection</definition>
+        <argsstring>(const TMatrix &amp;view, real fov)=0</argsstring>
+        <name>setCameraViewProjection</name>
+        <qualifiedname>IGenViewportWnd::setCameraViewProjection</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a8dc58dd4c253a0bc0049d488bd9845b8">setCameraViewProjection</reimplementedby>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>view</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>fov</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera&apos;s projection. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">view</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- view matrix </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">fov</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera&apos;s <bold>F</bold>ield <bold>O</bold>f <bold>V</bold>iew </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="89" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a1c24bd819bf2a9edd32f6d17e8c39f5f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setCameraPos</definition>
+        <argsstring>(const Point3 &amp;pos)=0</argsstring>
+        <name>setCameraPos</name>
+        <qualifiedname>IGenViewportWnd::setCameraPos</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ad498c5c03e2526835680c5d898b6eef9">setCameraPos</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera&apos;s position. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">pos</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- position </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="93" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a8a9967be38327205627d67bb3c523e02" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setCameraTransform</definition>
+        <argsstring>(const TMatrix &amp;tm)=0</argsstring>
+        <name>setCameraTransform</name>
+        <qualifiedname>IGenViewportWnd::setCameraTransform</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a74efa9c1d1160d97411f8491019a9993">setCameraTransform</reimplementedby>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set view matrix of the camera. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- view matrix </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="97" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a94b29eaac9b64c644dcbf81a994acee9" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setOrthogonalZoom</definition>
+        <argsstring>(real zoom)=0</argsstring>
+        <name>setOrthogonalZoom</name>
+        <qualifiedname>IGenViewportWnd::setOrthogonalZoom</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ae681b2609c6b894beeb1cd463a595a01">setOrthogonalZoom</reimplementedby>
+        <param>
+          <type>real</type>
+          <declname>zoom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set zoom property for camera in orthogonal mode. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">zoom</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- zoom value </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="101" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a9785898cd425b0f70ea650ac66f9b60d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::getCameraTransform</definition>
+        <argsstring>(TMatrix &amp;m) const =0</argsstring>
+        <name>getCameraTransform</name>
+        <qualifiedname>IGenViewportWnd::getCameraTransform</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ae42476329432262c2ec44c02fe7d120c">getCameraTransform</reimplementedby>
+        <param>
+          <type>TMatrix &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get view matrix of the camera. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">m</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- view matrix </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="105" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a73fec3e5f8b6d0464c18945746e4019f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>real</type>
+        <definition>virtual real IGenViewportWnd::getOrthogonalZoom</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getOrthogonalZoom</name>
+        <qualifiedname>IGenViewportWnd::getOrthogonalZoom</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a5d46bf488ef3099088f996e072631284">getOrthogonalZoom</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get zoom property for camera in orthogonal mode. <simplesect kind="return"><para>zoom value </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="109" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a5ad1a7e0221aeff59d66363917fe82a6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenViewportWnd::isOrthogonal</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isOrthogonal</name>
+        <qualifiedname>IGenViewportWnd::isOrthogonal</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ae361b626f62128aa6f286bf4fbc4c945">isOrthogonal</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether camera is in orthogonal mode <simplesect kind="return"><para><bold>true</bold> if viewport is in orthogonal mode, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="113" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a3167d56841aa6ff2bdbc7b5cda3d65c0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenViewportWnd::isFlyMode</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isFlyMode</name>
+        <qualifiedname>IGenViewportWnd::isFlyMode</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a3ae8732ab89f11d5fccb9c37dfeedae6">isFlyMode</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether viewport is in &quot;fly&quot; mode <simplesect kind="return"><para><bold>true</bold> if viewport is in &quot;fly&quot; mode, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="117" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1ad5d065abea088da076bf3bd43a98c403" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::switchCamera</definition>
+        <argsstring>(unsigned int from, unsigned int to)=0</argsstring>
+        <name>switchCamera</name>
+        <qualifiedname>IGenViewportWnd::switchCamera</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ada5e44001b044211e5245f36c66d94ce">switchCamera</reimplementedby>
+        <param>
+          <type>unsigned int</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Switch view of camera from view 1 to view 2. For example, switch camera from &quot;Left&quot; view to &quot;Top&quot; view <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">from</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- &quot;from&quot; view </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">to</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- &quot;to&quot; view </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="125" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Methods to convert viewport coordinates from one coordinate system</header>
+      <description><para>to another. </para>
+</description>
+      <memberdef kind="function" id="classIGenViewportWnd_1af443f910620563923e488f02424c9b28" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::clientToWorld</definition>
+        <argsstring>(const Point2 &amp;screen, Point3 &amp;world, Point3 &amp;world_dir)=0</argsstring>
+        <name>clientToWorld</name>
+        <qualifiedname>IGenViewportWnd::clientToWorld</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ab3e8fed4adda95dfd1028f8b9c3541c7">clientToWorld</reimplementedby>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>screen</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>world</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>world_dir</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convert viewport screen coordinates to world coordinates. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">screen</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- screen coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">world</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates (on camera&apos;s (lens&apos;s) surface) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">world_dir</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera&apos;s direction </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="136" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1af968aba173b824af3db6830625ab3668" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::worldToNDC</definition>
+        <argsstring>(const Point3 &amp;world, Point3 &amp;ndc) const =0</argsstring>
+        <name>worldToNDC</name>
+        <qualifiedname>IGenViewportWnd::worldToNDC</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1aea969478327056d039ff90e0a947065e">worldToNDC</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>world</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>ndc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convert viewport world coordinates to normal device coordinates. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">world</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">ndc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- normal device coordinates </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="141" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a0f495a6dc647fdcb3b9cf52238be7307" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenViewportWnd::worldToClient</definition>
+        <argsstring>(const Point3 &amp;world, Point2 &amp;screen, real *screen_z=NULL)=0</argsstring>
+        <name>worldToClient</name>
+        <qualifiedname>IGenViewportWnd::worldToClient</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ad3ca8e00ba430d01c53a3fe43e975ea4">worldToClient</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>world</declname>
+        </param>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>screen</declname>
+        </param>
+        <param>
+          <type>real *</type>
+          <declname>screen_z</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convert viewport world coordinates to screen coordinates. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">world</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">screen</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- screen coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">screen_z</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the distance between camera and the world point,<linebreak/>
+ may be &lt;0 if the world point is placed behind camera </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if convertion successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="149" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1ad6465ea30807dfd569f5f227571ced37" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::clientToScreen</definition>
+        <argsstring>(int &amp;x, int &amp;y)=0</argsstring>
+        <name>clientToScreen</name>
+        <qualifiedname>IGenViewportWnd::clientToScreen</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a3731e786dd6708c0bb98700ae4404c3c">clientToScreen</reimplementedby>
+        <param>
+          <type>int &amp;</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convert viewport screen coordinates to application window screen coordinates. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="inout">x</parametername>
+<parametername direction="inout">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> screen coordinates </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="154" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1ab100978fc6b943094a3ae86d8d86a567" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::screenToClient</definition>
+        <argsstring>(int &amp;x, int &amp;y)=0</argsstring>
+        <name>screenToClient</name>
+        <qualifiedname>IGenViewportWnd::screenToClient</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a349774447a53d18de1d1f1168fcf47c2">screenToClient</reimplementedby>
+        <param>
+          <type>int &amp;</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convert application window screen coordinates to viewport screen coordinates. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="inout">x</parametername>
+<parametername direction="inout">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> screen coordinates </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="159" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a328d6845f1ffe27691d14b85a69f5605" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::getViewportSize</definition>
+        <argsstring>(int &amp;x, int &amp;y)=0</argsstring>
+        <name>getViewportSize</name>
+        <qualifiedname>IGenViewportWnd::getViewportSize</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a1efabe153e296647fa60345e0835eac9">getViewportSize</reimplementedby>
+        <param>
+          <type>int &amp;</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get dimensions of viewport in pixels <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">x</parametername>
+<parametername direction="out">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> dimensions of viewport </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="163" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a4cf3244d0a662f2653e012b10782a53a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::zoomAndCenter</definition>
+        <argsstring>(BBox3 &amp;box)=0</argsstring>
+        <name>zoomAndCenter</name>
+        <qualifiedname>IGenViewportWnd::zoomAndCenter</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a671d5923b42d3bcb83cf7f5b0c515362">zoomAndCenter</reimplementedby>
+        <param>
+          <type>BBox3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set camera so that object bounding box will be centered and zoomed in viewport window. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="inout">box</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- object bounding box </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="170" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Viewport activity.</header>
+      <memberdef kind="function" id="classIGenViewportWnd_1a1f996bd1168fef30b98ccfb9f4a96da8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenViewportWnd::isActive</definition>
+        <argsstring>()=0</argsstring>
+        <name>isActive</name>
+        <qualifiedname>IGenViewportWnd::isActive</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a0e14a77fc27cc88073abca94d6e14888">isActive</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether viewport is active. <simplesect kind="return"><para><bold>true</bold> if viewport is active, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="178" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a043bb5eff10634b7564e32327d9add4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::activate</definition>
+        <argsstring>()=0</argsstring>
+        <name>activate</name>
+        <qualifiedname>IGenViewportWnd::activate</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1acdafe5bb0219fbe6df1b688855da0c96">activate</reimplementedby>
+        <briefdescription>
+<para>Activate viewport. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="181" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a06966672a3bb1d910edbb72ed14844b4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>real</type>
+        <definition>virtual real IGenViewportWnd::getLinearSizeSq</definition>
+        <argsstring>(const Point3 &amp;pos, real world_rad, int xy)=0</argsstring>
+        <name>getLinearSizeSq</name>
+        <qualifiedname>IGenViewportWnd::getLinearSizeSq</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1abcb0e3bc0219a7f2e82778b10bfea082">getLinearSizeSq</reimplementedby>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>world_rad</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>xy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get square of visible radius of a circle. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">pos</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates of center of a circle </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">world_rad</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- radius of a circle </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">xy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- 0-horizontal radius, 1-vertical radius (of ellipse) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>square</bold> of visible radius of a circle (ellipse) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="190" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Viewport redraw methods.</header>
+      <memberdef kind="function" id="classIGenViewportWnd_1a15610756180a647b1a9b00904f5b9381" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::redrawClientRect</definition>
+        <argsstring>()=0</argsstring>
+        <name>redrawClientRect</name>
+        <qualifiedname>IGenViewportWnd::redrawClientRect</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a2f456bf6f1203665b0f4c18e814b7d91">redrawClientRect</reimplementedby>
+        <briefdescription>
+<para>Redraw viewport as Dagor Engine object and CTL object. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="197" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a275ee85066c7d4e05bf495e89f18f912" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::invalidateCache</definition>
+        <argsstring>()=0</argsstring>
+        <name>invalidateCache</name>
+        <qualifiedname>IGenViewportWnd::invalidateCache</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a2c300abcbd1d0ce741a64d6f05e551bd">invalidateCache</reimplementedby>
+        <briefdescription>
+<para>Redraw viewport. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="200" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a3e4d9c688e2ff1d520a403d096a02ae6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::enableCache</definition>
+        <argsstring>(bool en)=0</argsstring>
+        <name>enableCache</name>
+        <qualifiedname>IGenViewportWnd::enableCache</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a0fd4ed7f14fad505cad7763c94660ca1">enableCache</reimplementedby>
+        <param>
+          <type>bool</type>
+          <declname>en</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Enable / disable viewport cache. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">en</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> to enable cache, <bold>false</bold> to disable </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="204" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a1202aff8a7df6578abe92f0311a1aec3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setViewProj</definition>
+        <argsstring>()=0</argsstring>
+        <name>setViewProj</name>
+        <qualifiedname>IGenViewportWnd::setViewProj</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a8fab995a1d16c31109880333da7f1a0d">setViewProj</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set parameters (projection matrix, etc) of a videocard driver camera<linebreak/>
+equal to parameters of viewport camera </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="210" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Start / stop drawing rectangular selection box.</header>
+      <description><para>User interface for editing </para>
+</description>
+      <memberdef kind="function" id="classIGenViewportWnd_1ad3719fb9c0faee0ded71792668766701" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::startRectangularSelection</definition>
+        <argsstring>(int mx, int my, int type)=0</argsstring>
+        <name>startRectangularSelection</name>
+        <qualifiedname>IGenViewportWnd::startRectangularSelection</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1acb128d0c7f7f60712e05699eb20f66c9">startRectangularSelection</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>mx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>my</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Start drawing rectangular selection box. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">mx</parametername>
+<parametername direction="in">my</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- starting point of selection box </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- type of selection box </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="220" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a8c28c71e9585c6eddc1605d113cbf229" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IGenViewportWnd::endRectangularSelection</definition>
+        <argsstring>(EcRect *result, int *type)=0</argsstring>
+        <name>endRectangularSelection</name>
+        <qualifiedname>IGenViewportWnd::endRectangularSelection</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a64c7a3ba2577d3ff04a90276f24a5735">endRectangularSelection</reimplementedby>
+        <param>
+          <type><ref refid="structEcRect" kindref="compound">EcRect</ref> *</type>
+          <declname>result</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>End drawing rectangular selection box. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">result</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to CtlRect with coordinates of a selected area (upper left and lower bottom corners of area). May be <bold>NULL</bold> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- type of selection box </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if selection successful, <bold>false</bold> if selection aborted </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="227" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a4783747045aaf3812f49db97dabc2edd" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::drawText</definition>
+        <argsstring>(int x, int y, const String &amp;text)=0</argsstring>
+        <name>drawText</name>
+        <qualifiedname>IGenViewportWnd::drawText</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a74c9dabf13246c5ba57e1e9e5d0400c7">drawText</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const String &amp;</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Draw statistics/debug texts in the viewport area. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the horizontal viewport draw coordinate. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the vertical viewport draw coordinate. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>text</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the statistics/debug text to draw. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="234" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a40b54a6913c8c7915cbe3866b0c35d82" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::captureMouse</definition>
+        <argsstring>()=0</argsstring>
+        <name>captureMouse</name>
+        <qualifiedname>IGenViewportWnd::captureMouse</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a07e457e04703a41feffcebb0a8f101e0">captureMouse</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="236" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1aeeba63690f5268864499af7824080562" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::releaseMouse</definition>
+        <argsstring>()=0</argsstring>
+        <name>releaseMouse</name>
+        <qualifiedname>IGenViewportWnd::releaseMouse</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1aaed7c1283355ccf1861ed4051ee46e29">releaseMouse</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="237" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a852a67c2a0546dbd9e84fc24c66392b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setMenuEventHandler</definition>
+        <argsstring>(PropPanel::IMenuEventHandler *meh)=0</argsstring>
+        <name>setMenuEventHandler</name>
+        <qualifiedname>IGenViewportWnd::setMenuEventHandler</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ae80dab76b9a3425481d6cc5b396ac3ca">setMenuEventHandler</reimplementedby>
+        <param>
+          <type>PropPanel::IMenuEventHandler *</type>
+          <declname>meh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Sets a custom menu event handler for the custom context menu of the viewport. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="241" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1ae240f2b9ea244ed57508698e8c3f331c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>PropPanel::IMenu *</type>
+        <definition>virtual PropPanel::IMenu * IGenViewportWnd::getContextMenu</definition>
+        <argsstring>()=0</argsstring>
+        <name>getContextMenu</name>
+        <qualifiedname>IGenViewportWnd::getContextMenu</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1aa59014c84760fb38ac60a36bfdbd3345">getContextMenu</reimplementedby>
+        <briefdescription>
+<para>Retrieves the custom context menu of the viewport if it&apos;s active/open. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="244" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a7eb13a71cd75c8026705c76b7abf5387" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setScreenshotMode</definition>
+        <argsstring>(Point2 size)=0</argsstring>
+        <name>setScreenshotMode</name>
+        <qualifiedname>IGenViewportWnd::setScreenshotMode</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1ad43697a6b78915340b37a87d3e57b744">setScreenshotMode</reimplementedby>
+        <param>
+          <type>Point2</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="246" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1ae8ae07803a6c481511bfdb451651a7ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::resetScreenshotMode</definition>
+        <argsstring>()=0</argsstring>
+        <name>resetScreenshotMode</name>
+        <qualifiedname>IGenViewportWnd::resetScreenshotMode</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a5db9d222466073805c7c6a284aebb608">resetScreenshotMode</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="247" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIGenViewportWnd_1aadd6023476d52f40a8dd60b31d145581" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenViewportWnd::setEventHandler</definition>
+        <argsstring>(IGenEventHandler *eh)=0</argsstring>
+        <name>setEventHandler</name>
+        <qualifiedname>IGenViewportWnd::setEventHandler</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a2a9fb2611c392a3c2762070ffa5b0308">setEventHandler</reimplementedby>
+        <param>
+          <type><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> *</type>
+          <declname>eh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set viewport event handler. Viewport will send messages associated with it&apos;s events to this event handler. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">eh</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to event handler </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="48" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenViewportWnd_1a8248c01806611da88c61df9d1c54d42e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IGenViewportWnd::handleCommand</definition>
+        <argsstring>(int p1=0, int p2=0, int p3=0)=0</argsstring>
+        <name>handleCommand</name>
+        <qualifiedname>IGenViewportWnd::handleCommand</qualifiedname>
+        <reimplementedby refid="classViewportWindow_1a587b885cfe1ae9d5cddaac8a1d916688">handleCommand</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>p1</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>p2</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>p3</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="50" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>General viewport window interface. Used to interact with viewport window. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>IGenViewportWnd</label>
+        <link refid="classIGenViewportWnd"/>
+      </node>
+      <node id="2">
+        <label>ViewportWindow</label>
+        <link refid="classViewportWindow"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="ec_interface.h" line="41" column="1" bodyfile="ec_interface.h" bodystart="42" bodyend="248"/>
+    <listofallmembers>
+      <member refid="classIGenViewportWnd_1a043bb5eff10634b7564e32327d9add4b" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>activate</name></member>
+      <member refid="classIGenViewportWnd_1a40b54a6913c8c7915cbe3866b0c35d82" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>captureMouse</name></member>
+      <member refid="classIGenViewportWnd_1ad6465ea30807dfd569f5f227571ced37" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>clientToScreen</name></member>
+      <member refid="classIGenViewportWnd_1af443f910620563923e488f02424c9b28" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>clientToWorld</name></member>
+      <member refid="classIGenViewportWnd_1a4783747045aaf3812f49db97dabc2edd" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>drawText</name></member>
+      <member refid="classIGenViewportWnd_1a3e4d9c688e2ff1d520a403d096a02ae6" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>enableCache</name></member>
+      <member refid="classIGenViewportWnd_1a8c28c71e9585c6eddc1605d113cbf229" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>endRectangularSelection</name></member>
+      <member refid="classIGenViewportWnd_1a9785898cd425b0f70ea650ac66f9b60d" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>getCameraTransform</name></member>
+      <member refid="classIGenViewportWnd_1ae240f2b9ea244ed57508698e8c3f331c" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>getContextMenu</name></member>
+      <member refid="classIGenViewportWnd_1a0bf6a8efd7b75c62bb00acdebfd37664" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>getFov</name></member>
+      <member refid="classIGenViewportWnd_1a06966672a3bb1d910edbb72ed14844b4" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>getLinearSizeSq</name></member>
+      <member refid="classIGenViewportWnd_1a73fec3e5f8b6d0464c18945746e4019f" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>getOrthogonalZoom</name></member>
+      <member refid="classIGenViewportWnd_1a328d6845f1ffe27691d14b85a69f5605" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>getViewportSize</name></member>
+      <member refid="classIGenViewportWnd_1a747f3d2cb6050a7c6c374c5ad6ecbe75" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>getZnearZfar</name></member>
+      <member refid="classIGenViewportWnd_1a8248c01806611da88c61df9d1c54d42e" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>handleCommand</name></member>
+      <member refid="classIGenViewportWnd_1a275ee85066c7d4e05bf495e89f18f912" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>invalidateCache</name></member>
+      <member refid="classIGenViewportWnd_1a1f996bd1168fef30b98ccfb9f4a96da8" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>isActive</name></member>
+      <member refid="classIGenViewportWnd_1a3167d56841aa6ff2bdbc7b5cda3d65c0" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>isFlyMode</name></member>
+      <member refid="classIGenViewportWnd_1a5ad1a7e0221aeff59d66363917fe82a6" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>isOrthogonal</name></member>
+      <member refid="classIGenViewportWnd_1a15610756180a647b1a9b00904f5b9381" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>redrawClientRect</name></member>
+      <member refid="classIGenViewportWnd_1aeeba63690f5268864499af7824080562" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>releaseMouse</name></member>
+      <member refid="classIGenViewportWnd_1ae8ae07803a6c481511bfdb451651a7ab" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>resetScreenshotMode</name></member>
+      <member refid="classIGenViewportWnd_1ab100978fc6b943094a3ae86d8d86a567" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>screenToClient</name></member>
+      <member refid="classIGenViewportWnd_1a7c1a2425e5167fc540a710b550303463" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setCameraDirection</name></member>
+      <member refid="classIGenViewportWnd_1ae12785aec7d0dc3840796a81c49f4f7b" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setCameraMode</name></member>
+      <member refid="classIGenViewportWnd_1a1c24bd819bf2a9edd32f6d17e8c39f5f" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setCameraPos</name></member>
+      <member refid="classIGenViewportWnd_1a8a9967be38327205627d67bb3c523e02" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setCameraTransform</name></member>
+      <member refid="classIGenViewportWnd_1aa8b267ac38cf2c400710bc30df8328e7" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setCameraViewProjection</name></member>
+      <member refid="classIGenViewportWnd_1aadd6023476d52f40a8dd60b31d145581" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setEventHandler</name></member>
+      <member refid="classIGenViewportWnd_1a4e734f3ffad867748b1cc5411a01b5e5" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setFov</name></member>
+      <member refid="classIGenViewportWnd_1a852a67c2a0546dbd9e84fc24c66392b6" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setMenuEventHandler</name></member>
+      <member refid="classIGenViewportWnd_1a94b29eaac9b64c644dcbf81a994acee9" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setOrthogonalZoom</name></member>
+      <member refid="classIGenViewportWnd_1a53bd17e37d3dd817fd6bf223bfb9736f" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setProjection</name></member>
+      <member refid="classIGenViewportWnd_1a7eb13a71cd75c8026705c76b7abf5387" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setScreenshotMode</name></member>
+      <member refid="classIGenViewportWnd_1a1202aff8a7df6578abe92f0311a1aec3" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>setViewProj</name></member>
+      <member refid="classIGenViewportWnd_1ad3719fb9c0faee0ded71792668766701" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>startRectangularSelection</name></member>
+      <member refid="classIGenViewportWnd_1ad5d065abea088da076bf3bd43a98c403" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>switchCamera</name></member>
+      <member refid="classIGenViewportWnd_1a0f495a6dc647fdcb3b9cf52238be7307" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>worldToClient</name></member>
+      <member refid="classIGenViewportWnd_1af968aba173b824af3db6830625ab3668" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>worldToNDC</name></member>
+      <member refid="classIGenViewportWnd_1a4cf3244d0a662f2653e012b10782a53a" prot="public" virt="pure-virtual"><scope>IGenViewportWnd</scope><name>zoomAndCenter</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

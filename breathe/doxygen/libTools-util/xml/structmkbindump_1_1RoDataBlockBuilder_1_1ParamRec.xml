@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec" kind="struct" language="C++" prot="protected">
+    <compoundname>mkbindump::RoDataBlockBuilder::ParamRec</compoundname>
+    <includes refid="binDumpUtil_8h" local="no">binDumpUtil.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a1c3ccf0aa4b487f1c2d327bd4245aaba" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* mkbindump::RoDataBlockBuilder::ParamRec::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>mkbindump::RoDataBlockBuilder::ParamRec::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="110" column="16" bodyfile="binDumpUtil.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a63e50cc71009f9beaa18605b7f04e04b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::RoDataBlockBuilder::ParamRec::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <qualifiedname>mkbindump::RoDataBlockBuilder::ParamRec::val</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="113" column="11" bodyfile="binDumpUtil.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1abf8d377e34386ab8e06d68e9dff8dd95" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float mkbindump::RoDataBlockBuilder::ParamRec::rval</definition>
+        <argsstring></argsstring>
+        <name>rval</name>
+        <qualifiedname>mkbindump::RoDataBlockBuilder::ParamRec::rval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="114" column="13" bodyfile="binDumpUtil.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1afe06e271e85e58184113777f155cf1ca" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* mkbindump::RoDataBlockBuilder::ParamRec::sval</definition>
+        <argsstring></argsstring>
+        <name>sval</name>
+        <qualifiedname>mkbindump::RoDataBlockBuilder::ParamRec::sval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="115" column="18" bodyfile="binDumpUtil.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1aa6c176db4e7eaefaa63711b1751d480a" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec" kindref="compound">mkbindump::RoDataBlockBuilder::ParamRec</ref></type>
+        <definition>union mkbindump::RoDataBlockBuilder::ParamRec mkbindump::RoDataBlockBuilder::ParamRec</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>mkbindump::RoDataBlockBuilder::ParamRec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="116" column="5"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1ab013915d567bdd421a4949cff28780ee" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::RoDataBlockBuilder::ParamRec::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>mkbindump::RoDataBlockBuilder::ParamRec::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="117" column="9" bodyfile="binDumpUtil.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="binDumpUtil.h" line="108" column="3" bodyfile="binDumpUtil.h" bodystart="109" bodyend="118"/>
+    <listofallmembers>
+      <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a1c3ccf0aa4b487f1c2d327bd4245aaba" prot="public" virt="non-virtual"><scope>mkbindump::RoDataBlockBuilder::ParamRec</scope><name>name</name></member>
+      <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1abf8d377e34386ab8e06d68e9dff8dd95" prot="public" virt="non-virtual"><scope>mkbindump::RoDataBlockBuilder::ParamRec</scope><name>rval</name></member>
+      <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1afe06e271e85e58184113777f155cf1ca" prot="public" virt="non-virtual"><scope>mkbindump::RoDataBlockBuilder::ParamRec</scope><name>sval</name></member>
+      <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1ab013915d567bdd421a4949cff28780ee" prot="public" virt="non-virtual"><scope>mkbindump::RoDataBlockBuilder::ParamRec</scope><name>type</name></member>
+      <member refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a63e50cc71009f9beaa18605b7f04e04b" prot="public" virt="non-virtual"><scope>mkbindump::RoDataBlockBuilder::ParamRec</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

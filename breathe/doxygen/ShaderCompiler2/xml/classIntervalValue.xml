@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIntervalValue" kind="class" language="C++" prot="public">
+    <compoundname>IntervalValue</compoundname>
+    <includes refid="intervals_8h" local="no">intervals.h</includes>
+    <innerclass refid="structIntervalValue_1_1Adapter" prot="public">IntervalValue::Adapter</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" prot="public" static="yes" mutable="no">
+        <type>const real</type>
+        <definition>const real IntervalValue::VALUE_NEG_INFINITY</definition>
+        <argsstring></argsstring>
+        <name>VALUE_NEG_INFINITY</name>
+        <qualifiedname>IntervalValue::VALUE_NEG_INFINITY</qualifiedname>
+        <initializer>= -MAX_REAL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="26" column="21" bodyfile="intervals.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" prot="public" static="yes" mutable="no">
+        <type>const real</type>
+        <definition>const real IntervalValue::VALUE_INFINITY</definition>
+        <argsstring></argsstring>
+        <name>VALUE_INFINITY</name>
+        <qualifiedname>IntervalValue::VALUE_INFINITY</qualifiedname>
+        <initializer>= MAX_REAL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="27" column="21" bodyfile="intervals.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classIntervalValue_1a138546f28df9e41e1eb1b3d398778199" prot="private" static="no" mutable="no">
+        <type><ref refid="classNameId" kindref="compound">NameId</ref>&lt; <ref refid="structIntervalValue_1_1Adapter" kindref="compound">Adapter</ref> &gt;</type>
+        <definition>NameId&lt;Adapter&gt; IntervalValue::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <qualifiedname>IntervalValue::nameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="46" column="10" bodyfile="intervals.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIntervalValue_1ad9a61bdc2df65d5c1c7832686ca3c766" prot="private" static="no" mutable="no">
+        <type><ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref></type>
+        <definition>RealValueRange IntervalValue::bounds</definition>
+        <argsstring></argsstring>
+        <name>bounds</name>
+        <qualifiedname>IntervalValue::bounds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="47" column="18" bodyfile="intervals.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIntervalValue_1a91f13140072340bccf0c4c0207d21852" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>IntervalValue::IntervalValue</definition>
+        <argsstring>()</argsstring>
+        <name>IntervalValue</name>
+        <qualifiedname>IntervalValue::IntervalValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="29" column="3" bodyfile="intervals.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalValue_1a8b70128089e41ae54bed715202235812" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>IntervalValue::IntervalValue</definition>
+        <argsstring>(int init_name_id, const RealValueRange &amp;init_bounds)</argsstring>
+        <name>IntervalValue</name>
+        <qualifiedname>IntervalValue::IntervalValue</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>init_name_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref> &amp;</type>
+          <declname>init_bounds</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="31" column="19" bodyfile="intervals.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalValue_1afbb1e4a73db7cf3ac116c572e4af63cd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IntervalValue::valueIsEqual</definition>
+        <argsstring>(real other_value) const</argsstring>
+        <name>valueIsEqual</name>
+        <qualifiedname>IntervalValue::valueIsEqual</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>other_value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="33" column="15" bodyfile="intervals.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int IntervalValue::getNameId</definition>
+        <argsstring>() const</argsstring>
+        <name>getNameId</name>
+        <qualifiedname>IntervalValue::getNameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="35" column="14" bodyfile="intervals.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classIntervalValue_1a046ff5db1dfb2593d0ea592d1a9ecf4d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="intervals_8h_1aeab0906da24b432454f0cbb287972c24" kindref="member">RealValueRange</ref> &amp;</type>
+        <definition>const RealValueRange &amp; IntervalValue::getBounds</definition>
+        <argsstring>() const</argsstring>
+        <name>getBounds</name>
+        <qualifiedname>IntervalValue::getBounds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="37" column="31" bodyfile="intervals.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="intervals.h" line="23" column="1" bodyfile="intervals.h" bodystart="24" bodyend="48"/>
+    <listofallmembers>
+      <member refid="classIntervalValue_1ad9a61bdc2df65d5c1c7832686ca3c766" prot="private" virt="non-virtual"><scope>IntervalValue</scope><name>bounds</name></member>
+      <member refid="classIntervalValue_1a046ff5db1dfb2593d0ea592d1a9ecf4d" prot="public" virt="non-virtual"><scope>IntervalValue</scope><name>getBounds</name></member>
+      <member refid="classIntervalValue_1a97e071ebdc2213cbd6b0d73216c9cf1e" prot="public" virt="non-virtual"><scope>IntervalValue</scope><name>getNameId</name></member>
+      <member refid="classIntervalValue_1a91f13140072340bccf0c4c0207d21852" prot="public" virt="non-virtual"><scope>IntervalValue</scope><name>IntervalValue</name></member>
+      <member refid="classIntervalValue_1a8b70128089e41ae54bed715202235812" prot="public" virt="non-virtual"><scope>IntervalValue</scope><name>IntervalValue</name></member>
+      <member refid="classIntervalValue_1a138546f28df9e41e1eb1b3d398778199" prot="private" virt="non-virtual"><scope>IntervalValue</scope><name>nameId</name></member>
+      <member refid="classIntervalValue_1a89b213ce318d71f4a69d7d28a32ad450" prot="public" virt="non-virtual"><scope>IntervalValue</scope><name>VALUE_INFINITY</name></member>
+      <member refid="classIntervalValue_1a4692028b59241f5394eb028ce2a21b6c" prot="public" virt="non-virtual"><scope>IntervalValue</scope><name>VALUE_NEG_INFINITY</name></member>
+      <member refid="classIntervalValue_1afbb1e4a73db7cf3ac116c572e4af63cd" prot="public" virt="non-virtual"><scope>IntervalValue</scope><name>valueIsEqual</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

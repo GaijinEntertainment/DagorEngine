@@ -1,0 +1,778 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1VirtualResourceRequest" kind="class" language="C++" prot="public">
+    <compoundname>dafg::VirtualResourceRequest</compoundname>
+    <includes refid="virtualResourceRequest_8h" local="no">virtualResourceRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class Res</type>
+      </param>
+      <param>
+        <type>detail::ResourceRequestPolicy</type>
+        <declname>policy</declname>
+        <defname>policy</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdafg_1_1VirtualResourceRequest_1a4462abb551f9ccae240e60abac38b95a" prot="private" static="no">
+        <type>detail::VirtualResourceRequestBase</type>
+        <definition>using dafg::VirtualResourceRequest&lt; Res, policy &gt;::Base =  detail::VirtualResourceRequestBase</definition>
+        <argsstring></argsstring>
+        <name>Base</name>
+        <qualifiedname>dafg::VirtualResourceRequest::Base</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="63" column="3" bodyfile="virtualResourceRequest.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1VirtualResourceRequest_1a009b7644429aaa803d508fce8e3c0856" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dafg::VirtualResourceRequest&lt; Res, policy &gt;::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <qualifiedname>dafg::VirtualResourceRequest::RRP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="84" column="3" bodyfile="virtualResourceRequest.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdafg_1_1VirtualResourceRequest_1ace8340cd508092c9ea8245dcbdb6d532" prot="private" static="no">
+        <type><ref refid="classdafg_1_1VirtualResourceHandle" kindref="compound">VirtualResourceHandle</ref>&lt; eastl::conditional_t&lt; true, const Res, Res &gt;, is_gpu, true &gt;</type>
+        <definition>using dafg::VirtualResourceRequest&lt; Res, policy &gt;::HandleType =  VirtualResourceHandle&lt;eastl::conditional_t&lt;true, const Res, Res&gt;, is_gpu, true&gt;</definition>
+        <argsstring></argsstring>
+        <name>HandleType</name>
+        <qualifiedname>dafg::VirtualResourceRequest::HandleType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="92" column="3" bodyfile="virtualResourceRequest.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classdafg_1_1VirtualResourceRequest_1a923c3f69f17b81d0e9b12b2fb95d0296" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool dafg::VirtualResourceRequest&lt; Res, policy &gt;::is_gpu</definition>
+        <argsstring></argsstring>
+        <name>is_gpu</name>
+        <qualifiedname>dafg::VirtualResourceRequest::is_gpu</qualifiedname>
+        <initializer>= eastl::is_base_of_v&lt;D3dResource, Res&gt;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="61" column="25" bodyfile="virtualResourceRequest.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdafg_1_1VirtualResourceRequest_1af5a08b8ee7939ead6bed167c8676d318" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool dafg::VirtualResourceRequest&lt; Res, policy &gt;::true</definition>
+        <argsstring></argsstring>
+        <name>true</name>
+        <qualifiedname>dafg::VirtualResourceRequest::true</qualifiedname>
+        <initializer>{ return (policy &amp; p) == p</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="86" column="25" bodyfile="virtualResourceRequest.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceRequest_1a5c118345dcb7ac9fd630e1eb927b31e5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class detail::VirtualAttachmentRequest</definition>
+        <argsstring></argsstring>
+        <name>detail::VirtualAttachmentRequest</name>
+        <qualifiedname>dafg::VirtualResourceRequest::VirtualAttachmentRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kindref="compound">detail::VirtualAttachmentRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="66" column="16" bodyfile="virtualResourceRequest.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceRequest_1a89ee6a63e927cac45492ffd867edb640" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class</type>
+          </param>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class VirtualResourceRequest</definition>
+        <argsstring></argsstring>
+        <name>VirtualResourceRequest</name>
+        <qualifiedname>dafg::VirtualResourceRequest::VirtualResourceRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="69" column="16" bodyfile="virtualResourceRequest.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceRequest_1aa0692960a5b78ac80ae656ee82d0503b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class VirtualResourceCreationSemiRequest</definition>
+        <argsstring></argsstring>
+        <name>VirtualResourceCreationSemiRequest</name>
+        <qualifiedname>dafg::VirtualResourceRequest::VirtualResourceCreationSemiRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceCreationSemiRequest" kindref="compound">VirtualResourceCreationSemiRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="71" column="16" bodyfile="virtualResourceRequest.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceRequest_1a949fb8ee5b97164be925072537300360" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::DispatchRequestPolicy</type>
+            <declname>dispatch_type</declname>
+            <defname>dispatch_type</defname>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class DispatchRequest</definition>
+        <argsstring></argsstring>
+        <name>DispatchRequest</name>
+        <qualifiedname>dafg::VirtualResourceRequest::DispatchRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1DispatchRequest" kindref="compound">DispatchRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="74" column="16" bodyfile="virtualResourceRequest.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceRequest_1a5d6de53582df98529b17158511c172dc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::DrawRequestPolicy</type>
+          </param>
+          <param>
+            <type>bool</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class DrawRequest</definition>
+        <argsstring></argsstring>
+        <name>DrawRequest</name>
+        <qualifiedname>dafg::VirtualResourceRequest::DrawRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1DrawRequest" kindref="compound">DrawRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="77" column="16" bodyfile="virtualResourceRequest.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceRequest_1a6046590c8b81f8d2f9cadc1a48f867c2" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class VirtualResourceSemiRequest</definition>
+        <argsstring></argsstring>
+        <name>VirtualResourceSemiRequest</name>
+        <qualifiedname>dafg::VirtualResourceRequest::VirtualResourceSemiRequest</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1VirtualResourceSemiRequest" kindref="compound">VirtualResourceSemiRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="80" column="16" bodyfile="virtualResourceRequest.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1VirtualResourceRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <qualifiedname>dafg::VirtualResourceRequest::Registry</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1Registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="81" column="16" bodyfile="virtualResourceRequest.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a343d6a3916ba9b87af3b50b3c349f4a2" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::VirtualResourceRequest&lt; Res, policy &gt;::VirtualResourceRequest</definition>
+        <argsstring>(detail::ResUid resId, NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>VirtualResourceRequest</name>
+        <qualifiedname>dafg::VirtualResourceRequest::VirtualResourceRequest</qualifiedname>
+        <param>
+          <type>detail::ResUid</type>
+          <declname>resId</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="82" column="3" bodyfile="virtualResourceRequest.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a720fd31875673035aa6a15c906f9fec4" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool true const char *static constexpr RRP</type>
+        <definition>static constexpr bool true const char *static constexpr RRP dafg::VirtualResourceRequest&lt; Res, policy &gt;::flipPolicy</definition>
+        <argsstring>(RRP p)</argsstring>
+        <name>flipPolicy</name>
+        <qualifiedname>dafg::VirtualResourceRequest::flipPolicy</qualifiedname>
+        <param>
+          <type>RRP</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="90" column="24" bodyfile="virtualResourceRequest.h" bodystart="90" bodyend="90"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a4286afa2ca5bc718398b351ef74f6157" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::Optional)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::Optional)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::optional</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>optional</name>
+        <qualifiedname>dafg::VirtualResourceRequest::optional</qualifiedname>
+        <briefdescription>
+<para>Makes this request optional. The node will not get disabled if the resource is missing, the handle will return an empty value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="101" column="26" bodyfile="virtualResourceRequest.h" bodystart="101" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a36727cb71304bedb3a3b725ae498a0c5" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasUsageType)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::HasUsageType)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindToShaderVar</definition>
+        <argsstring>(const char *shader_var_name=nullptr) &amp;&amp;</argsstring>
+        <name>bindToShaderVar</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindToShaderVar</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Requests for this resource to be bound to a shader variable with the specified name. The usage stage MUST have been set beforehand and MUST include all shader stages that this shader var will be accessed from within this node. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_var_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader variable to bind. If not specified, the name of the resource will be used. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="119" column="26" bodyfile="virtualResourceRequest.h" bodystart="119" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a0da0567411e37f033940ebfd27d571b1" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, policy &gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindToShaderVar</definition>
+        <argsstring>(const char *shader_var_name=nullptr) &amp;&amp;</argsstring>
+        <name>bindToShaderVar</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindToShaderVar</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Requests for a sub-object of a blob to be bound to a shader variable with the specified name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value to bind from the blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_var_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader variable to bind. If not specified, the name of the resource will be used. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="136" column="26" bodyfile="virtualResourceRequest.h" bodystart="136" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a97be262024938f5c17e7eabca5b83f8b" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, policy &gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsView</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsView</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindAsView</qualifiedname>
+        <briefdescription>
+<para>Requests for a matrix-like blob to be bound as the current view matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="148" column="26" bodyfile="virtualResourceRequest.h" bodystart="148" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a9aaa3841b849faaebc7764fa39c96891" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, policy &gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsView</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsView</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindAsView</qualifiedname>
+        <briefdescription>
+<para>Requests for a matrix-like sub-object of a blob to be bound as the current view matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value to bind from the blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="163" column="26" bodyfile="virtualResourceRequest.h" bodystart="163" bodyend="168"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a4fb56f193e60c94a72c24a1692669f7f" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, policy &gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsProj</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsProj</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindAsProj</qualifiedname>
+        <briefdescription>
+<para>Requests for a matrix-like blob to be bound as the current projection matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="175" column="26" bodyfile="virtualResourceRequest.h" bodystart="175" bodyend="179"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1ac2ddb0859c4ad31d7cfbc36fbf767b4d" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, policy &gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsProj</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsProj</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindAsProj</qualifiedname>
+        <briefdescription>
+<para>Requests for a matrix-like sub-object of a blob to be bound as the current projection matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value to bind from the blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="190" column="26" bodyfile="virtualResourceRequest.h" bodystart="190" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a45fb36eff15b14f276fa7e296673885a" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, policy &gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsVertexBuffer</definition>
+        <argsstring>(uint32_t stream, uint32_t stride) &amp;&amp;</argsstring>
+        <name>bindAsVertexBuffer</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindAsVertexBuffer</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>stream</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>stride</declname>
+        </param>
+        <briefdescription>
+<para>Requests for a buffer to be bound for the specified vertex stream. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>stream</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The vertex stream index to bind the buffer to. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The stride of the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="203" column="26" bodyfile="virtualResourceRequest.h" bodystart="203" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a821a586a2211540fd2a7415edd91b4b5" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, policy &gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsIndexBuffer</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsIndexBuffer</name>
+        <qualifiedname>dafg::VirtualResourceRequest::bindAsIndexBuffer</qualifiedname>
+        <briefdescription>
+<para>Requests for a buffer to be bound as current index buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="213" column="26" bodyfile="virtualResourceRequest.h" bodystart="213" bodyend="217"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a0084e536925983c5915a98346595b62e" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasUsageStage)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::HasUsageStage)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::atStage</definition>
+        <argsstring>(Stage stage) &amp;&amp;</argsstring>
+        <name>atStage</name>
+        <qualifiedname>dafg::VirtualResourceRequest::atStage</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kindref="member">Stage</ref></type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+<para>Must be used when the resource is manually accessed through the handle or bound to a shader var to specify what shader stage this resource will be used at. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="225" column="26" bodyfile="virtualResourceRequest.h" bodystart="225" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a19bd5e64ae7eed7e68e911e91eda42b3" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasUsageType)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::HasUsageType)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::useAs</definition>
+        <argsstring>(Usage type) &amp;&amp;</argsstring>
+        <name>useAs</name>
+        <qualifiedname>dafg::VirtualResourceRequest::useAs</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kindref="member">Usage</ref></type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+<para>Must be used when the resource is manually accessed through the handle to specify how exactly the resource will be used. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="236" column="26" bodyfile="virtualResourceRequest.h" bodystart="236" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a40b6ee4845965b5c6b625d69cf486417" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceHandle" kindref="compound">HandleType</ref></type>
+        <definition>HandleType dafg::VirtualResourceRequest&lt; Res, policy &gt;::handle</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>handle</name>
+        <qualifiedname>dafg::VirtualResourceRequest::handle</qualifiedname>
+        <briefdescription>
+<para>Returns a handle that can be used to access the physical resource underlying this virtual one during execution time. Note that the physical resource will change throughout executions and should never be cached by reference. See <ref refid="classdafg_1_1VirtualResourceHandle" kindref="compound">dafg::VirtualResourceHandle</ref> for further details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="251" column="15" bodyfile="virtualResourceRequest.h" bodystart="251" bodyend="251"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1aeff6e30c132fbbcd4d25395e9c6b064b" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasClearValue)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::HasClearValue)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::clear</definition>
+        <argsstring>(const ResourceClearValue &amp;clear_value) &amp;&amp;</argsstring>
+        <name>clear</name>
+        <qualifiedname>dafg::VirtualResourceRequest::clear</qualifiedname>
+        <param>
+          <type>const ResourceClearValue &amp;</type>
+          <declname>clear_value</declname>
+        </param>
+        <briefdescription>
+<para>Clears the resource with the specified clear value on activation (or render pass begin if its applicable). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is only applicable to textures. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>clear_value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value to clear the resource with. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="260" column="26" bodyfile="virtualResourceRequest.h" bodystart="260" bodyend="264"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a3dfccdce64d2f3d1619dc715d8950c6e" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasClearValue)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::HasClearValue)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::clear</definition>
+        <argsstring>(const char *blob_name) &amp;&amp;</argsstring>
+        <name>clear</name>
+        <qualifiedname>dafg::VirtualResourceRequest::clear</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>blob_name</declname>
+        </param>
+        <briefdescription>
+<para>Clears the resource with the specified clear value on activation (or render pass begin if its applicable). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is only applicable to textures. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the blob that contains the clear value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="273" column="26" bodyfile="virtualResourceRequest.h" bodystart="273" bodyend="277"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1ad96a36b4b3875e6cdff200f358445ee3" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasClearValue)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::HasClearValue)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::clear</definition>
+        <argsstring>(const char *blob_name) &amp;&amp;</argsstring>
+        <name>clear</name>
+        <qualifiedname>dafg::VirtualResourceRequest::clear</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>blob_name</declname>
+        </param>
+    <requiresclause>(eastl::is_same_v&lt;Res, BaseTexture&gt; &amp;&amp; !true &quot;ERROR: Please, remove the duplicate .clear(clear value)/.disacrd() call!&quot;)    </requiresclause>
+        <briefdescription>
+<para>Clears the resource with the specified clear value on activation (or render pass begin if its applicable). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is only applicable to textures. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blob_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the blob that contains the clear value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="287" column="26" bodyfile="virtualResourceRequest.h" bodystart="287" bodyend="294"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1VirtualResourceRequest_1a8333df1bf2c93b4f4f3fa7ab4b714930" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdafg_1_1VirtualResourceRequest" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasClearValue)&gt;</type>
+        <definition>VirtualResourceRequest&lt; Res, flipPolicy(RRP::HasClearValue)&gt; dafg::VirtualResourceRequest&lt; Res, policy &gt;::discard</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>discard</name>
+        <qualifiedname>dafg::VirtualResourceRequest::discard</qualifiedname>
+        <briefdescription>
+<para>Activates the resource request, but does not clear it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is only applicable to textures. Default behaviour is discard, so we need this method only to cast the request to have the same type as modify request. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="virtualResourceRequest.h" line="303" column="26" bodyfile="virtualResourceRequest.h" bodystart="303" bodyend="303"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Request for a virtual resource known to FG. Should be used to further configure the properties of the request. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>The intended usage is <verbatim>auto myTexHandle = registry.readTexture(&quot;my_tex&quot;)
+  .optional()
+  ...
+  .handle();
+</verbatim> Hence methods are only rvalue-callable. Don&apos;t try to get smart with these request classes. Don&apos;t cache them, don&apos;t pass them around a bunch of functions, KISS.</para>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>Res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The C++ type representing this resource. BaseTex/Sbuffer for GPU resources, any C++ type for CPU resources. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Static data about this request&apos;s structure used for erroring out at compile time if this class is used incorrectly. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="virtualResourceRequest.h" line="56" column="1" bodyfile="virtualResourceRequest.h" bodystart="60" bodyend="304"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a0084e536925983c5915a98346595b62e" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>atStage</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a4462abb551f9ccae240e60abac38b95a" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>Base</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a821a586a2211540fd2a7415edd91b4b5" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindAsIndexBuffer</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a4fb56f193e60c94a72c24a1692669f7f" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindAsProj</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1ac2ddb0859c4ad31d7cfbc36fbf767b4d" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindAsProj</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a45fb36eff15b14f276fa7e296673885a" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindAsVertexBuffer</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a97be262024938f5c17e7eabca5b83f8b" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindAsView</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a9aaa3841b849faaebc7764fa39c96891" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindAsView</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a36727cb71304bedb3a3b725ae498a0c5" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindToShaderVar</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a0da0567411e37f033940ebfd27d571b1" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>bindToShaderVar</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1aeff6e30c132fbbcd4d25395e9c6b064b" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>clear</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a3dfccdce64d2f3d1619dc715d8950c6e" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>clear</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1ad96a36b4b3875e6cdff200f358445ee3" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>clear</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a5c118345dcb7ac9fd630e1eb927b31e5" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>detail::VirtualAttachmentRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a8333df1bf2c93b4f4f3fa7ab4b714930" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>discard</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a949fb8ee5b97164be925072537300360" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>DispatchRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a5d6de53582df98529b17158511c172dc" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>DrawRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a720fd31875673035aa6a15c906f9fec4" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>flipPolicy</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a40b6ee4845965b5c6b625d69cf486417" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>handle</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1ace8340cd508092c9ea8245dcbdb6d532" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>HandleType</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a923c3f69f17b81d0e9b12b2fb95d0296" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>is_gpu</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a4286afa2ca5bc718398b351ef74f6157" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>optional</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>Registry</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a009b7644429aaa803d508fce8e3c0856" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>RRP</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1af5a08b8ee7939ead6bed167c8676d318" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>true</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a19bd5e64ae7eed7e68e911e91eda42b3" prot="public" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>useAs</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1aa0692960a5b78ac80ae656ee82d0503b" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>VirtualResourceCreationSemiRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a89ee6a63e927cac45492ffd867edb640" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>VirtualResourceRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a343d6a3916ba9b87af3b50b3c349f4a2" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>VirtualResourceRequest</name></member>
+      <member refid="classdafg_1_1VirtualResourceRequest_1a6046590c8b81f8d2f9cadc1a48f867c2" prot="private" virt="non-virtual"><scope>dafg::VirtualResourceRequest</scope><name>VirtualResourceSemiRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

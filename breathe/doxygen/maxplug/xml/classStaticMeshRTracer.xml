@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classStaticMeshRTracer" kind="class" language="C++" prot="public">
+    <compoundname>StaticMeshRTracer</compoundname>
+    <basecompoundref refid="classStaticMeshRayTracer" prot="public" virt="non-virtual">StaticMeshRayTracer</basecompoundref>
+    <innerclass refid="structStaticMeshRTracer_1_1BNode" prot="public">StaticMeshRTracer::BNode</innerclass>
+    <innerclass refid="structStaticMeshRTracer_1_1LNode" prot="public">StaticMeshRTracer::LNode</innerclass>
+    <innerclass refid="structStaticMeshRTracer_1_1Node" prot="public">StaticMeshRTracer::Node</innerclass>
+    <innerclass refid="structStaticMeshRTracer_1_1RTface" prot="public">StaticMeshRTracer::RTface</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classStaticMeshRTracer_1acd05ab1371a64a8b593d077931a804ee" prot="public" static="yes" mutable="no">
+        <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real StaticMeshRTracer::a2</definition>
+        <argsstring></argsstring>
+        <name>a2</name>
+        <qualifiedname>StaticMeshRTracer::a2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="40" column="15" bodyfile="meshtrace.cpp" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classStaticMeshRTracer_1a8b49d0ea4e80d4d9e6ad898840526823" prot="public" static="yes" mutable="no">
+        <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real StaticMeshRTracer::a4</definition>
+        <argsstring></argsstring>
+        <name>a4</name>
+        <qualifiedname>StaticMeshRTracer::a4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="40" column="18" bodyfile="meshtrace.cpp" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classStaticMeshRTracer_1ae5ac50feb27382c0cfc934203fce894c" prot="public" static="no" mutable="no">
+        <type><ref refid="structStaticMeshRTracer_1_1Node" kindref="compound">Node</ref> *</type>
+        <definition>Node* StaticMeshRTracer::root</definition>
+        <argsstring></argsstring>
+        <name>root</name>
+        <qualifiedname>StaticMeshRTracer::root</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="75" column="8" bodyfile="meshtrace.cpp" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classStaticMeshRTracer_1a19d928167268324ce4a4a445346411a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StaticMeshRTracer::kill_node</definition>
+        <argsstring>(Node *)</argsstring>
+        <name>kill_node</name>
+        <qualifiedname>StaticMeshRTracer::kill_node</qualifiedname>
+        <param>
+          <type><ref refid="structStaticMeshRTracer_1_1Node" kindref="compound">Node</ref> *</type>
+          <defname>n</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="74" column="8" bodyfile="meshtrace.cpp" bodystart="88" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="classStaticMeshRTracer_1ab57e4d0c88dbb48cbeb62e40a3a17830" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StaticMeshRTracer::StaticMeshRTracer</definition>
+        <argsstring>()</argsstring>
+        <name>StaticMeshRTracer</name>
+        <qualifiedname>StaticMeshRTracer::StaticMeshRTracer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="77" column="3" bodyfile="meshtrace.cpp" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classStaticMeshRTracer_1a542abaec0d8af37bfa5cb6b3525eec85" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StaticMeshRTracer::~StaticMeshRTracer</definition>
+        <argsstring>() override</argsstring>
+        <name>~StaticMeshRTracer</name>
+        <qualifiedname>StaticMeshRTracer::~StaticMeshRTracer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="78" column="3" bodyfile="meshtrace.cpp" bodystart="78" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="classStaticMeshRTracer_1a2ffd4d56b1d9f45d16629dd680cfecb5" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool StaticMeshRTracer::traceray</definition>
+        <argsstring>(const Point3 &amp;p, const Point3 &amp;dir, real &amp;t, int &amp;fi, Point3 &amp;bc) override</argsstring>
+        <name>traceray</name>
+        <qualifiedname>StaticMeshRTracer::traceray</qualifiedname>
+        <reimplements refid="group__common_1ga6b9807257a4afe97f271a126deefe836">traceray</reimplements>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>fi</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>bc</declname>
+        </param>
+        <briefdescription>
+<para>Tests ray hit to object and returns parameters of hit (if happen) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="79" column="8" bodyfile="meshtrace.cpp" bodystart="180" bodyend="188"/>
+      </memberdef>
+      <memberdef kind="function" id="classStaticMeshRTracer_1aa180b29b99047f7889cb92bfca9b663b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool StaticMeshRTracer::traceray_back</definition>
+        <argsstring>(const Point3 &amp;p, const Point3 &amp;dir, real &amp;t, int &amp;fi, Point3 &amp;bc) override</argsstring>
+        <name>traceray_back</name>
+        <qualifiedname>StaticMeshRTracer::traceray_back</qualifiedname>
+        <reimplements refid="group__common_1gac8b67a396f83c5ccf220ce197839e8d5">traceray_back</reimplements>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>fi</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>bc</declname>
+        </param>
+        <briefdescription>
+<para>trace backfaces </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="80" column="8" bodyfile="meshtrace.cpp" bodystart="269" bodyend="277"/>
+      </memberdef>
+      <memberdef kind="function" id="classStaticMeshRTracer_1a4ea64e5ac5dbde72253feb344dc0ab78" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structStaticMeshRTracer_1_1Node" kindref="compound">Node</ref> *</type>
+        <definition>StaticMeshRTracer::Node * StaticMeshRTracer::build_node</definition>
+        <argsstring>(Mesh &amp;m, int *fc, int numf)</argsstring>
+        <name>build_node</name>
+        <qualifiedname>StaticMeshRTracer::build_node</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>fc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="81" column="8" bodyfile="meshtrace.cpp" bodystart="282" bodyend="345"/>
+      </memberdef>
+      <memberdef kind="function" id="classStaticMeshRTracer_1a30034ef5921f81041e76eb9639f1d913" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StaticMeshRTracer::build</definition>
+        <argsstring>(Mesh &amp;m) override</argsstring>
+        <name>build</name>
+        <qualifiedname>StaticMeshRTracer::build</qualifiedname>
+        <reimplements refid="group__common_1ga675c99833b9746f8164a3cacbd6ec6ea">build</reimplements>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+<para>Builds (or rebuilds) object for given mesh. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="82" column="8" bodyfile="meshtrace.cpp" bodystart="377" bodyend="391"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>StaticMeshRTracer</label>
+        <link refid="classStaticMeshRTracer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>StaticMeshRayTracer</label>
+        <link refid="classStaticMeshRayTracer"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>StaticMeshRTracer</label>
+        <link refid="classStaticMeshRTracer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>root</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>StaticMeshRTracer::Node</label>
+        <link refid="structStaticMeshRTracer_1_1Node"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>sub0</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>StaticMeshRayTracer</label>
+        <link refid="classStaticMeshRayTracer"/>
+      </node>
+    </collaborationgraph>
+    <location file="meshtrace.cpp" line="37" column="1" bodyfile="meshtrace.cpp" bodystart="38" bodyend="83"/>
+    <listofallmembers>
+      <member refid="classStaticMeshRTracer_1acd05ab1371a64a8b593d077931a804ee" prot="public" virt="non-virtual"><scope>StaticMeshRTracer</scope><name>a2</name></member>
+      <member refid="classStaticMeshRTracer_1a8b49d0ea4e80d4d9e6ad898840526823" prot="public" virt="non-virtual"><scope>StaticMeshRTracer</scope><name>a4</name></member>
+      <member refid="classStaticMeshRTracer_1a30034ef5921f81041e76eb9639f1d913" prot="public" virt="virtual"><scope>StaticMeshRTracer</scope><name>build</name></member>
+      <member refid="classStaticMeshRTracer_1a4ea64e5ac5dbde72253feb344dc0ab78" prot="public" virt="non-virtual"><scope>StaticMeshRTracer</scope><name>build_node</name></member>
+      <member refid="classStaticMeshRTracer_1a19d928167268324ce4a4a445346411a1" prot="public" virt="non-virtual"><scope>StaticMeshRTracer</scope><name>kill_node</name></member>
+      <member refid="classStaticMeshRTracer_1ae5ac50feb27382c0cfc934203fce894c" prot="public" virt="non-virtual"><scope>StaticMeshRTracer</scope><name>root</name></member>
+      <member refid="classStaticMeshRTracer_1ab57e4d0c88dbb48cbeb62e40a3a17830" prot="public" virt="non-virtual"><scope>StaticMeshRTracer</scope><name>StaticMeshRTracer</name></member>
+      <member refid="classStaticMeshRTracer_1a2ffd4d56b1d9f45d16629dd680cfecb5" prot="public" virt="virtual"><scope>StaticMeshRTracer</scope><name>traceray</name></member>
+      <member refid="classStaticMeshRTracer_1aa180b29b99047f7889cb92bfca9b663b" prot="public" virt="virtual"><scope>StaticMeshRTracer</scope><name>traceray_back</name></member>
+      <member refid="group__common_1ga958b3be6b0dccb7562ea4db1078fa063" prot="public" virt="virtual"><scope>StaticMeshRTracer</scope><name>~StaticMeshRayTracer</name></member>
+      <member refid="classStaticMeshRTracer_1a542abaec0d8af37bfa5cb6b3525eec85" prot="public" virt="non-virtual"><scope>StaticMeshRTracer</scope><name>~StaticMeshRTracer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

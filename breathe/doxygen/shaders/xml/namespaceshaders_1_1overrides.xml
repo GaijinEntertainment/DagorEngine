@@ -1,0 +1,437 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshaders_1_1overrides" kind="namespace" language="C++">
+    <compoundname>shaders::overrides</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a1039cb0cb810183de57d3f5e17dcc08b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>OverrideStateId</type>
+        <definition>OverrideStateId shaders::overrides::create</definition>
+        <argsstring>(const OverrideState &amp;)</argsstring>
+        <name>create</name>
+        <qualifiedname>shaders::overrides::create</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Create a new override state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>s</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The override state description. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A handle to the created override state. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="31" column="17" declfile="dag_overrideStateId.h" declline="31" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a7fe326c41e19bf1faec6f7fa0c4265be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::overrides::destroy</definition>
+        <argsstring>(OverrideStateId &amp;override_id)</argsstring>
+        <name>destroy</name>
+        <qualifiedname>shaders::overrides::destroy</qualifiedname>
+        <param>
+          <type>OverrideStateId &amp;</type>
+          <declname>override_id</declname>
+        </param>
+        <briefdescription>
+<para>Destroy an override state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>override_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to the override state to destroy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the override state was destroyed, <computeroutput>false</computeroutput> otherwise (state id wasn&apos;t found). </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="38" column="6" declfile="dag_overrideStateId.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a7c9764dc95391f6bec4ebc708fffd671" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::overrides::exists</definition>
+        <argsstring>(OverrideStateId override_id)</argsstring>
+        <name>exists</name>
+        <qualifiedname>shaders::overrides::exists</qualifiedname>
+        <param>
+          <type>OverrideStateId</type>
+          <declname>override_id</declname>
+        </param>
+        <briefdescription>
+<para>Check if an override state exists. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>override_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to the override state to check. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the override state exists, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="45" column="6" declfile="dag_overrideStateId.h" declline="45" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a559cb4847bcff3386c54f675bf4414d2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::overrides::set</definition>
+        <argsstring>(OverrideStateId override_id)</argsstring>
+        <name>set</name>
+        <qualifiedname>shaders::overrides::set</qualifiedname>
+        <param>
+          <type>OverrideStateId</type>
+          <declname>override_id</declname>
+        </param>
+        <briefdescription>
+<para>set current override. It will fail, if there is already one set, and override_id is not invalid. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Set the current override state.</para>
+<para>If there is already an override state set, this function will fail. The user will be notified with a logerr message. If the override_id is invalid, the current override state will be reset. The user will be notified with a logerr message. The method invalidates the cached state block.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>override_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to the override state to set. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the override state was set, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="58" column="6" declfile="dag_overrideStateId.h" declline="58" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1acdc12593650a318918d125b0bbfe798b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::overrides::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>shaders::overrides::reset</qualifiedname>
+        <briefdescription>
+<para>Reset the current override state. It sets the override state that doesn&apos;t have any effect. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The method invalidates the cached state block.</para>
+<para><simplesect kind="return"><para><computeroutput>true</computeroutput> if the override state was reset, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="66" column="13" bodyfile="dag_overrideStateId.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1aca6f4580dca7d86040efd2ec2b1a4c63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref></type>
+        <definition>OverrideState shaders::overrides::get</definition>
+        <argsstring>(OverrideStateId override_id)</argsstring>
+        <name>get</name>
+        <qualifiedname>shaders::overrides::get</qualifiedname>
+        <param>
+          <type>OverrideStateId</type>
+          <declname>override_id</declname>
+        </param>
+        <briefdescription>
+<para>Get the override state description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>override_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to the override state to get. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The override state description. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="74" column="15" declfile="dag_overrideStateId.h" declline="74" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a517128e0a80054b630314242b730ecbd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>OverrideStateId</type>
+        <definition>OverrideStateId shaders::overrides::get_current</definition>
+        <argsstring>()</argsstring>
+        <name>get_current</name>
+        <qualifiedname>shaders::overrides::get_current</qualifiedname>
+        <briefdescription>
+<para>Get the current override state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The handle to the current override state. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="80" column="17" declfile="dag_overrideStateId.h" declline="80" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1ab6ad0a0c0c440b56af489a689c1973e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>OverrideStateId</type>
+        <definition>OverrideStateId shaders::overrides::get_current_with_master</definition>
+        <argsstring>()</argsstring>
+        <name>get_current_with_master</name>
+        <qualifiedname>shaders::overrides::get_current_with_master</qualifiedname>
+        <briefdescription>
+<para>Get the current override state with the master override state applied. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The master override is applied to all the render states.</para>
+<para><simplesect kind="return"><para>The handle to the current override state with the master override state applied. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="88" column="17" declfile="dag_overrideStateId.h" declline="88" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a2d2454c8c1a146693e6e19ad07fec726" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::overrides::set_master_state</definition>
+        <argsstring>(const OverrideState &amp;s)</argsstring>
+        <name>set_master_state</name>
+        <qualifiedname>shaders::overrides::set_master_state</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+<para>Set the master override state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The master override state is applied to all the render states.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>s</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The master override state description. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="97" column="6" declfile="dag_overrideStateId.h" declline="97" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a1255566f4ee27f017a4ddc3326927a75" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::overrides::reset_master_state</definition>
+        <argsstring>()</argsstring>
+        <name>reset_master_state</name>
+        <qualifiedname>shaders::overrides::reset_master_state</qualifiedname>
+        <briefdescription>
+<para>Reset the master override state. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="101" column="6" declfile="dag_overrideStateId.h" declline="101" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a89973d3d91ad26a7b65d91cedcf72e8f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::overrides::destroy_all_managed_master_states</definition>
+        <argsstring>()</argsstring>
+        <name>destroy_all_managed_master_states</name>
+        <qualifiedname>shaders::overrides::destroy_all_managed_master_states</qualifiedname>
+        <briefdescription>
+<para>Destroy all managed master override states. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="106" column="6" declfile="dag_overrideStateId.h" declline="106" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1ae6f2c5e211fa6e55860d86d69c7d8095" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::overrides::destroy</definition>
+        <argsstring>(UniqueOverrideStateId &amp;id)</argsstring>
+        <name>destroy</name>
+        <qualifiedname>shaders::overrides::destroy</qualifiedname>
+        <param>
+          <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Destroy the unique override state id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It makes the handle empty, so the override state doesn&apos;t have any effect.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The unique override state id to destroy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="240" column="13" bodyfile="dag_overrideStateId.h" bodystart="240" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a118cfca7176609dd914ecd910f2061a0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::overrides::set</definition>
+        <argsstring>(UniqueOverrideStateId &amp;id)</argsstring>
+        <name>set</name>
+        <qualifiedname>shaders::overrides::set</qualifiedname>
+        <param>
+          <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Set the override state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It sets the override state to the current state.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The unique override state id to set. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="248" column="13" bodyfile="dag_overrideStateId.h" bodystart="248" bodyend="248"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1aab820d5d5551910a3cdbf7ad70023edc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::overrides::set</definition>
+        <argsstring>(const UniqueOverrideStateId &amp;id)</argsstring>
+        <name>set</name>
+        <qualifiedname>shaders::overrides::set</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Set the override state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It sets the override state to the current state.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The unique override state id to set. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="256" column="13" bodyfile="dag_overrideStateId.h" bodystart="256" bodyend="256"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1ad6418b75c642f2948b60d05496b00a58" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::overrides::exists</definition>
+        <argsstring>(UniqueOverrideStateId id)</argsstring>
+        <name>exists</name>
+        <qualifiedname>shaders::overrides::exists</qualifiedname>
+        <param>
+          <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Check if the override state exists. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The unique override state id to check. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the override state exists, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="263" column="13" bodyfile="dag_overrideStateId.h" bodystart="263" bodyend="263"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__overrideStateId_8h_1a7c9e5436dfd6043cce476933c4445f13" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref></type>
+        <definition>OverrideState shaders::overrides::get</definition>
+        <argsstring>(const UniqueOverrideStateId &amp;id)</argsstring>
+        <name>get</name>
+        <qualifiedname>shaders::overrides::get</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Get the override state description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The unique override state id to get. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The override state description. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="270" column="15" declfile="dag_overrideStateId.h" declline="270" declcolumn="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_overrideStateId.h" line="23" column="1"/>
+  </compounddef>
+</doxygen>

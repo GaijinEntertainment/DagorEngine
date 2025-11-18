@@ -1,0 +1,176 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classHashStrings" kind="class" language="C++" prot="public">
+    <compoundname>HashStrings</compoundname>
+    <includes refid="hashStrings_8h" local="no">hashStrings.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classHashStrings_1addd24cb6b89547267acfe179184b01d1" prot="protected" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; uint64_t, int &gt;</type>
+        <definition>ska::flat_hash_map&lt;uint64_t, int&gt; HashStrings::hashTable</definition>
+        <argsstring></argsstring>
+        <name>hashTable</name>
+        <qualifiedname>HashStrings::hashTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="44" column="22" bodyfile="hashStrings.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classHashStrings_1af949f263dd42cb4bbb7959e8c6b370b1" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; HashStrings::names</definition>
+        <argsstring></argsstring>
+        <name>names</name>
+        <qualifiedname>HashStrings::names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="46" column="7" bodyfile="hashStrings.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int HashStrings::addNameId</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addNameId</name>
+        <qualifiedname>HashStrings::addNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="12" column="7" bodyfile="hashStrings.h" bodystart="12" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classHashStrings_1a2b43444bc74666574cba61624c72d22e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int HashStrings::getNameId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getNameId</name>
+        <qualifiedname>HashStrings::getNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="21" column="7" bodyfile="hashStrings.h" bodystart="21" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classHashStrings_1a473a175102d290dd00e5cb58903fcdd0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * HashStrings::getName</definition>
+        <argsstring>(uint32_t id) const</argsstring>
+        <name>getName</name>
+        <qualifiedname>HashStrings::getName</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="29" column="14" bodyfile="hashStrings.h" bodystart="29" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classHashStrings_1abaefa406451324e4c2b8fac353087294" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void HashStrings::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>HashStrings::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="35" column="8" bodyfile="hashStrings.h" bodystart="35" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classHashStrings_1ac338b67e198b5c7f46cc2afd1b17027b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int HashStrings::nameCount</definition>
+        <argsstring>() const</argsstring>
+        <name>nameCount</name>
+        <qualifiedname>HashStrings::nameCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="40" column="7" bodyfile="hashStrings.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classHashStrings_1a4a5313dcfe9d3372f82dab62cf090092" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>HashStrings::HashStrings</definition>
+        <argsstring>(int c=0)</argsstring>
+        <name>HashStrings</name>
+        <qualifiedname>HashStrings::HashStrings</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>c</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="41" column="3" bodyfile="hashStrings.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-func">
+      <memberdef kind="function" id="classHashStrings_1a05968a3c00279b3e884716dfd6dfc30b" prot="protected" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>static uint64_t HashStrings::hash_eastl</definition>
+        <argsstring>(const unsigned char *p)</argsstring>
+        <name>hash_eastl</name>
+        <qualifiedname>HashStrings::hash_eastl</qualifiedname>
+        <param>
+          <type>const unsigned char *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hashStrings.h" line="47" column="26" bodyfile="hashStrings.h" bodystart="47" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hashStrings.h" line="9" column="1" bodyfile="hashStrings.h" bodystart="10" bodyend="54"/>
+    <listofallmembers>
+      <member refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" prot="public" virt="non-virtual"><scope>HashStrings</scope><name>addNameId</name></member>
+      <member refid="classHashStrings_1a473a175102d290dd00e5cb58903fcdd0" prot="public" virt="non-virtual"><scope>HashStrings</scope><name>getName</name></member>
+      <member refid="classHashStrings_1a2b43444bc74666574cba61624c72d22e" prot="public" virt="non-virtual"><scope>HashStrings</scope><name>getNameId</name></member>
+      <member refid="classHashStrings_1a05968a3c00279b3e884716dfd6dfc30b" prot="protected" virt="non-virtual"><scope>HashStrings</scope><name>hash_eastl</name></member>
+      <member refid="classHashStrings_1a4a5313dcfe9d3372f82dab62cf090092" prot="public" virt="non-virtual"><scope>HashStrings</scope><name>HashStrings</name></member>
+      <member refid="classHashStrings_1addd24cb6b89547267acfe179184b01d1" prot="protected" virt="non-virtual"><scope>HashStrings</scope><name>hashTable</name></member>
+      <member refid="classHashStrings_1ac338b67e198b5c7f46cc2afd1b17027b" prot="public" virt="non-virtual"><scope>HashStrings</scope><name>nameCount</name></member>
+      <member refid="classHashStrings_1af949f263dd42cb4bbb7959e8c6b370b1" prot="protected" virt="non-virtual"><scope>HashStrings</scope><name>names</name></member>
+      <member refid="classHashStrings_1abaefa406451324e4c2b8fac353087294" prot="public" virt="non-virtual"><scope>HashStrings</scope><name>reset</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

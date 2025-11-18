@@ -1,0 +1,462 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGpuUserConfig" kind="struct" language="C++" prot="public">
+    <compoundname>GpuUserConfig</compoundname>
+    <includes refid="dag__gpuConfig_8h" local="no">dag_gpuConfig.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGpuUserConfig_1a7194efc5e79be1bafd9d25285d7169bd" prot="public" static="no" mutable="no">
+        <type>GpuVendor</type>
+        <definition>GpuVendor GpuUserConfig::primaryVendor</definition>
+        <argsstring></argsstring>
+        <name>primaryVendor</name>
+        <qualifiedname>GpuUserConfig::primaryVendor</qualifiedname>
+        <initializer>= GpuVendor::UNKNOWN</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="31" column="13" bodyfile="dag_gpuConfig.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1af481a3e9c01b76bfac814f3086b6b256" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GpuUserConfig::physicalFrameBufferSize</definition>
+        <argsstring></argsstring>
+        <name>physicalFrameBufferSize</name>
+        <qualifiedname>GpuUserConfig::physicalFrameBufferSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="32" column="12" bodyfile="dag_gpuConfig.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1af002cc8cfa6af013b747aef39c2c54fd" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GpuUserConfig::deviceId</definition>
+        <argsstring></argsstring>
+        <name>deviceId</name>
+        <qualifiedname>GpuUserConfig::deviceId</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="33" column="12" bodyfile="dag_gpuConfig.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a768257bd20fffd78ef5fe0f74132d4b8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::vendorAAisOn</definition>
+        <argsstring></argsstring>
+        <name>vendorAAisOn</name>
+        <qualifiedname>GpuUserConfig::vendorAAisOn</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="34" column="8" bodyfile="dag_gpuConfig.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a6ddfa2004baed9b1517e65bc45955dca" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::outdatedDriver</definition>
+        <argsstring></argsstring>
+        <name>outdatedDriver</name>
+        <qualifiedname>GpuUserConfig::outdatedDriver</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="35" column="8" bodyfile="dag_gpuConfig.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1af6ce0b69dda3ba37341b66705305307e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::fallbackToCompatibilty</definition>
+        <argsstring></argsstring>
+        <name>fallbackToCompatibilty</name>
+        <qualifiedname>GpuUserConfig::fallbackToCompatibilty</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="36" column="8" bodyfile="dag_gpuConfig.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a5629f46849b45d5c2128e6152462e926" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::disableUav</definition>
+        <argsstring></argsstring>
+        <name>disableUav</name>
+        <qualifiedname>GpuUserConfig::disableUav</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="37" column="8" bodyfile="dag_gpuConfig.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a767d54bb93cbddd9237527812214c474" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::integrated</definition>
+        <argsstring></argsstring>
+        <name>integrated</name>
+        <qualifiedname>GpuUserConfig::integrated</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="40" column="10" bodyfile="dag_gpuConfig.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a80c2402e6fbd2bdc73eec183ecd371fc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::usedSlowIntegrated</definition>
+        <argsstring></argsstring>
+        <name>usedSlowIntegrated</name>
+        <qualifiedname>GpuUserConfig::usedSlowIntegrated</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="41" column="10" bodyfile="dag_gpuConfig.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a010a06d0b3b5138d43ea43ebff65326b" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structGpuUserConfig" kindref="compound">GpuUserConfig</ref></type>
+        <definition>union GpuUserConfig GpuUserConfig</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>GpuUserConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a475042b777ad8241ad2751aece36f4bd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::usedSlowIntegratedSwitchableGpu</definition>
+        <argsstring></argsstring>
+        <name>usedSlowIntegratedSwitchableGpu</name>
+        <qualifiedname>GpuUserConfig::usedSlowIntegratedSwitchableGpu</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="43" column="8" bodyfile="dag_gpuConfig.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a977d1c9a017df209196f56496cc52912" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::gradientWorkaroud</definition>
+        <argsstring></argsstring>
+        <name>gradientWorkaroud</name>
+        <qualifiedname>GpuUserConfig::gradientWorkaroud</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="44" column="8" bodyfile="dag_gpuConfig.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a47817d9d5e5f9b30a1e23263b499916d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::disableTexArrayCompression</definition>
+        <argsstring></argsstring>
+        <name>disableTexArrayCompression</name>
+        <qualifiedname>GpuUserConfig::disableTexArrayCompression</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="45" column="8" bodyfile="dag_gpuConfig.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a0cc3ae2000dce3571e004a417ce8ebfb" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::disableSbuffers</definition>
+        <argsstring></argsstring>
+        <name>disableSbuffers</name>
+        <qualifiedname>GpuUserConfig::disableSbuffers</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="46" column="8" bodyfile="dag_gpuConfig.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a6a384540142d17214449e97394cef16e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::disableMeshStreaming</definition>
+        <argsstring></argsstring>
+        <name>disableMeshStreaming</name>
+        <qualifiedname>GpuUserConfig::disableMeshStreaming</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="47" column="8" bodyfile="dag_gpuConfig.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a167595a9696b95e0a507ead34efe8846" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::disableDepthCopyResource</definition>
+        <argsstring></argsstring>
+        <name>disableDepthCopyResource</name>
+        <qualifiedname>GpuUserConfig::disableDepthCopyResource</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="48" column="8" bodyfile="dag_gpuConfig.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a88e58280757afccdb3c25c5d767f8aae" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::multipleCopySubresourceWorkaround</definition>
+        <argsstring></argsstring>
+        <name>multipleCopySubresourceWorkaround</name>
+        <qualifiedname>GpuUserConfig::multipleCopySubresourceWorkaround</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="49" column="8" bodyfile="dag_gpuConfig.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a16a48ef669c89a3bcad976d6eedcf2e0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::forceDx10</definition>
+        <argsstring></argsstring>
+        <name>forceDx10</name>
+        <qualifiedname>GpuUserConfig::forceDx10</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="50" column="8" bodyfile="dag_gpuConfig.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a326678fbac7187a7264131a1f1b864fa" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::hardwareDx10</definition>
+        <argsstring></argsstring>
+        <name>hardwareDx10</name>
+        <qualifiedname>GpuUserConfig::hardwareDx10</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="51" column="8" bodyfile="dag_gpuConfig.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a16610a60c82d8d3e6b75c9a5143f3986" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::oldHardware</definition>
+        <argsstring></argsstring>
+        <name>oldHardware</name>
+        <qualifiedname>GpuUserConfig::oldHardware</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="52" column="8" bodyfile="dag_gpuConfig.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a315e02d632f160ca3b7d668144d035b9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GpuUserConfig::driverVersion[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>driverVersion</name>
+        <qualifiedname>GpuUserConfig::driverVersion</qualifiedname>
+        <initializer>= {0, 0, 0, 0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="53" column="12" bodyfile="dag_gpuConfig.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a216761b7ab670e285f3f9a6617051f6f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::lowMem</definition>
+        <argsstring></argsstring>
+        <name>lowMem</name>
+        <qualifiedname>GpuUserConfig::lowMem</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="55" column="8" bodyfile="dag_gpuConfig.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a3cbcf2e2e91a880aae5b279a6528eeab" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuUserConfig::ultraLowMem</definition>
+        <argsstring></argsstring>
+        <name>ultraLowMem</name>
+        <qualifiedname>GpuUserConfig::ultraLowMem</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="56" column="8" bodyfile="dag_gpuConfig.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a46bc887dd7dc61f485f0df1c848fd76e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GpuUserConfig::videoMemMb</definition>
+        <argsstring></argsstring>
+        <name>videoMemMb</name>
+        <qualifiedname>GpuUserConfig::videoMemMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="57" column="12" bodyfile="dag_gpuConfig.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a14b7b6341c914022542f3912eae459ab" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GpuUserConfig::freePhysMemMb</definition>
+        <argsstring></argsstring>
+        <name>freePhysMemMb</name>
+        <qualifiedname>GpuUserConfig::freePhysMemMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="58" column="7" bodyfile="dag_gpuConfig.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a1e252174195a3a88bda1c715aa500e06" prot="public" static="no" mutable="no">
+        <type>int64_t</type>
+        <definition>int64_t GpuUserConfig::freeVirtualMemMb</definition>
+        <argsstring></argsstring>
+        <name>freeVirtualMemMb</name>
+        <qualifiedname>GpuUserConfig::freeVirtualMemMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="59" column="11" bodyfile="dag_gpuConfig.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuUserConfig_1a7445878a89a701e197ad328b8f4b6bc8" prot="public" static="no" mutable="no">
+        <type>int64_t</type>
+        <definition>int64_t GpuUserConfig::totalVirtualMemMb</definition>
+        <argsstring></argsstring>
+        <name>totalVirtualMemMb</name>
+        <qualifiedname>GpuUserConfig::totalVirtualMemMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="60" column="11" bodyfile="dag_gpuConfig.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structGpuUserConfig_1a4a81ee2cef50a5804cb2c969d6720489" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String GpuUserConfig::generateDriverVersionString</definition>
+        <argsstring>() const</argsstring>
+        <name>generateDriverVersionString</name>
+        <qualifiedname>GpuUserConfig::generateDriverVersionString</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="62" column="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_gpuConfig.h" line="29" column="1" bodyfile="dag_gpuConfig.h" bodystart="30" bodyend="63"/>
+    <listofallmembers>
+      <member refid="structGpuUserConfig_1af002cc8cfa6af013b747aef39c2c54fd" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>deviceId</name></member>
+      <member refid="structGpuUserConfig_1a167595a9696b95e0a507ead34efe8846" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>disableDepthCopyResource</name></member>
+      <member refid="structGpuUserConfig_1a6a384540142d17214449e97394cef16e" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>disableMeshStreaming</name></member>
+      <member refid="structGpuUserConfig_1a0cc3ae2000dce3571e004a417ce8ebfb" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>disableSbuffers</name></member>
+      <member refid="structGpuUserConfig_1a47817d9d5e5f9b30a1e23263b499916d" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>disableTexArrayCompression</name></member>
+      <member refid="structGpuUserConfig_1a5629f46849b45d5c2128e6152462e926" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>disableUav</name></member>
+      <member refid="structGpuUserConfig_1a315e02d632f160ca3b7d668144d035b9" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>driverVersion</name></member>
+      <member refid="structGpuUserConfig_1af6ce0b69dda3ba37341b66705305307e" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>fallbackToCompatibilty</name></member>
+      <member refid="structGpuUserConfig_1a16a48ef669c89a3bcad976d6eedcf2e0" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>forceDx10</name></member>
+      <member refid="structGpuUserConfig_1a14b7b6341c914022542f3912eae459ab" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>freePhysMemMb</name></member>
+      <member refid="structGpuUserConfig_1a1e252174195a3a88bda1c715aa500e06" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>freeVirtualMemMb</name></member>
+      <member refid="structGpuUserConfig_1a4a81ee2cef50a5804cb2c969d6720489" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>generateDriverVersionString</name></member>
+      <member refid="structGpuUserConfig_1a977d1c9a017df209196f56496cc52912" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>gradientWorkaroud</name></member>
+      <member refid="structGpuUserConfig_1a326678fbac7187a7264131a1f1b864fa" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>hardwareDx10</name></member>
+      <member refid="structGpuUserConfig_1a767d54bb93cbddd9237527812214c474" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>integrated</name></member>
+      <member refid="structGpuUserConfig_1a216761b7ab670e285f3f9a6617051f6f" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>lowMem</name></member>
+      <member refid="structGpuUserConfig_1a88e58280757afccdb3c25c5d767f8aae" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>multipleCopySubresourceWorkaround</name></member>
+      <member refid="structGpuUserConfig_1a16610a60c82d8d3e6b75c9a5143f3986" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>oldHardware</name></member>
+      <member refid="structGpuUserConfig_1a6ddfa2004baed9b1517e65bc45955dca" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>outdatedDriver</name></member>
+      <member refid="structGpuUserConfig_1af481a3e9c01b76bfac814f3086b6b256" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>physicalFrameBufferSize</name></member>
+      <member refid="structGpuUserConfig_1a7194efc5e79be1bafd9d25285d7169bd" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>primaryVendor</name></member>
+      <member refid="structGpuUserConfig_1a7445878a89a701e197ad328b8f4b6bc8" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>totalVirtualMemMb</name></member>
+      <member refid="structGpuUserConfig_1a3cbcf2e2e91a880aae5b279a6528eeab" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>ultraLowMem</name></member>
+      <member refid="structGpuUserConfig_1a80c2402e6fbd2bdc73eec183ecd371fc" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>usedSlowIntegrated</name></member>
+      <member refid="structGpuUserConfig_1a475042b777ad8241ad2751aece36f4bd" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>usedSlowIntegratedSwitchableGpu</name></member>
+      <member refid="structGpuUserConfig_1a768257bd20fffd78ef5fe0f74132d4b8" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>vendorAAisOn</name></member>
+      <member refid="structGpuUserConfig_1a46bc887dd7dc61f485f0df1c848fd76e" prot="public" virt="non-virtual"><scope>GpuUserConfig</scope><name>videoMemMb</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

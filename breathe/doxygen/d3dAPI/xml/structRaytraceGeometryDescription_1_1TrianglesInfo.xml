@@ -1,0 +1,223 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceGeometryDescription_1_1TrianglesInfo" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceGeometryDescription::TrianglesInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8f9ef2224551c5715f426ee55eeb2c63" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* RaytraceGeometryDescription::TrianglesInfo::transformBuffer</definition>
+        <argsstring></argsstring>
+        <name>transformBuffer</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::transformBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="72" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1aa28576131893b4ec0418effec5de2eef" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* RaytraceGeometryDescription::TrianglesInfo::vertexBuffer</definition>
+        <argsstring></argsstring>
+        <name>vertexBuffer</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::vertexBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="73" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1d1bb606a4ba21acb17b392fadce3d4b" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* RaytraceGeometryDescription::TrianglesInfo::indexBuffer</definition>
+        <argsstring></argsstring>
+        <name>indexBuffer</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::indexBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="74" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a3123af9e2c468be11a758cec837a04e8" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::transformOffset</definition>
+        <argsstring></argsstring>
+        <name>transformOffset</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::transformOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="76" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a9b754a0ab2ffa2e691093ad9a1c47979" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::vertexCount</definition>
+        <argsstring></argsstring>
+        <name>vertexCount</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::vertexCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="77" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1ae2432aa744257614bbb8f6358127b63f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::vertexStride</definition>
+        <argsstring></argsstring>
+        <name>vertexStride</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::vertexStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="78" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a61a581a6f99f20ec1b08d1127232b755" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::vertexOffset</definition>
+        <argsstring></argsstring>
+        <name>vertexOffset</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::vertexOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="79" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1034ba31eb3e7d8c1e37728b8b8b2a69" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::vertexOffsetExtraBytes</definition>
+        <argsstring></argsstring>
+        <name>vertexOffsetExtraBytes</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::vertexOffsetExtraBytes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="80" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a67a287cb935a20d033dd4d1ffed89076" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::vertexFormat</definition>
+        <argsstring></argsstring>
+        <name>vertexFormat</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::vertexFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="82" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8fdde3f20014f8912a82996d35a0b881" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::indexCount</definition>
+        <argsstring></argsstring>
+        <name>indexCount</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::indexCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="83" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a59c97fc76e62293718fa7cea5a85651c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::TrianglesInfo::indexOffset</definition>
+        <argsstring></argsstring>
+        <name>indexOffset</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::indexOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="84" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1TrianglesInfo_1a4da86f3cdf5483aa24f01dade8d96d60" prot="public" static="no" mutable="no">
+        <type><ref refid="structRaytraceGeometryDescription_1a4ea915a53942928247277ec641751756" kindref="member">Flags</ref></type>
+        <definition>Flags RaytraceGeometryDescription::TrianglesInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>RaytraceGeometryDescription::TrianglesInfo::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="85" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>RaytraceGeometryDescription::TrianglesInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1TrianglesInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>indexBuffer</edgelabel>
+          <edgelabel>transformBuffer</edgelabel>
+          <edgelabel>vertexBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="70" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="71" bodyend="86"/>
+    <listofallmembers>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a4da86f3cdf5483aa24f01dade8d96d60" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>flags</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1d1bb606a4ba21acb17b392fadce3d4b" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>indexBuffer</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8fdde3f20014f8912a82996d35a0b881" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>indexCount</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a59c97fc76e62293718fa7cea5a85651c" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>indexOffset</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a8f9ef2224551c5715f426ee55eeb2c63" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>transformBuffer</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a3123af9e2c468be11a758cec837a04e8" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>transformOffset</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1aa28576131893b4ec0418effec5de2eef" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>vertexBuffer</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a9b754a0ab2ffa2e691093ad9a1c47979" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>vertexCount</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a67a287cb935a20d033dd4d1ffed89076" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>vertexFormat</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a61a581a6f99f20ec1b08d1127232b755" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>vertexOffset</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1a1034ba31eb3e7d8c1e37728b8b8b2a69" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>vertexOffsetExtraBytes</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1TrianglesInfo_1ae2432aa744257614bbb8f6358127b63f" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::TrianglesInfo</scope><name>vertexStride</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

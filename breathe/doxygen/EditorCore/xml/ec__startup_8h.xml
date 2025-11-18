@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__startup_8h" kind="file" language="C++">
+    <compoundname>ec_startup.h</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__startup_8h_1a6f75c764bcf2cabd903b899d2398ce14" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void startup_editor_core_select_startup_scene</definition>
+        <argsstring>()</argsstring>
+        <name>startup_editor_core_select_startup_scene</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startup.h" line="5" column="6" declfile="ec_startup.h" declline="5" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__startup_8h_1a295d0685e77c76b12a7ee2cdedeafdfc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void startup_editor_core_force_startup_scene_draw</definition>
+        <argsstring>()</argsstring>
+        <name>startup_editor_core_force_startup_scene_draw</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startup.h" line="9" column="6" declfile="ec_startup.h" declline="9" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>startup<sp/>scene<sp/>renders<sp/>the<sp/>initial<sp/>workspace<sp/>creator/selector<sp/>dialogs.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5" refid="ec__startup_8h_1a6f75c764bcf2cabd903b899d2398ce14" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__startup_8h_1a6f75c764bcf2cabd903b899d2398ce14" kindref="member">startup_editor_core_select_startup_scene</ref>();</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Draw<sp/>a<sp/>new<sp/>startup<sp/>scene<sp/>frame.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>is<sp/>needed<sp/>to<sp/>get<sp/>rid<sp/>of<sp/>the<sp/>open<sp/>dialog<sp/>from<sp/>the<sp/>screen<sp/>once<sp/>the<sp/>modal<sp/>loop<sp/>ends.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="ec__startup_8h_1a295d0685e77c76b12a7ee2cdedeafdfc" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__startup_8h_1a295d0685e77c76b12a7ee2cdedeafdfc" kindref="member">startup_editor_core_force_startup_scene_draw</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="ec_startup.h"/>
+  </compounddef>
+</doxygen>

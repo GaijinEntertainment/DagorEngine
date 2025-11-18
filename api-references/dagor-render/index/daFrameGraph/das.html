@@ -1,0 +1,1990 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daFrameGraph in Daslang</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="daFrameGraph in Daslang + ECS" href="fg_ecs.html" />
+    <link rel="prev" title="Dispatching Work in Nodes at Runtime" href="runtime.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="core.html">Core Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="declaringNodes.html">Declaring Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="graphState.html">Controlling Graph State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="runtime.html">Dispatching Work in Nodes at Runtime</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">daFrameGraph in Daslang</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#type-aliases">Type Aliases</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#top-level-functions">Top Level Functions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#registry-manipulation">Registry Manipulation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#request-manipulation">Request Manipulation</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="fg_ecs.html">daFrameGraph in Daslang + ECS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daFgCore.html">daFgCore Daslang Module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../daFrameGraph.html">daFrameGraph API</a></li>
+      <li class="breadcrumb-item active">daFrameGraph in Daslang</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/daFrameGraph/das.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="daframegraph-in-daslang">
+<span id="stdlib-daframegraph"></span><h1>daFrameGraph in Daslang<a class="headerlink" href="#daframegraph-in-daslang" title="Link to this heading"></a></h1>
+<p>To use daFrameGraph inside Daslang you need first of all compile daFrameGraph
+library with <code class="docutils literal notranslate"><span class="pre">DAFG_ENABLE_DAS_INTERGRATION</span> <span class="pre">=</span> <span class="pre">yes</span></code>.</p>
+<p>This will compile das module that you can import with <code class="docutils literal notranslate"><span class="pre">require</span> <span class="pre">daFg.fg_ecs</span></code>
+or <code class="docutils literal notranslate"><span class="pre">require</span> <span class="pre">daFg</span></code>, whether you need ECS support or not.</p>
+<p>Daslang daFg methods are very similar to C++ methods, so usage will be the same,
+but with Daslang syntax instead.</p>
+<p><span class="xref std std-ref">daframegraph::registerNode</span> registers node with provided name and declaration callback.
+Returns <a class="reference internal" href="daFgCore.html#handle-dafgcore-nodehandle"><span class="std std-ref">NodeHandle</span></a>.</p>
+<p>Declaration callback is a Daslang lambda with one argument <span class="xref std std-ref">Registry</span>.
+It returns execute lambda.</p>
+<p>Inside declaration callback you describe node using registry argument.</p>
+<p>C++ declaration code</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">registry</span><span class="p">.</span><span class="n">orderMeAfter</span><span class="p">(</span><span class="s">&quot;some_node&quot;</span><span class="p">)</span>
+<span class="n">registry</span><span class="p">.</span><span class="n">requestRenderPass</span><span class="p">().</span><span class="n">color</span><span class="p">(</span><span class="s">&quot;rt_tex&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Will be in Daslang:</p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span><span class="n">registry</span> <span class="se">|&gt;</span> <span class="n">orderMeAfter</span><span class="nt">(</span><span class="s">&quot;some_node&quot;</span><span class="nt">)</span>
+<span class="n">registry</span> <span class="se">|&gt;</span> <span class="n">requestRenderPass</span> <span class="se">|&gt;</span> <span class="n">color</span><span class="nt">([[</span><span class="kt">auto</span> <span class="s">&quot;rt_tex&quot;</span><span class="nt">]])</span>
+</pre></div>
+</div>
+<p><strong>Example</strong>:</p>
+<div class="highlight-das notranslate"><div class="highlight"><pre><span></span><span class="k">require</span> <span class="n">daFrameGraph</span>
+
+<span class="k">def</span> <span class="nf">register_debug_visualization_node</span><span class="nt">(</span><span class="k">var</span> <span class="nv">handle</span><span class="p"> : </span><span class="kt">NodeHandle</span><span class="se">&amp;</span> <span class="se">|</span><span class="nt">#)</span>
+  <span class="n">handle</span> <span class="se">&lt;-</span> <span class="n">root</span><span class="nt">()</span> <span class="se">|&gt;</span> <span class="n">registerNode</span><span class="nt">(</span><span class="n">debug_visualization_node_name</span><span class="nt">)</span> <span class="se">&lt;|</span> <span class="nt">@(</span><span class="k">var</span> <span class="nv">registry</span><span class="p"> : </span><span class="kt">Registry</span><span class="nt">)</span>
+    <span class="k">if</span> <span class="n">is_forward_rendering</span><span class="nt">()</span>
+      <span class="n">registry</span> <span class="se">|&gt;</span> <span class="n">requestRenderPass</span> <span class="se">|&gt;</span> <span class="n">color</span><span class="nt">([[</span><span class="kt">auto</span><span class="nt">[]</span> <span class="s">&quot;target_after_under_water_fog&quot;</span><span class="nt">]])</span> <span class="se">|&gt;</span> <span class="n">depthRo</span><span class="nt">(</span><span class="s">&quot;depth_for_transparent_effects&quot;</span><span class="nt">)</span>
+    <span class="k">else</span>
+      <span class="n">registry</span> <span class="se">|&gt;</span> <span class="n">orderMeAfter</span><span class="nt">(</span><span class="s">&quot;tracers_node&quot;</span><span class="nt">)</span>
+      <span class="n">registry</span> <span class="se">|&gt;</span> <span class="n">orderMeBefore</span><span class="nt">(</span><span class="s">&quot;transparent_scene_late_node&quot;</span><span class="nt">)</span>
+      <span class="n">registry</span> <span class="se">|&gt;</span> <span class="n">requestRenderPass</span> <span class="se">|&gt;</span> <span class="n">color</span><span class="nt">([[</span><span class="kt">auto</span><span class="nt">[]</span> <span class="s">&quot;opaque_final_target&quot;</span><span class="nt">]])</span> <span class="se">|&gt;</span> <span class="n">depthRw</span><span class="nt">(</span><span class="s">&quot;depth_for_transparency&quot;</span><span class="nt">)</span>
+
+    <span class="n">registry</span> <span class="se">|&gt;</span> <span class="n">requestState</span><span class="nt">()</span> <span class="se">|&gt;</span> <span class="n">setFrameBlock</span><span class="nt">(</span><span class="s">&quot;global_frame&quot;</span><span class="nt">)</span>
+    <span class="k">return</span> <span class="se">&lt;-</span> <span class="nt">@</span> <span class="se">&lt;|</span>
+      <span class="n">worldRenderer_renderDebug</span><span class="nt">()</span>
+</pre></div>
+</div>
+<section id="type-aliases">
+<h2>Type Aliases<a class="headerlink" href="#type-aliases" title="Link to this heading"></a></h2>
+<dl class="das attribute" id="alias-vrsratetexture">
+<dt class="sig sig-object das" id="VrsRateTexture is a variant type">
+<span class="sig-name descname"><span class="pre">VrsRateTexture</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">variant</span> <span class="pre">type</span></span><a class="headerlink" href="#VrsRateTexture is a variant type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>some</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>none</p></td>
+<td rowspan="2"><p>void?</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id1"><span class="problematic" id="id2">|typedef-daframegraph-VrsRateTexture|</span></a></p>
+<dl class="das attribute" id="alias-virtualattachmentresource">
+<dt class="sig sig-object das" id="VirtualAttachmentResource is a variant type">
+<span class="sig-name descname"><span class="pre">VirtualAttachmentResource</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">variant</span> <span class="pre">type</span></span><a class="headerlink" href="#VirtualAttachmentResource is a variant type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id3"><span class="problematic" id="id4">|typedef-daframegraph-VirtualAttachmentResource|</span></a></p>
+<dl class="das attribute" id="alias-textureresolution">
+<dt class="sig sig-object das" id="TextureResolution is a variant type">
+<span class="sig-name descname"><span class="pre">TextureResolution</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">variant</span> <span class="pre">type</span></span><a class="headerlink" href="#TextureResolution is a variant type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>res</p></td>
+<td rowspan="2"><p>tuple&lt;x:uint;y:uint&gt;</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>autoRes</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-autoresolutionrequest"><span class="std std-ref">daframegraph::AutoResolutionRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id5"><span class="problematic" id="id6">|typedef-daframegraph-TextureResolution|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-namespacerequest">
+<dt class="sig sig-object das" id="NameSpaceRequest">
+<span class="sig-name descname"><span class="pre">NameSpaceRequest</span></span><a class="headerlink" href="#NameSpaceRequest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NameSpaceRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>nameSpaceId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-namespacenameid"><span class="std std-ref">daFgCore::NameSpaceNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id7"><span class="problematic" id="id8">|structure-daframegraph-NameSpaceRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-registry">
+<dt class="sig sig-object das" id="Registry">
+<span class="sig-name descname"><span class="pre">Registry</span></span><a class="headerlink" href="#Registry" title="Link to this definition"></a></dt>
+<dd><p>: NameSpaceRequest</p>
+</dd></dl>
+
+<p>Registry fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>nameSpaceId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-namespacenameid"><span class="std std-ref">daFgCore::NameSpaceNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id9"><span class="problematic" id="id10">|structure-daframegraph-Registry|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-namespace">
+<dt class="sig sig-object das" id="NameSpace">
+<span class="sig-name descname"><span class="pre">NameSpace</span></span><a class="headerlink" href="#NameSpace" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NameSpace fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>nameSpaceId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-namespacenameid"><span class="std std-ref">daFgCore::NameSpaceNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id11"><span class="problematic" id="id12">|structure-daframegraph-NameSpace|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-resuid">
+<dt class="sig sig-object das" id="ResUid">
+<span class="sig-name descname"><span class="pre">ResUid</span></span><a class="headerlink" href="#ResUid" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>ResUid fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>nameId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-resnameid"><span class="std std-ref">daFgCore::ResNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p>bool</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id13"><span class="problematic" id="id14">|structure-daframegraph-ResUid|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualresourcerequestbase">
+<dt class="sig sig-object das" id="VirtualResourceRequestBase">
+<span class="sig-name descname"><span class="pre">VirtualResourceRequestBase</span></span><a class="headerlink" href="#VirtualResourceRequestBase" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualResourceRequestBase fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id15"><span class="problematic" id="id16">|structure-daframegraph-VirtualResourceRequestBase|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualresourcehandle">
+<dt class="sig sig-object das" id="VirtualResourceHandle">
+<span class="sig-name descname"><span class="pre">VirtualResourceHandle</span></span><a class="headerlink" href="#VirtualResourceHandle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualResourceHandle fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id17"><span class="problematic" id="id18">|structure-daframegraph-VirtualResourceHandle|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualresourcecreationsemirequest">
+<dt class="sig sig-object das" id="VirtualResourceCreationSemiRequest">
+<span class="sig-name descname"><span class="pre">VirtualResourceCreationSemiRequest</span></span><a class="headerlink" href="#VirtualResourceCreationSemiRequest" title="Link to this definition"></a></dt>
+<dd><p>: VirtualResourceRequestBase</p>
+</dd></dl>
+
+<p>VirtualResourceCreationSemiRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id19"><span class="problematic" id="id20">|structure-daframegraph-VirtualResourceCreationSemiRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualresourcesemirequest">
+<dt class="sig sig-object das" id="VirtualResourceSemiRequest">
+<span class="sig-name descname"><span class="pre">VirtualResourceSemiRequest</span></span><a class="headerlink" href="#VirtualResourceSemiRequest" title="Link to this definition"></a></dt>
+<dd><p>: VirtualResourceRequestBase</p>
+</dd></dl>
+
+<p>VirtualResourceSemiRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id21"><span class="problematic" id="id22">|structure-daframegraph-VirtualResourceSemiRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualresourcerequest">
+<dt class="sig sig-object das" id="VirtualResourceRequest">
+<span class="sig-name descname"><span class="pre">VirtualResourceRequest</span></span><a class="headerlink" href="#VirtualResourceRequest" title="Link to this definition"></a></dt>
+<dd><p>: VirtualResourceRequestBase</p>
+</dd></dl>
+
+<p>VirtualResourceRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id23"><span class="problematic" id="id24">|structure-daframegraph-VirtualResourceRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualtexturehandle">
+<dt class="sig sig-object das" id="VirtualTextureHandle">
+<span class="sig-name descname"><span class="pre">VirtualTextureHandle</span></span><a class="headerlink" href="#VirtualTextureHandle" title="Link to this definition"></a></dt>
+<dd><p>: VirtualResourceHandle</p>
+</dd></dl>
+
+<p>VirtualTextureHandle fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id25"><span class="problematic" id="id26">|structure-daframegraph-VirtualTextureHandle|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualbufferhandle">
+<dt class="sig sig-object das" id="VirtualBufferHandle">
+<span class="sig-name descname"><span class="pre">VirtualBufferHandle</span></span><a class="headerlink" href="#VirtualBufferHandle" title="Link to this definition"></a></dt>
+<dd><p>: VirtualResourceHandle</p>
+</dd></dl>
+
+<p>VirtualBufferHandle fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id27"><span class="problematic" id="id28">|structure-daframegraph-VirtualBufferHandle|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualtexturerequest">
+<dt class="sig sig-object das" id="VirtualTextureRequest">
+<span class="sig-name descname"><span class="pre">VirtualTextureRequest</span></span><a class="headerlink" href="#VirtualTextureRequest" title="Link to this definition"></a></dt>
+<dd><p>: VirtualResourceRequest</p>
+</dd></dl>
+
+<p>VirtualTextureRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id29"><span class="problematic" id="id30">|structure-daframegraph-VirtualTextureRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualbufferrequest">
+<dt class="sig sig-object das" id="VirtualBufferRequest">
+<span class="sig-name descname"><span class="pre">VirtualBufferRequest</span></span><a class="headerlink" href="#VirtualBufferRequest" title="Link to this definition"></a></dt>
+<dd><p>: VirtualResourceRequest</p>
+</dd></dl>
+
+<p>VirtualBufferRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>resUid</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-resuid"><span class="std std-ref">daframegraph::ResUid</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id31"><span class="problematic" id="id32">|structure-daframegraph-VirtualBufferRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-staterequest">
+<dt class="sig sig-object das" id="StateRequest">
+<span class="sig-name descname"><span class="pre">StateRequest</span></span><a class="headerlink" href="#StateRequest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>StateRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id33"><span class="problematic" id="id34">|structure-daframegraph-StateRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-vrsrequirements">
+<dt class="sig sig-object das" id="VrsRequirements">
+<span class="sig-name descname"><span class="pre">VrsRequirements</span></span><a class="headerlink" href="#VrsRequirements" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VrsRequirements fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>rateX</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateY</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>rateTexture</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#alias-vrsratetexture"><span class="std std-ref">VrsRateTexture</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vertexCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-variablerateshadingcombiner"><span class="std std-ref">daFgCore::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>pixelCombiner</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-variablerateshadingcombiner"><span class="std std-ref">daFgCore::VariableRateShadingCombiner</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id35"><span class="problematic" id="id36">|structure-daframegraph-VrsRequirements|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualpassrequest">
+<dt class="sig sig-object das" id="VirtualPassRequest">
+<span class="sig-name descname"><span class="pre">VirtualPassRequest</span></span><a class="headerlink" href="#VirtualPassRequest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualPassRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>nodeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-nodenameid"><span class="std std-ref">daFgCore::NodeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id37"><span class="problematic" id="id38">|structure-daframegraph-VirtualPassRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-virtualattachmentrequest">
+<dt class="sig sig-object das" id="VirtualAttachmentRequest">
+<span class="sig-name descname"><span class="pre">VirtualAttachmentRequest</span></span><a class="headerlink" href="#VirtualAttachmentRequest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>VirtualAttachmentRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resource</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#alias-virtualattachmentresource"><span class="std std-ref">VirtualAttachmentResource</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevel</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>layer</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id39"><span class="problematic" id="id40">|structure-daframegraph-VirtualAttachmentRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-autoresolutionrequest">
+<dt class="sig sig-object das" id="AutoResolutionRequest">
+<span class="sig-name descname"><span class="pre">AutoResolutionRequest</span></span><a class="headerlink" href="#AutoResolutionRequest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>AutoResolutionRequest fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>autoResTypeId</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-autorestypenameid"><span class="std std-ref">daFgCore::AutoResTypeNameId</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>multiplier</p></td>
+<td rowspan="2"><p>float</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>registry</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#handle-dafgcore-internalregistry"><span class="std std-ref">daFgCore::InternalRegistry</span></a> ?</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id41"><span class="problematic" id="id42">|structure-daframegraph-AutoResolutionRequest|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-texture2dcreateinfo">
+<dt class="sig sig-object das" id="Texture2dCreateInfo">
+<span class="sig-name descname"><span class="pre">Texture2dCreateInfo</span></span><a class="headerlink" href="#Texture2dCreateInfo" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Texture2dCreateInfo fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resolution</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#alias-textureresolution"><span class="std std-ref">TextureResolution</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>creationFlags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>mipLevels</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id43"><span class="problematic" id="id44">|structure-daframegraph-Texture2dCreateInfo|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-buffercreateinfo">
+<dt class="sig sig-object das" id="BufferCreateInfo">
+<span class="sig-name descname"><span class="pre">BufferCreateInfo</span></span><a class="headerlink" href="#BufferCreateInfo" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>BufferCreateInfo fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>elementSize</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>elementCount</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>flags</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>format</p></td>
+<td rowspan="2"><p>uint</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id45"><span class="problematic" id="id46">|structure-daframegraph-BufferCreateInfo|</span></a></p>
+<dl class="das attribute" id="struct-daframegraph-namedslot">
+<dt class="sig sig-object das" id="NamedSlot">
+<span class="sig-name descname"><span class="pre">NamedSlot</span></span><a class="headerlink" href="#NamedSlot" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>NamedSlot fields are</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id47"><span class="problematic" id="id48">|structure-daframegraph-NamedSlot|</span></a></p>
+</section>
+<section id="top-level-functions">
+<h2>Top Level Functions<a class="headerlink" href="#top-level-functions" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-root"><span class="std std-ref">root () : daFrameGraph::NameSpace</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-s-ls-daframegraph-c-c-namespace-gr-cs"><span class="std std-ref">/ (self:daFrameGraph::NameSpace -const;child_name:string const) : daFrameGraph::NameSpace</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-fillslot-s-ls-daframegraph-c-c-namespace-gr-cs-ls-daframegraph-c-c-namedslot-gr-cs-ls-daframegraph-c-c-namespace-gr-cs"><span class="std std-ref">fillSlot (self:daFrameGraph::NameSpace -const;slot:daFrameGraph::NamedSlot const;res_name_space:daFrameGraph::NameSpace const;res_name:string const) : void</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-registernode-s-ls-daframegraph-c-c-namespace-gr-cs-n-ls-reg-gr-0-ls-s-ls-daframegraph-c-c-registry-gr-gr-1-ls-1-ls-v-gr-at-gr-at"><span class="std std-ref">registerNode (self:daFrameGraph::NameSpace -const;name:string const;declaration_callback:lambda&lt;(var reg:daFrameGraph::Registry -const):lambda&lt;void&gt;&gt; -const) : daFgCore::NodeHandle</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-root-s-ls-daframegraph-c-c-registry-gr"><span class="std std-ref">root (self:daFrameGraph::Registry -const) : daFrameGraph::NameSpaceRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-s-ls-daframegraph-c-c-namespacerequest-gr-cs"><span class="std std-ref">/ (self:daFrameGraph::NameSpaceRequest -const;child_name:string const) : daFrameGraph::NameSpaceRequest</span></a></p></li>
+</ul>
+</div></blockquote>
+<dl class="das function" id="function-at-daframegraph-c-c-root">
+<dt class="sig sig-object das" id="root">
+<span class="sig-name descname"><span class="pre">root</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#root" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>root returns  <a class="reference internal" href="#struct-daframegraph-namespace"><span class="std std-ref">daframegraph::NameSpace</span></a></p>
+<p><a href="#id49"><span class="problematic" id="id50">|function-daframegraph-root|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-s-ls-daframegraph-c-c-namespace-gr-cs">
+<dt class="sig sig-object das" id="operator /">
+<span class="sig-name descname"><span class="pre">operator</span> <span class="pre">/</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpace;</span> <span class="pre">child_name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#operator /" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>/ returns  <a class="reference internal" href="#struct-daframegraph-namespace"><span class="std std-ref">daframegraph::NameSpace</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespace"><span class="std std-ref">daframegraph::NameSpace</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>child_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id51"><span class="problematic" id="id52">|function-daframegraph-/|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-fillslot-s-ls-daframegraph-c-c-namespace-gr-cs-ls-daframegraph-c-c-namedslot-gr-cs-ls-daframegraph-c-c-namespace-gr-cs">
+<dt class="sig sig-object das" id="fillSlot">
+<span class="sig-name descname"><span class="pre">fillSlot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpace;</span> <span class="pre">slot:</span> <span class="pre">NamedSlot</span> <span class="pre">const;</span> <span class="pre">res_name_space:</span> <span class="pre">NameSpace</span> <span class="pre">const;</span> <span class="pre">res_name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fillSlot" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespace"><span class="std std-ref">daframegraph::NameSpace</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slot</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namedslot"><span class="std std-ref">daframegraph::NamedSlot</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>res_name_space</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespace"><span class="std std-ref">daframegraph::NameSpace</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>res_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id53"><span class="problematic" id="id54">|function-daframegraph-fillSlot|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-registernode-s-ls-daframegraph-c-c-namespace-gr-cs-n-ls-reg-gr-0-ls-s-ls-daframegraph-c-c-registry-gr-gr-1-ls-1-ls-v-gr-at-gr-at">
+<dt class="sig sig-object das" id="registerNode">
+<span class="sig-name descname"><span class="pre">registerNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpace;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">declaration_callback:</span> <span class="pre">lambda&lt;(var</span> <span class="pre">reg:daFrameGraph::Registry</span> <span class="pre">-const):lambda&lt;void&gt;&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#registerNode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>registerNode returns  <a class="reference internal" href="daFgCore.html#handle-dafgcore-nodehandle"><span class="std std-ref">daFgCore::NodeHandle</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespace"><span class="std std-ref">daframegraph::NameSpace</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>declaration_callback</p></td>
+<td rowspan="2"><p>lambda&lt;(reg: <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a> ):lambda&lt;&gt;&gt;</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id55"><span class="problematic" id="id56">|function-daframegraph-registerNode|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-root-s-ls-daframegraph-c-c-registry-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">root</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>root returns  <a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id57"><span class="problematic" id="id58">|function-daframegraph-root|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-s-ls-daframegraph-c-c-namespacerequest-gr-cs">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">operator</span> <span class="pre">/</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">child_name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>/ returns  <a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>child_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id59"><span class="problematic" id="id60">|function-daframegraph-/|</span></a></p>
+</section>
+<section id="registry-manipulation">
+<h2>Registry Manipulation<a class="headerlink" href="#registry-manipulation" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-ordermebefore-s-ls-daframegraph-c-c-registry-gr-cs"><span class="std std-ref">orderMeBefore (self:daFrameGraph::Registry -const;name:string const) : daFrameGraph::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-ordermebefore-s-ls-daframegraph-c-c-registry-gr-c1-ls-s-gr-a"><span class="std std-ref">orderMeBefore (self:daFrameGraph::Registry -const;names:array&lt;string&gt; const) : daFrameGraph::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-ordermeafter-s-ls-daframegraph-c-c-registry-gr-cs"><span class="std std-ref">orderMeAfter (self:daFrameGraph::Registry -const;name:string const) : daFrameGraph::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-ordermeafter-s-ls-daframegraph-c-c-registry-gr-c1-ls-s-gr-a"><span class="std std-ref">orderMeAfter (self:daFrameGraph::Registry -const;names:array&lt;string&gt; const) : daFrameGraph::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-setpriority-s-ls-daframegraph-c-c-registry-gr-ci"><span class="std std-ref">setPriority (self:daFrameGraph::Registry -const;priority:int const) : daFrameGraph::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-multiplex-s-ls-daframegraph-c-c-registry-gr-ce-ls-dafgcore-c-c-multiplexingmode-gr"><span class="std std-ref">multiplex (self:daFrameGraph::Registry -const;multiplexing_mode:daFgCore::MultiplexingMode const) : daFrameGraph::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-executionhas-s-ls-daframegraph-c-c-registry-gr-ce8-ls-dafgcore-c-c-sideeffect-gr"><span class="std std-ref">executionHas (self:daFrameGraph::Registry -const;side_effect:daFgCore::SideEffect const) : daFrameGraph::Registry</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-create-s-ls-daframegraph-c-c-registry-gr-cs-ce8-ls-dafgcore-c-c-history-gr"><span class="std std-ref">create (self:daFrameGraph::Registry -const;name:string const;history:daFgCore::History const) : daFrameGraph::VirtualResourceCreationSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-getresolution-s-ls-daframegraph-c-c-namespacerequest-gr-cs-cf"><span class="std std-ref">getResolution (self:daFrameGraph::NameSpaceRequest -const;type_name:string const;multiplier:float const) : daFrameGraph::AutoResolutionRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-read-s-ls-daframegraph-c-c-namespacerequest-gr-cs"><span class="std std-ref">read (self:daFrameGraph::NameSpaceRequest -const;name:string const) : daFrameGraph::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-read-s-ls-daframegraph-c-c-namespacerequest-gr-cs-ls-daframegraph-c-c-namedslot-gr"><span class="std std-ref">read (self:daFrameGraph::NameSpaceRequest -const;slot:daFrameGraph::NamedSlot const) : daFrameGraph::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-history-s-ls-daframegraph-c-c-namespacerequest-gr-s"><span class="std std-ref">history (self:daFrameGraph::NameSpaceRequest -const;name:string -const) : daFrameGraph::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-modify-s-ls-daframegraph-c-c-namespacerequest-gr-cs"><span class="std std-ref">modify (self:daFrameGraph::NameSpaceRequest -const;name:string const) : daFrameGraph::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-modify-s-ls-daframegraph-c-c-namespacerequest-gr-cs-ls-daframegraph-c-c-namedslot-gr"><span class="std std-ref">modify (self:daFrameGraph::NameSpaceRequest -const;slot:daFrameGraph::NamedSlot const) : daFrameGraph::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-rename-s-ls-daframegraph-c-c-namespacerequest-gr-cs-cs-ce8-ls-dafgcore-c-c-history-gr"><span class="std std-ref">rename (self:daFrameGraph::NameSpaceRequest -const;from:string const;to:string const;history:daFgCore::History const) : daFrameGraph::VirtualResourceSemiRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-get-cs-ls-daframegraph-c-c-autoresolutionrequest-gr"><span class="std std-ref">get (resolution:daFrameGraph::AutoResolutionRequest const) : int2</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-requeststate-s-ls-daframegraph-c-c-registry-gr"><span class="std std-ref">requestState (self:daFrameGraph::Registry -const) : daFrameGraph::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-requestrenderpass-s-ls-daframegraph-c-c-registry-gr"><span class="std std-ref">requestRenderPass (self:daFrameGraph::Registry -const) : daFrameGraph::VirtualPassRequest</span></a></p></li>
+</ul>
+</div></blockquote>
+<dl class="das function" id="function-at-daframegraph-c-c-ordermebefore-s-ls-daframegraph-c-c-registry-gr-cs">
+<dt class="sig sig-object das" id="orderMeBefore">
+<span class="sig-name descname"><span class="pre">orderMeBefore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#orderMeBefore" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>orderMeBefore returns  <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id61"><span class="problematic" id="id62">|function-daframegraph-orderMeBefore|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-ordermebefore-s-ls-daframegraph-c-c-registry-gr-c1-ls-s-gr-a">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">orderMeBefore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">names:</span> <span class="pre">array&lt;string&gt;</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>orderMeBefore returns  <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>names</p></td>
+<td rowspan="2"><p>array&lt;string&gt; const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id63"><span class="problematic" id="id64">|function-daframegraph-orderMeBefore|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-ordermeafter-s-ls-daframegraph-c-c-registry-gr-cs">
+<dt class="sig sig-object das" id="orderMeAfter">
+<span class="sig-name descname"><span class="pre">orderMeAfter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#orderMeAfter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>orderMeAfter returns  <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id65"><span class="problematic" id="id66">|function-daframegraph-orderMeAfter|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-ordermeafter-s-ls-daframegraph-c-c-registry-gr-c1-ls-s-gr-a">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">orderMeAfter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">names:</span> <span class="pre">array&lt;string&gt;</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>orderMeAfter returns  <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>names</p></td>
+<td rowspan="2"><p>array&lt;string&gt; const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id67"><span class="problematic" id="id68">|function-daframegraph-orderMeAfter|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-setpriority-s-ls-daframegraph-c-c-registry-gr-ci">
+<dt class="sig sig-object das" id="setPriority">
+<span class="sig-name descname"><span class="pre">setPriority</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">priority:</span> <span class="pre">int</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setPriority" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setPriority returns  <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>priority</p></td>
+<td rowspan="2"><p>int const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id69"><span class="problematic" id="id70">|function-daframegraph-setPriority|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-multiplex-s-ls-daframegraph-c-c-registry-gr-ce-ls-dafgcore-c-c-multiplexingmode-gr">
+<dt class="sig sig-object das" id="multiplex">
+<span class="sig-name descname"><span class="pre">multiplex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">multiplexing_mode:</span> <span class="pre">MultiplexingMode</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multiplex" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>multiplex returns  <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>multiplexing_mode</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-multiplexingmode"><span class="std std-ref">daFgCore::MultiplexingMode</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id71"><span class="problematic" id="id72">|function-daframegraph-multiplex|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-executionhas-s-ls-daframegraph-c-c-registry-gr-ce8-ls-dafgcore-c-c-sideeffect-gr">
+<dt class="sig sig-object das" id="executionHas">
+<span class="sig-name descname"><span class="pre">executionHas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">side_effect:</span> <span class="pre">SideEffect</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#executionHas" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>executionHas returns  <a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>side_effect</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-sideeffect"><span class="std std-ref">daFgCore::SideEffect</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id73"><span class="problematic" id="id74">|function-daframegraph-executionHas|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-create-s-ls-daframegraph-c-c-registry-gr-cs-ce8-ls-dafgcore-c-c-history-gr">
+<dt class="sig sig-object das" id="create">
+<span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">history:</span> <span class="pre">History</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#create" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>create returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcecreationsemirequest"><span class="std std-ref">daframegraph::VirtualResourceCreationSemiRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-history"><span class="std std-ref">daFgCore::History</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id75"><span class="problematic" id="id76">|function-daframegraph-create|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-getresolution-s-ls-daframegraph-c-c-namespacerequest-gr-cs-cf">
+<dt class="sig sig-object das" id="getResolution">
+<span class="sig-name descname"><span class="pre">getResolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">type_name:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">multiplier:</span> <span class="pre">float</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#getResolution" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>getResolution returns  <a class="reference internal" href="#struct-daframegraph-autoresolutionrequest"><span class="std std-ref">daframegraph::AutoResolutionRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>type_name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>multiplier</p></td>
+<td rowspan="2"><p>float const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id77"><span class="problematic" id="id78">|function-daframegraph-getResolution|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-read-s-ls-daframegraph-c-c-namespacerequest-gr-cs">
+<dt class="sig sig-object das" id="read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#read" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>read returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id79"><span class="problematic" id="id80">|function-daframegraph-read|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-read-s-ls-daframegraph-c-c-namespacerequest-gr-cs-ls-daframegraph-c-c-namedslot-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">slot:</span> <span class="pre">NamedSlot</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>read returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slot</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namedslot"><span class="std std-ref">daframegraph::NamedSlot</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id81"><span class="problematic" id="id82">|function-daframegraph-read|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-history-s-ls-daframegraph-c-c-namespacerequest-gr-s">
+<dt class="sig sig-object das" id="history">
+<span class="sig-name descname"><span class="pre">history</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">name:</span> <span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#history" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>history returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id83"><span class="problematic" id="id84">|function-daframegraph-history|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-modify-s-ls-daframegraph-c-c-namespacerequest-gr-cs">
+<dt class="sig sig-object das" id="modify">
+<span class="sig-name descname"><span class="pre">modify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#modify" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>modify returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id85"><span class="problematic" id="id86">|function-daframegraph-modify|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-modify-s-ls-daframegraph-c-c-namespacerequest-gr-cs-ls-daframegraph-c-c-namedslot-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">modify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">slot:</span> <span class="pre">NamedSlot</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>modify returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>slot</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namedslot"><span class="std std-ref">daframegraph::NamedSlot</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id87"><span class="problematic" id="id88">|function-daframegraph-modify|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-rename-s-ls-daframegraph-c-c-namespacerequest-gr-cs-cs-ce8-ls-dafgcore-c-c-history-gr">
+<dt class="sig sig-object das" id="rename">
+<span class="sig-name descname"><span class="pre">rename</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">NameSpaceRequest;</span> <span class="pre">from:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">to:</span> <span class="pre">string</span> <span class="pre">const;</span> <span class="pre">history:</span> <span class="pre">History</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rename" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>rename returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-namespacerequest"><span class="std std-ref">daframegraph::NameSpaceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>from</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>to</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>history</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-history"><span class="std std-ref">daFgCore::History</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id89"><span class="problematic" id="id90">|function-daframegraph-rename|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-get-cs-ls-daframegraph-c-c-autoresolutionrequest-gr">
+<dt class="sig sig-object das" id="get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resolution:</span> <span class="pre">AutoResolutionRequest</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#get" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>get returns int2</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>resolution</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-autoresolutionrequest"><span class="std std-ref">daframegraph::AutoResolutionRequest</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id91"><span class="problematic" id="id92">|function-daframegraph-get|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-requeststate-s-ls-daframegraph-c-c-registry-gr">
+<dt class="sig sig-object das" id="requestState">
+<span class="sig-name descname"><span class="pre">requestState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#requestState" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>requestState returns  <a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id93"><span class="problematic" id="id94">|function-daframegraph-requestState|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-requestrenderpass-s-ls-daframegraph-c-c-registry-gr">
+<dt class="sig sig-object das" id="requestRenderPass">
+<span class="sig-name descname"><span class="pre">requestRenderPass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">Registry</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#requestRenderPass" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>requestRenderPass returns  <a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-registry"><span class="std std-ref">daframegraph::Registry</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id95"><span class="problematic" id="id96">|function-daframegraph-requestRenderPass|</span></a></p>
+</section>
+<section id="request-manipulation">
+<h2>Request Manipulation<a class="headerlink" href="#request-manipulation" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-texture-s-ls-daframegraph-c-c-virtualresourcecreationsemirequest-gr-cs-ls-daframegraph-c-c-texture2dcreateinfo-gr"><span class="std std-ref">texture (self:daFrameGraph::VirtualResourceCreationSemiRequest -const;info:daFrameGraph::Texture2dCreateInfo const) : daFrameGraph::VirtualTextureRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-texture-s-ls-daframegraph-c-c-virtualresourcesemirequest-gr"><span class="std std-ref">texture (self:daFrameGraph::VirtualResourceSemiRequest -const) : daFrameGraph::VirtualTextureRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-buffer-s-ls-daframegraph-c-c-virtualresourcecreationsemirequest-gr-cs-ls-daframegraph-c-c-buffercreateinfo-gr"><span class="std std-ref">buffer (self:daFrameGraph::VirtualResourceCreationSemiRequest -const;info:daFrameGraph::BufferCreateInfo const) : daFrameGraph::VirtualBufferRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-buffer-s-ls-daframegraph-c-c-virtualresourcesemirequest-gr"><span class="std std-ref">buffer (self:daFrameGraph::VirtualResourceSemiRequest -const) : daFrameGraph::VirtualBufferRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-blob-s-ls-daframegraph-c-c-virtualresourcesemirequest-gr"><span class="std std-ref">blob (self:daFrameGraph::VirtualResourceSemiRequest -const) : daFrameGraph::VirtualResourceRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-modifyrequest-s-ls-daframegraph-c-c-virtualresourcerequest-gr-cn-ls-request-gr-0-ls-h-ls-dafgcore-c-c-resourcerequest-gr-gr-1-ls-v-gr-builtin"><span class="std std-ref">modifyRequest (self:daFrameGraph::VirtualResourceRequest -const;modifier:block&lt;(var request:daFgCore::ResourceRequest -const):void&gt; const) : void</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-handle-cs-ls-daframegraph-c-c-virtualtexturerequest-gr"><span class="std std-ref">handle (self:daFrameGraph::VirtualTextureRequest const) : daFrameGraph::VirtualTextureHandle</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-handle-cs-ls-daframegraph-c-c-virtualbufferrequest-gr"><span class="std std-ref">handle (self:daFrameGraph::VirtualBufferRequest const) : daFrameGraph::VirtualBufferHandle</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-view-cs-ls-daframegraph-c-c-virtualtexturehandle-gr"><span class="std std-ref">view (handle:daFrameGraph::VirtualTextureHandle const) : DagorResPtr::ManagedTexView</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-view-cs-ls-daframegraph-c-c-virtualbufferhandle-gr"><span class="std std-ref">view (handle:daFrameGraph::VirtualBufferHandle const) : DagorResPtr::ManagedBufView</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-setframeblock-s-ls-daframegraph-c-c-staterequest-gr-cs"><span class="std std-ref">setFrameBlock (self:daFrameGraph::StateRequest -const;name:string const) : daFrameGraph::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-setsceneblock-s-ls-daframegraph-c-c-staterequest-gr-cs"><span class="std std-ref">setSceneBlock (self:daFrameGraph::StateRequest -const;name:string const) : daFrameGraph::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-setobjectblock-s-ls-daframegraph-c-c-staterequest-gr-cs"><span class="std std-ref">setObjectBlock (self:daFrameGraph::StateRequest -const;name:string const) : daFrameGraph::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-allowwireframe-s-ls-daframegraph-c-c-staterequest-gr"><span class="std std-ref">allowWireFrame (self:daFrameGraph::StateRequest -const) : daFrameGraph::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-allowvrs-s-ls-daframegraph-c-c-staterequest-gr-cs-ls-daframegraph-c-c-vrsrequirements-gr"><span class="std std-ref">allowVrs (self:daFrameGraph::StateRequest -const;vrs:daFrameGraph::VrsRequirements const) : daFrameGraph::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-enableoverride-s-ls-daframegraph-c-c-staterequest-gr-cs-ls-dagordriver3d-c-c-overriderenderstate-gr"><span class="std std-ref">enableOverride (self:daFrameGraph::StateRequest -const;das_override:DagorDriver3D::OverrideRenderState const) : daFrameGraph::StateRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-color-s-ls-daframegraph-c-c-virtualpassrequest-gr-c1-ls-s-ls-daframegraph-c-c-virtualattachmentrequest-gr-gr-a"><span class="std std-ref">color (self:daFrameGraph::VirtualPassRequest -const;attachments:array&lt;daFrameGraph::VirtualAttachmentRequest&gt; const) : daFrameGraph::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-optional-y-ls-tt-gr"><span class="std std-ref">optional (self:auto(TT) -const) : TT</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-useas-y-ls-tt-gr-ce8-ls-dafgcore-c-c-usage-gr"><span class="std std-ref">useAs (self:auto(TT) -const;usageType:daFgCore::Usage const) : TT</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-atstage-y-ls-tt-gr-ce8-ls-dafgcore-c-c-stage-gr"><span class="std std-ref">atStage (self:auto(TT) -const;stage:daFgCore::Stage const) : TT</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-bindtoshadervar-y-ls-tt-gr-cs"><span class="std std-ref">bindToShaderVar (self:auto(TT) -const;name:string const) : TT</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-color-s-ls-daframegraph-c-c-virtualpassrequest-gr-c-1-s-ls-daframegraph-c-c-virtualtexturerequest-gr"><span class="std std-ref">color (self:daFrameGraph::VirtualPassRequest -const;requests:daFrameGraph::VirtualTextureRequest const[]) : daFrameGraph::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-color-s-ls-daframegraph-c-c-virtualpassrequest-gr-c-1-s"><span class="std std-ref">color (self:daFrameGraph::VirtualPassRequest -const;names:string const[]) : daFrameGraph::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-depthrw-s-ls-daframegraph-c-c-virtualpassrequest-gr-c"><span class="std std-ref">depthRw (self:daFrameGraph::VirtualPassRequest -const;attachment:auto const) : daFrameGraph::VirtualPassRequest</span></a></p></li>
+<li><p><a class="reference internal" href="#function-at-daframegraph-c-c-depthro-s-ls-daframegraph-c-c-virtualpassrequest-gr-c"><span class="std std-ref">depthRo (self:daFrameGraph::VirtualPassRequest -const;attachment:auto const) : daFrameGraph::VirtualPassRequest</span></a></p></li>
+</ul>
+</div></blockquote>
+<dl class="das function" id="function-at-daframegraph-c-c-texture-s-ls-daframegraph-c-c-virtualresourcecreationsemirequest-gr-cs-ls-daframegraph-c-c-texture2dcreateinfo-gr">
+<dt class="sig sig-object das" id="texture">
+<span class="sig-name descname"><span class="pre">texture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceCreationSemiRequest;</span> <span class="pre">info:</span> <span class="pre">Texture2dCreateInfo</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#texture" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>texture returns  <a class="reference internal" href="#struct-daframegraph-virtualtexturerequest"><span class="std std-ref">daframegraph::VirtualTextureRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualresourcecreationsemirequest"><span class="std std-ref">daframegraph::VirtualResourceCreationSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>info</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-texture2dcreateinfo"><span class="std std-ref">daframegraph::Texture2dCreateInfo</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id97"><span class="problematic" id="id98">|function-daframegraph-texture|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-texture-s-ls-daframegraph-c-c-virtualresourcesemirequest-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">texture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceSemiRequest</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>texture returns  <a class="reference internal" href="#struct-daframegraph-virtualtexturerequest"><span class="std std-ref">daframegraph::VirtualTextureRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id99"><span class="problematic" id="id100">|function-daframegraph-texture|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-buffer-s-ls-daframegraph-c-c-virtualresourcecreationsemirequest-gr-cs-ls-daframegraph-c-c-buffercreateinfo-gr">
+<dt class="sig sig-object das" id="buffer">
+<span class="sig-name descname"><span class="pre">buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceCreationSemiRequest;</span> <span class="pre">info:</span> <span class="pre">BufferCreateInfo</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#buffer" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>buffer returns  <a class="reference internal" href="#struct-daframegraph-virtualbufferrequest"><span class="std std-ref">daframegraph::VirtualBufferRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualresourcecreationsemirequest"><span class="std std-ref">daframegraph::VirtualResourceCreationSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>info</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-buffercreateinfo"><span class="std std-ref">daframegraph::BufferCreateInfo</span></a> const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id101"><span class="problematic" id="id102">|function-daframegraph-buffer|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-buffer-s-ls-daframegraph-c-c-virtualresourcesemirequest-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceSemiRequest</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>buffer returns  <a class="reference internal" href="#struct-daframegraph-virtualbufferrequest"><span class="std std-ref">daframegraph::VirtualBufferRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id103"><span class="problematic" id="id104">|function-daframegraph-buffer|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-blob-s-ls-daframegraph-c-c-virtualresourcesemirequest-gr">
+<dt class="sig sig-object das" id="blob">
+<span class="sig-name descname"><span class="pre">blob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceSemiRequest</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#blob" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>blob returns  <a class="reference internal" href="#struct-daframegraph-virtualresourcerequest"><span class="std std-ref">daframegraph::VirtualResourceRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualresourcesemirequest"><span class="std std-ref">daframegraph::VirtualResourceSemiRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id105"><span class="problematic" id="id106">|function-daframegraph-blob|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-modifyrequest-s-ls-daframegraph-c-c-virtualresourcerequest-gr-cn-ls-request-gr-0-ls-h-ls-dafgcore-c-c-resourcerequest-gr-gr-1-ls-v-gr-builtin">
+<dt class="sig sig-object das" id="modifyRequest">
+<span class="sig-name descname"><span class="pre">modifyRequest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualResourceRequest;</span> <span class="pre">modifier:</span> <span class="pre">block&lt;(var</span> <span class="pre">request:daFgCore::ResourceRequest</span> <span class="pre">-const):void&gt;</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#modifyRequest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualresourcerequest"><span class="std std-ref">daframegraph::VirtualResourceRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>modifier</p></td>
+<td rowspan="2"><p>block&lt;(request: <a class="reference internal" href="daFgCore.html#handle-dafgcore-resourcerequest"><span class="std std-ref">daFgCore::ResourceRequest</span></a> ):void&gt; const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id107"><span class="problematic" id="id108">|function-daframegraph-modifyRequest|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-handle-cs-ls-daframegraph-c-c-virtualtexturerequest-gr">
+<dt class="sig sig-object das" id="handle">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualTextureRequest</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#handle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>handle returns  <a class="reference internal" href="#struct-daframegraph-virtualtexturehandle"><span class="std std-ref">daframegraph::VirtualTextureHandle</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualtexturerequest"><span class="std std-ref">daframegraph::VirtualTextureRequest</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id109"><span class="problematic" id="id110">|function-daframegraph-handle|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-handle-cs-ls-daframegraph-c-c-virtualbufferrequest-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualBufferRequest</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>handle returns  <a class="reference internal" href="#struct-daframegraph-virtualbufferhandle"><span class="std std-ref">daframegraph::VirtualBufferHandle</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualbufferrequest"><span class="std std-ref">daframegraph::VirtualBufferRequest</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id111"><span class="problematic" id="id112">|function-daframegraph-handle|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-view-cs-ls-daframegraph-c-c-virtualtexturehandle-gr">
+<dt class="sig sig-object das" id="view">
+<span class="sig-name descname"><span class="pre">view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle:</span> <span class="pre">VirtualTextureHandle</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#view" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>view returns  <span class="xref std std-ref">DagorResPtr::ManagedTexView</span></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>handle</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualtexturehandle"><span class="std std-ref">daframegraph::VirtualTextureHandle</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id113"><span class="problematic" id="id114">|function-daframegraph-view|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-view-cs-ls-daframegraph-c-c-virtualbufferhandle-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle:</span> <span class="pre">VirtualBufferHandle</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>view returns  <span class="xref std std-ref">DagorResPtr::ManagedBufView</span></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>handle</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualbufferhandle"><span class="std std-ref">daframegraph::VirtualBufferHandle</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id115"><span class="problematic" id="id116">|function-daframegraph-view|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-setframeblock-s-ls-daframegraph-c-c-staterequest-gr-cs">
+<dt class="sig sig-object das" id="setFrameBlock">
+<span class="sig-name descname"><span class="pre">setFrameBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setFrameBlock" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setFrameBlock returns  <a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id117"><span class="problematic" id="id118">|function-daframegraph-setFrameBlock|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-setsceneblock-s-ls-daframegraph-c-c-staterequest-gr-cs">
+<dt class="sig sig-object das" id="setSceneBlock">
+<span class="sig-name descname"><span class="pre">setSceneBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setSceneBlock" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setSceneBlock returns  <a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id119"><span class="problematic" id="id120">|function-daframegraph-setSceneBlock|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-setobjectblock-s-ls-daframegraph-c-c-staterequest-gr-cs">
+<dt class="sig sig-object das" id="setObjectBlock">
+<span class="sig-name descname"><span class="pre">setObjectBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#setObjectBlock" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>setObjectBlock returns  <a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id121"><span class="problematic" id="id122">|function-daframegraph-setObjectBlock|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-allowwireframe-s-ls-daframegraph-c-c-staterequest-gr">
+<dt class="sig sig-object das" id="allowWireFrame">
+<span class="sig-name descname"><span class="pre">allowWireFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#allowWireFrame" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>allowWireFrame returns  <a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id123"><span class="problematic" id="id124">|function-daframegraph-allowWireFrame|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-allowvrs-s-ls-daframegraph-c-c-staterequest-gr-cs-ls-daframegraph-c-c-vrsrequirements-gr">
+<dt class="sig sig-object das" id="allowVrs">
+<span class="sig-name descname"><span class="pre">allowVrs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">vrs:</span> <span class="pre">VrsRequirements</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#allowVrs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>allowVrs returns  <a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>vrs</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-vrsrequirements"><span class="std std-ref">daframegraph::VrsRequirements</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id125"><span class="problematic" id="id126">|function-daframegraph-allowVrs|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-enableoverride-s-ls-daframegraph-c-c-staterequest-gr-cs-ls-dagordriver3d-c-c-overriderenderstate-gr">
+<dt class="sig sig-object das" id="enableOverride">
+<span class="sig-name descname"><span class="pre">enableOverride</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StateRequest;</span> <span class="pre">das_override:</span> <span class="pre">OverrideRenderState</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#enableOverride" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>enableOverride returns  <a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-staterequest"><span class="std std-ref">daframegraph::StateRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>das_override</p></td>
+<td rowspan="2"><p><span class="xref std std-ref">DagorDriver3D::OverrideRenderState</span>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id127"><span class="problematic" id="id128">|function-daframegraph-enableOverride|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-color-s-ls-daframegraph-c-c-virtualpassrequest-gr-c1-ls-s-ls-daframegraph-c-c-virtualattachmentrequest-gr-gr-a">
+<dt class="sig sig-object das" id="color">
+<span class="sig-name descname"><span class="pre">color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">attachments:</span> <span class="pre">array&lt;daFrameGraph::VirtualAttachmentRequest&gt;</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#color" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>color returns  <a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>attachments</p></td>
+<td rowspan="2"><p>array&lt; <a class="reference internal" href="#struct-daframegraph-virtualattachmentrequest"><span class="std std-ref">daframegraph::VirtualAttachmentRequest</span></a> &gt; const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id129"><span class="problematic" id="id130">|function-daframegraph-color|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-optional-y-ls-tt-gr">
+<dt class="sig sig-object das" id="optional">
+<span class="sig-name descname"><span class="pre">optional</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">auto(TT)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#optional" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>optional returns TT</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>auto(TT)</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id131"><span class="problematic" id="id132">|function-daframegraph-optional|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-useas-y-ls-tt-gr-ce8-ls-dafgcore-c-c-usage-gr">
+<dt class="sig sig-object das" id="useAs">
+<span class="sig-name descname"><span class="pre">useAs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">auto(TT);</span> <span class="pre">usageType:</span> <span class="pre">Usage</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#useAs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>useAs returns TT</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>auto(TT)</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>usageType</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-usage"><span class="std std-ref">daFgCore::Usage</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id133"><span class="problematic" id="id134">|function-daframegraph-useAs|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-atstage-y-ls-tt-gr-ce8-ls-dafgcore-c-c-stage-gr">
+<dt class="sig sig-object das" id="atStage">
+<span class="sig-name descname"><span class="pre">atStage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">auto(TT);</span> <span class="pre">stage:</span> <span class="pre">Stage</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#atStage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>atStage returns TT</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>auto(TT)</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>stage</p></td>
+<td rowspan="2"><p><a class="reference internal" href="daFgCore.html#enum-dafgcore-stage"><span class="std std-ref">daFgCore::Stage</span></a>  const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id135"><span class="problematic" id="id136">|function-daframegraph-atStage|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-bindtoshadervar-y-ls-tt-gr-cs">
+<dt class="sig sig-object das" id="bindToShaderVar">
+<span class="sig-name descname"><span class="pre">bindToShaderVar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">auto(TT);</span> <span class="pre">name:</span> <span class="pre">string</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bindToShaderVar" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>bindToShaderVar returns TT</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p>auto(TT)</p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>name</p></td>
+<td rowspan="2"><p>string const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id137"><span class="problematic" id="id138">|function-daframegraph-bindToShaderVar|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-color-s-ls-daframegraph-c-c-virtualpassrequest-gr-c-1-s-ls-daframegraph-c-c-virtualtexturerequest-gr">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">requests:</span> <span class="pre">VirtualTextureRequest</span> <span class="pre">const[]</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>color returns  <a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>requests</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualtexturerequest"><span class="std std-ref">daframegraph::VirtualTextureRequest</span></a>  const[-1]</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id139"><span class="problematic" id="id140">|function-daframegraph-color|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-color-s-ls-daframegraph-c-c-virtualpassrequest-gr-c-1-s">
+<dt class="sig sig-object das">
+<span class="sig-name descname"><span class="pre">color</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">names:</span> <span class="pre">string</span> <span class="pre">const[]</span></span></em><span class="sig-paren">)</span></dt>
+<dd></dd></dl>
+
+<p>color returns  <a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>names</p></td>
+<td rowspan="2"><p>string const[-1]</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id141"><span class="problematic" id="id142">|function-daframegraph-color|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-depthrw-s-ls-daframegraph-c-c-virtualpassrequest-gr-c">
+<dt class="sig sig-object das" id="depthRw">
+<span class="sig-name descname"><span class="pre">depthRw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">attachment:</span> <span class="pre">auto</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#depthRw" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>depthRw returns  <a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>attachment</p></td>
+<td rowspan="2"><p>auto const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id143"><span class="problematic" id="id144">|function-daframegraph-depthRw|</span></a></p>
+<dl class="das function" id="function-at-daframegraph-c-c-depthro-s-ls-daframegraph-c-c-virtualpassrequest-gr-c">
+<dt class="sig sig-object das" id="depthRo">
+<span class="sig-name descname"><span class="pre">depthRo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">VirtualPassRequest;</span> <span class="pre">attachment:</span> <span class="pre">auto</span> <span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#depthRo" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>depthRo returns  <a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head" rowspan="2"><p>argument</p></th>
+<th class="head" rowspan="2"><p>argument type</p></th>
+</tr>
+<tr class="row-even"></tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p>self</p></td>
+<td rowspan="2"><p><a class="reference internal" href="#struct-daframegraph-virtualpassrequest"><span class="std std-ref">daframegraph::VirtualPassRequest</span></a></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><p>attachment</p></td>
+<td rowspan="2"><p>auto const</p></td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p><a href="#id145"><span class="problematic" id="id146">|function-daframegraph-depthRo|</span></a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="runtime.html" class="btn btn-neutral float-left" title="Dispatching Work in Nodes at Runtime" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fg_ecs.html" class="btn btn-neutral float-right" title="daFrameGraph in Daslang + ECS" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

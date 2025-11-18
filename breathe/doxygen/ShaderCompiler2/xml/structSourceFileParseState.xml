@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSourceFileParseState" kind="struct" language="C++" prot="public">
+    <compoundname>SourceFileParseState</compoundname>
+    <includes refid="shlexterm_8h" local="no">shlexterm.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSourceFileParseState_1ae9357cff3ab418c219088a19ab11305e" prot="public" static="no" mutable="no">
+        <type>InputFile</type>
+        <definition>InputFile SourceFileParseState::input</definition>
+        <argsstring></argsstring>
+        <name>input</name>
+        <qualifiedname>SourceFileParseState::input</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="100" column="13" bodyfile="shlexterm.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSourceFileParseState_1a200d7abeee238810c368f68d6aa59d7e" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderMacroManager" kindref="compound">ShaderMacroManager</ref></type>
+        <definition>ShaderMacroManager SourceFileParseState::macroMgr</definition>
+        <argsstring></argsstring>
+        <name>macroMgr</name>
+        <qualifiedname>SourceFileParseState::macroMgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="101" column="22" bodyfile="shlexterm.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSourceFileParseState_1a0b6e709be93e52cd44cb6bb884f8d4cf" prot="public" static="no" mutable="no">
+        <type><ref refid="classLexer" kindref="compound">Lexer</ref></type>
+        <definition>Lexer SourceFileParseState::lexer</definition>
+        <argsstring></argsstring>
+        <name>lexer</name>
+        <qualifiedname>SourceFileParseState::lexer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="102" column="9" bodyfile="shlexterm.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSourceFileParseState_1a81f86a8879fd00d8c687e5c4e7fe4068" prot="public" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref></type>
+        <definition>Parser SourceFileParseState::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>SourceFileParseState::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="103" column="10" bodyfile="shlexterm.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structSourceFileParseState_1add1121a0c9a34ee761e21e0f22cf4451" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SourceFileParseState::SourceFileParseState</definition>
+        <argsstring>(const char *fn, shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>SourceFileParseState</name>
+        <qualifiedname>SourceFileParseState::SourceFileParseState</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shlexterm.h" line="105" column="3" bodyfile="shlexterm.cpp" bodystart="261" bodyend="263"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>GeneratedLexer</label>
+      </node>
+      <node id="3">
+        <label>Lexer</label>
+        <link refid="classLexer"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>Parser</label>
+        <link refid="structParser"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderMacroManager</label>
+        <link refid="classShaderMacroManager"/>
+      </node>
+      <node id="6">
+        <label>ShaderTerminal::GeneratedParser</label>
+      </node>
+      <node id="1">
+        <label>SourceFileParseState</label>
+        <link refid="structSourceFileParseState"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>macroMgr</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>lexer</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>parser</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="shlexterm.h" line="98" column="1" bodyfile="shlexterm.h" bodystart="99" bodyend="108"/>
+    <listofallmembers>
+      <member refid="structSourceFileParseState_1ae9357cff3ab418c219088a19ab11305e" prot="public" virt="non-virtual"><scope>SourceFileParseState</scope><name>input</name></member>
+      <member refid="structSourceFileParseState_1a0b6e709be93e52cd44cb6bb884f8d4cf" prot="public" virt="non-virtual"><scope>SourceFileParseState</scope><name>lexer</name></member>
+      <member refid="structSourceFileParseState_1a200d7abeee238810c368f68d6aa59d7e" prot="public" virt="non-virtual"><scope>SourceFileParseState</scope><name>macroMgr</name></member>
+      <member refid="structSourceFileParseState_1a81f86a8879fd00d8c687e5c4e7fe4068" prot="public" virt="non-virtual"><scope>SourceFileParseState</scope><name>parser</name></member>
+      <member refid="structSourceFileParseState_1add1121a0c9a34ee761e21e0f22cf4451" prot="public" virt="non-virtual"><scope>SourceFileParseState</scope><name>SourceFileParseState</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

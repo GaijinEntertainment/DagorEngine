@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceAccelerationStructureGpuHandle" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceAccelerationStructureGpuHandle</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceAccelerationStructureGpuHandle_1a2cb5bc959a88e4bd92f8ee72e2e9efec" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t RaytraceAccelerationStructureGpuHandle::handle</definition>
+        <argsstring></argsstring>
+        <name>handle</name>
+        <qualifiedname>RaytraceAccelerationStructureGpuHandle::handle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="43" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="41" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="42" bodyend="44"/>
+    <listofallmembers>
+      <member refid="structRaytraceAccelerationStructureGpuHandle_1a2cb5bc959a88e4bd92f8ee72e2e9efec" prot="public" virt="non-virtual"><scope>RaytraceAccelerationStructureGpuHandle</scope><name>handle</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

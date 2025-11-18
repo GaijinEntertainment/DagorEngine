@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics" kind="struct" language="C++" prot="public">
+    <compoundname>MaskedOcclusionCulling::OcclusionCullingStatistics</compoundname>
+    <includes refid="dag__maskedOcclusionCulling_8h" local="no">dag_maskedOcclusionCulling.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1aafe8a4f38ae4af724f1ba82c87a97264" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedTriangles</definition>
+        <argsstring></argsstring>
+        <name>mNumProcessedTriangles</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedTriangles</qualifiedname>
+        <briefdescription>
+<para>Number of occluder triangles processed in total. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Number of ocludee triangles processed (<ref refid="classMaskedOcclusionCulling_1a33295dcfc3bc3c2e57e09d3099a7e8ca" kindref="member">TestTriangles()</ref>) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="212" column="17" bodyfile="dag_maskedOcclusionCulling.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a6c715d2fa8d19e68b98657721a3a51c0" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long MaskedOcclusionCulling::OcclusionCullingStatistics::mNumRasterizedTriangles</definition>
+        <argsstring></argsstring>
+        <name>mNumRasterizedTriangles</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mNumRasterizedTriangles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Number of occluder triangles passing view frustum and backface culling</para>
+<para>Number of ocludee triangle passing view frustum and backface culling </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="213" column="17" bodyfile="dag_maskedOcclusionCulling.h" bodystart="213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a60832e57020de7dd585a76ba9fa1bd10" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesTraversed</definition>
+        <argsstring></argsstring>
+        <name>mNumTilesTraversed</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesTraversed</qualifiedname>
+        <briefdescription>
+<para>Number of tiles traversed by the rasterizer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Number of tiles traversed by triangle &amp; rect rasterizers. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="215" column="17" bodyfile="dag_maskedOcclusionCulling.h" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1afe3dd23f0f31d9df0283ddae029712f3" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesUpdated</definition>
+        <argsstring></argsstring>
+        <name>mNumTilesUpdated</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesUpdated</qualifiedname>
+        <briefdescription>
+<para>Number of tiles where the hierarchical z buffer was updated. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="216" column="17" bodyfile="dag_maskedOcclusionCulling.h" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a65561e97a91f8c779a92c71ff7feaa75" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesMerged</definition>
+        <argsstring></argsstring>
+        <name>mNumTilesMerged</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mNumTilesMerged</qualifiedname>
+        <briefdescription>
+<para>Number of tiles where the hierarchical z buffer was updated. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="217" column="17" bodyfile="dag_maskedOcclusionCulling.h" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a66dabca6773e643f6098f8e4c5813920" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics" kindref="compound">MaskedOcclusionCulling::OcclusionCullingStatistics</ref></type>
+        <definition>struct MaskedOcclusionCulling::OcclusionCullingStatistics MaskedOcclusionCulling::OcclusionCullingStatistics::mOccluders</definition>
+        <argsstring></argsstring>
+        <name>mOccluders</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mOccluders</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="218" column="16"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a954af5f47d9c836a53be5ab2d922f4cb" prot="public" static="no" mutable="no">
+        <type>long long</type>
+        <definition>long long MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedRectangles</definition>
+        <argsstring></argsstring>
+        <name>mNumProcessedRectangles</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mNumProcessedRectangles</qualifiedname>
+        <briefdescription>
+<para>Number of rects processed (<ref refid="classMaskedOcclusionCulling_1afaac101042e8262a81d19ac3064a8d17" kindref="member">TestRect()</ref>) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="222" column="17" bodyfile="dag_maskedOcclusionCulling.h" bodystart="222" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a410635850a4155260ed790d39e8deb44" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics" kindref="compound">MaskedOcclusionCulling::OcclusionCullingStatistics</ref></type>
+        <definition>struct MaskedOcclusionCulling::OcclusionCullingStatistics MaskedOcclusionCulling::OcclusionCullingStatistics::mOccludees</definition>
+        <argsstring></argsstring>
+        <name>mOccludees</name>
+        <qualifiedname>MaskedOcclusionCulling::OcclusionCullingStatistics::mOccludees</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="227" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Statistics that can be gathered during occluder rendering and visibility to aid debugging and profiling. Must be enabled by changing the ENABLE_STATS define. </para>
+    </detaileddescription>
+    <location file="dag_maskedOcclusionCulling.h" line="208" column="3" bodyfile="dag_maskedOcclusionCulling.h" bodystart="209" bodyend="228"/>
+    <listofallmembers>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a954af5f47d9c836a53be5ab2d922f4cb" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mNumProcessedRectangles</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1aafe8a4f38ae4af724f1ba82c87a97264" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mNumProcessedTriangles</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a6c715d2fa8d19e68b98657721a3a51c0" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mNumRasterizedTriangles</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a65561e97a91f8c779a92c71ff7feaa75" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mNumTilesMerged</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a60832e57020de7dd585a76ba9fa1bd10" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mNumTilesTraversed</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1afe3dd23f0f31d9df0283ddae029712f3" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mNumTilesUpdated</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a410635850a4155260ed790d39e8deb44" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mOccludees</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1OcclusionCullingStatistics_1a66dabca6773e643f6098f8e4c5813920" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::OcclusionCullingStatistics</scope><name>mOccluders</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

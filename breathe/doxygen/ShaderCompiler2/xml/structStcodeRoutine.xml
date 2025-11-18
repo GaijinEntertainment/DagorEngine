@@ -1,0 +1,730 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeRoutine" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeRoutine</compoundname>
+    <derivedcompoundref refid="structDynamicStcodeRoutine" prot="public" virt="non-virtual">DynamicStcodeRoutine</derivedcompoundref>
+    <derivedcompoundref refid="structStaticStcodeRoutine" prot="public" virt="non-virtual">StaticStcodeRoutine</derivedcompoundref>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ResourceType</name>
+        <qualifiedname>StcodeRoutine::ResourceType</qualifiedname>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9a696b031073e74bf2cb98e5ef201d4aa3" prot="public">
+          <name>UNKNOWN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9a3f92f542bd9ec48f912b9350e22736ac" prot="public">
+          <name>TEXTURE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9aaa4fc1f642950410dd11d691fe974cca" prot="public">
+          <name>SAMPLER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9a17de626bcae5109bb2f7a66dfc4a8a1d" prot="public">
+          <name>BUFFER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9ab1cd3c72eeddd2a54d21c01e505b2685" prot="public">
+          <name>CONST_BUFFER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9a76f4c6aede139c265f747d185346ddc2" prot="public">
+          <name>TLAS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9a9c4288764cb73a83f46c7f4b70f7f0da" prot="public">
+          <name>RWTEX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9a7c1c2306b9742b4ad50eadaaa754916b" prot="public">
+          <name>RWBUF</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="134" column="3" bodyfile="cppStcodeAssembly.h" bodystart="135" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="enum" id="structStcodeRoutine_1a8ea93f019765304f450c1924cb84c52c" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>GlobMatrixType</name>
+        <qualifiedname>StcodeRoutine::GlobMatrixType</qualifiedname>
+        <enumvalue id="structStcodeRoutine_1a8ea93f019765304f450c1924cb84c52ca04af3789c41e31cd71c10e1e4dbbec57" prot="public">
+          <name>GLOB</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a8ea93f019765304f450c1924cb84c52cadd7512f5e0289cddce66b0f8bca0c280" prot="public">
+          <name>PROJ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a8ea93f019765304f450c1924cb84c52ca05159953951324f5cf786f86bdd340bd" prot="public">
+          <name>VIEWPROJ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="145" column="3" bodyfile="cppStcodeAssembly.h" bodystart="146" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="enum" id="structStcodeRoutine_1a2e19d59b2785fa42c7084cd2e0fa45f3" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>GlobVecType</name>
+        <qualifiedname>StcodeRoutine::GlobVecType</qualifiedname>
+        <enumvalue id="structStcodeRoutine_1a2e19d59b2785fa42c7084cd2e0fa45f3a5289492cf082446ca4a6eec9f72f1ec3" prot="public">
+          <name>WORLD</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeRoutine_1a2e19d59b2785fa42c7084cd2e0fa45f3a5824b315fdbb0f42abfe1bb03f78c270" prot="public">
+          <name>VIEW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="151" column="3" bodyfile="cppStcodeAssembly.h" bodystart="152" bodyend="155"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeRoutine_1a79b3a88d088ad5748c5c11f132486697" prot="public" static="no" mutable="no">
+        <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref></type>
+        <definition>StcodeBuilder StcodeRoutine::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>StcodeRoutine::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="157" column="17" bodyfile="cppStcodeAssembly.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRoutine_1a65f07be4ac6541c4d3457d3bbe1c6774" prot="public" static="no" mutable="no">
+        <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref></type>
+        <definition>StcodeBuilder StcodeRoutine::decls</definition>
+        <argsstring></argsstring>
+        <name>decls</name>
+        <qualifiedname>StcodeRoutine::decls</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="158" column="17" bodyfile="cppStcodeAssembly.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRoutine_1ac1b6d1d4a8f437337beb0c9973c35edf" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeRegisters" kindref="compound">StcodeRegisters</ref></type>
+        <definition>StcodeRegisters StcodeRoutine::vertexRegs</definition>
+        <argsstring></argsstring>
+        <name>vertexRegs</name>
+        <qualifiedname>StcodeRoutine::vertexRegs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="159" column="19" bodyfile="cppStcodeAssembly.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRoutine_1aa63b75770f06597f8f0f1a04c369dbe8" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeRegisters" kindref="compound">StcodeRegisters</ref></type>
+        <definition>StcodeRegisters StcodeRoutine::pixelOrComputeRegs</definition>
+        <argsstring></argsstring>
+        <name>pixelOrComputeRegs</name>
+        <qualifiedname>StcodeRoutine::pixelOrComputeRegs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="159" column="30" bodyfile="cppStcodeAssembly.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRoutine_1a90bea292e40f565eee2602e7bcb781ff" prot="public" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; shader_layout::StcodeConstValidationMask &gt;</type>
+        <definition>eastl::unique_ptr&lt;shader_layout::StcodeConstValidationMask&gt; StcodeRoutine::constMask</definition>
+        <argsstring></argsstring>
+        <name>constMask</name>
+        <qualifiedname>StcodeRoutine::constMask</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="161" column="21" bodyfile="cppStcodeAssembly.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRoutine_1abd9817c49e5ecd7b181ca5abd200f2fc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeRoutine::nonContributingStatementsCnt</definition>
+        <argsstring></argsstring>
+        <name>nonContributingStatementsCnt</name>
+        <qualifiedname>StcodeRoutine::nonContributingStatementsCnt</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="163" column="7" bodyfile="cppStcodeAssembly.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRoutine_1af0a0fa1835a8049cce67a6139364c86c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StcodeRoutine::blockDepth</definition>
+        <argsstring></argsstring>
+        <name>blockDepth</name>
+        <qualifiedname>StcodeRoutine::blockDepth</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="164" column="7" bodyfile="cppStcodeAssembly.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeRoutine_1afb8bf37166f1a27a35a670a0809a1433" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool StcodeRoutine::hasCodeUnderConditions</definition>
+        <argsstring></argsstring>
+        <name>hasCodeUnderConditions</name>
+        <qualifiedname>StcodeRoutine::hasCodeUnderConditions</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="166" column="8" bodyfile="cppStcodeAssembly.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structStcodeRoutine_1a7e3f29a7fffb2635c11f10ecdb9194da" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr size_t</type>
+        <definition>constexpr size_t StcodeRoutine::STATIC_VAR_ABSCENT_ID</definition>
+        <argsstring></argsstring>
+        <name>STATIC_VAR_ABSCENT_ID</name>
+        <qualifiedname>StcodeRoutine::STATIC_VAR_ABSCENT_ID</qualifiedname>
+        <initializer>= size_t(-1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="200" column="27" bodyfile="cppStcodeAssembly.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeRoutine_1a78fee5f71241249cca34143bb078c8d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeRoutine::StcodeRoutine</definition>
+        <argsstring>()</argsstring>
+        <name>StcodeRoutine</name>
+        <qualifiedname>StcodeRoutine::StcodeRoutine</qualifiedname>
+        <briefdescription>
+<para><ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> ///. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="168" column="3" bodyfile="cppStcodeAssembly.cpp" bodystart="240" bodyend="244"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a2c1c3bfdf0613f72ee5a89397e3b6e7f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeRoutine::StcodeRoutine</definition>
+        <argsstring>(StcodeRoutine &amp;&amp;other)=default</argsstring>
+        <name>StcodeRoutine</name>
+        <qualifiedname>StcodeRoutine::StcodeRoutine</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="170" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a7460d1f9d1d2a0a7e354d6a23f0d09a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> &amp;</type>
+        <definition>StcodeRoutine &amp; StcodeRoutine::operator=</definition>
+        <argsstring>(StcodeRoutine &amp;&amp;other)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>StcodeRoutine::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="171" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1ab08b6710dc48afd0c6e64dff4de809d7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StcodeRoutine::StcodeRoutine</definition>
+        <argsstring>(const StcodeRoutine &amp;other)=delete</argsstring>
+        <name>StcodeRoutine</name>
+        <qualifiedname>StcodeRoutine::StcodeRoutine</qualifiedname>
+        <param>
+          <type>const <ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="174" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a0cca6b6375f436074eae2d347140cc7a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> &amp;</type>
+        <definition>StcodeRoutine &amp; StcodeRoutine::operator=</definition>
+        <argsstring>(const StcodeRoutine &amp;other)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>StcodeRoutine::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="175" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a369ed87d71228864072aa892c4054a70" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>StcodeRoutine::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="177" column="8" bodyfile="cppStcodeAssembly.h" bodystart="177" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a5830b77faa2e85d087f330c51c9d6f94" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::merge</definition>
+        <argsstring>(StcodeRoutine &amp;&amp;other)</argsstring>
+        <name>merge</name>
+        <qualifiedname>StcodeRoutine::merge</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="186" column="8" bodyfile="cppStcodeAssembly.h" bodystart="186" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a27f002069a52afa2d7d73f73727455b4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool StcodeRoutine::hasCode</definition>
+        <argsstring>() const</argsstring>
+        <name>hasCode</name>
+        <qualifiedname>StcodeRoutine::hasCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="202" column="8" bodyfile="cppStcodeAssembly.h" bodystart="202" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a5babc5921e35eb29e7cfe8f1e0181c3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref></type>
+        <definition>CryptoHash StcodeRoutine::calcHash</definition>
+        <argsstring>(const CryptoHash *base=nullptr)</argsstring>
+        <name>calcHash</name>
+        <qualifiedname>StcodeRoutine::calcHash</qualifiedname>
+        <param>
+          <type>const <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> *</type>
+          <declname>base</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="204" column="14" bodyfile="cppStcodeAssembly.cpp" bodystart="276" bodyend="291"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1adf3b15015bd8f9eb437d4aa67941084d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structStcodeRegisters" kindref="compound">StcodeRegisters</ref> &amp;</type>
+        <definition>StcodeRegisters &amp; StcodeRoutine::regsForStage</definition>
+        <argsstring>(ShaderStage stage)</argsstring>
+        <name>regsForStage</name>
+        <qualifiedname>StcodeRoutine::regsForStage</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="206" column="19" bodyfile="cppStcodeAssembly.h" bodystart="206" bodyend="206"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a4f376c7749e414c89ed9b70990d015e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::addBoolVarDecl</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addBoolVarDecl</name>
+        <qualifiedname>StcodeRoutine::addBoolVarDecl</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="208" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="255" bodyend="259"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1afea3011003d486cdc2094d1ecb5227d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::addLocalVarDecl</definition>
+        <argsstring>(ShaderVarType type, const char *name)</argsstring>
+        <name>addLocalVarDecl</name>
+        <qualifiedname>StcodeRoutine::addLocalVarDecl</qualifiedname>
+        <param>
+          <type>ShaderVarType</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="209" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="261" bodyend="265"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a3aa9c49a9d2ffa5a0670be12dde467ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::setVarValue</definition>
+        <argsstring>(const char *name, const char *val)</argsstring>
+        <name>setVarValue</name>
+        <qualifiedname>StcodeRoutine::setVarValue</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="211" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="267" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a243e67e29b628fbad8e903f4edd2143c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::setVarValue</definition>
+        <argsstring>(const char *name, StcodeExpression &amp;&amp;expr)</argsstring>
+        <name>setVarValue</name>
+        <qualifiedname>StcodeRoutine::setVarValue</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;&amp;</type>
+          <declname>expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="212" column="8" bodyfile="cppStcodeAssembly.h" bodystart="212" bodyend="212"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a7923f13b9917706c92076c807e3ef73b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::addStmt</definition>
+        <argsstring>(const char *val)</argsstring>
+        <name>addStmt</name>
+        <qualifiedname>StcodeRoutine::addStmt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="214" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="274" bodyend="274"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1ab48c535db9e0ca9e1c0fedc8369bbf21" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::addStmt</definition>
+        <argsstring>(StcodeExpression &amp;&amp;expr)</argsstring>
+        <name>addStmt</name>
+        <qualifiedname>StcodeRoutine::addStmt</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;&amp;</type>
+          <declname>expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="215" column="8" bodyfile="cppStcodeAssembly.h" bodystart="215" bodyend="215"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1abd5112d8321812bca8c76b6aeb38ad29" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeRoutine::addSetConstStmt</definition>
+        <argsstring>(const char *type, size_t type_size, const char *location, const char *expr, const char *dest_array, int array_index)</argsstring>
+        <name>addSetConstStmt</name>
+        <qualifiedname>StcodeRoutine::addSetConstStmt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>type_size</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>location</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>dest_array</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>array_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="217" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="246" bodyend="252"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeRoutine_1a4482357fc0c8a5ffbd7950ddfe96d3d3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class...</type>
+            <declname>TArgs</declname>
+            <defname>TArgs</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void StcodeRoutine::addFormattedStatement</definition>
+        <argsstring>(const char *fmt, TArgs &amp;&amp;...args)</argsstring>
+        <name>addFormattedStatement</name>
+        <qualifiedname>StcodeRoutine::addFormattedStatement</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>TArgs &amp;&amp;...</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="221" column="8" bodyfile="cppStcodeAssembly.h" bodystart="221" bodyend="229"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structStcodeRoutine_1aea501750e08811b7aa3784b8db15490a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>static eastl::string StcodeRoutine::makeIndentedLine</definition>
+        <argsstring>(int depth)</argsstring>
+        <name>makeIndentedLine</name>
+        <qualifiedname>StcodeRoutine::makeIndentedLine</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>depth</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="231" column="24" bodyfile="cppStcodeAssembly.h" bodystart="231" bodyend="236"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="3">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="1">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="132" column="1" bodyfile="cppStcodeAssembly.h" bodystart="133" bodyend="237"/>
+    <listofallmembers>
+      <member refid="structStcodeRoutine_1a4f376c7749e414c89ed9b70990d015e4" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>addBoolVarDecl</name></member>
+      <member refid="structStcodeRoutine_1a4482357fc0c8a5ffbd7950ddfe96d3d3" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>addFormattedStatement</name></member>
+      <member refid="structStcodeRoutine_1afea3011003d486cdc2094d1ecb5227d1" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>addLocalVarDecl</name></member>
+      <member refid="structStcodeRoutine_1abd5112d8321812bca8c76b6aeb38ad29" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>addSetConstStmt</name></member>
+      <member refid="structStcodeRoutine_1a7923f13b9917706c92076c807e3ef73b" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>addStmt</name></member>
+      <member refid="structStcodeRoutine_1ab48c535db9e0ca9e1c0fedc8369bbf21" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>addStmt</name></member>
+      <member refid="structStcodeRoutine_1af0a0fa1835a8049cce67a6139364c86c" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>blockDepth</name></member>
+      <member refid="structStcodeRoutine_1a5babc5921e35eb29e7cfe8f1e0181c3c" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>calcHash</name></member>
+      <member refid="structStcodeRoutine_1a79b3a88d088ad5748c5c11f132486697" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>code</name></member>
+      <member refid="structStcodeRoutine_1a90bea292e40f565eee2602e7bcb781ff" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>constMask</name></member>
+      <member refid="structStcodeRoutine_1a65f07be4ac6541c4d3457d3bbe1c6774" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>decls</name></member>
+      <member refid="structStcodeRoutine_1a8ea93f019765304f450c1924cb84c52c" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>GlobMatrixType</name></member>
+      <member refid="structStcodeRoutine_1a2e19d59b2785fa42c7084cd2e0fa45f3" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>GlobVecType</name></member>
+      <member refid="structStcodeRoutine_1a27f002069a52afa2d7d73f73727455b4" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>hasCode</name></member>
+      <member refid="structStcodeRoutine_1afb8bf37166f1a27a35a670a0809a1433" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>hasCodeUnderConditions</name></member>
+      <member refid="structStcodeRoutine_1aea501750e08811b7aa3784b8db15490a" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>makeIndentedLine</name></member>
+      <member refid="structStcodeRoutine_1a5830b77faa2e85d087f330c51c9d6f94" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>merge</name></member>
+      <member refid="structStcodeRoutine_1abd9817c49e5ecd7b181ca5abd200f2fc" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>nonContributingStatementsCnt</name></member>
+      <member refid="structStcodeRoutine_1a7460d1f9d1d2a0a7e354d6a23f0d09a2" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>operator=</name></member>
+      <member refid="structStcodeRoutine_1a0cca6b6375f436074eae2d347140cc7a" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>operator=</name></member>
+      <member refid="structStcodeRoutine_1aa63b75770f06597f8f0f1a04c369dbe8" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>pixelOrComputeRegs</name></member>
+      <member refid="structStcodeRoutine_1adf3b15015bd8f9eb437d4aa67941084d" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>regsForStage</name></member>
+      <member refid="structStcodeRoutine_1a369ed87d71228864072aa892c4054a70" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>reset</name></member>
+      <member refid="structStcodeRoutine_1a52f41230f067f3067000adef9bfb5eb9" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>ResourceType</name></member>
+      <member refid="structStcodeRoutine_1a3aa9c49a9d2ffa5a0670be12dde467ec" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>setVarValue</name></member>
+      <member refid="structStcodeRoutine_1a243e67e29b628fbad8e903f4edd2143c" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>setVarValue</name></member>
+      <member refid="structStcodeRoutine_1a7e3f29a7fffb2635c11f10ecdb9194da" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>STATIC_VAR_ABSCENT_ID</name></member>
+      <member refid="structStcodeRoutine_1a78fee5f71241249cca34143bb078c8d8" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>StcodeRoutine</name></member>
+      <member refid="structStcodeRoutine_1a2c1c3bfdf0613f72ee5a89397e3b6e7f" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>StcodeRoutine</name></member>
+      <member refid="structStcodeRoutine_1ab08b6710dc48afd0c6e64dff4de809d7" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>StcodeRoutine</name></member>
+      <member refid="structStcodeRoutine_1ac1b6d1d4a8f437337beb0c9973c35edf" prot="public" virt="non-virtual"><scope>StcodeRoutine</scope><name>vertexRegs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

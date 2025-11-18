@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderBindingTableGroupProperties" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderBindingTableGroupProperties</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableGroupProperties_1acdfac2ac28229d2caf1372494c89d2a5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableGroupProperties::dataSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>dataSizeInBytes</name>
+        <qualifiedname>raytrace::ShaderBindingTableGroupProperties::dataSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Total size of paired data of a entry of that shader group. This includes resource references and constant data. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="730" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="730" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableGroupProperties::entryAlignedSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>entryAlignedSizeInBytes</name>
+        <qualifiedname>raytrace::ShaderBindingTableGroupProperties::entryAlignedSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Total size (data plus shader handle) of an entry aligned to the platforms requirement size. This alignment has to be a value that results in valid values for arrays of the shader group. In case of the ray gen group, there are only single values and this means an array of those would be an array of groups not an a group of an array of shader records. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="735" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="735" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Properties of a shader group in a shader binding table. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="726" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="727" bodyend="736"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderBindingTableGroupProperties_1acdfac2ac28229d2caf1372494c89d2a5" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableGroupProperties</scope><name>dataSizeInBytes</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableGroupProperties_1a840177f297c214163cd954fdff0aa37b" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableGroupProperties</scope><name>entryAlignedSizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

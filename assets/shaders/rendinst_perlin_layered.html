@@ -1,0 +1,880 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rendinst_perlin_layered</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="rendinst_simple_emissive" href="rendinst_simple_emissive.html" />
+    <link rel="prev" title="rendinst_parallax_ice" href="rendinst_parallax_ice.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameters">Parameters</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#general-parameters">General Parameters</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#danetgame-based-parameters">daNetGame-based Parameters</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#war-thunder-based-parameters">War Thunder-based Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#functionality">Functionality</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#blending-details">Blending Details</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#first-level-blending-by-height-gradient">First Level: Blending by Height Gradient</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#second-level-blending-by-heightmaps">Second Level: Blending by Heightmaps</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#third-level-blending-by-perlin-noise">Third Level: Blending by Perlin Noise</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#blending-control">Blending Control</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#parameter-invert-heights-0-0-0-1">Parameter: <code class="docutils literal notranslate"><span class="pre">invert_heights=0,0,0,1</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#first-three-components">First Three Components</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#fourth-component">Fourth Component</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#parameter-mask-gamma-1-1-1-1">Parameter: <code class="docutils literal notranslate"><span class="pre">mask_gamma=1,1,1,1</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#id1">First Three Components</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#id2">Fourth Component</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#normal-map-blending">Normal Map Blending</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#parameter-blend-normals-1-1-1-1">Parameter: <code class="docutils literal notranslate"><span class="pre">blend_normals=1,1,1,1</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#procedural-object-painting">Procedural Object Painting</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#microdetails">Microdetails</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">daNetGame-based Parameters</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overlaying-the-detail2-by-normals">Overlaying the Detail2 by Normals</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#freezing-perlin-noise">Freezing Perlin Noise</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#paint-points">Paint Points</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#painting-details-in-different-constant-colors">Painting Details in Different Constant Colors</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#heightmap-blending">Heightmap Blending</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#initialization-and-operation-of-the-blend">Initialization and Operation of the Blend</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#global-shadervars">Global Shadervars</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#static-shadervars">Static Shadervars</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#global-and-static-shadervars-for-ri-hmap">Global and Static Shadervars for <code class="docutils literal notranslate"><span class="pre">ri_hmap</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">War Thunder-based Parameters</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#detail-tiling">Detail Tiling</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#height-based-painting">Height-based Painting</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#material-shadows">Material Shadows</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dng-shaders/index.html">daNetGame-based Shaders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/shaders/rendinst_perlin_layered.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="rendinst-perlin-layered">
+<h1><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code><a class="headerlink" href="#rendinst-perlin-layered" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This shader is a complex tool for creating layered textures on terrain and
+assets. It supports blending multiple detail layers with normal maps,
+controlling detail tiling, and generating shadows from heightmaps. The shader
+includes features like height-based painting, which applies color based on
+object elevation using a predefined palette, and integrates Perlin noise to
+enhance texture blending. Parameters allow fine-tuning of shadow intensity,
+texture scale, and noise behavior, making it useful for adding depth and
+variation to surfaces in large-scale environments.</p>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<section id="general-parameters">
+<h3>General Parameters<a class="headerlink" href="#general-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;blend_normals=0,0,0,0&quot;</span></code> - Normal blending. The first three
+components specify the normals involved in the blend, while the fourth
+component determines the normal through which the others will blend.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;invert_heights=0,0,0,0&quot;</span></code> - The first three components control the
+inversion of heightmaps (values can be fractional). The fourth component
+adjusts the height gradient of Detail3.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;mask_gamma=0.1,0.1,0.1,0.5&quot;</span></code> - The first three components control
+the gamma of the details (the power of their heightmaps). The fourth component
+is a multiplier for noise tiling.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=0,0,0,0&quot;</span></code> - Detail painting. The first three
+components control the intensity of detail painting. The fourth component
+specifies the paint string.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;micro_detail_layer=0&quot;</span></code> - Index of the micro detail.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;micro_detail_layer_v_scale=1&quot;</span></code> - Vertical scale of the micro detail
+(for rectangular textures).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;micro_detail_layer_uv_scale=1&quot;</span></code> - Tiling of the micro detail.</p></li>
+</ul>
+</section>
+<section id="danetgame-based-parameters">
+<h3>daNetGame-based Parameters<a class="headerlink" href="#danetgame-based-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;mask_by_normal=0,1,0,0.5&quot;</span></code> - Specifies which normals allow Detail2
+to show through other details. The first three components are normals (which
+can be fractional values), and the fourth component decides whether to use
+normals or Perlin noise.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;perlin_noise_offset=1,2,3,1&quot;</span></code> - Noise freezing on the model. The
+first three components define the noise offset along the x, y, z axes, while
+the fourth component toggles the noise freezing on or off.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_black=0,0,0,0&quot;</span></code> - Painting points. The first three
+components set black points for three details. The fourth component is unused
+but required.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_white=1,1,1,0&quot;</span></code> - Painting points. The first three
+components set white points for three details. The fourth component is unused
+but required.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;palette_index=0&quot;</span></code> - Paint palette selection. <code class="docutils literal notranslate"><span class="pre">0</span></code> for global, <code class="docutils literal notranslate"><span class="pre">1</span></code>
+for per-map.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail0_const_color=0,0,0,1&quot;</span></code> - Paint color for Detail1 (using
+modulate2x).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail1_const_color=0,0,0,1&quot;</span></code> - Paint color for Detail2 (using
+modulate2x).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail2_const_color=0,0,0,1&quot;</span></code> - Paint color for Detail3 (using
+modulate2x).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;enable_hmap_blend=1&quot;</span></code> - Enable/disable blending with the heightmap
+(default is 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;hmap_blend_height=0.1&quot;</span></code> - Height of the blend strip (default is
+0.1).</p></li>
+</ul>
+</section>
+<section id="war-thunder-based-parameters">
+<h3>War Thunder-based Parameters<a class="headerlink" href="#war-thunder-based-parameters" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;details_tile=1,1,1,0&quot;</span></code> - Tiling of the details. The first three
+components are multipliers for the tiling of Details1-3. The fourth component
+is unused but required.</p></li>
+</ul>
+</section>
+</section>
+<section id="functionality">
+<h2>Functionality<a class="headerlink" href="#functionality" title="Link to this heading"></a></h2>
+<p>The shader operates with three details (layered), blending them based on:</p>
+<ol class="arabic">
+<li><p>Perlin noise (<code class="docutils literal notranslate"><span class="pre">perlin_layered</span></code>),</p></li>
+<li><p>Height from the ground,</p></li>
+<li><p>Their heightmaps.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_01.jpg"><img alt="../../_images/rendinst_perlin_layered_01.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_01.jpg" style="width: 50%;" />
+</a>
+<br>
+</li>
+</ol>
+<p>Details are assigned to the following slots:</p>
+<ul class="simple">
+<li><p><strong>Detail 1 (gray stucco)</strong>: Albedo texture (heightmap in alpha) - empty.</p></li>
+<li><p><strong>Detail 1 (gray stucco)</strong>: Normal texture (metalness in blue, smoothness in
+alpha).</p></li>
+<li><p><strong>Detail 2 (white stucco)</strong>: Albedo texture (heightmap in alpha).</p></li>
+<li><p><strong>Detail 2 (white stucco)</strong>: Normal texture (metalness in blue, smoothness in
+alpha).</p></li>
+<li><p><strong>Detail 3 (stone)</strong>: Albedo texture (heightmap in alpha).</p></li>
+<li><p><strong>Detail 3 (stone)</strong>: Normal texture (metalness in blue, smoothness in alpha).</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>You can use two details instead of three. Detail1 is mandatory and constant.
+You can omit either Detail2 or Detail3, but not both.</p></li>
+<li><p>If only Detail1 is used, there’s no point in blending – consider using a
+simple shader instead.</p></li>
+</ul>
+</div>
+<section id="blending-details">
+<h3>Blending Details<a class="headerlink" href="#blending-details" title="Link to this heading"></a></h3>
+<section id="first-level-blending-by-height-gradient">
+<h4>First Level: Blending by Height Gradient<a class="headerlink" href="#first-level-blending-by-height-gradient" title="Link to this heading"></a></h4>
+<p>This is a special case where Detail3 is blended based on its height gradient
+from the ground. If not configured properly, Detail3 may not be visible on most
+of the object, dominating only at the bottom.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_02.jpg"><img alt="../../_images/rendinst_perlin_layered_02.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_02.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Essentially, this complex “height gradient” represents a natural gradient
+applied to the heightmap of Detail3.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_03.jpg"><img alt="../../_images/rendinst_perlin_layered_03.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_03.jpg" style="width: 80%;" />
+</a>
+<br>
+</section>
+<section id="second-level-blending-by-heightmaps">
+<h4>Second Level: Blending by Heightmaps<a class="headerlink" href="#second-level-blending-by-heightmaps" title="Link to this heading"></a></h4>
+<p>Each detail has its own heightmap. Let’s examine them:</p>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>Detail1</p></th>
+  <th style="text-align:center; width:32%"><p>Detail2</p></th>
+  <th style="text-align:center; width:32%"><p>Detail3</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_04.jpg"><img alt="../../_images/rendinst_perlin_layered_04.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_04.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_05.jpg"><img alt="../../_images/rendinst_perlin_layered_05.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_05.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_06.jpg"><img alt="../../_images/rendinst_perlin_layered_06.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_06.jpg" style="width: 32%;" />
+</a>
+<p>When blending three details over each other, they are strictly blended according
+to these heightmaps.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_07.jpg"><img alt="../../_images/rendinst_perlin_layered_07.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_07.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>As shown in the screenshot, the heightmap of the white stucco (Detail2) is
+significantly “higher” than that of the gray stucco (Detail1). Meanwhile,
+Detail3 appears at the bottom based on the height gradient.</p>
+</section>
+<section id="third-level-blending-by-perlin-noise">
+<h4>Third Level: Blending by Perlin Noise<a class="headerlink" href="#third-level-blending-by-perlin-noise" title="Link to this heading"></a></h4>
+<p>As seen in the screenshots above, the gray stucco (with a weaker heightmap)
+appears in a specific corner. It’s absent in other areas because the Perlin
+noise at that location lightened the heightmap of Detail2, making it higher than
+Detail1.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_08.jpg"><img alt="../../_images/rendinst_perlin_layered_08.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_08.jpg" style="width: 80%;" />
+</a>
+<br>
+</section>
+</section>
+<section id="blending-control">
+<h3>Blending Control<a class="headerlink" href="#blending-control" title="Link to this heading"></a></h3>
+<p>Blending is controlled using the following parameters:</p>
+<section id="parameter-invert-heights-0-0-0-1">
+<h4>Parameter: <code class="docutils literal notranslate"><span class="pre">invert_heights=0,0,0,1</span></code><a class="headerlink" href="#parameter-invert-heights-0-0-0-1" title="Link to this heading"></a></h4>
+<section id="first-three-components">
+<h5>First Three Components<a class="headerlink" href="#first-three-components" title="Link to this heading"></a></h5>
+<p>These invert the heightmaps of the respective details (values can be fractional,
+representing the linear interpolation factor between the inverted and original
+heightmaps).</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> - original,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> - inverted.</p></li>
+</ul>
+<p><strong>Result of Inverted Heightmaps:</strong></p>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>Detail1</p></th>
+  <th style="text-align:center; width:32%"><p>Detail2</p></th>
+  <th style="text-align:center; width:32%"><p>Detail3</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_09.jpg"><img alt="../../_images/rendinst_perlin_layered_09.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_09.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_10.jpg"><img alt="../../_images/rendinst_perlin_layered_10.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_10.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_11.jpg"><img alt="../../_images/rendinst_perlin_layered_11.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_11.jpg" style="width: 32%;" />
+</a>
+<p><strong>Visual Appearance of Inverted Heightmap:</strong></p>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>Detail1</p></th>
+  <th style="text-align:center; width:32%"><p>Detail2</p></th>
+  <th style="text-align:center; width:32%"><p>Detail3</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_12.jpg"><img alt="../../_images/rendinst_perlin_layered_12.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_12.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_13.jpg"><img alt="../../_images/rendinst_perlin_layered_13.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_13.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_14.jpg"><img alt="../../_images/rendinst_perlin_layered_14.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_14.jpg" style="width: 32%;" />
+</a>
+<p><strong>Explanation:</strong></p>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>Detail1</p></th>
+  <th style="text-align:center; width:32%"><p>Detail2</p></th>
+  <th style="text-align:center; width:32%"><p>Detail3</p></th></tr>
+</table>
+<table style="text-align:center; width:96%"><tr>
+  <td style="text-align:center; vertical-align:top; width:32%"><p>Inverting the "gray" heightmap has little effect, as it stays "gray" even after inversion.</p></td>
+  <td style="text-align:center; vertical-align:top; width:32%"><p>Inverting the "white" heightmap makes Detail1 visible, as its "gray heightmap" becomes higher than the "black" (after inversion) heightmap of Detail2.</p></td>
+  <td style="text-align:center; vertical-align:top; width:32%"><p>It may seem unchanged, but note how the brick protrudes through the stucco. It no longer sticks out, as if it was pushed out from underneath. Now, the stucco lies on top of the brick plane, crumbling between layers (which looks much more realistic).</p></td></tr>
+</table>
+</section>
+<section id="fourth-component">
+<h5>Fourth Component<a class="headerlink" href="#fourth-component" title="Link to this heading"></a></h5>
+<p>This controls the height gradient for Detail3.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> - original height gradient,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> - no gradient.</p></li>
+</ul>
+<p>Let’s see how this works:</p>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:34%"><p>value = 0</p></th>
+  <th style="text-align:center; width:31%"><p>value = 0.5</p></th>
+  <th style="text-align:center; width:31%"><p>value = 1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_15.jpg"><img alt="../../_images/rendinst_perlin_layered_15.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_15.jpg" style="width: 34%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_16.jpg"><img alt="../../_images/rendinst_perlin_layered_16.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_16.jpg" style="width: 31%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_17.jpg"><img alt="../../_images/rendinst_perlin_layered_17.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_17.jpg" style="width: 31%;" />
+</a>
+<p>As shown, the higher the value, the less visible Detail3 becomes. This is
+because the parameter represents gamma (or the power) of the height gradient.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>What does this mean?</strong></p>
+<p>It means the height gradient ranges from almost <code class="docutils literal notranslate"><span class="pre">0</span></code> (black) to nearly <code class="docutils literal notranslate"><span class="pre">1</span></code>
+(white). Essentially, from around <code class="docutils literal notranslate"><span class="pre">0.01</span></code> to <code class="docutils literal notranslate"><span class="pre">0.99</span></code> (conditional, as the exact
+implementation in code is unknown).</p>
+<p>If we set a gamma of <code class="docutils literal notranslate"><span class="pre">0</span></code> for the nearly black part of the gradient (<code class="docutils literal notranslate"><span class="pre">0.01</span></code>), it
+becomes <code class="docutils literal notranslate"><span class="pre">1</span></code> (white). Therefore, a value of <code class="docutils literal notranslate"><span class="pre">0</span></code> represents the maximum height of
+Detail3.</p>
+<p>As the gamma increases, the height decreases. For example, <code class="docutils literal notranslate"><span class="pre">0.01^0.5</span> <span class="pre">=</span> <span class="pre">0.1</span></code>. And
+<code class="docutils literal notranslate"><span class="pre">0.01^1</span> <span class="pre">=</span> <span class="pre">0.01</span></code> - the gradient is completely black.</p>
+</div>
+</section>
+</section>
+<section id="parameter-mask-gamma-1-1-1-1">
+<h4>Parameter: <code class="docutils literal notranslate"><span class="pre">mask_gamma=1,1,1,1</span></code><a class="headerlink" href="#parameter-mask-gamma-1-1-1-1" title="Link to this heading"></a></h4>
+<section id="id1">
+<h5>First Three Components<a class="headerlink" href="#id1" title="Link to this heading"></a></h5>
+<p>These set the gamma for a specific heightmap (as explained above). They
+effectively darken the heightmaps of the specified details.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> - untouched heightmap,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> - completely darkened heightmap.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The formula requires a value slightly above zero, typically around <code class="docutils literal notranslate"><span class="pre">0.1</span></code>.</p>
+</div>
+<p>Let’s see how this works:</p>
+<ul class="simple">
+<li><p><strong>Heightmap 1</strong></p></li>
+</ul>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>value = 0.1</p></th>
+  <th style="text-align:center; width:32%"><p>value = 0.5</p></th>
+  <th style="text-align:center; width:32%"><p>value = 1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_18.jpg"><img alt="../../_images/rendinst_perlin_layered_18.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_18.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_19.jpg"><img alt="../../_images/rendinst_perlin_layered_19.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_19.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_20.jpg"><img alt="../../_images/rendinst_perlin_layered_20.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_20.jpg" style="width: 32%;" />
+</a>
+<ul class="simple">
+<li><p><strong>Heightmap 2</strong></p></li>
+</ul>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>value = 0.1</p></th>
+  <th style="text-align:center; width:32%"><p>value = 0.5</p></th>
+  <th style="text-align:center; width:32%"><p>value = 1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_21.jpg"><img alt="../../_images/rendinst_perlin_layered_21.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_21.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_22.jpg"><img alt="../../_images/rendinst_perlin_layered_22.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_22.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_23.jpg"><img alt="../../_images/rendinst_perlin_layered_23.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_23.jpg" style="width: 32%;" />
+</a>
+<ul class="simple">
+<li><p><strong>Heightmap 3</strong></p></li>
+</ul>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>value = 0.1</p></th>
+  <th style="text-align:center; width:32%"><p>value = 0.5</p></th>
+  <th style="text-align:center; width:32%"><p>value = 1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_24.jpg"><img alt="../../_images/rendinst_perlin_layered_24.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_24.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_25.jpg"><img alt="../../_images/rendinst_perlin_layered_25.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_25.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_26.jpg"><img alt="../../_images/rendinst_perlin_layered_26.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_26.jpg" style="width: 32%;" />
+</a>
+</section>
+<section id="id2">
+<h5>Fourth Component<a class="headerlink" href="#id2" title="Link to this heading"></a></h5>
+<p>This sets the scale (or more precisely, the tiling) of the world noise. Let’s
+examine a longer object to see the difference. A value of <code class="docutils literal notranslate"><span class="pre">0</span></code> is not used, as
+noise would be absent, and blending would occur solely based on heightmaps.</p>
+<ul>
+<li><p><strong>value = 0.1</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_27.jpg"><img alt="../../_images/rendinst_perlin_layered_27.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_27.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+<li><p><strong>value = 0.5</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_28.jpg"><img alt="../../_images/rendinst_perlin_layered_28.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_28.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+<li><p><strong>value = 1</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_29.jpg"><img alt="../../_images/rendinst_perlin_layered_29.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_29.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+</ul>
+</section>
+</section>
+</section>
+<section id="normal-map-blending">
+<h3>Normal Map Blending<a class="headerlink" href="#normal-map-blending" title="Link to this heading"></a></h3>
+<p>Often, there’s a need to reveal the relief or texture of one detail through
+another. For example, you might want to show wood through peeling paint, or moss
+growing over tiles. In some cases, you might want to depict painted rusty metal,
+or simply add variation to the detail by using different textures.</p>
+<p>Instead of generating a bunch of separate textures for each scenario, the shader
+provides a parameter for blending the normals of details. Essentially, this
+parameter allows the “lower” or “farther” (relative to the camera’s position)
+details’ normals to show through the “upper” or “closer” ones.</p>
+<section id="parameter-blend-normals-1-1-1-1">
+<h4>Parameter: <code class="docutils literal notranslate"><span class="pre">blend_normals=1,1,1,1</span></code><a class="headerlink" href="#parameter-blend-normals-1-1-1-1" title="Link to this heading"></a></h4>
+<p>This parameter controls how the normal maps of different details blend with each
+other.</p>
+<ul class="simple">
+<li><p>The <strong>first three components</strong> specify which details’ normals participate in
+the blending process.</p></li>
+<li><p>The <strong>fourth component</strong> determines the “main” detail through which the other
+normals will show. This is important because the blending effect will only be
+visible through this selected detail (keep in mind that the details are
+numbered starting from 0).</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You must be cautious with the fourth component. If you set it to the “lower”
+detail that is not visible due to blending, you won’t see any blending effect –
+because the detail through which the other normals should be visible is itself
+not visible.</p>
+<p>In other words, for the blending effect to work correctly, the selected “main”
+detail (fourth component) must be visible. This ensures that the normals of the
+other details can properly blend through it.</p>
+</div>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>blend_normals=0,0,0,0</p></th>
+  <th style="text-align:center; width:32%"><p>blend_normals=1,1,1,1</p></th>
+  <th style="text-align:center; width:32%"><p>blend_normals=1,0,1,0</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_30.jpg"><img alt="../../_images/rendinst_perlin_layered_30.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_30.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_31.jpg"><img alt="../../_images/rendinst_perlin_layered_31.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_31.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_32.jpg"><img alt="../../_images/rendinst_perlin_layered_32.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_32.jpg" style="width: 32%;" />
+</a>
+<table style="text-align:center; width:96%"><tr>
+  <td style="text-align:center; vertical-align:top; width:32%"><p>All Values Set to 0: No normal map blending occurs.</p></td>
+  <td style="text-align:center; vertical-align:top; width:32%"><p>All Values Set to 1: All normals (first three components) are blended, with the main normal (through which others blend) set to 1, representing white stucco.</p></td>
+  <td style="text-align:center; vertical-align:top; width:32%"><p>Blending Through 0 (fourth component): This blends through the gray stucco (Detail3). The Detail2 (white stucco) does not participate in the blend.</p></td></tr>
+</table>
+</section>
+</section>
+<section id="procedural-object-painting">
+<h3>Procedural Object Painting<a class="headerlink" href="#procedural-object-painting" title="Link to this heading"></a></h3>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information on procedural painting, see <a class="reference internal" href="../about-assets/procedural-rendinst-painting/procedural_rendinst_painting.html"><span class="std std-doc">Procedural Rendinst
+Painting</span></a>.</p>
+</div>
+</section>
+<section id="microdetails">
+<h3>Microdetails<a class="headerlink" href="#microdetails" title="Link to this heading"></a></h3>
+<p>The shader supports one microdetail across the entire stack of details. The
+syntax is similar to <code class="docutils literal notranslate"><span class="pre">simple_aces</span></code>. For example:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer=0</span></code> - Index of the microdetail.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer_v_scale=1</span></code> - Vertical-to-horizontal ratio for the
+microdetail texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer_uv_scale=16.371</span></code> - Scale (tiling) of the microdetail
+texture.</p></li>
+</ul>
+</section>
+</section>
+<section id="id3">
+<h2>daNetGame-based Parameters<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="overlaying-the-detail2-by-normals">
+<h3>Overlaying the Detail2 by Normals<a class="headerlink" href="#overlaying-the-detail2-by-normals" title="Link to this heading"></a></h3>
+<p>This is controlled by the parameter:</p>
+<p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;mask_by_normal=0,1,0,0.5&quot;</span></code></p>
+<ul class="simple">
+<li><p>The <strong>first three components</strong> set the reference normal that dictates where</p></li>
+<li><p>the second detail will appear (these are not normalized normals, so values
+greater than one will cause the detail to appear more strongly with sharper
+edges).</p></li>
+<li><p>The <strong>last component</strong> controls the interpolation (lerp) between the noise
+mask weight and the normal mask weight (0 means no normals are used, 1 means
+only normals are used).</p></li>
+</ul>
+</section>
+<section id="freezing-perlin-noise">
+<h3>Freezing Perlin Noise<a class="headerlink" href="#freezing-perlin-noise" title="Link to this heading"></a></h3>
+<p>Controlled by the parameter:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;perlin_noise_offset=1,2,3,1&quot;</span></code></p></li>
+<li><p>The <strong>first three components</strong> determine the Perlin noise offset in the x, y,
+and z directions.</p></li>
+<li><p>The <strong>fourth component</strong>: <code class="docutils literal notranslate"><span class="pre">0</span></code> keeps the default noise unaffected by the
+offset, while <code class="docutils literal notranslate"><span class="pre">1</span></code> freezes the noise, making it look consistent across both the
+editor and the game regardless of the asset’s position, orientation, and
+scale.</p></li>
+</ul>
+<p>This parameter is recommended only for extreme cases, where more artistic
+control over noise on unique assets is required.</p>
+</section>
+<section id="paint-points">
+<h3>Paint Points<a class="headerlink" href="#paint-points" title="Link to this heading"></a></h3>
+<p>These are analogous to black/white points in
+<a class="reference internal" href="dng-shaders/rendinst_simple_painted.html"><span class="std std-doc">rendinst_simple_painted</span></a> and
+<a class="reference internal" href="dng-shaders/rendinst_mask_layered.html"><span class="std std-doc">rendinst_mask_layered</span></a>.</p>
+<p>Controlled by the parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_black=0,0,0,0&quot;</span></code></p></li>
+<li><p>The <strong>first three components</strong> set the black points for the three details, and
+the <strong>fourth component</strong> is mandatory but unused.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_white=1,1,1,0&quot;</span></code></p></li>
+<li><p>The <strong>first three components</strong> set the white points for the three details, and
+the <strong>fourth component</strong> is mandatory but unused.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Black and white points <strong>must always be different</strong>, even if their details are
+not being painted. If these parameters are added, ensure all black and white
+points are different. By default, you can copy these parameters directly – black
+points as all zeros, white points as all ones:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_black=0,0,0,0&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_points_white=1,1,1,0&quot;</span></code></p></li>
+</ul>
+<p>Otherwise, you will encounter a “divide by zero” error:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered:</span> <span class="pre">divide</span> <span class="pre">by</span> <span class="pre">zero</span> <span class="pre">[real]</span> <span class="pre">while</span> <span class="pre">exec</span> <span class="pre">shader</span> <span class="pre">code.</span> <span class="pre">stopped</span> <span class="pre">at</span> <span class="pre">operand</span> <span class="pre">#45</span></code></p>
+</div>
+</section>
+<section id="painting-details-in-different-constant-colors">
+<h3>Painting Details in Different Constant Colors<a class="headerlink" href="#painting-details-in-different-constant-colors" title="Link to this heading"></a></h3>
+<p>You can color each detail separately. However, this technology works with
+shader-defined colors rather than a paint map – there is no randomness. Only the
+color you specify will be applied.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Painting works via <code class="docutils literal notranslate"><span class="pre">modulate2x</span></code>, so the resulting color may differ slightly from
+what you set. This is a limitation of the technology.</p>
+</div>
+<p>Controlled by parameters like:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail0_const_color=0,0,0,1&quot;</span></code> - Paints the Detail1</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail1_const_color=0,0,0,1&quot;</span></code> - Paints the Detail2</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;detail2_const_color=0,0,0,1&quot;</span></code> - Paints the Detail3</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>To activate these parameters, detail painting must be enabled, meaning the
+parameter <code class="docutils literal notranslate"><span class="pre">script:t=&quot;paint_details=1,1,1,0&quot;</span></code> should be set to <code class="docutils literal notranslate"><span class="pre">1</span></code> (or another
+necessary value, just not <code class="docutils literal notranslate"><span class="pre">0</span></code>) for the required details. The fourth component
+(the paint line) does not affect those details for which a fixed color is set.</p>
+</div>
+<p>Parameter values:</p>
+<ul>
+<li><p>The <strong>first three components</strong> represent the color in RGB, scaled to the 0-1
+range.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_33.jpg"><img alt="../../_images/rendinst_perlin_layered_33.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_33.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+<li><p>The <strong>fourth component</strong> controls the influence of the paint map on the
+specified color: <code class="docutils literal notranslate"><span class="pre">0</span></code> means full influence, <code class="docutils literal notranslate"><span class="pre">1</span></code> means no influence.</p></li>
+</ul>
+<p>This type of painting can be combined with standard paint map-based
+painting – some details can use the map, while others use the specified color.</p>
+<p>Paint points still apply.</p>
+</section>
+<section id="heightmap-blending">
+<h3>Heightmap Blending<a class="headerlink" href="#heightmap-blending" title="Link to this heading"></a></h3>
+<p>To better integrate objects with the terrain, you can use parameters that blend
+the details of the terrain and the asset based on the mask of where the asset
+intersects with the heightmap. This is useful for piles, rocks, cliffs, etc.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This is a computationally expensive technique, so use it only when necessary.</p>
+</div>
+<p>Example of blending:</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Without Blending</p></th>
+  <th style="text-align:center; width:49%"><p>With Blending</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_34.jpg"><img alt="../../_images/rendinst_perlin_layered_34.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_34.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_35.jpg"><img alt="../../_images/rendinst_perlin_layered_35.jpg" class="bg-primary" src="../../_images/rendinst_perlin_layered_35.jpg" style="width: 49%;" />
+</a>
+<section id="initialization-and-operation-of-the-blend">
+<h4>Initialization and Operation of the Blend<a class="headerlink" href="#initialization-and-operation-of-the-blend" title="Link to this heading"></a></h4>
+<p>Parameters to initialize the blend in the shader:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;enable_hmap_blend=1&quot;</span></code> - (default - 0) - enable/disable blending
+with the heightmap.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;hmap_blend_height=0.1&quot;</span></code> - (default - 0.1) - height of the blend
+stripe.</p></li>
+</ul>
+</section>
+<section id="global-shadervars">
+<h4>Global Shadervars<a class="headerlink" href="#global-shadervars" title="Link to this heading"></a></h4>
+<p>Primary shader parameters, initialized in <code class="docutils literal notranslate"><span class="pre">gamedata/.../scene.blk</span></code> in the
+<code class="docutils literal notranslate"><span class="pre">&quot;shader_vars__vars:object&quot;</span></code> block:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness</span> <span class="pre">=</span> <span class="pre">8.0</span></code> - (default - 8.0) - higher value means sharper
+blend edges.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_min_angle</span> <span class="pre">=</span> <span class="pre">12.0</span></code> - (default - 12.0) - gradient perlin noise starts
+from this angle to the max angle.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_max_angle</span> <span class="pre">=</span> <span class="pre">50.0</span></code> - (default - 50.0) - maximum angle.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_perlin_tex_scale</span> <span class="pre">=</span> <span class="pre">0.25</span></code> - (default - 0.25) - perlin noise tiling
+multiplier.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_min_height</span> <span class="pre">=</span> <span class="pre">0.5</span></code> - (default - 0.5) - minimum blend height, overrides
+shader parameter if necessary.</p></li>
+</ul>
+</section>
+<section id="static-shadervars">
+<h4>Static Shadervars<a class="headerlink" href="#static-shadervars" title="Link to this heading"></a></h4>
+<p>Additional shader parameters that adjust the influence of global shadervars for
+a specific asset:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;ri_hmap_blend_sharpness_mul</span> <span class="pre">=</span> <span class="pre">1.0&quot;</span></code> - multiplier for
+<code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;ri_hmap_min_angle_mul</span> <span class="pre">=</span> <span class="pre">1.0&quot;</span></code> - multiplier for <code class="docutils literal notranslate"><span class="pre">ri_hmap_min_angle</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;ri_hmap_max_angle_mul</span> <span class="pre">=</span> <span class="pre">1.0&quot;</span></code> - multiplier for <code class="docutils literal notranslate"><span class="pre">ri_hmap_max_angle</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;ri_hmap_perlin_tex_scale_mul</span> <span class="pre">=</span> <span class="pre">1.0&quot;</span></code> - multiplier for
+<code class="docutils literal notranslate"><span class="pre">ri_hmap_perlin_tex_scale</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;ri_hmap_min_height_mul</span> <span class="pre">=</span> <span class="pre">1.0&quot;</span></code> - multiplier for
+<code class="docutils literal notranslate"><span class="pre">ri_hmap_min_height</span></code>.</p></li>
+</ul>
+</section>
+<section id="global-and-static-shadervars-for-ri-hmap">
+<h4>Global and Static Shadervars for <code class="docutils literal notranslate"><span class="pre">ri_hmap</span></code><a class="headerlink" href="#global-and-static-shadervars-for-ri-hmap" title="Link to this heading"></a></h4>
+<ol class="arabic simple">
+<li><p><strong>Global Shadervars</strong>: Affect all assets on a level with initialized blending.</p></li>
+<li><p><strong>Default Values</strong>: If global shadervars are not initialized in <code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>,
+the default values listed above are used.</p></li>
+<li><p><strong>Static Shadervars</strong>: These are shader parameters that act as multipliers
+for the global shadervars initialized in <code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>.</p></li>
+</ol>
+<p>For example, if the global shadervar is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness</span> <span class="pre">=</span> <span class="pre">8.0</span></code></p>
+<p>and the asset <code class="docutils literal notranslate"><span class="pre">example.dag</span></code> has a static shadervar set to:</p>
+<p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;ri_hmap_blend_sharpness_mul</span> <span class="pre">=</span> <span class="pre">0.5&quot;</span></code></p>
+<p>the final blend sharpness value for <code class="docutils literal notranslate"><span class="pre">example.dag</span></code> on the level will be
+calculated as:</p>
+<p><code class="docutils literal notranslate"><span class="pre">blend_sharpness</span> <span class="pre">=</span> <span class="pre">ri_hmap_blend_sharpness</span> <span class="pre">*</span> <span class="pre">ri_hmap_blend_sharpness_mul</span> <span class="pre">=</span> <span class="pre">8.0</span> <span class="pre">*</span> <span class="pre">0.5</span> <span class="pre">=</span> <span class="pre">4</span></code>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The heightmap blending shader works in the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a>, but since the
+global shadervars for the editor are initialized separately and not pulled from
+<code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>, be aware that if you select global shadervars values in <code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>
+that differ from the default values, the editor will display something different
+from what you will see in the game. Instructions on how to set global shadervars
+for the editor will be added to the article later.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Global shadervars can be changed in the game in real-time:</p>
+<ul class="simple">
+<li><p>If global shadervars are not initialized in <code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>, they can only be
+changed through the web UI Shader_vars – show global shader vars;</p></li>
+<li><p>If initialized, they can be changed in the game itself using the mission
+settings UI, which is called up by pressing <code class="docutils literal notranslate"><span class="pre">F12</span></code>.</p></li>
+</ul>
+</div>
+</section>
+</section>
+</section>
+<section id="id4">
+<h2>War Thunder-based Parameters<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="detail-tiling">
+<h3>Detail Tiling<a class="headerlink" href="#detail-tiling" title="Link to this heading"></a></h3>
+<p>In <em>War Thunder</em>, the texel density of details isn’t always consistent (although
+all new details are created with correct texel density). To address this, the
+parameter <code class="docutils literal notranslate"><span class="pre">details_tile=1,1,1,0</span></code> was introduced.</p>
+<ul class="simple">
+<li><p>Only the <strong>first three components</strong> are used, with each one controlling the
+tiling of its corresponding detail.</p></li>
+<li><p>The default value for each component is <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+</ul>
+</section>
+<section id="height-based-painting">
+<h3>Height-based Painting<a class="headerlink" href="#height-based-painting" title="Link to this heading"></a></h3>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_36.jpg"><img alt="../../_images/rendinst_perlin_layered_36.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_36.jpg" style="width: 80%;" />
+</a>
+<br>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;use_painting=1&quot;</span></code>: Controls painting from a palette defined in the
+scene’s shader variables.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> enables painting, while <code class="docutils literal notranslate"><span class="pre">0</span></code> disables it.</p></li>
+<li><p>Values between <code class="docutils literal notranslate"><span class="pre">0.01</span></code> and <code class="docutils literal notranslate"><span class="pre">0.9</span></code> reduce the painting intensity
+(multiplier). Painting is based on the alpha of the diffuse texture,
+multiplied by the <code class="docutils literal notranslate"><span class="pre">use_painting</span></code> value.</p></li>
+<li><p>Values between <code class="docutils literal notranslate"><span class="pre">1.01</span></code> and <code class="docutils literal notranslate"><span class="pre">1.9</span></code> affect the painting intensity from <code class="docutils literal notranslate"><span class="pre">0.0</span></code>
+to <code class="docutils literal notranslate"><span class="pre">1.0</span></code> but disable the random pixel selection from the paint stripe when
+the object is displaced vertically. This is useful for ensuring that
+modular skyscrapers, for example, are painted the same color.</p></li>
+</ul>
+</li>
+</ul>
+<p>The palette used is called <code class="docutils literal notranslate"><span class="pre">paint_colors.dds</span></code> and can be found at
+<code class="docutils literal notranslate"><span class="pre">.../develop/assets/textures/colorize_textures</span></code>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For more information on procedural painting, see <a class="reference internal" href="../about-assets/procedural-rendinst-painting/procedural_rendinst_painting.html"><span class="std std-doc">Procedural Rendinst
+Painting</span></a>.</p>
+</div>
+</section>
+<section id="material-shadows">
+<h3>Material Shadows<a class="headerlink" href="#material-shadows" title="Link to this heading"></a></h3>
+<p>These are shadows derived from the heightmap of the details. The available
+parameters include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;material_shadow_influence=0.5,</span> <span class="pre">1,</span> <span class="pre">0.3,</span> <span class="pre">0&quot;</span></code>: Controls the “strength”
+of shadows for each detail.</p>
+<ul>
+<li><p>Each component affects the corresponding detail (e.g., <code class="docutils literal notranslate"><span class="pre">0.5</span></code> for the first
+detail, <code class="docutils literal notranslate"><span class="pre">1</span></code> for the second, and <code class="docutils literal notranslate"><span class="pre">0.3</span></code> for the third).</p></li>
+<li><p>The fourth component is not used in the <code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code> shader.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script:t=&quot;material_shadow_scale=2&quot;</span></code>: Acts as a multiplier for the “size” of
+the shadow.</p>
+<ul>
+<li><p>This scale is applied uniformly to the shadows of all details, as calculating it individually for each detail would be computationally expensive.</p></li>
+</ul>
+</li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_perlin_layered_37.jpg"><img alt="../../_images/rendinst_perlin_layered_37.jpg" class="bg-primary align-center" src="../../_images/rendinst_perlin_layered_37.jpg" style="width: 80%;" />
+</a>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_parallax_ice.html" class="btn btn-neutral float-left" title="rendinst_parallax_ice" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rendinst_simple_emissive.html" class="btn btn-neutral float-right" title="rendinst_simple_emissive" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

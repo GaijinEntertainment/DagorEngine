@@ -1,0 +1,256 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1Reflex_1_1ReflexStats" kind="struct" language="C++" prot="public">
+    <compoundname>nv::Reflex::ReflexStats</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a196c7e3b5784a4430554d1458e580250" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::frameID</definition>
+        <argsstring></argsstring>
+        <name>frameID</name>
+        <qualifiedname>nv::Reflex::ReflexStats::frameID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="188" column="14" bodyfile="dag_nvFeatures.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a6cb4e3c2b18750ef26ab5c645aed3bd6" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::inputSampleTime</definition>
+        <argsstring></argsstring>
+        <name>inputSampleTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::inputSampleTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="189" column="14" bodyfile="dag_nvFeatures.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1aa3df179787b7e48ab3af077f2cc598eb" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::simStartTime</definition>
+        <argsstring></argsstring>
+        <name>simStartTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::simStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="190" column="14" bodyfile="dag_nvFeatures.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a0fd3028fbcacdcf23e3bbbbee6c591d1" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::simEndTime</definition>
+        <argsstring></argsstring>
+        <name>simEndTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::simEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="191" column="14" bodyfile="dag_nvFeatures.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a8ef2b4c4c68ca6570159ede16c9745a6" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::renderSubmitStartTime</definition>
+        <argsstring></argsstring>
+        <name>renderSubmitStartTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::renderSubmitStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="192" column="14" bodyfile="dag_nvFeatures.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a2fb2a35e5f9415809f227c0f1ff6af4b" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::renderSubmitEndTime</definition>
+        <argsstring></argsstring>
+        <name>renderSubmitEndTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::renderSubmitEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="193" column="14" bodyfile="dag_nvFeatures.h" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a5f64b79c81945f94c99d9547febe3988" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::presentStartTime</definition>
+        <argsstring></argsstring>
+        <name>presentStartTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::presentStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="194" column="14" bodyfile="dag_nvFeatures.h" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1ad54e4605f2aaebe92c1acdc38d68ddc3" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::presentEndTime</definition>
+        <argsstring></argsstring>
+        <name>presentEndTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::presentEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="195" column="14" bodyfile="dag_nvFeatures.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a405bb467a50c483b2324213e95f6e82c" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::driverStartTime</definition>
+        <argsstring></argsstring>
+        <name>driverStartTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::driverStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="196" column="14" bodyfile="dag_nvFeatures.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a814bcf13c4ff377af46cbffe29c1a35d" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::driverEndTime</definition>
+        <argsstring></argsstring>
+        <name>driverEndTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::driverEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="197" column="14" bodyfile="dag_nvFeatures.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a9d266ec921c76bdf03870bdeb35bf05a" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::osRenderQueueStartTime</definition>
+        <argsstring></argsstring>
+        <name>osRenderQueueStartTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::osRenderQueueStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="198" column="14" bodyfile="dag_nvFeatures.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1aefd50aee86fb0a72dc99406f2d5cc24d" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::osRenderQueueEndTime</definition>
+        <argsstring></argsstring>
+        <name>osRenderQueueEndTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::osRenderQueueEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="199" column="14" bodyfile="dag_nvFeatures.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a34e8e92454e2ae0d377c7f6b64c16274" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::gpuRenderStartTime</definition>
+        <argsstring></argsstring>
+        <name>gpuRenderStartTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::gpuRenderStartTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="200" column="14" bodyfile="dag_nvFeatures.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1adabd0ea99f189fce1b98344ce638a9ad" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t nv::Reflex::ReflexStats::gpuRenderEndTime</definition>
+        <argsstring></argsstring>
+        <name>gpuRenderEndTime</name>
+        <qualifiedname>nv::Reflex::ReflexStats::gpuRenderEndTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="201" column="14" bodyfile="dag_nvFeatures.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1ab309c2f3da1129ea62fb9cc58a530a80" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::Reflex::ReflexStats::gpuActiveRenderTimeUs</definition>
+        <argsstring></argsstring>
+        <name>gpuActiveRenderTimeUs</name>
+        <qualifiedname>nv::Reflex::ReflexStats::gpuActiveRenderTimeUs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="202" column="14" bodyfile="dag_nvFeatures.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1Reflex_1_1ReflexStats_1a37e619e1d30c8821a4c9121776741d9c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::Reflex::ReflexStats::gpuFrameTimeUs</definition>
+        <argsstring></argsstring>
+        <name>gpuFrameTimeUs</name>
+        <qualifiedname>nv::Reflex::ReflexStats::gpuFrameTimeUs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="203" column="14" bodyfile="dag_nvFeatures.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="186" column="3" bodyfile="dag_nvFeatures.h" bodystart="187" bodyend="204"/>
+    <listofallmembers>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a814bcf13c4ff377af46cbffe29c1a35d" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>driverEndTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a405bb467a50c483b2324213e95f6e82c" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>driverStartTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a196c7e3b5784a4430554d1458e580250" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>frameID</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1ab309c2f3da1129ea62fb9cc58a530a80" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>gpuActiveRenderTimeUs</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a37e619e1d30c8821a4c9121776741d9c" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>gpuFrameTimeUs</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1adabd0ea99f189fce1b98344ce638a9ad" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>gpuRenderEndTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a34e8e92454e2ae0d377c7f6b64c16274" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>gpuRenderStartTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a6cb4e3c2b18750ef26ab5c645aed3bd6" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>inputSampleTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1aefd50aee86fb0a72dc99406f2d5cc24d" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>osRenderQueueEndTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a9d266ec921c76bdf03870bdeb35bf05a" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>osRenderQueueStartTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1ad54e4605f2aaebe92c1acdc38d68ddc3" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>presentEndTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a5f64b79c81945f94c99d9547febe3988" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>presentStartTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a2fb2a35e5f9415809f227c0f1ff6af4b" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>renderSubmitEndTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a8ef2b4c4c68ca6570159ede16c9745a6" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>renderSubmitStartTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1a0fd3028fbcacdcf23e3bbbbee6c591d1" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>simEndTime</name></member>
+      <member refid="structnv_1_1Reflex_1_1ReflexStats_1aa3df179787b7e48ab3af077f2cc598eb" prot="public" virt="non-virtual"><scope>nv::Reflex::ReflexStats</scope><name>simStartTime</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

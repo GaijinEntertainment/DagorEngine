@@ -1,0 +1,205 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="stcodeBytecode_8cpp" kind="file" language="C++">
+    <compoundname>stcodeBytecode.cpp</compoundname>
+    <includes refid="stcodeBytecode_8h" local="yes">stcodeBytecode.h</includes>
+    <includes local="no">shaders/shUtils.h</includes>
+    <incdepgraph>
+      <node id="10">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="4">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>stcodeBytecode.cpp</label>
+        <link refid="stcodeBytecode_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>stcodeBytecode.h</label>
+        <link refid="stcodeBytecode_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="23">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="21">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="20">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="24">
+        <label>shaders/shUtils.h</label>
+      </node>
+      <node id="17">
+        <label>shsyn.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="12">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="11">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="stcodeBytecode_8h" kindref="compound">stcodeBytecode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO:<sp/>strongly<sp/>doubt<sp/>this<sp/>is<sp/>needed<sp/>anymore,<sp/>should<sp/>be<sp/>removed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PROFILE_OPCODE_USAGE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>opcode_usage[2][256];</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">dag::ConstSpan&lt;int&gt;<sp/><ref refid="classStcodeBytecodeCache_1a3c2709681f13853105debfbff7177d0b" kindref="member">StcodeBytecodeCache::findOrPost</ref>(Tab&lt;int&gt;<sp/>&amp;&amp;a_routine,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dyn)</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>code<sp/>=<sp/>eastl::move(a_routine);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!code.size())</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dag::ConstSpan&lt;int&gt;(0,<sp/>0);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>Tab&lt;TabStcode&gt;<sp/>&amp;cache<sp/>=<sp/>dyn<sp/>?<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref><sp/>:<sp/>stblkcode;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>cache.size()<sp/>-<sp/>1;<sp/>i<sp/>&gt;=<sp/>0;<sp/>i--)</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cache[i].size()<sp/>==<sp/>code.size()<sp/>&amp;&amp;<sp/>mem_eq(code,<sp/>cache[i].data()))</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cache[i];</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l<sp/>=<sp/>append_items(cache,<sp/>1);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>cache[l]<sp/>=<sp/>eastl::move(code);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PROFILE_OPCODE_USAGE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>debug_(</highlight><highlight class="stringliteral">&quot;%s<sp/>code<sp/>-<sp/>&quot;</highlight><highlight class="normal">,<sp/>dyn<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;dynamic&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;stateblock&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>ShUtils::shcod_dump(cache[l]);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>code.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>opcode<sp/>=<sp/>shaderopcode::getOp(code[i]);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dyn)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>opcode_usage[1][opcode]++;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>opcode_usage[0][opcode]++;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(opcode<sp/>==<sp/>SHCOD_IMM_REAL<sp/>||<sp/>opcode<sp/>==<sp/>SHCOD_MAKE_VEC)</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(opcode<sp/>==<sp/>SHCOD_IMM_VEC)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i<sp/>+=<sp/>4;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(opcode<sp/>==<sp/>SHCOD_CALL_FUNCTION)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i<sp/>+=<sp/>shaderopcode::getOp3p3(code[i]);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cache[l];</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="stcodeBytecode.cpp"/>
+  </compounddef>
+</doxygen>

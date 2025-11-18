@@ -1,0 +1,166 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classVPnorm" kind="class" language="C++" prot="public">
+    <compoundname>VPnorm</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ImageFilter</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classVPnorm_1a06f54c03c83ce9045db1892fc75b4a00" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPnorm::Description</definition>
+        <argsstring>() override</argsstring>
+        <name>Description</name>
+        <qualifiedname>VPnorm::Description</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="12" column="15" bodyfile="vpconv.cpp" bodystart="12" bodyend="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnorm_1aa4a72197617c8e201ecb6c5eb3fd2607" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPnorm::AuthorName</definition>
+        <argsstring>() override</argsstring>
+        <name>AuthorName</name>
+        <qualifiedname>VPnorm::AuthorName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="13" column="15" bodyfile="vpconv.cpp" bodystart="13" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnorm_1a2e42298c89dbc3fadb7d23dda5688d5a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPnorm::CopyrightMessage</definition>
+        <argsstring>() override</argsstring>
+        <name>CopyrightMessage</name>
+        <qualifiedname>VPnorm::CopyrightMessage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="14" column="15" bodyfile="vpconv.cpp" bodystart="14" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnorm_1a61333a3da5bf8065fa80b585c4f529bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>UINT</type>
+        <definition>UINT VPnorm::Version</definition>
+        <argsstring>() override</argsstring>
+        <name>Version</name>
+        <qualifiedname>VPnorm::Version</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="15" column="8" bodyfile="vpconv.cpp" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnorm_1ac08fbbf6e1fb53d6b221d8caa6e4ba85" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DWORD</type>
+        <definition>DWORD VPnorm::Capability</definition>
+        <argsstring>() override</argsstring>
+        <name>Capability</name>
+        <qualifiedname>VPnorm::Capability</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="16" column="9" bodyfile="vpconv.cpp" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnorm_1adba3ec6a3f86366d15813dc6f2cc97ea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void VPnorm::ShowAbout</definition>
+        <argsstring>(HWND hw) override</argsstring>
+        <name>ShowAbout</name>
+        <qualifiedname>VPnorm::ShowAbout</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="17" column="8" bodyfile="vpconv.cpp" bodystart="17" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnorm_1a229892041125369e3e44a258bf720f6f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL VPnorm::Render</definition>
+        <argsstring>(HWND hw) override</argsstring>
+        <name>Render</name>
+        <qualifiedname>VPnorm::Render</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="24" column="8" bodyfile="vpconv.cpp" bodystart="56" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPnorm_1a1df99b87014b96b8aa40db420fb2bf84" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DWORD</type>
+        <definition>DWORD VPnorm::ChannelsRequired</definition>
+        <argsstring>() override</argsstring>
+        <name>ChannelsRequired</name>
+        <qualifiedname>VPnorm::ChannelsRequired</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="25" column="9" bodyfile="vpconv.cpp" bodystart="25" bodyend="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ImageFilter</label>
+      </node>
+      <node id="1">
+        <label>VPnorm</label>
+        <link refid="classVPnorm"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ImageFilter</label>
+      </node>
+      <node id="1">
+        <label>VPnorm</label>
+        <link refid="classVPnorm"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="vpconv.cpp" line="9" column="1" bodyfile="vpconv.cpp" bodystart="10" bodyend="26"/>
+    <listofallmembers>
+      <member refid="classVPnorm_1aa4a72197617c8e201ecb6c5eb3fd2607" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>AuthorName</name></member>
+      <member refid="classVPnorm_1ac08fbbf6e1fb53d6b221d8caa6e4ba85" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>Capability</name></member>
+      <member refid="classVPnorm_1a1df99b87014b96b8aa40db420fb2bf84" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>ChannelsRequired</name></member>
+      <member refid="classVPnorm_1a2e42298c89dbc3fadb7d23dda5688d5a" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>CopyrightMessage</name></member>
+      <member refid="classVPnorm_1a06f54c03c83ce9045db1892fc75b4a00" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>Description</name></member>
+      <member refid="classVPnorm_1a229892041125369e3e44a258bf720f6f" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>Render</name></member>
+      <member refid="classVPnorm_1adba3ec6a3f86366d15813dc6f2cc97ea" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>ShowAbout</name></member>
+      <member refid="classVPnorm_1a61333a3da5bf8065fa80b585c4f529bd" prot="public" virt="non-virtual"><scope>VPnorm</scope><name>Version</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

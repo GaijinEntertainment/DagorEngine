@@ -1,0 +1,296 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLocalVarTable" kind="class" language="C++" prot="public">
+    <compoundname>LocalVarTable</compoundname>
+    <includes refid="shLocVar_8h" local="no">shLocVar.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classLocalVarTable_1a302e02a716bda7f60a80a1b0849953d7" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structLocalVar" kindref="compound">LocalVar</ref> &gt;</type>
+        <definition>Tab&lt;LocalVar&gt; LocalVarTable::varTable</definition>
+        <argsstring></argsstring>
+        <name>varTable</name>
+        <qualifiedname>LocalVarTable::varTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="99" column="7" bodyfile="shLocVar.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLocalVarTable_1a54d303b3489bc6b630d38342be39d1e9" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>shc::TargetContext&amp; LocalVarTable::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>LocalVarTable::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="100" column="22" bodyfile="shLocVar.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLocalVarTable_1a369e75a4cf29a022f1ee0d16402f9533" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LocalVarTable::LocalVarTable</definition>
+        <argsstring>(shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>LocalVarTable</name>
+        <qualifiedname>LocalVarTable::LocalVarTable</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="65" column="12" bodyfile="shLocVar.cpp" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a31ca41e73408fbbbfd96eb15a6df89c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LocalVarTable::~LocalVarTable</definition>
+        <argsstring>()</argsstring>
+        <name>~LocalVarTable</name>
+        <qualifiedname>LocalVarTable::~LocalVarTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="66" column="3" bodyfile="shLocVar.cpp" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a66da05acb9d2276fce5235431b33c038" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LocalVarTable::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>LocalVarTable::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="69" column="8" bodyfile="shLocVar.cpp" bodystart="32" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1ac5b5d3b9695b8db06057df2dc6d6c09d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int LocalVarTable::addVariable</definition>
+        <argsstring>(const LocalVar &amp;var)</argsstring>
+        <name>addVariable</name>
+        <qualifiedname>LocalVarTable::addVariable</qualifiedname>
+        <param>
+          <type>const <ref refid="structLocalVar" kindref="compound">LocalVar</ref> &amp;</type>
+          <declname>var</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="72" column="7" bodyfile="shLocVar.cpp" bodystart="40" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a89151c12d65aa70028d87fc1c64979c0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int LocalVarTable::getVariableId</definition>
+        <argsstring>(int var_name_id) const</argsstring>
+        <name>getVariableId</name>
+        <qualifiedname>LocalVarTable::getVariableId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="75" column="7" bodyfile="shLocVar.cpp" bodystart="51" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1acc73e6bd975d8ac1058d7855f28fca35" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+        <definition>LocalVar * LocalVarTable::getVariableByName</definition>
+        <argsstring>(int var_name_id)</argsstring>
+        <name>getVariableByName</name>
+        <qualifiedname>LocalVarTable::getVariableByName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="81" column="12" bodyfile="shLocVar.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a4e4f9bc874d7b0ac133555eca786fe0d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+        <definition>const LocalVar * LocalVarTable::getVariableByName</definition>
+        <argsstring>(int var_name_id) const</argsstring>
+        <name>getVariableByName</name>
+        <qualifiedname>LocalVarTable::getVariableByName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="82" column="18" bodyfile="shLocVar.h" bodystart="82" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a503b3e7b1e6247a7f86a9058e3679e38" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+        <definition>LocalVar * LocalVarTable::getVariableById</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>getVariableById</name>
+        <qualifiedname>LocalVarTable::getVariableById</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="88" column="12" bodyfile="shLocVar.h" bodystart="88" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1aef0632dd2b1fa5401108d727ddb74d8e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structLocalVar" kindref="compound">LocalVar</ref> *</type>
+        <definition>const LocalVar * LocalVarTable::getVariableById</definition>
+        <argsstring>(int var_id) const</argsstring>
+        <name>getVariableById</name>
+        <qualifiedname>LocalVarTable::getVariableById</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="89" column="18" bodyfile="shLocVar.h" bodystart="89" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a350588305d5cd51e6397f23c8486c172" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LocalVarTable::copyFrom</definition>
+        <argsstring>(const LocalVarTable &amp;c)</argsstring>
+        <name>copyFrom</name>
+        <qualifiedname>LocalVarTable::copyFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref> &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="93" column="8" bodyfile="shLocVar.cpp" bodystart="74" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a0d9b276803c50c165ce44e55d9d95d3c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structLocalVar" kindref="compound">LocalVar</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; LocalVar &gt; LocalVarTable::getVars</definition>
+        <argsstring>() const</argsstring>
+        <name>getVars</name>
+        <qualifiedname>LocalVarTable::getVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="95" column="25" bodyfile="shLocVar.h" bodystart="95" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1a64549636f3d695b6eeb48118120d2ee9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int LocalVarTable::getCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getCount</name>
+        <qualifiedname>LocalVarTable::getCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="96" column="14" bodyfile="shLocVar.h" bodystart="96" bodyend="96"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classLocalVarTable_1afba8b12deabb91a7e8d98184f0defd8e" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LocalVarTable::LocalVarTable</definition>
+        <argsstring>(const LocalVarTable &amp;other)</argsstring>
+        <name>LocalVarTable</name>
+        <qualifiedname>LocalVarTable::LocalVarTable</qualifiedname>
+        <param>
+          <type>const <ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="103" column="3" bodyfile="shLocVar.h" bodystart="103" bodyend="103"/>
+      </memberdef>
+      <memberdef kind="function" id="classLocalVarTable_1ac126630b0c8070496908a2b98f047d8f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void LocalVarTable::addBuiltinConstants</definition>
+        <argsstring>()</argsstring>
+        <name>addBuiltinConstants</name>
+        <qualifiedname>LocalVarTable::addBuiltinConstants</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="105" column="8" bodyfile="shLocVar.cpp" bodystart="21" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shLocVar.h" line="61" column="1" bodyfile="shLocVar.h" bodystart="62" bodyend="106"/>
+    <listofallmembers>
+      <member refid="classLocalVarTable_1ac126630b0c8070496908a2b98f047d8f" prot="private" virt="non-virtual"><scope>LocalVarTable</scope><name>addBuiltinConstants</name></member>
+      <member refid="classLocalVarTable_1ac5b5d3b9695b8db06057df2dc6d6c09d" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>addVariable</name></member>
+      <member refid="classLocalVarTable_1a66da05acb9d2276fce5235431b33c038" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>clear</name></member>
+      <member refid="classLocalVarTable_1a350588305d5cd51e6397f23c8486c172" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>copyFrom</name></member>
+      <member refid="classLocalVarTable_1a54d303b3489bc6b630d38342be39d1e9" prot="private" virt="non-virtual"><scope>LocalVarTable</scope><name>ctx</name></member>
+      <member refid="classLocalVarTable_1a64549636f3d695b6eeb48118120d2ee9" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>getCount</name></member>
+      <member refid="classLocalVarTable_1a503b3e7b1e6247a7f86a9058e3679e38" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>getVariableById</name></member>
+      <member refid="classLocalVarTable_1aef0632dd2b1fa5401108d727ddb74d8e" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>getVariableById</name></member>
+      <member refid="classLocalVarTable_1acc73e6bd975d8ac1058d7855f28fca35" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>getVariableByName</name></member>
+      <member refid="classLocalVarTable_1a4e4f9bc874d7b0ac133555eca786fe0d" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>getVariableByName</name></member>
+      <member refid="classLocalVarTable_1a89151c12d65aa70028d87fc1c64979c0" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>getVariableId</name></member>
+      <member refid="classLocalVarTable_1a0d9b276803c50c165ce44e55d9d95d3c" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>getVars</name></member>
+      <member refid="classLocalVarTable_1a369e75a4cf29a022f1ee0d16402f9533" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>LocalVarTable</name></member>
+      <member refid="classLocalVarTable_1afba8b12deabb91a7e8d98184f0defd8e" prot="private" virt="non-virtual"><scope>LocalVarTable</scope><name>LocalVarTable</name></member>
+      <member refid="classLocalVarTable_1a302e02a716bda7f60a80a1b0849953d7" prot="private" virt="non-virtual"><scope>LocalVarTable</scope><name>varTable</name></member>
+      <member refid="classLocalVarTable_1a31ca41e73408fbbbfd96eb15a6df89c2" prot="public" virt="non-virtual"><scope>LocalVarTable</scope><name>~LocalVarTable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

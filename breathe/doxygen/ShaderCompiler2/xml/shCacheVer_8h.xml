@@ -1,0 +1,185 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shCacheVer_8h" kind="file" language="C++">
+    <compoundname>shCacheVer.h</compoundname>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes refid="ver__obj__pcdx_8h" local="yes">ver_obj_pcdx.h</includes>
+    <includedby refid="main_8cpp" local="yes">main.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>shCacheVer.h</label>
+        <link refid="shCacheVer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ver_obj_pcdx.h</label>
+        <link refid="ver__obj__pcdx_8h"/>
+      </node>
+      <node id="2">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shCacheVer.h</label>
+        <link refid="shCacheVer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="shCacheVer_8h_1a385c44f6fb256e5716a2302a5b940388" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="shCacheVer_8h_1a385c44f6fb256e5716a2302a5b940388aa80b8f72df86b0f06b0df69c8eb4d424" prot="public">
+          <name>SHADER_CACHE_SIGN</name>
+          <initializer>= _MAKE4C(&apos;Oz&apos;)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shCacheVer_8h_1a385c44f6fb256e5716a2302a5b940388a516ba23eb35871282c44f4019f63a30b" prot="public">
+          <name>SHADER_CACHE_EOF</name>
+          <initializer>= _MAKE4C(&apos;eof&apos;)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCacheVer.h" line="14" column="1" bodyfile="shCacheVer.h" bodystart="15" bodyend="18"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="shCacheVer_8h_1a142ee28f9f4904b0d64145bf09f06433" prot="public" static="yes" mutable="no">
+        <type>const int</type>
+        <definition>const int SHADER_CACHE_COMMON_VER</definition>
+        <argsstring></argsstring>
+        <name>SHADER_CACHE_COMMON_VER</name>
+        <initializer>= 54</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCacheVer.h" line="21" column="18" bodyfile="shCacheVer.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="shCacheVer_8h_1a7fc717536de5c09b7d965a64dc91fff7" prot="public" static="yes" mutable="no">
+        <type>const int</type>
+        <definition>const int SHADER_CACHE_VER</definition>
+        <argsstring></argsstring>
+        <name>SHADER_CACHE_VER</name>
+        <initializer>= make_shader_cache_ver(
+
+
+
+
+
+
+
+
+
+
+
+
+
+)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCacheVer.h" line="34" column="18" bodyfile="shCacheVer.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shCacheVer_8h_1a8ed6b8dd0ba1d28e0cc95269d7b164c7" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int make_shader_cache_ver</definition>
+        <argsstring>(int ver)</argsstring>
+        <name>make_shader_cache_ver</name>
+        <param>
+          <type>int</type>
+          <declname>ver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCacheVer.h" line="23" column="12" bodyfile="shCacheVer.h" bodystart="23" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>See<sp/>https://gaijinentertainment.github.io/DagorEngine/dagor-tools/shader-compiler/contributing_to_compiler.html#versioning</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_SPIRV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="ver__obj__spirv_8h" kindref="compound">ver_obj_spirv.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_CROSS_TARGET_DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="ver__obj__dxc_8h" kindref="compound">ver_obj_dxc.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16" refid="shCacheVer_8h_1a385c44f6fb256e5716a2302a5b940388aa80b8f72df86b0f06b0df69c8eb4d424" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="shCacheVer_8h_1a385c44f6fb256e5716a2302a5b940388aa80b8f72df86b0f06b0df69c8eb4d424" kindref="member">SHADER_CACHE_SIGN</ref><sp/>=<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;Oz&apos;</highlight><highlight class="normal">),</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="shCacheVer_8h_1a385c44f6fb256e5716a2302a5b940388a516ba23eb35871282c44f4019f63a30b" kindref="member">SHADER_CACHE_EOF</ref><sp/>=<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;eof&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="18" refid="shCacheVer_8h_1a385c44f6fb256e5716a2302a5b940388a516ba23eb35871282c44f4019f63a30b" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Increase<sp/>this<sp/>number<sp/>if<sp/>changes<sp/>in<sp/>the<sp/>compiler<sp/>invalidate<sp/>.obj<sp/>for<sp/>all<sp/>APIs,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>SHADER_CACHE_COMMON_VER<sp/>=<sp/>54;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>make_shader_cache_ver(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ver)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>a[4]<sp/>=<sp/>{_DUMP4C(ver)};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v<sp/>=<sp/>100<sp/>*<sp/>(a[0]<sp/>-<sp/></highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">)<sp/>+<sp/>10<sp/>*<sp/>(a[1]<sp/>-<sp/></highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">)<sp/>+<sp/>(a[3]<sp/>-<sp/></highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>v<sp/>+=<sp/>SHADER_CACHE_COMMON_VER;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>a[0]<sp/>=<sp/>v<sp/>/<sp/>100<sp/>+<sp/></highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>a[1]<sp/>=<sp/>v<sp/>%<sp/>100<sp/>/<sp/>10<sp/>+<sp/></highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>a[3]<sp/>=<sp/>v<sp/>%<sp/>10<sp/>+<sp/></highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>MAKE4C(a[0],<sp/>a[1],<sp/>a[2],<sp/>a[3]);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>SHADER_CACHE_VER<sp/>=<sp/>make_shader_cache_ver(</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">#</highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>_CROSS_TARGET_METAL</highlight></codeline>
+<codeline lineno="36"><highlight class="normal">#include<sp/></highlight><highlight class="stringliteral">&quot;ver_obj_metal.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal">#elif<sp/>_CROSS_TARGET_SPIRV</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><ref refid="ver__obj__spirv_8cpp_1a2ccd99994f3c7105490a2099b88ee9ab" kindref="member">VER_OBJ_SPIRV_VAL</ref></highlight></codeline>
+<codeline lineno="39"><highlight class="normal">#elif<sp/>_CROSS_TARGET_C1</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">#elif<sp/>_CROSS_TARGET_C2</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">#elif<sp/>_CROSS_TARGET_DX12</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><ref refid="ver__obj__dxc_8cpp_1a8c0b4a780d076e0b5c21a721f00c3ac5" kindref="member">VER_OBJ_DXC_VAL</ref></highlight></codeline>
+<codeline lineno="45"><highlight class="normal">#</highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">#include<sp/></highlight><highlight class="stringliteral">&quot;ver_obj_pcdx.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">#endif</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">);</highlight></codeline>
+    </programlisting>
+    <location file="shCacheVer.h"/>
+  </compounddef>
+</doxygen>

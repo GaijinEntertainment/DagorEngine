@@ -1,0 +1,247 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__occlusionSystem_8h" kind="file" language="C++">
+    <compoundname>dag_occlusionSystem.h</compoundname>
+    <includes local="no">vecmath/dag_vecMathDecl.h</includes>
+    <includes local="no">math/dag_occlusionTest.h</includes>
+    <includes refid="dag__stereoIndex_8h" local="no">3d/dag_stereoIndex.h</includes>
+    <includes refid="dag__textureIDHolder_8h" local="no">3d/dag_textureIDHolder.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_occlusionSystem.h</label>
+        <link refid="dag__occlusionSystem_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>3d/dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>3d/dag_stereoIndex.h</label>
+        <link refid="dag__stereoIndex_8h"/>
+      </node>
+      <node id="6">
+        <label>3d/dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>3d/dag_textureIDHolder.h</label>
+        <link refid="dag__textureIDHolder_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>EASTL/vector_map.h</label>
+      </node>
+      <node id="16">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="15">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_occlusionTest.h</label>
+      </node>
+      <node id="12">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="14">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+      <node id="2">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classOcclusionSystem" prot="public">OcclusionSystem</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104" prot="public" static="no" strong="no">
+        <type></type>
+        <name>CockpitReprojectionMode</name>
+        <enumvalue id="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104a95920404e94a54c9bbd8c5ce22fbed94" prot="public">
+          <name>COCKPIT_NO_REPROJECT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104a75ee2a7dbdcdd0e8fd2ed5f971e4c041" prot="public">
+          <name>COCKPIT_REPROJECT_OUT_OF_SCREEN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104ad27c5cb178005f21ee3153eb42498725" prot="public">
+          <name>COCKPIT_REPROJECT_ANIMATED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="16" column="1" bodyfile="dag_occlusionSystem.h" bodystart="17" bodyend="21"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" prot="public" static="no">
+        <type>BaseTexture</type>
+        <definition>typedef BaseTexture Texture</definition>
+        <argsstring></argsstring>
+        <name>Texture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_occlusionSystem.h" line="13" column="21" bodyfile="dag_occlusionSystem.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vecmath/dag_vecMathDecl.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_occlusionTest.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__stereoIndex_8h" kindref="compound">3d/dag_stereoIndex.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__textureIDHolder_8h" kindref="compound">3d/dag_textureIDHolder.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">BaseTexture;</highlight></codeline>
+<codeline lineno="13" refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>BaseTexture<sp/><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104" kindref="member">CockpitReprojectionMode</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18" refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104a95920404e94a54c9bbd8c5ce22fbed94" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104a95920404e94a54c9bbd8c5ce22fbed94" kindref="member">COCKPIT_NO_REPROJECT</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Cockpit<sp/>pixels<sp/>will<sp/>be<sp/>leaved<sp/>as<sp/>is<sp/>without<sp/>reprojection.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104a75ee2a7dbdcdd0e8fd2ed5f971e4c041" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104a75ee2a7dbdcdd0e8fd2ed5f971e4c041" kindref="member">COCKPIT_REPROJECT_OUT_OF_SCREEN</ref>,<sp/></highlight><highlight class="comment">//<sp/>Cockpit<sp/>pixels<sp/>will<sp/>be<sp/>reprojected<sp/>out<sp/>of<sp/>screen<sp/>(i.<sp/>e.<sp/>&quot;discarded&quot;).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><ref refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104ad27c5cb178005f21ee3153eb42498725" kindref="member">COCKPIT_REPROJECT_ANIMATED</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Cockpit<sp/>pixels<sp/>will<sp/>be<sp/>reprojected<sp/>using<sp/>separate<sp/>matrix<sp/>(for<sp/>animated<sp/>cockpit).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104ad27c5cb178005f21ee3153eb42498725" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classOcclusionSystem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classOcclusionSystem" kindref="compound">OcclusionSystem</ref></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28" refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aa7228212f3398bfb807a98b8c7630ff83" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aa7228212f3398bfb807a98b8c7630ff83" kindref="member">WIDTH</ref><sp/>=<sp/>OCCLUSION_W,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aaa5ec4c809aebc87936d01af5578341b9" kindref="member">HEIGHT</ref><sp/>=<sp/>OCCLUSION_H</highlight></codeline>
+<codeline lineno="30" refid="classOcclusionSystem_1ae163d0db8332b38fb383d8300a08a81aaa5ec4c809aebc87936d01af5578341b9" refkind="member"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="33" refid="classOcclusionSystem_1a1e0f87d13e91ee63e8a4c4fdf68653cc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a1e0f87d13e91ee63e8a4c4fdf68653cc" kindref="member">~OcclusionSystem</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="34" refid="classOcclusionSystem_1a358641b2ee8d1a5e9c3d1f5f25d9a279" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem" kindref="compound">OcclusionSystem</ref><sp/>*<ref refid="classOcclusionSystem_1a358641b2ee8d1a5e9c3d1f5f25d9a279" kindref="member">create</ref>();</highlight></codeline>
+<codeline lineno="35" refid="classOcclusionSystem_1aac2faeff1c73cfad51f525cf44cfc306" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1aac2faeff1c73cfad51f525cf44cfc306" kindref="member">init</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*hzb_tex_name<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;hzb&quot;</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="36" refid="classOcclusionSystem_1a6e8b1d87dfd3f4ecf32e42bf5ce76bd4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a6e8b1d87dfd3f4ecf32e42bf5ce76bd4" kindref="member">close</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="37" refid="classOcclusionSystem_1a2a4927555ed8cef218c0fe2f6ec9f2ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a2a4927555ed8cef218c0fe2f6ec9f2ee" kindref="member">reset</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="38" refid="classOcclusionSystem_1a5a2cc108429a92da99439840a3a8fa76" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a5a2cc108429a92da99439840a3a8fa76" kindref="member">hasGPUFrame</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="39" refid="classOcclusionSystem_1af3a3a34cfc293833ef2434abcde4674a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1af3a3a34cfc293833ef2434abcde4674a" kindref="member">readGPUframe</ref>()<sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>can<sp/>be<sp/>run<sp/>from<sp/>any<sp/>thread,<sp/>but<sp/>will<sp/>read<sp/>from<sp/>gpu<sp/>texture<sp/>(gpu<sp/>readback)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="classOcclusionSystem_1a9c0dff29ed71c6156f03d2458e7b7217" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a9c0dff29ed71c6156f03d2458e7b7217" kindref="member">clear</ref>()<sp/>=<sp/>0;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>there<sp/>is<sp/>neither<sp/>gpu<sp/>frame,<sp/>nor<sp/>cpu<sp/>frame,<sp/>we<sp/>need<sp/>to<sp/>have<sp/>cleared</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>cockpit_distance<sp/>is<sp/>linear<sp/>distance<sp/>to<sp/>max<sp/>cockpit<sp/>len.<sp/>Everything<sp/>close<sp/>than<sp/>this<sp/>dist<sp/>will<sp/>not<sp/>be<sp/>reprojected<sp/>and<sp/>would<sp/>be<sp/>used</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>as<sp/>is</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>cockpit_anim<sp/>=<sp/>currentTransform<sp/>*<sp/>previousTransform^-1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="classOcclusionSystem_1a8c11c0bb0bb4160e7f410bb7939699b8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a8c11c0bb0bb4160e7f410bb7939699b8" kindref="member">prepareGPUDepthFrame</ref>(vec3f<sp/>pos,<sp/>mat44f_cref<sp/>view,<sp/>mat44f_cref<sp/>proj,<sp/>mat44f_cref<sp/>viewProj,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>cockpit_distance,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dag__occlusionSystem_8h_1acc502cf2d92fe47e2573b3443a092104" kindref="member">CockpitReprojectionMode</ref><sp/>cockpit_mode,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>mat44f<sp/>&amp;cockpit_anim)<sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>performs<sp/>reprojection<sp/>of<sp/>latest<sp/>GPU<sp/>frame</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="classOcclusionSystem_1a240d22fb6425efc973db4eac89d6c6fd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a240d22fb6425efc973db4eac89d6c6fd" kindref="member">buildMips</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47" refid="classOcclusionSystem_1a7298d1e027ff95a3a4c7203fc901bc27" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a7298d1e027ff95a3a4c7203fc901bc27" kindref="member">prepareDebug</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48" refid="classOcclusionSystem_1a7fd8fcf1597ae979d433fc187d60f08c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a7fd8fcf1597ae979d433fc187d60f08c" kindref="member">prepareNextFrame</ref>(vec3f<sp/>view_pos,<sp/>mat44f_cref<sp/>view,<sp/>mat44f_cref<sp/>proj,<sp/>mat44f_cref<sp/>view_proj,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zn,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zf,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair" kindref="compound">TextureIDPair</ref><sp/>mipped_depth,<sp/><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref><sp/>*depth<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50" refid="classOcclusionSystem_1a2f53cdd873f2a034564db0422c59e257" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a2f53cdd873f2a034564db0422c59e257" kindref="member">prepareNextFrame</ref>(vec3f<sp/>view_pos,<sp/>mat44f_cref<sp/>view,<sp/>mat44f_cref<sp/>proj,<sp/>mat44f_cref<sp/>view_proj,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zn,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zf,</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTextureIDPair" kindref="compound">TextureIDPair</ref><sp/>mipped_depth,<sp/><ref refid="dag__occlusionSystem_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref><sp/>*depth,<sp/><ref refid="dag__stereoIndex_8h_1af6797b12e3541f4a90b35bd4f60982e8" kindref="member">StereoIndex</ref><sp/>stereo_index)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="52" refid="classOcclusionSystem_1affcdff5463f53877f82323d3f1c32fd3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1affcdff5463f53877f82323d3f1c32fd3" kindref="member">setReprojectionUseCameraTranslatedSpace</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enabled)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="53" refid="classOcclusionSystem_1aca61cdc1fa0633c6d57a7a2677575f50" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1aca61cdc1fa0633c6d57a7a2677575f50" kindref="member">getReprojectionUseCameraTranslatedSpace</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classOcclusionSystem_1ac33e7b49477d39baa83147adcf04357e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1ac33e7b49477d39baa83147adcf04357e" kindref="member">DEFAULT_MAX_TEST_MIP</ref><sp/>=<sp/>3;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>the<sp/>bigger<sp/>mip<sp/>number,<sp/>the<sp/>coarser<sp/>check,<sp/>which<sp/>matters<sp/>only<sp/>on<sp/>close<sp/>distance.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>dip<sp/>is<sp/>cheap,<sp/>use<sp/>bigger<sp/>(4..5),<sp/>if<sp/>it<sp/>is<sp/>very<sp/>expensive<sp/>-<sp/>use<sp/>lower<sp/>(0..2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>3<sp/>provides<sp/>reasonable<sp/>average<sp/>quality</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="classOcclusionSystem_1aaf25fb8c155345f9dd871cbf50f69bfd" refkind="member"><highlight class="normal"><sp/><sp/>VECTORCALL<sp/>__forceinline<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1aaf25fb8c155345f9dd871cbf50f69bfd" kindref="member">testVisibility</ref>(vec3f<sp/>bmin,<sp/>vec3f<sp/>bmax,<sp/>vec3f<sp/>threshold,<sp/>mat44f_cref<sp/>clip,</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mip<sp/>=<sp/><ref refid="classOcclusionSystem_1ac33e7b49477d39baa83147adcf04357e" kindref="member">DEFAULT_MAX_TEST_MIP</ref>)</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1aa7d15739cd2818d8791c7dcc9e7ff317" kindref="member">occlusionTest</ref>.testVisibility(bmin,<sp/>bmax,<sp/>threshold,<sp/>clip,<sp/>mip);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classOcclusionSystem_1ac2459a789118fa7e72b4a8234a3e4a6e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1ac2459a789118fa7e72b4a8234a3e4a6e" kindref="member">initSWRasterization</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="66" refid="classOcclusionSystem_1aa50532c27e0674051c443232e357a05b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1aa50532c27e0674051c443232e357a05b" kindref="member">startRasterization</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zn)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="67" refid="classOcclusionSystem_1ad3b12ed88a62f07bdfa8accf2550967f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1ad3b12ed88a62f07bdfa8accf2550967f" kindref="member">rasterizeBoxes</ref>(mat44f_cref<sp/>viewproj,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>bbox3f<sp/>*box,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>mat43f<sp/>*mat,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cnt)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="68" refid="classOcclusionSystem_1a6f9f85ebe6fcbd552eb7d6d2f1c00d76" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a6f9f85ebe6fcbd552eb7d6d2f1c00d76" kindref="member">rasterizeBoxes</ref>(mat44f_cref<sp/>viewproj,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>bbox3f<sp/>*box,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>mat44f<sp/>*mat,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cnt)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="69" refid="classOcclusionSystem_1a739a878047bf225adcab4378fd1c9119" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a739a878047bf225adcab4378fd1c9119" kindref="member">rasterizeQuads</ref>(mat44f_cref<sp/>viewproj,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>vec4f<sp/>*verts,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cnt)<sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>4*cnt<sp/>verts<sp/>is<sp/>required</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classOcclusionSystem_1ab2b659371f1404ca7d8ddb9af027b867" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1ab2b659371f1404ca7d8ddb9af027b867" kindref="member">rasterizeMesh</ref>(mat44f_cref<sp/>viewproj,<sp/>vec3f<sp/>bmin,<sp/>vec3f<sp/>bmax,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>vec4f<sp/>*verts,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vert_cnt,</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>*faces,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tri_count)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="classOcclusionSystem_1a0cff771fc5a991ead1f7bb160ad70b60" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1a0cff771fc5a991ead1f7bb160ad70b60" kindref="member">combineWithSWRasterization</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="74" refid="classOcclusionSystem_1ab7f25ed0b001b962389a5c652139962b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1ab7f25ed0b001b962389a5c652139962b" kindref="member">prepareDebugSWRasterization</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="75" refid="classOcclusionSystem_1af1153bd5ddaca71bacd66f48c36a9654" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1af1153bd5ddaca71bacd66f48c36a9654" kindref="member">mergeOcclusionsZmin</ref>(<ref refid="classMaskedOcclusionCulling" kindref="compound">MaskedOcclusionCulling</ref><sp/>**another_occl,<sp/>uint32_t<sp/>occl_count,<sp/>uint32_t<sp/>first_tile,</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>last_tile)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="77" refid="classOcclusionSystem_1aaf5913a766adf2a54e5c1bb67c22f103" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1aaf5913a766adf2a54e5c1bb67c22f103" kindref="member">getMaskedResolution</ref>(uint32_t<sp/>&amp;width,<sp/>uint32_t<sp/>&amp;height)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="classOcclusionSystem_1ac87fe3b4962e0946f5b85b5cedc6ba20" refkind="member"><highlight class="normal"><sp/><sp/>OcclusionTest&lt;WIDTH,<sp/>HEIGHT&gt;<sp/>&amp;<ref refid="classOcclusionSystem_1ac87fe3b4962e0946f5b85b5cedc6ba20" kindref="member">getOcclusionTest</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classOcclusionSystem_1aa7d15739cd2818d8791c7dcc9e7ff317" kindref="member">occlusionTest</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83" refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcad975ad15693ba25374f680e3907dc637" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcad975ad15693ba25374f680e3907dc637" kindref="member">CULL_FRUSTUM</ref><sp/>=<sp/>OcclusionTest&lt;WIDTH,<sp/>HEIGHT&gt;::CULL_FRUSTUM,</highlight></codeline>
+<codeline lineno="84" refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcaea6311ae6d50d900b9bca430fd6a7f43" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcaea6311ae6d50d900b9bca430fd6a7f43" kindref="member">VISIBLE</ref><sp/>=<sp/>OcclusionTest&lt;WIDTH,<sp/>HEIGHT&gt;::VISIBLE,</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcae6d0cba0b9a8188b671f15be435817f6" kindref="member">CULL_OCCLUSION</ref><sp/>=<sp/>OcclusionTest&lt;WIDTH,<sp/>HEIGHT&gt;::CULL_OCCLUSION</highlight></codeline>
+<codeline lineno="86" refid="classOcclusionSystem_1a56f730dc79d7b8205152591f586c7ebcae6d0cba0b9a8188b671f15be435817f6" refkind="member"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="89" refid="classOcclusionSystem_1aa7d15739cd2818d8791c7dcc9e7ff317" refkind="member"><highlight class="normal"><sp/><sp/>OcclusionTest&lt;WIDTH,<sp/>HEIGHT&gt;<sp/><ref refid="classOcclusionSystem_1aa7d15739cd2818d8791c7dcc9e7ff317" kindref="member">occlusionTest</ref>;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_occlusionSystem.h"/>
+  </compounddef>
+</doxygen>

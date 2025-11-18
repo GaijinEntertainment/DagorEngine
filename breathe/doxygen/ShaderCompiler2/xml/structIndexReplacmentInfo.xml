@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIndexReplacmentInfo" kind="struct" language="C++" prot="public">
+    <compoundname>IndexReplacmentInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIndexReplacmentInfo_1a2c00a3209b0d7851565496c302794d3d" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t IndexReplacmentInfo::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>IndexReplacmentInfo::target</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="594" column="10" bodyfile="linkShaders.cpp" bodystart="594" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIndexReplacmentInfo_1abf87e154af1d81ba9075f4fe99dd1491" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t IndexReplacmentInfo::old</definition>
+        <argsstring></argsstring>
+        <name>old</name>
+        <qualifiedname>IndexReplacmentInfo::old</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="595" column="10" bodyfile="linkShaders.cpp" bodystart="595" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="linkShaders.cpp" line="592" column="1" bodyfile="linkShaders.cpp" bodystart="593" bodyend="596"/>
+    <listofallmembers>
+      <member refid="structIndexReplacmentInfo_1abf87e154af1d81ba9075f4fe99dd1491" prot="public" virt="non-virtual"><scope>IndexReplacmentInfo</scope><name>old</name></member>
+      <member refid="structIndexReplacmentInfo_1a2c00a3209b0d7851565496c302794d3d" prot="public" virt="non-virtual"><scope>IndexReplacmentInfo</scope><name>target</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

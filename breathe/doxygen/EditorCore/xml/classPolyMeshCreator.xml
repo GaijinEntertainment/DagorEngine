@@ -1,0 +1,612 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPolyMeshCreator" kind="class" language="C++" prot="public">
+    <compoundname>PolyMeshCreator</compoundname>
+    <basecompoundref refid="classIObjectCreator" prot="public" virt="non-virtual">IObjectCreator</basecompoundref>
+    <includes refid="ec__ObjectCreator_8h" local="no">ec_ObjectCreator.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classPolyMeshCreator_1a0091beabf490653545bc01ff5c48f8a7" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Point2 &gt;</type>
+        <definition>Tab&lt;Point2&gt; PolyMeshCreator::points</definition>
+        <argsstring></argsstring>
+        <name>points</name>
+        <qualifiedname>PolyMeshCreator::points</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="510" column="7" bodyfile="ec_ObjectCreator.h" bodystart="510" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classPolyMeshCreator_1a5bc23d1f763a31fa2c592e4befe218b9" prot="protected" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned PolyMeshCreator::stageNo</definition>
+        <argsstring></argsstring>
+        <name>stageNo</name>
+        <qualifiedname>PolyMeshCreator::stageNo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="521" column="12" bodyfile="ec_ObjectCreator.h" bodystart="521" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyMeshCreator_1a28118e28155545b62973770282c75d35" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 PolyMeshCreator::clientPoint</definition>
+        <argsstring></argsstring>
+        <name>clientPoint</name>
+        <qualifiedname>PolyMeshCreator::clientPoint</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="522" column="10" bodyfile="ec_ObjectCreator.h" bodystart="522" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyMeshCreator_1acc986ac237466fb77e05b174c0eb276b" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyMeshCreator::wrapedX</definition>
+        <argsstring></argsstring>
+        <name>wrapedX</name>
+        <qualifiedname>PolyMeshCreator::wrapedX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="523" column="7" bodyfile="ec_ObjectCreator.h" bodystart="523" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyMeshCreator_1a84eaa193816d2f2fd04c4eb5017b8d1d" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyMeshCreator::wrapedY</definition>
+        <argsstring></argsstring>
+        <name>wrapedY</name>
+        <qualifiedname>PolyMeshCreator::wrapedY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="524" column="7" bodyfile="ec_ObjectCreator.h" bodystart="524" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyMeshCreator_1a4aa235648c6fd7dcbc77a91c171c67d7" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float PolyMeshCreator::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>PolyMeshCreator::height</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="525" column="9" bodyfile="ec_ObjectCreator.h" bodystart="525" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyMeshCreator_1aaaa0e1d66e33a3c65c533937cae841f4" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float PolyMeshCreator::yPos</definition>
+        <argsstring></argsstring>
+        <name>yPos</name>
+        <qualifiedname>PolyMeshCreator::yPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="526" column="9" bodyfile="ec_ObjectCreator.h" bodystart="526" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyMeshCreator_1a2b3d87de6e314571f83b04226157691f" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PolyMeshCreator::isRenderFirstPoint</definition>
+        <argsstring></argsstring>
+        <name>isRenderFirstPoint</name>
+        <qualifiedname>PolyMeshCreator::isRenderFirstPoint</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="527" column="8" bodyfile="ec_ObjectCreator.h" bodystart="527" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyMeshCreator_1ae14adb3c7af5902f9fa5b94406a67f4e" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PolyMeshCreator::isFailedMesh</definition>
+        <argsstring></argsstring>
+        <name>isFailedMesh</name>
+        <qualifiedname>PolyMeshCreator::isFailedMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="528" column="8" bodyfile="ec_ObjectCreator.h" bodystart="528" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPolyMeshCreator_1a5c7ba30f6070716e1f4e8f1a1ffe3caa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PolyMeshCreator::PolyMeshCreator</definition>
+        <argsstring>()</argsstring>
+        <name>PolyMeshCreator</name>
+        <qualifiedname>PolyMeshCreator::PolyMeshCreator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="512" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyMeshCreator_1af1b929cd21ef5ea2d077267e235a8496" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolyMeshCreator::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate=true) override</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>PolyMeshCreator::handleMouseMove</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a82310296dee9c4c0c75950969a8d928b">handleMouseMove</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>rotate</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse move event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">rotate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if <bold>false</bold>, then box sides will be parallel to world coordinate axes <linebreak/>
+ - if <bold>true</bold>, then box base will be set as pointed by user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="514" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyMeshCreator_1a095dadced20d54424121715f70eb994b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolyMeshCreator::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>PolyMeshCreator::handleMouseLBPress</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a09ec2ee738ee050be9cc3efa1cdc190a">handleMouseLBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button press event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="515" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyMeshCreator_1ac4df67187deb36d6e6d432d9ed835ed0" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolyMeshCreator::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>PolyMeshCreator::handleMouseLBRelease</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a5424963405a354e4d3d3dbd186dcdbfb">handleMouseLBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button release event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="516" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyMeshCreator_1a99b68815dca4e7ba39aeccf86e5964f3" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolyMeshCreator::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>PolyMeshCreator::handleMouseRBPress</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a673bf26b31164117f1d028c82abeae50">handleMouseRBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse right button press event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="517" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyMeshCreator_1a5d6cd529199c96382f53d135a6b01ee5" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void PolyMeshCreator::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>PolyMeshCreator::render</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="518" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classPolyMeshCreator_1a67bfa14b9a1d61f15ad32b4afd119bc2" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyMeshCreator::renderSegment</definition>
+        <argsstring>(int point1_id, int point2_id)</argsstring>
+        <name>renderSegment</name>
+        <qualifiedname>PolyMeshCreator::renderSegment</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>point1_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>point2_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="530" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyMeshCreator_1adc781bae45fb02b4df2e05c1f14b9a53" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyMeshCreator::convertPoints</definition>
+        <argsstring>()</argsstring>
+        <name>convertPoints</name>
+        <qualifiedname>PolyMeshCreator::convertPoints</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="531" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="1">
+        <label>PolyMeshCreator</label>
+        <link refid="classPolyMeshCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="1">
+        <label>PolyMeshCreator</label>
+        <link refid="classPolyMeshCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_ObjectCreator.h" line="507" column="1" bodyfile="ec_ObjectCreator.h" bodystart="508" bodyend="532"/>
+    <listofallmembers>
+      <member refid="classPolyMeshCreator_1a28118e28155545b62973770282c75d35" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>clientPoint</name></member>
+      <member refid="classPolyMeshCreator_1adc781bae45fb02b4df2e05c1f14b9a53" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>convertPoints</name></member>
+      <member refid="classPolyMeshCreator_1a095dadced20d54424121715f70eb994b" prot="public" virt="virtual"><scope>PolyMeshCreator</scope><name>handleMouseLBPress</name></member>
+      <member refid="classPolyMeshCreator_1ac4df67187deb36d6e6d432d9ed835ed0" prot="public" virt="virtual"><scope>PolyMeshCreator</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classPolyMeshCreator_1af1b929cd21ef5ea2d077267e235a8496" prot="public" virt="virtual"><scope>PolyMeshCreator</scope><name>handleMouseMove</name></member>
+      <member refid="classPolyMeshCreator_1a99b68815dca4e7ba39aeccf86e5964f3" prot="public" virt="virtual"><scope>PolyMeshCreator</scope><name>handleMouseRBPress</name></member>
+      <member refid="classPolyMeshCreator_1a4aa235648c6fd7dcbc77a91c171c67d7" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>height</name></member>
+      <member refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" prot="public" virt="non-virtual"><scope>PolyMeshCreator</scope><name>IObjectCreator</name></member>
+      <member refid="classPolyMeshCreator_1ae14adb3c7af5902f9fa5b94406a67f4e" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>isFailedMesh</name></member>
+      <member refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" prot="public" virt="non-virtual"><scope>PolyMeshCreator</scope><name>isFinished</name></member>
+      <member refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" prot="public" virt="non-virtual"><scope>PolyMeshCreator</scope><name>isOk</name></member>
+      <member refid="classPolyMeshCreator_1a2b3d87de6e314571f83b04226157691f" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>isRenderFirstPoint</name></member>
+      <member refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" prot="public" virt="non-virtual"><scope>PolyMeshCreator</scope><name>matrix</name></member>
+      <member refid="classPolyMeshCreator_1a0091beabf490653545bc01ff5c48f8a7" prot="public" virt="non-virtual"><scope>PolyMeshCreator</scope><name>points</name></member>
+      <member refid="classPolyMeshCreator_1a5c7ba30f6070716e1f4e8f1a1ffe3caa" prot="public" virt="non-virtual"><scope>PolyMeshCreator</scope><name>PolyMeshCreator</name></member>
+      <member refid="classPolyMeshCreator_1a5d6cd529199c96382f53d135a6b01ee5" prot="public" virt="virtual"><scope>PolyMeshCreator</scope><name>render</name></member>
+      <member refid="classPolyMeshCreator_1a67bfa14b9a1d61f15ad32b4afd119bc2" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>renderSegment</name></member>
+      <member refid="classPolyMeshCreator_1a5bc23d1f763a31fa2c592e4befe218b9" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>stageNo</name></member>
+      <member refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>stateFinished</name></member>
+      <member refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>stateOk</name></member>
+      <member refid="classPolyMeshCreator_1acc986ac237466fb77e05b174c0eb276b" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>wrapedX</name></member>
+      <member refid="classPolyMeshCreator_1a84eaa193816d2f2fd04c4eb5017b8d1d" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>wrapedY</name></member>
+      <member refid="classPolyMeshCreator_1aaaa0e1d66e33a3c65c533937cae841f4" prot="protected" virt="non-virtual"><scope>PolyMeshCreator</scope><name>yPos</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

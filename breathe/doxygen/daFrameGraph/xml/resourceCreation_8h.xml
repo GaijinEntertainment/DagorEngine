@@ -1,0 +1,116 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="resourceCreation_8h" kind="file" language="C++">
+    <compoundname>resourceCreation.h</compoundname>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includes local="no">math/integer/dag_IPoint3.h</includes>
+    <includes local="no">EASTL/variant.h</includes>
+    <includes local="no">drv/3d/dag_buffers.h</includes>
+    <includes refid="autoResolutionRequest_8h" local="no">render/daFrameGraph/autoResolutionRequest.h</includes>
+    <incdepgraph>
+      <node id="6">
+        <label>render/daFrameGraph/autoResolutionRequest.h</label>
+        <link refid="autoResolutionRequest_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>resourceCreation.h</label>
+        <link refid="resourceCreation_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="2">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="3">
+        <label>math/integer/dag_IPoint3.h</label>
+      </node>
+      <node id="7">
+        <label>render/daFrameGraph/detail/autoResTypeNameId.h</label>
+      </node>
+      <node id="8">
+        <label>render/daFrameGraph/detail/dispatchRequestPolicy.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structdafg_1_1NamedSlot" prot="public">dafg::NamedSlot</innerclass>
+    <innerclass refid="structdafg_1_1Texture2dCreateInfo" prot="public">dafg::Texture2dCreateInfo</innerclass>
+    <innerclass refid="structdafg_1_1Texture3dCreateInfo" prot="public">dafg::Texture3dCreateInfo</innerclass>
+    <innerclass refid="structdafg_1_1BufferCreateInfo" prot="public">dafg::BufferCreateInfo</innerclass>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint3.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/variant.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_buffers.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="autoResolutionRequest_8h" kindref="compound">render/daFrameGraph/autoResolutionRequest.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="structdafg_1_1NamedSlot" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1NamedSlot" kindref="compound">NamedSlot</ref></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25" refid="structdafg_1_1NamedSlot_1add25a71e1e886f24300cd371b4f01597" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structdafg_1_1NamedSlot_1add25a71e1e886f24300cd371b4f01597" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="structdafg_1_1NamedSlot_1ac8c4fb3c90c5285dea72b975726a6100" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1NamedSlot_1ac8c4fb3c90c5285dea72b975726a6100" kindref="member">NamedSlot</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*slot_name)<sp/>:<sp/><ref refid="structdafg_1_1NamedSlot_1add25a71e1e886f24300cd371b4f01597" kindref="member">name</ref>(slot_name)<sp/>{}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="namespacedafg_1ae16099a071daf6f269658b1ce3de3387" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ae16099a071daf6f269658b1ce3de3387" kindref="member">AUTO_MIP_COUNT</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="structdafg_1_1Texture2dCreateInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1Texture2dCreateInfo" kindref="compound">Texture2dCreateInfo</ref></highlight></codeline>
+<codeline lineno="44"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="46" refid="structdafg_1_1Texture2dCreateInfo_1a7d2faaaae847522451becfb9a07f08ef" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1Texture2dCreateInfo_1a7d2faaaae847522451becfb9a07f08ef" kindref="member">creationFlags</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48" refid="structdafg_1_1Texture2dCreateInfo_1a8148f7ad18e3301efbf7a45cce49b2fd" refkind="member"><highlight class="normal"><sp/><sp/>eastl::variant&lt;IPoint2,<sp/>AutoResolutionRequest&lt;2&gt;&gt;<sp/><ref refid="structdafg_1_1Texture2dCreateInfo_1a8148f7ad18e3301efbf7a45cce49b2fd" kindref="member">resolution</ref>;</highlight></codeline>
+<codeline lineno="50" refid="structdafg_1_1Texture2dCreateInfo_1a10e8f8306de46433c0a1b1a9ca540bc3" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1Texture2dCreateInfo_1a10e8f8306de46433c0a1b1a9ca540bc3" kindref="member">mipLevels</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="structdafg_1_1Texture3dCreateInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1Texture3dCreateInfo" kindref="compound">Texture3dCreateInfo</ref></highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59" refid="structdafg_1_1Texture3dCreateInfo_1a43b872426ff53c9b146a3bf72f7607a8" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1Texture3dCreateInfo_1a43b872426ff53c9b146a3bf72f7607a8" kindref="member">creationFlags</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="61" refid="structdafg_1_1Texture3dCreateInfo_1abf7a514243f24e5f3efe80da14bffcdc" refkind="member"><highlight class="normal"><sp/><sp/>eastl::variant&lt;IPoint3,<sp/>AutoResolutionRequest&lt;3&gt;&gt;<sp/><ref refid="structdafg_1_1Texture3dCreateInfo_1abf7a514243f24e5f3efe80da14bffcdc" kindref="member">resolution</ref>;</highlight></codeline>
+<codeline lineno="63" refid="structdafg_1_1Texture3dCreateInfo_1a7d40ed0f2504f74432023a0948ffa98d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1Texture3dCreateInfo_1a7d40ed0f2504f74432023a0948ffa98d" kindref="member">mipLevels</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="structdafg_1_1BufferCreateInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1BufferCreateInfo" kindref="compound">BufferCreateInfo</ref></highlight></codeline>
+<codeline lineno="73"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75" refid="structdafg_1_1BufferCreateInfo_1a07b765f5dc38ecfce27c9af11706552f" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1BufferCreateInfo_1a07b765f5dc38ecfce27c9af11706552f" kindref="member">elementSize</ref>;</highlight></codeline>
+<codeline lineno="77" refid="structdafg_1_1BufferCreateInfo_1ab501349a1802f0464b7979afa0a4a0f7" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1BufferCreateInfo_1ab501349a1802f0464b7979afa0a4a0f7" kindref="member">elementCount</ref>;</highlight></codeline>
+<codeline lineno="79" refid="structdafg_1_1BufferCreateInfo_1a8382382f1397163e71e676facf411d61" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1BufferCreateInfo_1a8382382f1397163e71e676facf411d61" kindref="member">flags</ref>;</highlight></codeline>
+<codeline lineno="84" refid="structdafg_1_1BufferCreateInfo_1a7b6fda4b01c1802c8e05df0d9508ab60" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1BufferCreateInfo_1a7b6fda4b01c1802c8e05df0d9508ab60" kindref="member">format</ref>;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="resourceCreation.h"/>
+  </compounddef>
+</doxygen>

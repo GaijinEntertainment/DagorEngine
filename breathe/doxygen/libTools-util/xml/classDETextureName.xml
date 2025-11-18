@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDETextureName" kind="class" language="C++" prot="public">
+    <compoundname>DETextureName</compoundname>
+    <basecompoundref refid="classFilePathName" prot="public" virt="non-virtual">FilePathName</basecompoundref>
+    <includes refid="de__TextureName_8h" local="no">de_TextureName.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDETextureName_1ac150b059b12f3b8c77c8bf1171991b22" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DETextureName::DETextureName</definition>
+        <argsstring>()</argsstring>
+        <name>DETextureName</name>
+        <qualifiedname>DETextureName::DETextureName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="19" column="4" bodyfile="de_TextureName.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1a4d2c96817249bd381b346595e454a717" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DETextureName::DETextureName</definition>
+        <argsstring>(const char *str)</argsstring>
+        <name>DETextureName</name>
+        <qualifiedname>DETextureName::DETextureName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="20" column="4" bodyfile="de_TextureName.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1abc6e506ead6b710c2863bd984d8ae1f8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DETextureName::DETextureName</definition>
+        <argsstring>(const String &amp;s)</argsstring>
+        <name>DETextureName</name>
+        <qualifiedname>DETextureName::DETextureName</qualifiedname>
+        <param>
+          <type>const String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="21" column="4" bodyfile="de_TextureName.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1ad8026f6619c2c2775e0b74ffb424aaca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DETextureName::DETextureName</definition>
+        <argsstring>(const FilePathName &amp;str)</argsstring>
+        <name>DETextureName</name>
+        <qualifiedname>DETextureName::DETextureName</qualifiedname>
+        <param>
+          <type>const <ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="22" column="4" bodyfile="de_TextureName.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1ad6fc66e588733ba13e3ca8c51baec236" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DETextureName::DETextureName</definition>
+        <argsstring>(const char *path, const char *name, const char *ext=NULL)</argsstring>
+        <name>DETextureName</name>
+        <qualifiedname>DETextureName::DETextureName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>ext</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="23" column="4" bodyfile="de_TextureName.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1a83a46d0df18122926db958448fb08d25" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDETextureName" kindref="compound">DETextureName</ref> &amp;</type>
+        <definition>DETextureName &amp; DETextureName::operator=</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>DETextureName::operator=</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="25" column="18" bodyfile="de_TextureName.h" bodystart="25" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1a0f86249334066f47ef87db576da93761" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDETextureName" kindref="compound">DETextureName</ref> &amp;</type>
+        <definition>DETextureName &amp; DETextureName::operator=</definition>
+        <argsstring>(const String &amp;s)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>DETextureName::operator=</qualifiedname>
+        <param>
+          <type>const String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="30" column="18" bodyfile="de_TextureName.h" bodystart="30" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1a42b6e5da476f1dabe4d49ad73095f4e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDETextureName" kindref="compound">DETextureName</ref> &amp;</type>
+        <definition>DETextureName &amp; DETextureName::operator=</definition>
+        <argsstring>(const FilePathName &amp;s)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>DETextureName::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="35" column="18" bodyfile="de_TextureName.h" bodystart="35" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1a4bdaeb7124f150896e95c3b83e640ca7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDETextureName" kindref="compound">DETextureName</ref> &amp;</type>
+        <definition>DETextureName &amp; DETextureName::setExt</definition>
+        <argsstring>(const char *new_ext)</argsstring>
+        <name>setExt</name>
+        <qualifiedname>DETextureName::setExt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>new_ext</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="41" column="18" bodyfile="de_TextureName.h" bodystart="41" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1a62fa09f46fc2adb5a02ad3f58907370b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DETextureName::findExisting</definition>
+        <argsstring>(const char *base_path=NULL)</argsstring>
+        <name>findExisting</name>
+        <qualifiedname>DETextureName::findExisting</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>base_path</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="48" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDETextureName_1abe0157525af1c966b4b3e524b8fffed9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DETextureName::makeRelativePath</definition>
+        <argsstring>(const char *base_path=NULL)</argsstring>
+        <name>makeRelativePath</name>
+        <qualifiedname>DETextureName::makeRelativePath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>base_path</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="51" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classDETextureName_1a00f33be3fbd43522fd6347ab6d49cca4" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void DETextureName::setLogWriter</definition>
+        <argsstring>(ILogWriter *log_writer)</argsstring>
+        <name>setLogWriter</name>
+        <qualifiedname>DETextureName::setLogWriter</qualifiedname>
+        <param>
+          <type><ref refid="classILogWriter" kindref="compound">ILogWriter</ref> *</type>
+          <declname>log_writer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="de_TextureName.h" line="53" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DETextureName</label>
+        <link refid="classDETextureName"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>FilePathName</label>
+        <link refid="classFilePathName"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>String</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DETextureName</label>
+        <link refid="classDETextureName"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>FilePathName</label>
+        <link refid="classFilePathName"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>String</label>
+      </node>
+    </collaborationgraph>
+    <location file="de_TextureName.h" line="16" column="1" bodyfile="de_TextureName.h" bodystart="17" bodyend="54"/>
+    <listofallmembers>
+      <member refid="classDETextureName_1ac150b059b12f3b8c77c8bf1171991b22" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>DETextureName</name></member>
+      <member refid="classDETextureName_1a4d2c96817249bd381b346595e454a717" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>DETextureName</name></member>
+      <member refid="classDETextureName_1abc6e506ead6b710c2863bd984d8ae1f8" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>DETextureName</name></member>
+      <member refid="classDETextureName_1ad8026f6619c2c2775e0b74ffb424aaca" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>DETextureName</name></member>
+      <member refid="classDETextureName_1ad6fc66e588733ba13e3ca8c51baec236" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>DETextureName</name></member>
+      <member refid="classFilePathName_1a66226150c970454c9e402517b78e4612" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1a3229ebc71d0cafc3ed462b3817370f01" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1aafe00093cbd088029e5bfbb3e81f1c3a" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1a629b22bdffbc8a5cabb64207c73cff75" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1a2c0d40fb5b3d5e8e009258568d98b8dd" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>FilePathName</name></member>
+      <member refid="classDETextureName_1a62fa09f46fc2adb5a02ad3f58907370b" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>findExisting</name></member>
+      <member refid="classFilePathName_1a22fd0385781534e303bb3f528986965c" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>getExt</name></member>
+      <member refid="classFilePathName_1a9016d2559e5a87198138179082daf2e3" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>getName</name></member>
+      <member refid="classFilePathName_1a9c89b2f3a4484b310b50ba0151877242" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>getPath</name></member>
+      <member refid="classFilePathName_1a75d4ad67f81e3e9081ad07eadb09e5d8" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>makeFullPath</name></member>
+      <member refid="classFilePathName_1a1f07b0f1232920a293d051b490c5a2ff" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>makeIdent</name></member>
+      <member refid="classDETextureName_1abe0157525af1c966b4b3e524b8fffed9" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>makeRelativePath</name></member>
+      <member refid="classFilePathName_1a72b0b51814dfdca6df4d83a20630c9d0" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator!=</name></member>
+      <member refid="classFilePathName_1a0a8775f37e8875eaefa768cfc8174e0a" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator!=</name></member>
+      <member refid="classFilePathName_1a9009ec32bdb5c35cb649a766ab052fcb" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator!=</name></member>
+      <member refid="classDETextureName_1a83a46d0df18122926db958448fb08d25" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator=</name></member>
+      <member refid="classDETextureName_1a0f86249334066f47ef87db576da93761" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator=</name></member>
+      <member refid="classDETextureName_1a42b6e5da476f1dabe4d49ad73095f4e3" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator=</name></member>
+      <member refid="classFilePathName_1aec6a365faaea020e75914c86563dc9f2" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator==</name></member>
+      <member refid="classFilePathName_1aba1aaced3833be360b3755a9ac9bb233" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator==</name></member>
+      <member refid="classFilePathName_1a1ef95b344877a034ecd999742005897a" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>operator==</name></member>
+      <member refid="classDETextureName_1a4bdaeb7124f150896e95c3b83e640ca7" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>setExt</name></member>
+      <member refid="classDETextureName_1a00f33be3fbd43522fd6347ab6d49cca4" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>setLogWriter</name></member>
+      <member refid="classFilePathName_1a98b04d589f1a60a2b0291d1d26f2037a" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>setName</name></member>
+      <member refid="classFilePathName_1a9535ed01eec2c4e7a8e96722f3d59e92" prot="public" virt="non-virtual"><scope>DETextureName</scope><name>setPath</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

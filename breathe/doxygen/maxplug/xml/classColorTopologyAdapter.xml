@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classColorTopologyAdapter" kind="class" language="C++" prot="public">
+    <compoundname>ColorTopologyAdapter</compoundname>
+    <basecompoundref refid="classTopologyAdapter" prot="public" virt="non-virtual">TopologyAdapter</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classColorTopologyAdapter_1a92d369b5a737ece8005cccb7aa41457c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ColorTopologyAdapter::ColorTopologyAdapter</definition>
+        <argsstring>(Mesh *in_mesh)</argsstring>
+        <name>ColorTopologyAdapter</name>
+        <qualifiedname>ColorTopologyAdapter::ColorTopologyAdapter</qualifiedname>
+        <param>
+          <type>Mesh *</type>
+          <declname>in_mesh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2709" column="3" bodyfile="util.cpp" bodystart="2709" bodyend="2709"/>
+      </memberdef>
+      <memberdef kind="function" id="classColorTopologyAdapter_1ae43a935c133c2da81d1ed609649fea3d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int ColorTopologyAdapter::getNumVerts</definition>
+        <argsstring>() override</argsstring>
+        <name>getNumVerts</name>
+        <qualifiedname>ColorTopologyAdapter::getNumVerts</qualifiedname>
+        <reimplements refid="classTopologyAdapter_1a74618dd737317e724e6a32909bf9b985">getNumVerts</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2711" column="16" bodyfile="util.cpp" bodystart="2711" bodyend="2711"/>
+      </memberdef>
+      <memberdef kind="function" id="classColorTopologyAdapter_1a30b218695434af72c2e68ca0eb039cd9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ColorTopologyAdapter::setNumVerts</definition>
+        <argsstring>(unsigned int num_verts) override</argsstring>
+        <name>setNumVerts</name>
+        <qualifiedname>ColorTopologyAdapter::setNumVerts</qualifiedname>
+        <reimplements refid="classTopologyAdapter_1a3e89ed43fbd20e531c7d2bfba5f51724">setNumVerts</reimplements>
+        <param>
+          <type>unsigned int</type>
+          <declname>num_verts</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2713" column="8" bodyfile="util.cpp" bodystart="2713" bodyend="2713"/>
+      </memberdef>
+      <memberdef kind="function" id="classColorTopologyAdapter_1a36930688d92f9697c820453a156067e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int ColorTopologyAdapter::getIndex</definition>
+        <argsstring>(unsigned int face_no, unsigned int index_no) override</argsstring>
+        <name>getIndex</name>
+        <qualifiedname>ColorTopologyAdapter::getIndex</qualifiedname>
+        <reimplements refid="classTopologyAdapter_1ac5508a6816cfaa80da161986790dd8f2">getIndex</reimplements>
+        <param>
+          <type>unsigned int</type>
+          <declname>face_no</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index_no</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2715" column="16" bodyfile="util.cpp" bodystart="2715" bodyend="2715"/>
+      </memberdef>
+      <memberdef kind="function" id="classColorTopologyAdapter_1ae9c548e9855d6ee610d9ade553fc83da" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ColorTopologyAdapter::setIndex</definition>
+        <argsstring>(unsigned int face_no, unsigned int index_no, unsigned int index) override</argsstring>
+        <name>setIndex</name>
+        <qualifiedname>ColorTopologyAdapter::setIndex</qualifiedname>
+        <reimplements refid="classTopologyAdapter_1aefd41553d07b99978cf1fcb66c684b95">setIndex</reimplements>
+        <param>
+          <type>unsigned int</type>
+          <declname>face_no</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index_no</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2717" column="8" bodyfile="util.cpp" bodystart="2717" bodyend="2720"/>
+      </memberdef>
+      <memberdef kind="function" id="classColorTopologyAdapter_1a10b6148fa8691f77f2329f87d7acf933" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ColorTopologyAdapter::copyVertex</definition>
+        <argsstring>(unsigned int from, unsigned int to) override</argsstring>
+        <name>copyVertex</name>
+        <qualifiedname>ColorTopologyAdapter::copyVertex</qualifiedname>
+        <reimplements refid="classTopologyAdapter_1a9bc1ce9635db21b7e646cc840b037911">copyVertex</reimplements>
+        <param>
+          <type>unsigned int</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2722" column="8" bodyfile="util.cpp" bodystart="2722" bodyend="2722"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ColorTopologyAdapter</label>
+        <link refid="classColorTopologyAdapter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TopologyAdapter</label>
+        <link refid="classTopologyAdapter"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ColorTopologyAdapter</label>
+        <link refid="classColorTopologyAdapter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TopologyAdapter</label>
+        <link refid="classTopologyAdapter"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2706" column="1" bodyfile="util.cpp" bodystart="2707" bodyend="2723"/>
+    <listofallmembers>
+      <member refid="classColorTopologyAdapter_1a92d369b5a737ece8005cccb7aa41457c" prot="public" virt="non-virtual"><scope>ColorTopologyAdapter</scope><name>ColorTopologyAdapter</name></member>
+      <member refid="classColorTopologyAdapter_1a10b6148fa8691f77f2329f87d7acf933" prot="public" virt="virtual"><scope>ColorTopologyAdapter</scope><name>copyVertex</name></member>
+      <member refid="classTopologyAdapter_1a6e20f644fa451516aec7bc9fc0176301" prot="public" virt="virtual"><scope>ColorTopologyAdapter</scope><name>countRemovedVertices</name></member>
+      <member refid="classColorTopologyAdapter_1a36930688d92f9697c820453a156067e8" prot="public" virt="virtual"><scope>ColorTopologyAdapter</scope><name>getIndex</name></member>
+      <member refid="classColorTopologyAdapter_1ae43a935c133c2da81d1ed609649fea3d" prot="public" virt="virtual"><scope>ColorTopologyAdapter</scope><name>getNumVerts</name></member>
+      <member refid="classTopologyAdapter_1a4b911200f72e8750549aeed13616caaa" prot="public" virt="non-virtual"><scope>ColorTopologyAdapter</scope><name>mesh</name></member>
+      <member refid="classColorTopologyAdapter_1ae9c548e9855d6ee610d9ade553fc83da" prot="public" virt="virtual"><scope>ColorTopologyAdapter</scope><name>setIndex</name></member>
+      <member refid="classColorTopologyAdapter_1a30b218695434af72c2e68ca0eb039cd9" prot="public" virt="virtual"><scope>ColorTopologyAdapter</scope><name>setNumVerts</name></member>
+      <member refid="classTopologyAdapter_1a8331add32d3e423f7dafa6df2b4c48b2" prot="public" virt="non-virtual"><scope>ColorTopologyAdapter</scope><name>TopologyAdapter</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

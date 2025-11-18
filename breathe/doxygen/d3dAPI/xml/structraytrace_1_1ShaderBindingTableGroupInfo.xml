@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ShaderBindingTableGroupInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ShaderBindingTableGroupInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableGroupInfo_1a768a0a4b69dd77888eec7f45f854f828" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableGroupInfo::minResourceReferences</definition>
+        <argsstring></argsstring>
+        <name>minResourceReferences</name>
+        <qualifiedname>raytrace::ShaderBindingTableGroupInfo::minResourceReferences</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Minimum of resources references the shader record has to be able to store. As this is a minimum, the driver may use more for total size calculation should shaders in that shader group need more space. In most cases, leaving this as 0 is fine. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="699" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="699" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ShaderBindingTableGroupInfo_1a825b075808d47b62fe162b8e3d2bd255" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ShaderBindingTableGroupInfo::minConstantDataSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>minConstantDataSizeInBytes</name>
+        <qualifiedname>raytrace::ShaderBindingTableGroupInfo::minConstantDataSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Minimum number of bytes of constant data the shader record has to be able to store. As this is a minimum, the driver may use more for total size calculation should shaders in that shader group need more space. In most cases, leaving this as 0 is fine. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="704" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="704" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Properties for any shader group a shader binding table. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="693" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="694" bodyend="705"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ShaderBindingTableGroupInfo_1a825b075808d47b62fe162b8e3d2bd255" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableGroupInfo</scope><name>minConstantDataSizeInBytes</name></member>
+      <member refid="structraytrace_1_1ShaderBindingTableGroupInfo_1a768a0a4b69dd77888eec7f45f854f828" prot="public" virt="non-virtual"><scope>raytrace::ShaderBindingTableGroupInfo</scope><name>minResourceReferences</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

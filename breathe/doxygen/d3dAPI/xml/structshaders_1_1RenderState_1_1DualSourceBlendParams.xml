@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshaders_1_1RenderState_1_1DualSourceBlendParams" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::RenderState::DualSourceBlendParams</compoundname>
+    <includes refid="dag__renderStates_8h" local="no">dag_renderStates.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a023898d70631e871c2a3d6beed4495e4" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::DualSourceBlendParams::src</definition>
+        <argsstring></argsstring>
+        <name>src</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::src</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="86" column="15" bodyfile="dag_renderStates.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a485139042ed907dd8a479622e2a8710d" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::DualSourceBlendParams::dst</definition>
+        <argsstring></argsstring>
+        <name>dst</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::dst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="87" column="15" bodyfile="dag_renderStates.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ad2345edef5197e7ddc0998a3763c3d9d" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structshaders_1_1RenderState_1_1DualSourceBlendParams" kindref="compound">shaders::RenderState::DualSourceBlendParams</ref></type>
+        <definition>struct shaders::RenderState::DualSourceBlendParams shaders::RenderState::DualSourceBlendParams::ablendFactors</definition>
+        <argsstring></argsstring>
+        <name>ablendFactors</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::ablendFactors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="88" column="19"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ad8161719cf0bf8d6f2e69cf36f87bab5" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structshaders_1_1RenderState_1_1DualSourceBlendParams" kindref="compound">shaders::RenderState::DualSourceBlendParams</ref></type>
+        <definition>struct shaders::RenderState::DualSourceBlendParams shaders::RenderState::DualSourceBlendParams::sepablendFactors</definition>
+        <argsstring></argsstring>
+        <name>sepablendFactors</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::sepablendFactors</qualifiedname>
+        <briefdescription>
+<para>Configures blend factors <ndash/> allow for extended enum values. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="88" column="42"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a3976269760d5ac6fcbe8c4e5d4ca52b0" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::DualSourceBlendParams::blendOp</definition>
+        <argsstring></argsstring>
+        <name>blendOp</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::blendOp</qualifiedname>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+<para>Specifies <ref refid="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653" kindref="member">BLENDOP</ref> operation for alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="90" column="13" bodyfile="dag_renderStates.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a15baf7433259006aa32cdf61df0efa50" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::DualSourceBlendParams::sepablendOp</definition>
+        <argsstring></argsstring>
+        <name>sepablendOp</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::sepablendOp</qualifiedname>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+<para>Specifies <ref refid="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653" kindref="member">BLENDOP</ref> operation for separate alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="91" column="13" bodyfile="dag_renderStates.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ac8df3ba0a01ccb145a84551f7a8278cd" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::DualSourceBlendParams::ablend</definition>
+        <argsstring></argsstring>
+        <name>ablend</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::ablend</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enables alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="92" column="13" bodyfile="dag_renderStates.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1DualSourceBlendParams_1abdedb8cab365f59217d0b999d038f71e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::DualSourceBlendParams::sepablend</definition>
+        <argsstring></argsstring>
+        <name>sepablend</name>
+        <qualifiedname>shaders::RenderState::DualSourceBlendParams::sepablend</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enables separate alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="93" column="13" bodyfile="dag_renderStates.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Description of blending parameters for dual source blending. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderStates.h" line="82" column="3" bodyfile="dag_renderStates.h" bodystart="83" bodyend="94"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ac8df3ba0a01ccb145a84551f7a8278cd" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>ablend</name></member>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ad2345edef5197e7ddc0998a3763c3d9d" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>ablendFactors</name></member>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a3976269760d5ac6fcbe8c4e5d4ca52b0" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>blendOp</name></member>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a485139042ed907dd8a479622e2a8710d" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>dst</name></member>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1abdedb8cab365f59217d0b999d038f71e" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>sepablend</name></member>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1ad8161719cf0bf8d6f2e69cf36f87bab5" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>sepablendFactors</name></member>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a15baf7433259006aa32cdf61df0efa50" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>sepablendOp</name></member>
+      <member refid="structshaders_1_1RenderState_1_1DualSourceBlendParams_1a023898d70631e871c2a3d6beed4495e4" prot="public" virt="non-virtual"><scope>shaders::RenderState::DualSourceBlendParams</scope><name>src</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

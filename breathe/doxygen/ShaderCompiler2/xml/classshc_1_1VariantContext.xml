@@ -1,0 +1,565 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshc_1_1VariantContext" kind="class" language="C++" prot="public">
+    <compoundname>shc::VariantContext</compoundname>
+    <includes refid="shVariantContext_8h" local="no">shVariantContext.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1afb0121e459fa17e07fb1d0449f999a7e" prot="private" static="no" mutable="no">
+        <type>const <ref refid="structShaderVariant_1_1VariantInfo" kindref="compound">ShaderVariant::VariantInfo</ref></type>
+        <definition>const ShaderVariant::VariantInfo shc::VariantContext::mVariant</definition>
+        <argsstring></argsstring>
+        <name>mVariant</name>
+        <qualifiedname>shc::VariantContext::mVariant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="16" column="36" bodyfile="shVariantContext.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1af307095eddb17fa55ab645368135fefe" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+        <definition>ShaderSemCode&amp; shc::VariantContext::mParsedSemcodeRef</definition>
+        <argsstring></argsstring>
+        <name>mParsedSemcodeRef</name>
+        <qualifiedname>shc::VariantContext::mParsedSemcodeRef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="17" column="17" bodyfile="shVariantContext.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1af73906f98d1331aea06054f803816ba8" prot="private" static="no" mutable="no">
+        <type><ref refid="structShaderSemCode_1_1PassTab" kindref="compound">ShaderSemCode::PassTab</ref> *</type>
+        <definition>ShaderSemCode::PassTab* shc::VariantContext::mParsedPassRef</definition>
+        <argsstring></argsstring>
+        <name>mParsedPassRef</name>
+        <qualifiedname>shc::VariantContext::mParsedPassRef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="18" column="26" bodyfile="shVariantContext.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1a124a3ac484d071ba03a9423868d12e30" prot="private" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref></type>
+        <definition>NamedConstBlock shc::VariantContext::mNamedConstsTable</definition>
+        <argsstring></argsstring>
+        <name>mNamedConstsTable</name>
+        <qualifiedname>shc::VariantContext::mNamedConstsTable</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="19" column="19" bodyfile="shVariantContext.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1ae5d29410ccec5c1ef4cc88bc3047997f" prot="private" static="no" mutable="no">
+        <type><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref></type>
+        <definition>BoolVarTable shc::VariantContext::mBoolVarTable</definition>
+        <argsstring></argsstring>
+        <name>mBoolVarTable</name>
+        <qualifiedname>shc::VariantContext::mBoolVarTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="20" column="16" bodyfile="shVariantContext.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1a54a497f7186c94e1505227d9d2e36d45" prot="private" static="no" mutable="no">
+        <type><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref></type>
+        <definition>LocalVarTable shc::VariantContext::mLocVars</definition>
+        <argsstring></argsstring>
+        <name>mLocVars</name>
+        <qualifiedname>shc::VariantContext::mLocVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="21" column="17" bodyfile="shVariantContext.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1acc306be662e0e87046d719051d03cdc8" prot="private" static="no" mutable="no">
+        <type><ref refid="structStcodeBytecodeAccumulator" kindref="compound">StcodeBytecodeAccumulator</ref></type>
+        <definition>StcodeBytecodeAccumulator shc::VariantContext::mStcodeBytecode</definition>
+        <argsstring></argsstring>
+        <name>mStcodeBytecode</name>
+        <qualifiedname>shc::VariantContext::mStcodeBytecode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="22" column="29" bodyfile="shVariantContext.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1a4879e0cb4b81eda4345dd3d489f79b44" prot="private" static="no" mutable="no">
+        <type><ref refid="structStcodePass" kindref="compound">StcodePass</ref></type>
+        <definition>StcodePass shc::VariantContext::mCppStcode</definition>
+        <argsstring></argsstring>
+        <name>mCppStcode</name>
+        <qualifiedname>shc::VariantContext::mCppStcode</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="23" column="14" bodyfile="shVariantContext.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1aec947e4a6edca9fa617cc749179d72c8" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1ShaderContext" kindref="compound">ShaderContext</ref> &amp;</type>
+        <definition>ShaderContext&amp; shc::VariantContext::mParent</definition>
+        <argsstring></argsstring>
+        <name>mParent</name>
+        <qualifiedname>shc::VariantContext::mParent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="25" column="17" bodyfile="shVariantContext.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1a276416d579553485cfe725eb27a2302a" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+        <definition>TargetContext&amp; shc::VariantContext::mTgtParent</definition>
+        <argsstring></argsstring>
+        <name>mTgtParent</name>
+        <qualifiedname>shc::VariantContext::mTgtParent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="26" column="17" bodyfile="shVariantContext.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1VariantContext_1a6f643e6720c4c3f507836af8ead99961" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+        <definition>const CompilationContext&amp; shc::VariantContext::mCompParent</definition>
+        <argsstring></argsstring>
+        <name>mCompParent</name>
+        <qualifiedname>shc::VariantContext::mCompParent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="27" column="28" bodyfile="shVariantContext.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classshc_1_1VariantContext_1a12ef79d30c9b7e3077e8b294d860bd63" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ShaderContext</definition>
+        <argsstring></argsstring>
+        <name>ShaderContext</name>
+        <qualifiedname>shc::VariantContext::ShaderContext</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">ShaderContext</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="65" column="16" bodyfile="shVariantContext.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a1cd6c96432c33d5741b597ad37709583" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classshc_1_1ShaderContext" kindref="compound">ShaderContext</ref> &amp;</type>
+        <definition>ShaderContext &amp; shc::VariantContext::shCtx</definition>
+        <argsstring>()</argsstring>
+        <name>shCtx</name>
+        <qualifiedname>shc::VariantContext::shCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="32" column="17" bodyfile="shVariantContext.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1ac1156eb39339e1725ce48d002e58f9ac" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classshc_1_1ShaderContext" kindref="compound">ShaderContext</ref> &amp;</type>
+        <definition>const ShaderContext &amp; shc::VariantContext::shCtx</definition>
+        <argsstring>() const</argsstring>
+        <name>shCtx</name>
+        <qualifiedname>shc::VariantContext::shCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="33" column="23" bodyfile="shVariantContext.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a02952e27d2d5e304daad76b11cb1f4ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+        <definition>TargetContext &amp; shc::VariantContext::tgtCtx</definition>
+        <argsstring>()</argsstring>
+        <name>tgtCtx</name>
+        <qualifiedname>shc::VariantContext::tgtCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="34" column="17" bodyfile="shVariantContext.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a71368bde0553651cf2bef88469a6cc81" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+        <definition>const TargetContext &amp; shc::VariantContext::tgtCtx</definition>
+        <argsstring>() const</argsstring>
+        <name>tgtCtx</name>
+        <qualifiedname>shc::VariantContext::tgtCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="35" column="23" bodyfile="shVariantContext.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1ab213eff39bcad78067281aa70edd15a1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+        <definition>const CompilationContext &amp; shc::VariantContext::compCtx</definition>
+        <argsstring>() const</argsstring>
+        <name>compCtx</name>
+        <qualifiedname>shc::VariantContext::compCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="36" column="28" bodyfile="shVariantContext.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1ae3d33ced2be05ff880614e636bfacb94" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderVariant_1_1VariantInfo" kindref="compound">ShaderVariant::VariantInfo</ref> &amp;</type>
+        <definition>const ShaderVariant::VariantInfo &amp; shc::VariantContext::variant</definition>
+        <argsstring>() const</argsstring>
+        <name>variant</name>
+        <qualifiedname>shc::VariantContext::variant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="38" column="36" bodyfile="shVariantContext.h" bodystart="38" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1affd628ade3fe363f38863af16f5d1129" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+        <definition>ShaderSemCode &amp; shc::VariantContext::parsedSemCode</definition>
+        <argsstring>()</argsstring>
+        <name>parsedSemCode</name>
+        <qualifiedname>shc::VariantContext::parsedSemCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="40" column="17" bodyfile="shVariantContext.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1aebc56e0d8edb7e5753f6ebf6623c0363" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+        <definition>const ShaderSemCode &amp; shc::VariantContext::parsedSemCode</definition>
+        <argsstring>() const</argsstring>
+        <name>parsedSemCode</name>
+        <qualifiedname>shc::VariantContext::parsedSemCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="41" column="23" bodyfile="shVariantContext.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a1715a11096f6f3e62450562f6619d596" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::VariantContext::hasParsedPass</definition>
+        <argsstring>() const</argsstring>
+        <name>hasParsedPass</name>
+        <qualifiedname>shc::VariantContext::hasParsedPass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="43" column="8" bodyfile="shVariantContext.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a06b4c5668ec99f28b596f9b7fe718702" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto &amp;</type>
+        <definition>auto &amp; shc::VariantContext::parsedPass</definition>
+        <argsstring>()</argsstring>
+        <name>parsedPass</name>
+        <qualifiedname>shc::VariantContext::parsedPass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="45" column="8" bodyfile="shVariantContext.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a4ebadc7156b49ee3ab0fb33e5538fded" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const auto &amp;</type>
+        <definition>const auto &amp; shc::VariantContext::parsedPass</definition>
+        <argsstring>() const</argsstring>
+        <name>parsedPass</name>
+        <qualifiedname>shc::VariantContext::parsedPass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="46" column="14" bodyfile="shVariantContext.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1ab722b76d9c32f145bd21cea293d07846" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref> &amp;</type>
+        <definition>NamedConstBlock &amp; shc::VariantContext::namedConstTable</definition>
+        <argsstring>()</argsstring>
+        <name>namedConstTable</name>
+        <qualifiedname>shc::VariantContext::namedConstTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="48" column="19" bodyfile="shVariantContext.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a8dc86edfe00f94850a67444efce89ab1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref> &amp;</type>
+        <definition>const NamedConstBlock &amp; shc::VariantContext::namedConstTable</definition>
+        <argsstring>() const</argsstring>
+        <name>namedConstTable</name>
+        <qualifiedname>shc::VariantContext::namedConstTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="49" column="25" bodyfile="shVariantContext.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a4d4c5240b72856d0eeaccfc5ae8d976f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto &amp;</type>
+        <definition>auto &amp; shc::VariantContext::stBytecode</definition>
+        <argsstring>()</argsstring>
+        <name>stBytecode</name>
+        <qualifiedname>shc::VariantContext::stBytecode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="51" column="8" bodyfile="shVariantContext.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a7daa88218c6fe1668a51ed2e5a85adc4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const auto &amp;</type>
+        <definition>const auto &amp; shc::VariantContext::stBytecode</definition>
+        <argsstring>() const</argsstring>
+        <name>stBytecode</name>
+        <qualifiedname>shc::VariantContext::stBytecode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="52" column="14" bodyfile="shVariantContext.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto &amp;</type>
+        <definition>auto &amp; shc::VariantContext::cppStcode</definition>
+        <argsstring>()</argsstring>
+        <name>cppStcode</name>
+        <qualifiedname>shc::VariantContext::cppStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="53" column="8" bodyfile="shVariantContext.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a15ebaadb872ae054a35ac25e74ea7f7a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const auto &amp;</type>
+        <definition>const auto &amp; shc::VariantContext::cppStcode</definition>
+        <argsstring>() const</argsstring>
+        <name>cppStcode</name>
+        <qualifiedname>shc::VariantContext::cppStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="54" column="14" bodyfile="shVariantContext.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a3a044e9a324c8cb325403fb3d6e610a1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref> &amp;</type>
+        <definition>BoolVarTable &amp; shc::VariantContext::localBoolVars</definition>
+        <argsstring>()</argsstring>
+        <name>localBoolVars</name>
+        <qualifiedname>shc::VariantContext::localBoolVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="58" column="16" bodyfile="shVariantContext.h" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1ac5e97979da77a6bbf3bba8969f5c517d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref> &amp;</type>
+        <definition>const BoolVarTable &amp; shc::VariantContext::localBoolVars</definition>
+        <argsstring>() const</argsstring>
+        <name>localBoolVars</name>
+        <qualifiedname>shc::VariantContext::localBoolVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="59" column="22" bodyfile="shVariantContext.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a2d125467ea979d45d29b68dc2573b9c7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref> &amp;</type>
+        <definition>LocalVarTable &amp; shc::VariantContext::localStcodeVars</definition>
+        <argsstring>()</argsstring>
+        <name>localStcodeVars</name>
+        <qualifiedname>shc::VariantContext::localStcodeVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="61" column="17" bodyfile="shVariantContext.h" bodystart="61" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1VariantContext_1aab725b0e612a2d76ae1d77f65da1ea22" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classLocalVarTable" kindref="compound">LocalVarTable</ref> &amp;</type>
+        <definition>const LocalVarTable &amp; shc::VariantContext::localStcodeVars</definition>
+        <argsstring>() const</argsstring>
+        <name>localStcodeVars</name>
+        <qualifiedname>shc::VariantContext::localStcodeVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="62" column="23" bodyfile="shVariantContext.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classshc_1_1VariantContext_1a1ea4d571ad9a4fe7522d57e74cadfccd" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::VariantContext::VariantContext</definition>
+        <argsstring>(ShaderVariant::VariantInfo variant, ShaderSemCode &amp;parsed_code, ShaderSemCode::PassTab *parsed_pass, bool use_branches_for_cppstcode, ShaderContext &amp;parent, TargetContext &amp;tgt_parent, const CompilationContext &amp;comp_parent)</argsstring>
+        <name>VariantContext</name>
+        <qualifiedname>shc::VariantContext::VariantContext</qualifiedname>
+        <param>
+          <type><ref refid="structShaderVariant_1_1VariantInfo" kindref="compound">ShaderVariant::VariantInfo</ref></type>
+          <declname>variant</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+          <declname>parsed_code</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderSemCode_1_1PassTab" kindref="compound">ShaderSemCode::PassTab</ref> *</type>
+          <declname>parsed_pass</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_branches_for_cppstcode</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1ShaderContext" kindref="compound">ShaderContext</ref> &amp;</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+          <declname>tgt_parent</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classshc_1_1CompilationContext" kindref="compound">CompilationContext</ref> &amp;</type>
+          <declname>comp_parent</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVariantContext.h" line="67" column="3" bodyfile="shVariantContext.h" bodystart="67" bodyend="79"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shVariantContext.h" line="14" column="1" bodyfile="shVariantContext.h" bodystart="15" bodyend="80"/>
+    <listofallmembers>
+      <member refid="classshc_1_1VariantContext_1ab213eff39bcad78067281aa70edd15a1" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>compCtx</name></member>
+      <member refid="classshc_1_1VariantContext_1a45351b6130235b4bde86f2fb2bac44fe" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>cppStcode</name></member>
+      <member refid="classshc_1_1VariantContext_1a15ebaadb872ae054a35ac25e74ea7f7a" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>cppStcode</name></member>
+      <member refid="classshc_1_1VariantContext_1a1715a11096f6f3e62450562f6619d596" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>hasParsedPass</name></member>
+      <member refid="classshc_1_1VariantContext_1a3a044e9a324c8cb325403fb3d6e610a1" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>localBoolVars</name></member>
+      <member refid="classshc_1_1VariantContext_1ac5e97979da77a6bbf3bba8969f5c517d" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>localBoolVars</name></member>
+      <member refid="classshc_1_1VariantContext_1a2d125467ea979d45d29b68dc2573b9c7" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>localStcodeVars</name></member>
+      <member refid="classshc_1_1VariantContext_1aab725b0e612a2d76ae1d77f65da1ea22" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>localStcodeVars</name></member>
+      <member refid="classshc_1_1VariantContext_1ae5d29410ccec5c1ef4cc88bc3047997f" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mBoolVarTable</name></member>
+      <member refid="classshc_1_1VariantContext_1a6f643e6720c4c3f507836af8ead99961" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mCompParent</name></member>
+      <member refid="classshc_1_1VariantContext_1a4879e0cb4b81eda4345dd3d489f79b44" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mCppStcode</name></member>
+      <member refid="classshc_1_1VariantContext_1a54a497f7186c94e1505227d9d2e36d45" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mLocVars</name></member>
+      <member refid="classshc_1_1VariantContext_1a124a3ac484d071ba03a9423868d12e30" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mNamedConstsTable</name></member>
+      <member refid="classshc_1_1VariantContext_1aec947e4a6edca9fa617cc749179d72c8" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mParent</name></member>
+      <member refid="classshc_1_1VariantContext_1af73906f98d1331aea06054f803816ba8" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mParsedPassRef</name></member>
+      <member refid="classshc_1_1VariantContext_1af307095eddb17fa55ab645368135fefe" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mParsedSemcodeRef</name></member>
+      <member refid="classshc_1_1VariantContext_1acc306be662e0e87046d719051d03cdc8" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mStcodeBytecode</name></member>
+      <member refid="classshc_1_1VariantContext_1a276416d579553485cfe725eb27a2302a" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mTgtParent</name></member>
+      <member refid="classshc_1_1VariantContext_1afb0121e459fa17e07fb1d0449f999a7e" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>mVariant</name></member>
+      <member refid="classshc_1_1VariantContext_1ab722b76d9c32f145bd21cea293d07846" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>namedConstTable</name></member>
+      <member refid="classshc_1_1VariantContext_1a8dc86edfe00f94850a67444efce89ab1" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>namedConstTable</name></member>
+      <member refid="classshc_1_1VariantContext_1a06b4c5668ec99f28b596f9b7fe718702" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>parsedPass</name></member>
+      <member refid="classshc_1_1VariantContext_1a4ebadc7156b49ee3ab0fb33e5538fded" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>parsedPass</name></member>
+      <member refid="classshc_1_1VariantContext_1affd628ade3fe363f38863af16f5d1129" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>parsedSemCode</name></member>
+      <member refid="classshc_1_1VariantContext_1aebc56e0d8edb7e5753f6ebf6623c0363" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>parsedSemCode</name></member>
+      <member refid="classshc_1_1VariantContext_1a12ef79d30c9b7e3077e8b294d860bd63" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>ShaderContext</name></member>
+      <member refid="classshc_1_1VariantContext_1a1cd6c96432c33d5741b597ad37709583" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>shCtx</name></member>
+      <member refid="classshc_1_1VariantContext_1ac1156eb39339e1725ce48d002e58f9ac" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>shCtx</name></member>
+      <member refid="classshc_1_1VariantContext_1a4d4c5240b72856d0eeaccfc5ae8d976f" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>stBytecode</name></member>
+      <member refid="classshc_1_1VariantContext_1a7daa88218c6fe1668a51ed2e5a85adc4" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>stBytecode</name></member>
+      <member refid="classshc_1_1VariantContext_1a02952e27d2d5e304daad76b11cb1f4ad" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>tgtCtx</name></member>
+      <member refid="classshc_1_1VariantContext_1a71368bde0553651cf2bef88469a6cc81" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>tgtCtx</name></member>
+      <member refid="classshc_1_1VariantContext_1ae3d33ced2be05ff880614e636bfacb94" prot="public" virt="non-virtual"><scope>shc::VariantContext</scope><name>variant</name></member>
+      <member refid="classshc_1_1VariantContext_1a1ea4d571ad9a4fe7522d57e74cadfccd" prot="private" virt="non-virtual"><scope>shc::VariantContext</scope><name>VariantContext</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

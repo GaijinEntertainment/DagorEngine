@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structNamedConstBlock_1_1RegisterProperties" kind="struct" language="C++" prot="public">
+    <compoundname>NamedConstBlock::RegisterProperties</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structNamedConstBlock_1_1RegisterProperties_1a7d6521b11f3deb710861115f9b2fa40e" prot="public" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap NamedConstBlock::RegisterProperties::sn</definition>
+        <argsstring></argsstring>
+        <name>sn</name>
+        <qualifiedname>NamedConstBlock::RegisterProperties::sn</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="54" column="19" bodyfile="namedConst.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1RegisterProperties_1a23a66ec848833d3f1b9da19da7fc8d53" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structNamedConstBlock_1_1NamedConst" kindref="compound">NamedConst</ref> &gt;</type>
+        <definition>Tab&lt;NamedConst&gt; NamedConstBlock::RegisterProperties::sc</definition>
+        <argsstring></argsstring>
+        <name>sc</name>
+        <qualifiedname>NamedConstBlock::RegisterProperties::sc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="55" column="9" bodyfile="namedConst.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="namedConst.h" line="52" column="3" bodyfile="namedConst.h" bodystart="53" bodyend="56"/>
+    <listofallmembers>
+      <member refid="structNamedConstBlock_1_1RegisterProperties_1a23a66ec848833d3f1b9da19da7fc8d53" prot="public" virt="non-virtual"><scope>NamedConstBlock::RegisterProperties</scope><name>sc</name></member>
+      <member refid="structNamedConstBlock_1_1RegisterProperties_1a7d6521b11f3deb710861115f9b2fa40e" prot="public" virt="non-virtual"><scope>NamedConstBlock::RegisterProperties</scope><name>sn</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

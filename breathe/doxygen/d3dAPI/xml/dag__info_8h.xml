@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__info_8h" kind="file" language="C++">
+    <compoundname>dag_info.h</compoundname>
+    <includes refid="dag__driverCode_8h" local="yes">dag_driverCode.h</includes>
+    <includes local="no">EASTL/initializer_list.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includedby refid="dag__gpuDesc_8h" local="yes">dag_gpuDesc.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>dag_driverCode.h</label>
+        <link refid="dag__driverCode_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_info.h</label>
+        <link refid="dag__info_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_gpuDesc.h</label>
+        <link refid="dag__gpuDesc_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_info.h</label>
+        <link refid="dag__info_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classDriver3dInitCallback" prot="public">Driver3dInitCallback</innerclass>
+    <innerclass refid="structDriver3dInitCallback_1_1VersionRange" prot="public">Driver3dInitCallback::VersionRange</innerclass>
+    <innerclass refid="structDriver3dInitCallback_1_1RenderSize" prot="public">Driver3dInitCallback::RenderSize</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>APISupport</name>
+        <enumvalue id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a31e2893df9689fb3ec7b4aec04147dba" prot="public">
+          <name>FULL_SUPPORT</name>
+          <briefdescription>
+<para>Full support for the API. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a9697ad96ac5a570178a560858c2b8a0d" prot="public">
+          <name>OUTDATED_OS</name>
+          <briefdescription>
+<para>The Windows version is outdated. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a99b9645e007f1600b6c8fcd6006d9930" prot="public">
+          <name>OUTDATED_DRIVER</name>
+          <briefdescription>
+<para>The driver is outdated. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00aab395f22254f5a6204aa9ace0b1cf2f6" prot="public">
+          <name>BLACKLISTED_DRIVER</name>
+          <briefdescription>
+<para>The driver is blacklisted (we know about bugs in the driver) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a612c6e175d1237be2fa33ce6854637e9" prot="public">
+          <name>INSUFFICIENT_DEVICE</name>
+          <briefdescription>
+<para>The GPU doesn&apos;t support all required features. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00abc2e878c5c49cfffadeec85f4a0f8124" prot="public">
+          <name>NO_DEVICE_FOUND</name>
+          <briefdescription>
+<para>No compatible device found. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Enum representing the level of API support for a current hardware. Currently it is only used to check DX12 support with a fallback on DX11 if the support is not full. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_info.h" line="123" column="1" bodyfile="dag_info.h" bodystart="124" bodyend="131"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dag__driverCode_8h" kindref="compound">dag_driverCode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/initializer_list.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">DagorDateTime;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref>;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classDriver3dInitCallback" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDriver3dInitCallback" kindref="compound">Driver3dInitCallback</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="26" refid="structDriver3dInitCallback_1_1VersionRange" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDriver3dInitCallback_1_1VersionRange" kindref="compound">VersionRange</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28" refid="structDriver3dInitCallback_1_1VersionRange_1a6c9b11dfec09f18c814704ccbb3f2e72" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structDriver3dInitCallback_1_1VersionRange_1a6c9b11dfec09f18c814704ccbb3f2e72" kindref="member">minVersion</ref>;<sp/></highlight></codeline>
+<codeline lineno="29" refid="structDriver3dInitCallback_1_1VersionRange_1a4445ead727482a8d37cbba5b4c35686e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structDriver3dInitCallback_1_1VersionRange_1a4445ead727482a8d37cbba5b4c35686e" kindref="member">maxVersion</ref>;<sp/></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="structDriver3dInitCallback_1_1RenderSize" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDriver3dInitCallback_1_1RenderSize" kindref="compound">RenderSize</ref></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="37" refid="structDriver3dInitCallback_1_1RenderSize_1a56e85ce940d574ce8a6eb781589270a2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDriver3dInitCallback_1_1RenderSize_1a56e85ce940d574ce8a6eb781589270a2" kindref="member">width</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="38" refid="structDriver3dInitCallback_1_1RenderSize_1a2a826ae26910f509edc9cecc4b923ed0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDriver3dInitCallback_1_1RenderSize_1a2a826ae26910f509edc9cecc4b923ed0" kindref="member">height</ref>;<sp/></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="classDriver3dInitCallback_1a50e534eb871e9d46ccd905245f50f623" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classDriver3dInitCallback_1a50e534eb871e9d46ccd905245f50f623" kindref="member">NeedStereoRenderFunc</ref><sp/>=<sp/>bool<sp/>(*)();<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="42" refid="classDriver3dInitCallback_1a5b4417a63e5158253cc04a076a2d8835" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classDriver3dInitCallback_1a5b4417a63e5158253cc04a076a2d8835" kindref="member">StereoRenderDimensionFunc</ref><sp/>=<sp/>int<sp/>(*)();<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="43" refid="classDriver3dInitCallback_1a16d1f90ca9e461c5272c3df6e073739e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classDriver3dInitCallback_1a16d1f90ca9e461c5272c3df6e073739e" kindref="member">StereoRenderExtensionsFunc</ref><sp/>=<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*(*)();<sp/></highlight></codeline>
+<codeline lineno="44" refid="classDriver3dInitCallback_1a808702219d8677ec25a3450f90681226" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classDriver3dInitCallback_1a808702219d8677ec25a3450f90681226" kindref="member">StereoRenderVersionsFunc</ref><sp/>=<sp/><ref refid="structDriver3dInitCallback_1_1VersionRange" kindref="compound">VersionRange</ref><sp/>(*)();<sp/><sp/></highlight></codeline>
+<codeline lineno="46" refid="classDriver3dInitCallback_1aabaeb84dc61ae04d98df5bb00d018f4e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classDriver3dInitCallback_1aabaeb84dc61ae04d98df5bb00d018f4e" kindref="member">StereoRenderAdapterFunc</ref><sp/>=<sp/>int64_t<sp/>(*)();<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classDriver3dInitCallback_1a2e5d34c5e7366950f7a8caa1966193db" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDriver3dInitCallback_1a2e5d34c5e7366950f7a8caa1966193db" kindref="member">verifyResolutionSettings</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;ref_scr_wdt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;ref_scr_hgt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>base_scr_wdt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>base_scr_hgt,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>window_mode)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="57"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(ref_scr_wdt);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(ref_scr_hgt);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(base_scr_wdt);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(base_scr_hgt);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(window_mode);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="classDriver3dInitCallback_1a1b92d98c1d83a6256a52b0111626f9cd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDriver3dInitCallback_1a1b92d98c1d83a6256a52b0111626f9cd" kindref="member">validateDesc</ref>(<ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref><sp/>&amp;desc)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="classDriver3dInitCallback_1a91d3767e5a09998a39df239c2a1c10a7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDriver3dInitCallback_1a91d3767e5a09998a39df239c2a1c10a7" kindref="member">compareDesc</ref>(<ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref><sp/>&amp;A,<sp/><ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref><sp/>&amp;B)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="classDriver3dInitCallback_1a8606db2ff329b00fc9b9ac9e222c04ad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDriver3dInitCallback_1a8606db2ff329b00fc9b9ac9e222c04ad" kindref="member">desiredStereoRender</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="classDriver3dInitCallback_1aca402b6c7c233a0aa0829972751f820d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>int64_t<sp/><ref refid="classDriver3dInitCallback_1aca402b6c7c233a0aa0829972751f820d" kindref="member">desiredAdapter</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="classDriver3dInitCallback_1a52a81bfd69ccafa9d2142975f6a66cb7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="structDriver3dInitCallback_1_1RenderSize" kindref="compound">RenderSize</ref><sp/><ref refid="classDriver3dInitCallback_1a52a81bfd69ccafa9d2142975f6a66cb7" kindref="member">desiredRendererSize</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{0,<sp/>0};<sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104" refid="classDriver3dInitCallback_1a1c363db6ad1c9f32d1e34ae76093f0d8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classDriver3dInitCallback_1a1c363db6ad1c9f32d1e34ae76093f0d8" kindref="member">desiredRendererDeviceExtensions</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110" refid="classDriver3dInitCallback_1aa5a16ccdee2d51eb82e15df65b99208d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classDriver3dInitCallback_1aa5a16ccdee2d51eb82e15df65b99208d" kindref="member">desiredRendererInstanceExtensions</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116" refid="classDriver3dInitCallback_1a13a56405168898a0170c4fcfc40e7c1d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="structDriver3dInitCallback_1_1VersionRange" kindref="compound">VersionRange</ref><sp/><ref refid="classDriver3dInitCallback_1a13a56405168898a0170c4fcfc40e7c1d" kindref="member">desiredRendererVersionRange</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{0,<sp/>0};<sp/>}</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00" kindref="member">APISupport</ref></highlight></codeline>
+<codeline lineno="124"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><ref refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a31e2893df9689fb3ec7b4aec04147dba" kindref="member">FULL_SUPPORT</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><ref refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a9697ad96ac5a570178a560858c2b8a0d" kindref="member">OUTDATED_OS</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><ref refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a99b9645e007f1600b6c8fcd6006d9930" kindref="member">OUTDATED_DRIVER</ref>,<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><ref refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00aab395f22254f5a6204aa9ace0b1cf2f6" kindref="member">BLACKLISTED_DRIVER</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><ref refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00a612c6e175d1237be2fa33ce6854637e9" kindref="member">INSUFFICIENT_DEVICE</ref>,<sp/></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><ref refid="dag__info_8h_1acb22209d14e9d2a2d45ed7f80c4f5d00abc2e878c5c49cfffadeec85f4a0f8124" kindref="member">NO_DEVICE_FOUND</ref><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="131"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref><sp/>:<sp/>uint8_t;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="136"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="namespaced3d_1a977eb698e038dbce493bfa50f8e9672d" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref><sp/><ref refid="namespaced3d_1a977eb698e038dbce493bfa50f8e9672d" kindref="member">guess_gpu_vendor</ref>(String<sp/>*out_gpu_desc<sp/>=<sp/>NULL,<sp/>uint32_t<sp/>*out_drv_ver<sp/>=<sp/>NULL,<sp/>DagorDateTime<sp/>*out_drv_date<sp/>=<sp/>NULL,</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>uint32_t<sp/>*device_id<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154" refid="namespaced3d_1aeeb66c0721220f7b0c5d411838e09dbe" refkind="member"><highlight class="normal">DagorDateTime<sp/><ref refid="namespaced3d_1aeeb66c0721220f7b0c5d411838e09dbe" kindref="member">get_gpu_driver_date</ref>(<ref refid="dag__consts_8h_1a3b3f422a328a241bdcf13c83d9170d70" kindref="member">GpuVendor</ref><sp/>vendor);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160" refid="namespaced3d_1ae63838606341034873324244d9d71e39" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ae63838606341034873324244d9d71e39" kindref="member">get_dedicated_gpu_memory_size_kb</ref>();</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166" refid="namespaced3d_1a04c24178edc3e0c1c08755dc09b77de9" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a04c24178edc3e0c1c08755dc09b77de9" kindref="member">get_free_dedicated_gpu_memory_size_kb</ref>();</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="namespaced3d_1ac6a266cd5cc54fc658a1ed7d1013f2d6" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ac6a266cd5cc54fc658a1ed7d1013f2d6" kindref="member">get_current_gpu_memory_kb</ref>(uint32_t<sp/>*dedicated_total,<sp/>uint32_t<sp/>*dedicated_free);</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181" refid="namespaced3d_1a6b5adf1b8beef212655c6871a43889a3" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a6b5adf1b8beef212655c6871a43889a3" kindref="member">get_gpu_freq</ref>(String<sp/>&amp;out_freq);</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188" refid="namespaced3d_1af8aba3fbbe0f22e6edd1b7c623e8bd52" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1af8aba3fbbe0f22e6edd1b7c623e8bd52" kindref="member">get_gpu_temperature</ref>();</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="namespaced3d_1a529097a5c69e0c91d60782e134b8abe9" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a529097a5c69e0c91d60782e134b8abe9" kindref="member">get_video_vendor_str</ref>(String<sp/>&amp;out_str);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200" refid="namespaced3d_1a2f75542849c38587ca473e6eb7846ad7" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a2f75542849c38587ca473e6eb7846ad7" kindref="member">get_display_scale</ref>();</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206" refid="namespaced3d_1a46605b89457725fff67d81c99b65d806" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a46605b89457725fff67d81c99b65d806" kindref="member">disable_sli</ref>();</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212" refid="namespaced3d_1aab86e692e33ff6230f6ec0f3b19c5948" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1aab86e692e33ff6230f6ec0f3b19c5948" kindref="member">get_driver_name</ref>();</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_XBOX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="classDriverCode" kindref="compound">DriverCode</ref><sp/><ref refid="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44" kindref="member">get_driver_code</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDriverCode_1a057476827ef16ba3ff1d810a64b9e8e9" kindref="member">DriverCode::make</ref>(<ref refid="namespaced3d_1a379fdccd89a679d3d3f60aa5adccff46" kindref="member">d3d::dx12</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_TARGET_C1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_TARGET_ANDROID<sp/>|<sp/>_TARGET_C3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="classDriverCode" kindref="compound">DriverCode</ref><sp/><ref refid="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44" kindref="member">get_driver_code</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDriverCode_1a057476827ef16ba3ff1d810a64b9e8e9" kindref="member">DriverCode::make</ref>(<ref refid="namespaced3d_1a0c4ec8811b6cb2415f0d970d1ad3b09f" kindref="member">d3d::vulkan</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_TARGET_IOS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="classDriverCode" kindref="compound">DriverCode</ref><sp/><ref refid="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44" kindref="member">get_driver_code</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDriverCode_1a057476827ef16ba3ff1d810a64b9e8e9" kindref="member">DriverCode::make</ref>(<ref refid="namespaced3d_1a68ae646b3ed40f473cf8b441714bdab7" kindref="member">d3d::metal</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="229" refid="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44" refkind="member"><highlight class="normal"><ref refid="classDriverCode" kindref="compound">DriverCode</ref><sp/><ref refid="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44" kindref="member">get_driver_code</ref>();</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236" refid="namespaced3d_1ad8d6d2a2d84da0378951a7c7cb8bc230" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ad8d6d2a2d84da0378951a7c7cb8bc230" kindref="member">is_stub_driver</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a68e158a74869106f5e0d9196f37ecc44" kindref="member">get_driver_code</ref>().<ref refid="classDriverCode_1acf90ede402c72f3c9e8c18d2260856e9" kindref="member">is</ref>(<ref refid="namespaced3d_1ae96b52312925b3c8950e6242e7bce42d" kindref="member">d3d::stub</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="243" refid="namespaced3d_1af3c651ec5a44f212cb11839f858b7078" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1af3c651ec5a44f212cb11839f858b7078" kindref="member">get_device_driver_version</ref>();</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight></codeline>
+<codeline lineno="249" refid="namespaced3d_1a0e90a369055af49b9fc0c1e59a1e3d56" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1a0e90a369055af49b9fc0c1e59a1e3d56" kindref="member">get_device_name</ref>();</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"></highlight></codeline>
+<codeline lineno="255" refid="namespaced3d_1a3a19ab84bf228b6159d2cb80f38e2257" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1a3a19ab84bf228b6159d2cb80f38e2257" kindref="member">get_last_error</ref>();</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="261" refid="namespaced3d_1a4e626e71a4181517c8a0c2376456a6b2" refkind="member"><highlight class="normal">uint32_t<sp/><ref refid="namespaced3d_1a4e626e71a4181517c8a0c2376456a6b2" kindref="member">get_last_error_code</ref>();</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight></codeline>
+<codeline lineno="267" refid="namespaced3d_1aa8a97ee7684c0f6ddab1ca3fc441ebb4" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1aa8a97ee7684c0f6ddab1ca3fc441ebb4" kindref="member">get_device</ref>();</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="273" refid="namespaced3d_1a3568fb69665cbc114194ba9c83854c85" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1a3568fb69665cbc114194ba9c83854c85" kindref="member">get_context</ref>();</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"></highlight></codeline>
+<codeline lineno="279" refid="namespaced3d_1a767cfb3d1ee6f65970fd4391b2a2df36" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref><sp/>&amp;<ref refid="namespaced3d_1a767cfb3d1ee6f65970fd4391b2a2df36" kindref="member">get_driver_desc</ref>();</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="285" refid="namespaced3d_1a08f6ae41faad34082ea4333463861403" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a08f6ae41faad34082ea4333463861403" kindref="member">is_in_device_reset_now</ref>();</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight></codeline>
+<codeline lineno="291" refid="namespaced3d_1a76601ecfcb78e566326c4e233a9828ba" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a76601ecfcb78e566326c4e233a9828ba" kindref="member">is_window_occluded</ref>();</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"></highlight></codeline>
+<codeline lineno="299" refid="namespaced3d_1ac648d85b061093c02270e382100668ff" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ac648d85b061093c02270e382100668ff" kindref="member">should_use_compute_for_image_processing</ref>(std::initializer_list&lt;unsigned&gt;<sp/>formats);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="302"><highlight class="normal"></highlight></codeline>
+<codeline lineno="303"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="304"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="305"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="306"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1aab86e692e33ff6230f6ec0f3b19c5948" kindref="member">get_driver_name</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a9be599333ef5c13a11a7c3e5dd091e22" kindref="member">driverName</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1af3c651ec5a44f212cb11839f858b7078" kindref="member">get_device_driver_version</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a76e1586acc4145f3d0a1ee3852321eb6" kindref="member">driverVer</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1a0e90a369055af49b9fc0c1e59a1e3d56" kindref="member">get_device_name</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a09a675431d7fdc99193ee047d63c66be" kindref="member">deviceName</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1a3a19ab84bf228b6159d2cb80f38e2257" kindref="member">get_last_error</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a148d20fa30db7bb1611dcee0460132c0" kindref="member">get_last_error</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="namespaced3d_1a4e626e71a4181517c8a0c2376456a6b2" kindref="member">get_last_error_code</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a59e2343f2b79d0502cdff59a47d71fd9" kindref="member">get_last_error_code</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"></highlight></codeline>
+<codeline lineno="313"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1aa8a97ee7684c0f6ddab1ca3fc441ebb4" kindref="member">get_device</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8ccc470929be6b94a7a6a20967086471" kindref="member">get_device</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"></highlight></codeline>
+<codeline lineno="315"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDriver3dDesc" kindref="compound">Driver3dDesc</ref><sp/>&amp;<ref refid="namespaced3d_1a767cfb3d1ee6f65970fd4391b2a2df36" kindref="member">get_driver_desc</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8735143295cee023e8b87360e56cc57e" kindref="member">drvDesc</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"></highlight></codeline>
+<codeline lineno="317"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a08f6ae41faad34082ea4333463861403" kindref="member">is_in_device_reset_now</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ab133b3120df95eea746c92bf33c2490f" kindref="member">is_in_device_reset_now</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a76601ecfcb78e566326c4e233a9828ba" kindref="member">is_window_occluded</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aab3927287fa12f1c8a1742ae4a7946c0" kindref="member">is_window_occluded</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"></highlight></codeline>
+<codeline lineno="320"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ac648d85b061093c02270e382100668ff" kindref="member">should_use_compute_for_image_processing</ref>(std::initializer_list&lt;unsigned&gt;<sp/>formats)</highlight></codeline>
+<codeline lineno="321"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ac471efc2b10250e36fc7ebf0cff19e70" kindref="member">should_use_compute_for_image_processing</ref>(formats);</highlight></codeline>
+<codeline lineno="323"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="324"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_info.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,657 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="matConvUtil_8cpp" kind="file" language="C++">
+    <compoundname>matConvUtil.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">stdmat.h</includes>
+    <includes local="no">utilapi.h</includes>
+    <includes local="no">locale.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="mater_8h" local="yes">mater.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <includes local="no">string</includes>
+    <incdepgraph>
+      <node id="6">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="1">
+        <label>matConvUtil.cpp</label>
+        <link refid="matConvUtil_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>mater.h</label>
+        <link refid="mater_8h"/>
+      </node>
+      <node id="8">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="5">
+        <label>locale.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>stdmat.h</label>
+      </node>
+      <node id="9">
+        <label>string</label>
+      </node>
+      <node id="4">
+        <label>utilapi.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structMatPair" prot="public">MatPair</innerclass>
+    <innerclass refid="classMatConvUtil" prot="public">MatConvUtil</innerclass>
+    <innerclass refid="classMatConvUtilDesc" prot="public">MatConvUtilDesc</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="matConvUtil_8cpp_1a398da37e411bb2d829f85232480defea" prot="public" static="no">
+        <name>ERRMSG_DELAY</name>
+        <initializer>3000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="13" column="9" bodyfile="matConvUtil.cpp" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4d" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4da80ff7cd081965fc594b2ffbe38bd6fe8" prot="public">
+          <name>MAT_SIMPLE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4dafbd6b90cc0cdb41589359b1c54adf1ad" prot="public">
+          <name>MAT_ABLEND</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4daa014e50776fd2db4c087ffb855640569" prot="public">
+          <name>MAT_AUTO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="19" column="1" bodyfile="matConvUtil.cpp" bodystart="20" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="enum" id="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25a01dc4f05c710bf9e22312621f16f47da" prot="public">
+          <name>LIGHT_AUTO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25a5df713fd11c7cb6f154a55125ad4c9f8" prot="public">
+          <name>LIGHT_NONE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25ad7f6679f30d3305b24044b46acb18a97" prot="public">
+          <name>LIGHT_LIGHTMAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25af97bbefe708a0bb5dce12c42634533dd" prot="public">
+          <name>LIGHT_VLTMAP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="27" column="1" bodyfile="matConvUtil.cpp" bodystart="28" bodyend="33"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="matConvUtil_8cpp_1aa57fb1670bf61348d5860101524dbe59" prot="public" static="yes" mutable="no">
+        <type><ref refid="classMatConvUtil" kindref="compound">MatConvUtil</ref></type>
+        <definition>MatConvUtil util</definition>
+        <argsstring></argsstring>
+        <name>util</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="68" column="20" bodyfile="matConvUtil.cpp" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="matConvUtil_8cpp_1a2c5408dfd9d845d25e6d05d37de2eabf" prot="public" static="yes" mutable="no">
+        <type><ref refid="classMatConvUtilDesc" kindref="compound">MatConvUtilDesc</ref></type>
+        <definition>MatConvUtilDesc utilDesc</definition>
+        <argsstring></argsstring>
+        <name>utilDesc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="94" column="24" bodyfile="matConvUtil.cpp" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="matConvUtil_8cpp_1a9247db5a252f97c6442d08793a38a1d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const TCHAR *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="15" column="13" bodyfile="common.cpp" bodystart="115" bodyend="129" declfile="matConvUtil.cpp" declline="15" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="matConvUtil_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="16" column="14" bodyfile="common.cpp" bodystart="99" bodyend="112" declfile="matConvUtil.cpp" declline="16" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="matConvUtil_8cpp_1aea94833ed89d839db0817676484aeba8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetMatConvUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetMatConvUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="95" column="11" bodyfile="matConvUtil.cpp" bodystart="95" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="matConvUtil_8cpp_1af5be6b9212bf6d417b1770a55bdf8ba1" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR CALLBACK</type>
+        <definition>static INT_PTR CALLBACK MatConvUtilDlgProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>MatConvUtilDlgProc</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="97" column="25" bodyfile="matConvUtil.cpp" bodystart="97" bodyend="128"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdmat.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;utilapi.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;locale.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="mater_8h" kindref="compound">mater.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ERRMSG_DELAY<sp/>3000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">std::string<sp/><ref refid="matConvUtil_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*sw);</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="matConvUtil_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4da80ff7cd081965fc594b2ffbe38bd6fe8" kindref="member">MAT_SIMPLE</ref>,</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4dafbd6b90cc0cdb41589359b1c54adf1ad" kindref="member">MAT_ABLEND</ref>,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4daa014e50776fd2db4c087ffb855640569" kindref="member">MAT_AUTO</ref>,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25a01dc4f05c710bf9e22312621f16f47da" kindref="member">LIGHT_AUTO</ref>,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25a5df713fd11c7cb6f154a55125ad4c9f8" kindref="member">LIGHT_NONE</ref>,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25ad7f6679f30d3305b24044b46acb18a97" kindref="member">LIGHT_LIGHTMAP</ref>,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25af97bbefe708a0bb5dce12c42634533dd" kindref="member">LIGHT_VLTMAP</ref></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="structMatPair" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structMatPair" kindref="compound">MatPair</ref></highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>Mtl<sp/>*<ref refid="structMatPair_1a68dd12af9fcf42fbe1cf259a26a04db7" kindref="member">oldMat</ref>;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>Mtl<sp/>*<ref refid="structMatPair_1a59733a40259c6b1a758a870c6228c7a0" kindref="member">newMat</ref>;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="classMatConvUtil" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMatConvUtil" kindref="compound">MatConvUtil</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>UtilityObj</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>IUtil<sp/>*<ref refid="classMatConvUtil_1a8190251b8b7953210a119fda4aeec0d3" kindref="member">iu</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>Interface<sp/>*<ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>HWND<sp/><ref refid="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" kindref="member">hPanel</ref>;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>Tab&lt;MatPair&gt;<sp/><ref refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" kindref="member">convMats</ref>;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>ICustEdit<sp/>*<ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">IDagorMat::Sides</ref><sp/><ref refid="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" kindref="member">twosided</ref>;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" kindref="member">atest</ref>;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1aa1fa31f67869444e4f2bdf0b265da35b" kindref="member">MatConvUtil</ref>();</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1ae804a89bece4c9f718468cb90bec976d" kindref="member">BeginEditParams</ref>(Interface<sp/>*<ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>,<sp/>IUtil<sp/>*<ref refid="classMatConvUtil_1a8190251b8b7953210a119fda4aeec0d3" kindref="member">iu</ref>)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a1ac5a65a22398b48e1532914e5736a95" kindref="member">EndEditParams</ref>(Interface<sp/>*<ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>,<sp/>IUtil<sp/>*<ref refid="classMatConvUtil_1a8190251b8b7953210a119fda4aeec0d3" kindref="member">iu</ref>)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a93ae83dba175b8bc507c943d594c2c42" kindref="member">DeleteThis</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1ad4d81259cf2f75b9245293d4df7c9057" kindref="member">Init</ref>(HWND<sp/>hWnd);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a84787a6506ab46f6cb27a54800c0f43f" kindref="member">Destroy</ref>(HWND<sp/>hWnd);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a20f99717512e882a946bb283a0f40c90" kindref="member">convertMat</ref>(Mtl<sp/>*&amp;mat,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lighting,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*slotName);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" kindref="member">convertNodes</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lighting);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil" kindref="compound">MatConvUtil</ref><sp/>util;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="classMatConvUtilDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMatConvUtilDesc" kindref="compound">MatConvUtilDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtilDesc_1a2c8da6ecbd0f84e4cb29603666931805" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classMatConvUtilDesc_1ae5ae097702cc5a74cdb2950c946d5c3d" kindref="member">Create</ref>(BOOL<sp/>loading<sp/>=<sp/>FALSE)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;util;<sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classMatConvUtilDesc_1a2eecc8d495dd66d3e3dbf78abc03fdb7" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a22ccfb3f18d2c96f3967b20462306aaa" kindref="member">IDS_MatConvUtil_NAME</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classMatConvUtilDesc_1a392a4250698ab45f063b5133b466f3f3" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtilDesc_1a2eecc8d495dd66d3e3dbf78abc03fdb7" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classMatConvUtilDesc_1a392a4250698ab45f063b5133b466f3f3" kindref="member">NonLocalizedClassName</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtilDesc_1a2eecc8d495dd66d3e3dbf78abc03fdb7" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classMatConvUtilDesc_1aa528c6f46d845a40bdc7415b92729278" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>UTILITY_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classMatConvUtilDesc_1abb56e7eeed92ed4c5bdd250255134491" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aafcdf80783e0624903b280b9efc81e76" kindref="member">MatConvUtil_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classMatConvUtilDesc_1a55f1be8b4344870b89e6c281aee0753d" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a197942343099f043d210a555ea7e026f" kindref="member">IDS_UTIL_CAT</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classMatConvUtilDesc_1abcbc4ca323e604fe2e8e9055f7e63fec" kindref="member">NeedsToSave</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;<sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>IOResult<sp/><ref refid="classMatConvUtilDesc_1a361d165808a13ba2522974b92fe110c5" kindref="member">Save</ref>(ISave<sp/>*)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>IOResult<sp/><ref refid="classMatConvUtilDesc_1aeeee07a2e7779b37588e8b5c972bb08c" kindref="member">Load</ref>(ILoad<sp/>*)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal">IOResult<sp/><ref refid="classMatConvUtilDesc_1a361d165808a13ba2522974b92fe110c5" kindref="member">MatConvUtilDesc::Save</ref>(ISave<sp/>*io)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IO_OK;<sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal">IOResult<sp/><ref refid="classMatConvUtilDesc_1aeeee07a2e7779b37588e8b5c972bb08c" kindref="member">MatConvUtilDesc::Load</ref>(ILoad<sp/>*io)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IO_OK;<sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtilDesc" kindref="compound">MatConvUtilDesc</ref><sp/>utilDesc;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">ClassDesc<sp/>*<ref refid="matConvUtil_8cpp_1aea94833ed89d839db0817676484aeba8" kindref="member">GetMatConvUtilCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;utilDesc;<sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>INT_PTR<sp/>CALLBACK<sp/>MatConvUtilDlgProc(HWND<sp/>hWnd,<sp/>UINT<sp/>msg,<sp/>WPARAM<sp/>wParam,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(msg)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_INITDIALOG:<sp/>util.<ref refid="classMatConvUtil_1ad4d81259cf2f75b9245293d4df7c9057" kindref="member">Init</ref>(hWnd);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_DESTROY:<sp/>util.<ref refid="classMatConvUtil_1a84787a6506ab46f6cb27a54800c0f43f" kindref="member">Destroy</ref>(hWnd);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_COMMAND:</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(LOWORD(wParam))</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1a2cf20d4ad448e6fd70c7c26eebc133dc" kindref="member">IDC_AUTO</ref>:<sp/>util.<ref refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" kindref="member">convertNodes</ref>(<ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4daa014e50776fd2db4c087ffb855640569" kindref="member">MAT_AUTO</ref>,<sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25a01dc4f05c710bf9e22312621f16f47da" kindref="member">LIGHT_AUTO</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1a043de72a27ca6401cce6656386568ed4" kindref="member">IDC_SIMPLE_VLTMAP</ref>:<sp/>util.<ref refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" kindref="member">convertNodes</ref>(<ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4da80ff7cd081965fc594b2ffbe38bd6fe8" kindref="member">MAT_SIMPLE</ref>,<sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25af97bbefe708a0bb5dce12c42634533dd" kindref="member">LIGHT_VLTMAP</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1ae0aa27e30864e1c48bd062136aaf487d" kindref="member">IDC_SIMPLE_LIGHTMAP</ref>:<sp/>util.<ref refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" kindref="member">convertNodes</ref>(<ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4da80ff7cd081965fc594b2ffbe38bd6fe8" kindref="member">MAT_SIMPLE</ref>,<sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25ad7f6679f30d3305b24044b46acb18a97" kindref="member">LIGHT_LIGHTMAP</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1ac6e2903b631b13384800bf9c58b7545e" kindref="member">IDC_ABLEND_VLTMAP</ref>:<sp/>util.<ref refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" kindref="member">convertNodes</ref>(<ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4dafbd6b90cc0cdb41589359b1c54adf1ad" kindref="member">MAT_ABLEND</ref>,<sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25af97bbefe708a0bb5dce12c42634533dd" kindref="member">LIGHT_VLTMAP</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1ad4d33fac2b3959f018d711e328c976c0" kindref="member">IDC_ABLEND_LIGHTMAP</ref>:<sp/>util.<ref refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" kindref="member">convertNodes</ref>(<ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4dafbd6b90cc0cdb41589359b1c54adf1ad" kindref="member">MAT_ABLEND</ref>,<sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25ad7f6679f30d3305b24044b46acb18a97" kindref="member">LIGHT_LIGHTMAP</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1a1b2670064c108661a0e1a1f6a3f72cf4" kindref="member">IDC_ENUM_2SIDED</ref>:</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>util.<ref refid="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" kindref="member">twosided</ref><sp/>=<sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" kindref="member">IDagorMat::Sides</ref>(::SendMessage(GetDlgItem(hWnd,<sp/><ref refid="resource_8h_1a1b2670064c108661a0e1a1f6a3f72cf4" kindref="member">IDC_ENUM_2SIDED</ref>),<sp/>CB_GETCURSEL,<sp/>0,<sp/>0));</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="119"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>case<sp/>WM_LBUTTONDOWN:</highlight></codeline>
+<codeline lineno="120"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>case<sp/>WM_LBUTTONUP:</highlight></codeline>
+<codeline lineno="121"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>case<sp/>WM_MOUSEMOVE:</highlight></codeline>
+<codeline lineno="122"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>util.ip-&gt;RollupMouseMessage(hWnd,msg,wParam,lParam);</highlight></codeline>
+<codeline lineno="123"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>break;</highlight></codeline>
+<codeline lineno="124"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><ref refid="classMatConvUtil_1aa1fa31f67869444e4f2bdf0b265da35b" kindref="member">MatConvUtil::MatConvUtil</ref>()</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a8190251b8b7953210a119fda4aeec0d3" kindref="member">iu</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" kindref="member">hPanel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" kindref="member">twosided</ref><sp/>=<sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aa81797e9c6fc44586202026bb6aaefe8c" kindref="member">IDagorMat::Sides::OneSided</ref>;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" kindref="member">atest</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1ae804a89bece4c9f718468cb90bec976d" kindref="member">MatConvUtil::BeginEditParams</ref>(Interface<sp/>*ip,<sp/>IUtil<sp/>*iu)</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>this-&gt;iu<sp/>=<sp/><ref refid="classMatConvUtil_1a8190251b8b7953210a119fda4aeec0d3" kindref="member">iu</ref>;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>this-&gt;ip<sp/>=<sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>;</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" kindref="member">hPanel</ref><sp/>=<sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;AddRollupPage(<ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>MAKEINTRESOURCE(<ref refid="resource_8h_1a834ed323b81abd4431571366735cab93" kindref="member">IDD_MatConvUtil</ref>),<sp/>MatConvUtilDlgProc,<sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a0d2a17d94e90bfd7109bff3047402718" kindref="member">IDS_MatConvUtil_ROLL</ref>),<sp/>0);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a1ac5a65a22398b48e1532914e5736a95" kindref="member">MatConvUtil::EndEditParams</ref>(Interface<sp/>*ip,<sp/>IUtil<sp/>*iu)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>this-&gt;iu<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>this-&gt;ip<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" kindref="member">hPanel</ref>)</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;DeleteRollupPage(<ref refid="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" kindref="member">hPanel</ref>);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a5efa76a330590924e124746d05802cf1" kindref="member">hPanel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1ad4d81259cf2f75b9245293d4df7c9057" kindref="member">MatConvUtil::Init</ref>(HWND<sp/>hw)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>HWND<sp/>h2sided<sp/>=<sp/>::GetDlgItem(hw,<sp/><ref refid="resource_8h_1a1b2670064c108661a0e1a1f6a3f72cf4" kindref="member">IDC_ENUM_2SIDED</ref>);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>::SendMessage(h2sided,<sp/>CB_INSERTSTRING,<sp/>-1,<sp/>(LPARAM)<sp/>_T(</highlight><highlight class="stringliteral">&quot;1<sp/>sided&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/>::SendMessage(h2sided,<sp/>CB_INSERTSTRING,<sp/>-1,<sp/>(LPARAM)<sp/>_T(</highlight><highlight class="stringliteral">&quot;2<sp/>sided&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>::SendMessage(h2sided,<sp/>CB_INSERTSTRING,<sp/>-1,<sp/>(LPARAM)<sp/>_T(</highlight><highlight class="stringliteral">&quot;Real<sp/>2<sp/>sided&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/>::SendMessage(h2sided,<sp/>CB_SETCURSEL,<sp/>WPARAM(<ref refid="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" kindref="member">twosided</ref>),<sp/>NULL);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref><sp/>=<sp/>GetICustEdit(GetDlgItem(hw,<sp/><ref refid="resource_8h_1ac5088e1ae94b9942c73286cafe907150" kindref="member">IDC_ATEST</ref>));</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>-&gt;SetText(<ref refid="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" kindref="member">atest</ref>);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a84787a6506ab46f6cb27a54800c0f43f" kindref="member">MatConvUtil::Destroy</ref>(HWND<sp/>hWnd)</highlight></codeline>
+<codeline lineno="170"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>)</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" kindref="member">atest</ref><sp/>=<sp/><ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>-&gt;GetInt();</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/>ReleaseICustEdit(<ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>);</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="178"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a20f99717512e882a946bb283a0f40c90" kindref="member">MatConvUtil::convertMat</ref>(Mtl<sp/>*&amp;mat,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lighting,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*slotName)</highlight></codeline>
+<codeline lineno="182"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" kindref="member">convMats</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" kindref="member">convMats</ref>[i].oldMat<sp/>==<sp/>mat)</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mat<sp/>=<sp/><ref refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" kindref="member">convMats</ref>[i].newMat;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><ref refid="classIDagorMat" kindref="compound">IDagorMat</ref><sp/>*srcDm<sp/>=<sp/>(<ref refid="classIDagorMat" kindref="compound">IDagorMat</ref><sp/>*)mat-&gt;GetInterface(<ref refid="mater_8h_1a36dcaa0c637134b05278e83da132935e" kindref="member">I_DAGORMAT</ref>);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>Class_ID<sp/>cid<sp/>=<sp/>mat-&gt;ClassID();</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cid<sp/>==<sp/>Class_ID(DMTL_CLASS_ID,<sp/>0)<sp/>||<sp/>srcDm)</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/>TimeValue<sp/>time<sp/>=<sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;GetTime();</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>Color<sp/>amb,<sp/>diff,<sp/>spec,<sp/>emis;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>power;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/>Texmap<sp/>*tex<sp/>=<sp/>mat-&gt;GetSubTexmap(srcDm<sp/>?<sp/>0<sp/>:<sp/>ID_DI);</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cid<sp/>==<sp/>Class_ID(DMTL_CLASS_ID,<sp/>0))</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>StdMat<sp/>*sm<sp/>=<sp/>(StdMat<sp/>*)mat;</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>si<sp/>=<sp/>sm-&gt;GetSelfIllum(time);</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>amb<sp/>=<sp/>sm-&gt;GetAmbient(time)<sp/>*<sp/>(1<sp/>-<sp/>si);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Color<sp/>smdiff<sp/>=<sp/>sm-&gt;GetDiffuse(time);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>diff<sp/>=<sp/>smdiff<sp/>*<sp/>(1<sp/>-<sp/>si);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>spec<sp/>=<sp/>sm-&gt;GetSpecular(time)<sp/>*<sp/>sm-&gt;GetShinStr(time);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>emis<sp/>=<sp/>smdiff<sp/>*<sp/>si;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>power<sp/>=<sp/>powf(2.0f,<sp/>sm-&gt;GetShininess(time)<sp/>*<sp/>10.0f)<sp/>*<sp/>4.0f;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tex)</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Color<sp/>c<sp/>=<sp/>Color(1,<sp/>1,<sp/>1)<sp/>*<sp/>(1<sp/>-<sp/>si);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>amb<sp/>=<sp/>c;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>diff<sp/>=<sp/>c;</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>emis<sp/>=<sp/>Color(1,<sp/>1,<sp/>1)<sp/>*<sp/>si;</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>assert(srcDm);</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>amb<sp/>=<sp/>srcDm-&gt;<ref refid="classIDagorMat_1a87ba4f21930b96625725ef197be7f358" kindref="member">get_amb</ref>();</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>diff<sp/>=<sp/>srcDm-&gt;<ref refid="classIDagorMat_1a619315422c7471fc3865590e4f288d48" kindref="member">get_diff</ref>();</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>spec<sp/>=<sp/>srcDm-&gt;<ref refid="classIDagorMat_1a7bd1940bef3e2436cf26e447e1cbf693" kindref="member">get_spec</ref>();</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>emis<sp/>=<sp/>srcDm-&gt;<ref refid="classIDagorMat_1a1b3ec43de86ca25d121b61b2ec38d7e4" kindref="member">get_emis</ref>();</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>power<sp/>=<sp/>srcDm-&gt;<ref refid="classIDagorMat_1a915c33b5c5b998e4cb05bebb3770543f" kindref="member">get_power</ref>();</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"></highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mat-&gt;ReleaseInterface(<ref refid="mater_8h_1a36dcaa0c637134b05278e83da132935e" kindref="member">I_DAGORMAT</ref>,<sp/>srcDm);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/>Mtl<sp/>*dm<sp/>=<sp/>(Mtl<sp/>*)<ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;CreateInstance(MATERIAL_CLASS_ID,<sp/><ref refid="dagor_8h_1aaa6ea09f471b5e57f5b69b9996227c66" kindref="member">DagorMat2_CID</ref>);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/>assert(dm);</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classIDagorMat" kindref="compound">IDagorMat</ref><sp/>*d<sp/>=<sp/>(<ref refid="classIDagorMat" kindref="compound">IDagorMat</ref><sp/>*)dm-&gt;GetInterface(<ref refid="mater_8h_1a36dcaa0c637134b05278e83da132935e" kindref="member">I_DAGORMAT</ref>);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/>assert(d);</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/>dm-&gt;SetName(mat-&gt;GetName());</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1ab9a123a1bfa48a9c034865411fddf1e2" kindref="member">set_2sided</ref>(<ref refid="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" kindref="member">twosided</ref>);</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1a3d3d99ddfd74b9097aee8182d703aab5" kindref="member">set_amb</ref>(amb);</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1acd05e9a7c199e6ca8e12f8479ae733c4" kindref="member">set_diff</ref>(diff);</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1a12f0adb00b6c0862ab4d004f196c54bd" kindref="member">set_spec</ref>(spec);</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1aa80fad171c33a42412edb879d64b5528" kindref="member">set_emis</ref>(emis);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1ac2fc4570c8981f75760921925db1b6e1" kindref="member">set_power</ref>(power);</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tex)</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dm-&gt;SetSubTexmap(0,<sp/>tex);</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"></highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>script[1024];</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/>script[0]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/>std::string<sp/>s<sp/>=<sp/><ref refid="matConvUtil_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(mat-&gt;GetName());</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(lighting)</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25a01dc4f05c710bf9e22312621f16f47da" kindref="member">LIGHT_AUTO</ref>:</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strstr(s.c_str(),<sp/></highlight><highlight class="stringliteral">&quot;lightmap&quot;</highlight><highlight class="normal">)<sp/>||<sp/>_tcsstr(slotName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;lightmap&quot;</highlight><highlight class="normal"><sp/>)))</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>strcat(script,<sp/></highlight><highlight class="stringliteral">&quot;lighting=lightmap\r\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strstr(s.c_str(),<sp/></highlight><highlight class="stringliteral">&quot;vertex&quot;</highlight><highlight class="normal">)<sp/>||<sp/>strstr(s.c_str(),<sp/></highlight><highlight class="stringliteral">&quot;vltmap&quot;</highlight><highlight class="normal">)<sp/>||<sp/>_tcsstr(slotName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;vertex&quot;</highlight><highlight class="normal">))<sp/>||</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>_tcsstr(slotName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;vltmap&quot;</highlight><highlight class="normal">)))</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>strcat(script,<sp/></highlight><highlight class="stringliteral">&quot;lighting=vltmap\r\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>strcat(script,<sp/></highlight><highlight class="stringliteral">&quot;lighting=vltmap\r\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25a5df713fd11c7cb6f154a55125ad4c9f8" kindref="member">LIGHT_NONE</ref>:<sp/>strcat(script,<sp/></highlight><highlight class="stringliteral">&quot;lighting=none\r\n&quot;</highlight><highlight class="normal">);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25ad7f6679f30d3305b24044b46acb18a97" kindref="member">LIGHT_LIGHTMAP</ref>:<sp/>strcat(script,<sp/></highlight><highlight class="stringliteral">&quot;lighting=lightmap\r\n&quot;</highlight><highlight class="normal">);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="matConvUtil_8cpp_1aba01db17f4a2bfbc3db60dc172972a25af97bbefe708a0bb5dce12c42634533dd" kindref="member">LIGHT_VLTMAP</ref>:<sp/>strcat(script,<sp/></highlight><highlight class="stringliteral">&quot;lighting=vltmap\r\n&quot;</highlight><highlight class="normal">);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>assert(0);</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>atestVal<sp/>=<sp/><ref refid="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" kindref="member">atest</ref>;</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(type)</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4daa014e50776fd2db4c087ffb855640569" kindref="member">MAT_AUTO</ref>:</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strstr(s.c_str(),<sp/></highlight><highlight class="stringliteral">&quot;alpha&quot;</highlight><highlight class="normal">)<sp/>||<sp/>_tcsstr(slotName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;alpha&quot;</highlight><highlight class="normal">)))</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" kindref="member">set_classname</ref>(_T(</highlight><highlight class="stringliteral">&quot;alpha_blend&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" kindref="member">set_classname</ref>(_T(</highlight><highlight class="stringliteral">&quot;simple&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4da80ff7cd081965fc594b2ffbe38bd6fe8" kindref="member">MAT_SIMPLE</ref>:<sp/>d-&gt;<ref refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" kindref="member">set_classname</ref>(_T(</highlight><highlight class="stringliteral">&quot;simple&quot;</highlight><highlight class="normal">));<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="matConvUtil_8cpp_1a16af7b253440dadd46a80a4b9fddba4dafbd6b90cc0cdb41589359b1c54adf1ad" kindref="member">MAT_ABLEND</ref>:</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" kindref="member">set_classname</ref>(_T(</highlight><highlight class="stringliteral">&quot;alpha_blend&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(atestVal<sp/>&lt;<sp/>1)</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>atestVal<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>assert(0);</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(atestVal<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strstr(s.c_str(),<sp/></highlight><highlight class="stringliteral">&quot;atest&quot;</highlight><highlight class="normal">)<sp/>||<sp/>_tcsstr(slotName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;atest&quot;</highlight><highlight class="normal">)))</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>atestVal<sp/>=<sp/>128;</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strstr(s.c_str(),<sp/></highlight><highlight class="stringliteral">&quot;alpha&quot;</highlight><highlight class="normal">)<sp/>||<sp/>_tcsstr(slotName,<sp/>_T(</highlight><highlight class="stringliteral">&quot;alpha&quot;</highlight><highlight class="normal">)))</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>atestVal<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"></highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(atestVal<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>sprintf(script<sp/>+<sp/>strlen(script),<sp/></highlight><highlight class="stringliteral">&quot;atest=%d\r\n&quot;</highlight><highlight class="normal">,<sp/>atestVal);</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classMatConvUtil_1ac8295809d11d2c787f1c26273e2a004f" kindref="member">twosided</ref><sp/>==<sp/><ref refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732aadaa5aa0f34789eda3a5dff2920e7c8d0" kindref="member">IDagorMat::Sides::RealDoubleSided</ref>)</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>strcat(script,<sp/></highlight><highlight class="stringliteral">&quot;real_two_sided=yes\r\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"></highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/>d-&gt;<ref refid="classIDagorMat_1ab727afb93e454029978bcec8bbb6f893" kindref="member">set_script</ref>(<ref refid="matConvUtil_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(script).c_str());</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"></highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/>dm-&gt;ReleaseInterface(<ref refid="mater_8h_1a36dcaa0c637134b05278e83da132935e" kindref="member">I_DAGORMAT</ref>,<sp/>d);</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"></highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structMatPair" kindref="compound">MatPair</ref><sp/>mp;</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/>mp.<ref refid="structMatPair_1a68dd12af9fcf42fbe1cf259a26a04db7" kindref="member">oldMat</ref><sp/>=<sp/>mat;</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><sp/><sp/>mp.<ref refid="structMatPair_1a59733a40259c6b1a758a870c6228c7a0" kindref="member">newMat</ref><sp/>=<sp/>dm;</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" kindref="member">convMats</ref>.Append(1,<sp/>&amp;mp);</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"></highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><sp/><sp/>mat<sp/>=<sp/>dm;</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="323"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"></highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight></codeline>
+<codeline lineno="326"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMatConvUtil_1a83fcca0970028d2e504d22d12f7a5944" kindref="member">MatConvUtil::convertNodes</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lighting)</highlight></codeline>
+<codeline lineno="327"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>)</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMatConvUtil_1a98048469d01fd24c64f09f86f5b41434" kindref="member">atest</ref><sp/>=<sp/><ref refid="classMatConvUtil_1a77438be1c5bb40a5b0443b3fe7d6545e" kindref="member">atestEdit</ref>-&gt;GetInt();</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"></highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" kindref="member">convMats</ref>.ZeroCount();</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"></highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>nodeNum<sp/>=<sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;GetSelNodeCount();</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>convertedNum<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/>Tab&lt;Mtl<sp/>*&gt;<sp/>converted;</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>nodeId<sp/>=<sp/>0;<sp/>nodeId<sp/>&lt;<sp/>nodeNum;<sp/>++nodeId)</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><sp/><sp/>INode<sp/>*node<sp/>=<sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;GetSelNode(nodeId);</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!node)</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/>Mtl<sp/>*mat<sp/>=<sp/>node-&gt;GetMtl();</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!mat)</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mi;</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(mi<sp/>=<sp/>0;<sp/>mi<sp/>&lt;<sp/>converted.Count();<sp/>++mi)</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(converted[mi]<sp/>==<sp/>mat)</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mi<sp/>&lt;<sp/>converted.Count())</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>changed<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"></highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mat-&gt;IsMultiMtl())</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num<sp/>=<sp/>mat-&gt;NumSubMtls();</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>num;<sp/>++i)</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Mtl<sp/>*sm<sp/>=<sp/>mat-&gt;GetSubMtl(i);</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R27)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R27</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="360"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sm<sp/>&amp;&amp;<sp/><ref refid="classMatConvUtil_1a20f99717512e882a946bb283a0f40c90" kindref="member">convertMat</ref>(sm,<sp/>type,<sp/>lighting,<sp/>mat-&gt;GetSubMtlSlotName(i,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">).data()))</highlight></codeline>
+<codeline lineno="361"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="362"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sm<sp/>&amp;&amp;<sp/><ref refid="classMatConvUtil_1a20f99717512e882a946bb283a0f40c90" kindref="member">convertMat</ref>(sm,<sp/>type,<sp/>lighting,<sp/>mat-&gt;GetSubMtlSlotName(i)))</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat-&gt;SetSubMtl(i,<sp/>sm);</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>changed<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="368"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>converted.Append(1,<sp/>&amp;mat);</highlight></codeline>
+<codeline lineno="370"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="371"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classMatConvUtil_1a20f99717512e882a946bb283a0f40c90" kindref="member">convertMat</ref>(mat,<sp/>type,<sp/>lighting,<sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">)))</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>node-&gt;SetMtl(mat);</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>changed<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"></highlight></codeline>
+<codeline lineno="377"><highlight class="normal"></highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(changed)</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>node-&gt;InvalidateWS();</highlight></codeline>
+<codeline lineno="381"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>++convertedNum;</highlight></codeline>
+<codeline lineno="382"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="383"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="384"><highlight class="normal"></highlight></codeline>
+<codeline lineno="385"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;RedrawViews(<ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;GetTime());</highlight></codeline>
+<codeline lineno="386"><highlight class="normal"></highlight></codeline>
+<codeline lineno="387"><highlight class="normal"><sp/><sp/>TCHAR<sp/>str[128];</highlight></codeline>
+<codeline lineno="388"><highlight class="normal"><sp/><sp/>_stprintf(str,<sp/>_T(</highlight><highlight class="stringliteral">&quot;Converted<sp/>materials<sp/>on<sp/>%d/%d<sp/>nodes&quot;</highlight><highlight class="normal">),<sp/>convertedNum,<sp/>nodeNum);</highlight></codeline>
+<codeline lineno="389"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a5d82124c083b187884daac77c283ec8b" kindref="member">ip</ref>-&gt;DisplayTempPrompt(str,<sp/>3000);</highlight></codeline>
+<codeline lineno="390"><highlight class="normal"></highlight></codeline>
+<codeline lineno="391"><highlight class="normal"><sp/><sp/><ref refid="classMatConvUtil_1a3cc1bbee4cc103978ddde68d3593a7a6" kindref="member">convMats</ref>.ZeroCount();</highlight></codeline>
+<codeline lineno="392"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="matConvUtil.cpp"/>
+  </compounddef>
+</doxygen>

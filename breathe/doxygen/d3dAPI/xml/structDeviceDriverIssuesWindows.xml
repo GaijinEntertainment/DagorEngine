@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverIssuesWindows" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesWindows</compoundname>
+    <basecompoundref refid="structDeviceDriverIssuesBase" prot="public" virt="non-virtual">DeviceDriverIssuesBase</basecompoundref>
+    <derivedcompoundref refid="structDeviceDriverIssuesNoIssues" prot="public" virt="non-virtual">DeviceDriverIssuesNoIssues</derivedcompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a77b5663e41d0ed65bf6a9e376ee2887b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasComputeTimeLimited</definition>
+        <argsstring></argsstring>
+        <name>hasComputeTimeLimited</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasComputeTimeLimited</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a4155a0570f12968d78e323e26304929f" kindref="member">DeviceDriverIssuesBase::hasComputeTimeLimited</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2330" column="25" bodyfile="dag_consts.h" bodystart="2330" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1ab5aa96f7f5d277f6fa56b1725ad8462f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasComputeCanNotWrite3DTex</definition>
+        <argsstring></argsstring>
+        <name>hasComputeCanNotWrite3DTex</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasComputeCanNotWrite3DTex</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a47992c604a6c9348ed72906e2faa9c9e" kindref="member">DeviceDriverIssuesBase::hasComputeCanNotWrite3DTex</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2335" column="25" bodyfile="dag_consts.h" bodystart="2335" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1adc7226aacd4fa977e70a39eb0813f698" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasStrictRenderPassesOnly</definition>
+        <argsstring></argsstring>
+        <name>hasStrictRenderPassesOnly</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasStrictRenderPassesOnly</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a0cadf2df929f3c2ea141d7f7a338bfd9" kindref="member">DeviceDriverIssuesBase::hasStrictRenderPassesOnly</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2340" column="25" bodyfile="dag_consts.h" bodystart="2340" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a7c29cc363de311f175457b7caa82214b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasSmallSampledBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasSmallSampledBuffers</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasSmallSampledBuffers</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1af41da6d79519916b216c91c8c0b16c26" kindref="member">DeviceDriverIssuesBase::hasSmallSampledBuffers</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2345" column="25" bodyfile="dag_consts.h" bodystart="2345" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a96154bd3a47a7d8215b1d5243bf7b4a9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasRenderPassClearDataRace</definition>
+        <argsstring></argsstring>
+        <name>hasRenderPassClearDataRace</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasRenderPassClearDataRace</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a0c0e9635e0bd509ed6febe7bf41b1037" kindref="member">DeviceDriverIssuesBase::hasRenderPassClearDataRace</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2350" column="25" bodyfile="dag_consts.h" bodystart="2350" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1adbb38d638939b34369011531f90db4cd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasBrokenBaseInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenBaseInstanceID</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasBrokenBaseInstanceID</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1aed100b8cc04c55fb5a645a31b4f6f1bd" kindref="member">DeviceDriverIssuesBase::hasBrokenBaseInstanceID</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2355" column="25" bodyfile="dag_consts.h" bodystart="2355" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a0f840fd3bb556a80255bd93d40eb6ca8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasMultisampledAndInstancingHang</definition>
+        <argsstring></argsstring>
+        <name>hasMultisampledAndInstancingHang</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasMultisampledAndInstancingHang</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1ad502c03e9b8bc5f466439ede61f20a9c" kindref="member">DeviceDriverIssuesBase::hasMultisampledAndInstancingHang</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2360" column="25" bodyfile="dag_consts.h" bodystart="2360" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a7c86f663f3515d34984a1111fc02cbe6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasBrokenMultisampledInputAttachment</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenMultisampledInputAttachment</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasBrokenMultisampledInputAttachment</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a9b8a521d3ddb09a523a1cb5517cdac33" kindref="member">DeviceDriverIssuesBase::hasBrokenMultisampledInputAttachment</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2365" column="25" bodyfile="dag_consts.h" bodystart="2365" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a5fd58c496f3e3ab14bee81f6706c8e6e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasIgnoreDeviceLost</definition>
+        <argsstring></argsstring>
+        <name>hasIgnoreDeviceLost</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasIgnoreDeviceLost</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a73a3b06020df31b84570b6e073204237" kindref="member">DeviceDriverIssuesBase::hasIgnoreDeviceLost</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2370" column="25" bodyfile="dag_consts.h" bodystart="2370" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1aa4653a5626968b0f7a5bdc2c2af4308b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasPollDeviceFences</definition>
+        <argsstring></argsstring>
+        <name>hasPollDeviceFences</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasPollDeviceFences</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1ad14daea5fce019300ab5227acdf12886" kindref="member">DeviceDriverIssuesBase::hasPollDeviceFences</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2375" column="25" bodyfile="dag_consts.h" bodystart="2375" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a45d5da1195b56bef856caa956cdb57bf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasBrokenShadersAfterAppSwitch</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenShadersAfterAppSwitch</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasBrokenShadersAfterAppSwitch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a3928aca35169986ebd34a4e811c54f62" kindref="member">DeviceDriverIssuesBase::hasBrokenShadersAfterAppSwitch</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2380" column="25" bodyfile="dag_consts.h" bodystart="2380" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a2adac45a7a9bdc89a35c0b530ce57394" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasBrokenSRGBConverionWithMRT</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenSRGBConverionWithMRT</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasBrokenSRGBConverionWithMRT</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1ae4a622bc9d156d0dd2afe06b06287387" kindref="member">DeviceDriverIssuesBase::hasBrokenSRGBConverionWithMRT</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2385" column="25" bodyfile="dag_consts.h" bodystart="2385" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a82744eb54cb5d8c9091b6ac9f307525e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasBrokenComputeFormattedOutput</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenComputeFormattedOutput</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasBrokenComputeFormattedOutput</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1aec7355cec1007e0b36dab07785577444" kindref="member">DeviceDriverIssuesBase::hasBrokenComputeFormattedOutput</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2390" column="25" bodyfile="dag_consts.h" bodystart="2390" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a4ca55d40f72067cbb2ce131392668734" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasBrokenSubpasses</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenSubpasses</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasBrokenSubpasses</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a5eb9f931ffee8c8cba46d2cdbb97a6ee" kindref="member">DeviceDriverIssuesBase::hasBrokenSubpasses</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2395" column="25" bodyfile="dag_consts.h" bodystart="2395" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesWindows_1a02543ce4dbc30b7294b2c56c3f294baa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesWindows::hasFloatClearBug</definition>
+        <argsstring></argsstring>
+        <name>hasFloatClearBug</name>
+        <qualifiedname>DeviceDriverIssuesWindows::hasFloatClearBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a9f1e938965f383922e73f877d544996d" kindref="member">DeviceDriverIssuesBase::hasFloatClearBug</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="2400" column="25" bodyfile="dag_consts.h" bodystart="2400" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Issues structure specific for \win32. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+      <node id="3">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="structDeviceDriverIssuesNoIssues"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesWindows</label>
+        <link refid="structDeviceDriverIssuesWindows"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesWindows</label>
+        <link refid="structDeviceDriverIssuesWindows"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="2324" column="1" bodyfile="dag_consts.h" bodystart="2325" bodyend="2401"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverIssuesWindows_1adbb38d638939b34369011531f90db4cd" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a82744eb54cb5d8c9091b6ac9f307525e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasBrokenComputeFormattedOutput</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a7c86f663f3515d34984a1111fc02cbe6" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasBrokenMultisampledInputAttachment</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a35c976b009067902b9b8dd02e2d8f920" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasBrokenNvApiGetSleepStatus</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a45d5da1195b56bef856caa956cdb57bf" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a2adac45a7a9bdc89a35c0b530ce57394" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasBrokenSRGBConverionWithMRT</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a4ca55d40f72067cbb2ce131392668734" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasBrokenSubpasses</name></member>
+      <member refid="structDeviceDriverIssuesBase_1a25023af43de6a5d31e6b1e06f2189922" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasClearColorBug</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1ab5aa96f7f5d277f6fa56b1725ad8462f" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a77b5663e41d0ed65bf6a9e376ee2887b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a02543ce4dbc30b7294b2c56c3f294baa" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasFloatClearBug</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a5fd58c496f3e3ab14bee81f6706c8e6e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a0f840fd3bb556a80255bd93d40eb6ca8" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1aa4653a5626968b0f7a5bdc2c2af4308b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasPollDeviceFences</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a96154bd3a47a7d8215b1d5243bf7b4a9" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a7c29cc363de311f175457b7caa82214b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1adc7226aacd4fa977e70a39eb0813f698" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesWindows</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

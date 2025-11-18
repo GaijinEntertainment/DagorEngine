@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ConcreteResHolder" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ConcreteResHolder</compoundname>
+    <basecompoundref refid="classresptr__detail_1_1ManagedResHolder" prot="public" virt="non-virtual">resptr_detail::ManagedResHolder&lt; ManagedResType::BaseType &gt;</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">ManagedResType::move_assignable_t</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ManagedResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1ConcreteResHolder_1ab5c2913d1b8f04b73ee4dc82e37fe7a0" prot="private" static="no">
+        <type>typename ManagedResType::resource_t</type>
+        <definition>using resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::ResType =  typename ManagedResType::resource_t</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="531" column="3" bodyfile="dag_resPtr.h" bodystart="531" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a97f089f68f37aa5473c70a23957d6b05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::ConcreteResHolder</definition>
+        <argsstring>()=default</argsstring>
+        <name>ConcreteResHolder</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::ConcreteResHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="4"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a04f963a927e044fc5e05ae7df6c73812" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::ConcreteResHolder</definition>
+        <argsstring>(ConcreteResHolder &amp;&amp;other) noexcept</argsstring>
+        <name>ConcreteResHolder</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::ConcreteResHolder</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ConcreteResHolder</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="36" bodyfile="dag_resPtr.h" bodystart="534" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a80222e504521fd82ac050d0d31d58f28" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ConcreteResHolder</ref> &amp;</type>
+        <definition>ConcreteResHolder &amp; resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::operator=</definition>
+        <argsstring>(ConcreteResHolder &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ConcreteResHolder</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="110" bodyfile="dag_resPtr.h" bodystart="534" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a5a467f78fdb21488f822a54633e46273" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="283" bodyfile="dag_resPtr.h" bodystart="534" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a51fbc438e456e1748a4d159cd5438dee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ConcreteResHolder</ref> &amp;</type>
+        <definition>ConcreteResHolder &amp; resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::operator=</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="535" column="23" bodyfile="dag_resPtr.h" bodystart="535" bodyend="535"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1aecde1c48ec0dd88b1ba23ba2974eb3fa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ConcreteResHolder</ref> &amp;</type>
+        <definition>ConcreteResHolder &amp; resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::operator=</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;factory)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>factory</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="536" column="23" bodyfile="dag_resPtr.h" bodystart="536" bodyend="536"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a96111ec9deced48c00c0596d36a92cbf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::ConcreteResHolder</definition>
+        <argsstring>(ManagedResType &amp;&amp;resource, const char *shader_var_name=nullptr)</argsstring>
+        <name>ConcreteResHolder</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::ConcreteResHolder</qualifiedname>
+        <param>
+          <type>ManagedResType &amp;&amp;</type>
+          <declname>resource</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="538" column="3" bodyfile="dag_resPtr.h" bodystart="538" bodyend="559"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a54adb59ad70de0ff690130a0d30ff4c0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::ConcreteResHolder</definition>
+        <argsstring>(ManagedResType &amp;&amp;resource, int var_id)</argsstring>
+        <name>ConcreteResHolder</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::ConcreteResHolder</qualifiedname>
+        <param>
+          <type>ManagedResType &amp;&amp;</type>
+          <declname>resource</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="561" column="3" bodyfile="dag_resPtr.h" bodystart="561" bodyend="568"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a8d171cfb8bb841025025307b7cb77b7b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::ConcreteResHolder</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res, const char *shader_var_name=nullptr)</argsstring>
+        <name>ConcreteResHolder</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::ConcreteResHolder</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="570" column="3" bodyfile="dag_resPtr.h" bodystart="570" bodyend="572"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a3d581e90169727a72af9e63068a39677" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::ConcreteResHolder</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;res, const char *shader_var_name=nullptr)</argsstring>
+        <name>ConcreteResHolder</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::ConcreteResHolder</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="574" column="3" bodyfile="dag_resPtr.h" bodystart="574" bodyend="576"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResHolder_1a0d8d49325f56930ae3964b0da49cd0e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;::~ConcreteResHolder</definition>
+        <argsstring>()</argsstring>
+        <name>~ConcreteResHolder</name>
+        <qualifiedname>resptr_detail::ConcreteResHolder::~ConcreteResHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="578" column="3" bodyfile="dag_resPtr.h" bodystart="578" bodyend="584"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>resptr_detail::ManagedResHolder&lt; ManagedResType::BaseType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResHolder"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ManagedResType</label>
+      </node>
+      <node id="4">
+        <label>ManagedResType::move_assignable_t</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ConcreteResHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>resptr_detail::ManagedResHolder&lt; ManagedResType::BaseType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResHolder"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ManagedResType</label>
+      </node>
+      <node id="4">
+        <label>ManagedResType::move_assignable_t</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ConcreteResHolder&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ConcreteResHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="529" column="1" bodyfile="dag_resPtr.h" bodystart="530" bodyend="585"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a5a467f78fdb21488f822a54633e46273" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>close</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a97f089f68f37aa5473c70a23957d6b05" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ConcreteResHolder</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a04f963a927e044fc5e05ae7df6c73812" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ConcreteResHolder</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a96111ec9deced48c00c0596d36a92cbf" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ConcreteResHolder</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a54adb59ad70de0ff690130a0d30ff4c0" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ConcreteResHolder</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a8d171cfb8bb841025025307b7cb77b7b" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ConcreteResHolder</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a3d581e90169727a72af9e63068a39677" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ConcreteResHolder</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a41c7e0053c58260947a9dc51bac57ccc" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>getVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a07fe4bd986384a4c8843f07afbf8889a" prot="protected" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ManagedResHolder</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a357fad680cca7d48d632b31c2f9e8d54" prot="protected" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>mShaderVarId</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a80222e504521fd82ac050d0d31d58f28" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a51fbc438e456e1748a4d159cd5438dee" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1aecde1c48ec0dd88b1ba23ba2974eb3fa" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1ab5c2913d1b8f04b73ee4dc82e37fe7a0" prot="private" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>ResType</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a31e9999423935ef5b8decd88fe0bb84a" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>setVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1ac6c47350fb7e48a894b0abd8fa90e801" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>setVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1aa6d32fa8912f504a4d08f415d82fda25" prot="protected" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>swap</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResHolder_1a0d8d49325f56930ae3964b0da49cd0e9" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResHolder</scope><name>~ConcreteResHolder</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

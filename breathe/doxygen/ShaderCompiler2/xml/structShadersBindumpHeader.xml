@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShadersBindumpHeader" kind="struct" language="C++" prot="public">
+    <compoundname>ShadersBindumpHeader</compoundname>
+    <derivedcompoundref refid="structCompressedShadersBindump" prot="public" virt="non-virtual">CompressedShadersBindump</derivedcompoundref>
+    <includes refid="linkShaders_8h" local="no">linkShaders.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShadersBindumpHeader_1a7a28b16040ac57ebb0290f1fc3020266" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShadersBindumpHeader::cache_sign</definition>
+        <argsstring></argsstring>
+        <name>cache_sign</name>
+        <qualifiedname>ShadersBindumpHeader::cache_sign</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="49" column="7" bodyfile="linkShaders.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindumpHeader_1af5acd824207cfc830a14856704309eb6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShadersBindumpHeader::cache_version</definition>
+        <argsstring></argsstring>
+        <name>cache_version</name>
+        <qualifiedname>ShadersBindumpHeader::cache_version</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="50" column="7" bodyfile="linkShaders.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindumpHeader_1a00aa476b59b6f4ba46073abae37774e1" prot="public" static="no" mutable="no">
+        <type><ref refid="blkHash_8h_1a592888f422a40aa9b9dad4c6e6dbed99" kindref="member">BlkHashBytes</ref></type>
+        <definition>BlkHashBytes ShadersBindumpHeader::last_blk_hash</definition>
+        <argsstring></argsstring>
+        <name>last_blk_hash</name>
+        <qualifiedname>ShadersBindumpHeader::last_blk_hash</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="51" column="16" bodyfile="linkShaders.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindumpHeader_1af28e09d4864c9b4fd3d8da7ac34eb90c" prot="public" static="no" mutable="no">
+        <type>bindump::EnableHash&lt; <ref refid="structShadersBindump" kindref="compound">ShadersBindump</ref> &gt;</type>
+        <definition>bindump::EnableHash&lt;ShadersBindump&gt; ShadersBindumpHeader::hash</definition>
+        <argsstring></argsstring>
+        <name>hash</name>
+        <qualifiedname>ShadersBindumpHeader::hash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="52" column="23" bodyfile="linkShaders.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShadersBindumpHeader_1ab6b5e1758ece57f5194a0bd9c3516c6d" prot="public" static="no" mutable="no">
+        <type>bindump::vector&lt; bindump::string &gt;</type>
+        <definition>bindump::vector&lt;bindump::string&gt; ShadersBindumpHeader::dependency_files</definition>
+        <argsstring></argsstring>
+        <name>dependency_files</name>
+        <qualifiedname>ShadersBindumpHeader::dependency_files</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="53" column="19" bodyfile="linkShaders.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CompressedShadersBindump</label>
+        <link refid="structCompressedShadersBindump"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShadersBindumpHeader</label>
+        <link refid="structShadersBindumpHeader"/>
+      </node>
+    </inheritancegraph>
+    <location file="linkShaders.h" line="47" column="1" bodyfile="linkShaders.h" bodystart="48" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structShadersBindumpHeader_1a7a28b16040ac57ebb0290f1fc3020266" prot="public" virt="non-virtual"><scope>ShadersBindumpHeader</scope><name>cache_sign</name></member>
+      <member refid="structShadersBindumpHeader_1af5acd824207cfc830a14856704309eb6" prot="public" virt="non-virtual"><scope>ShadersBindumpHeader</scope><name>cache_version</name></member>
+      <member refid="structShadersBindumpHeader_1ab6b5e1758ece57f5194a0bd9c3516c6d" prot="public" virt="non-virtual"><scope>ShadersBindumpHeader</scope><name>dependency_files</name></member>
+      <member refid="structShadersBindumpHeader_1af28e09d4864c9b4fd3d8da7ac34eb90c" prot="public" virt="non-virtual"><scope>ShadersBindumpHeader</scope><name>hash</name></member>
+      <member refid="structShadersBindumpHeader_1a00aa476b59b6f4ba46073abae37774e1" prot="public" virt="non-virtual"><scope>ShadersBindumpHeader</scope><name>last_blk_hash</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

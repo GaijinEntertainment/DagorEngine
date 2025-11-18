@@ -1,0 +1,587 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.7" xml:lang="en-US">
+  <compound refid="classdafg_1_1AutoResolutionRequest" kind="class"><name>dafg::AutoResolutionRequest</name>
+    <member refid="classdafg_1_1AutoResolutionRequest_1af224c83d458368ae6a14843794518f16" kind="friend"><name>NameSpaceRequest</name></member>
+    <member refid="classdafg_1_1AutoResolutionRequest_1a54e9924205db745e6c6fdb8e7b4c174c" kind="friend"><name>detail::VirtualResourceRequestBase</name></member>
+    <member refid="classdafg_1_1AutoResolutionRequest_1a6c8a4e6b86fd1fd7cdfdb1e3d42331f2" kind="friend"><name>detail::DispatchRequestBase</name></member>
+    <member refid="classdafg_1_1AutoResolutionRequest_1aa8d5d6e1db5d2dc5c8204053d7e1e11c" kind="variable"><name>autoResTypeId</name></member>
+    <member refid="classdafg_1_1AutoResolutionRequest_1a58ae5e90e6a34136d27a0b27a7d9a658" kind="variable"><name>multiplier</name></member>
+    <member refid="classdafg_1_1AutoResolutionRequest_1a42500cb2b2fa9a3225b55264ad84bbbb" kind="variable"><name>provider</name></member>
+    <member refid="classdafg_1_1AutoResolutionRequest_1a4dc04db80d8f327b6f9218fe3e70495a" kind="function"><name>AutoResolutionRequest</name></member>
+    <member refid="classdafg_1_1AutoResolutionRequest_1ac635dfdf75abca15da9ccaa66aaa0108" kind="function"><name>get</name></member>
+  </compound>
+  <compound refid="structdafg_1_1BufferCreateInfo" kind="struct"><name>dafg::BufferCreateInfo</name>
+    <member refid="structdafg_1_1BufferCreateInfo_1a07b765f5dc38ecfce27c9af11706552f" kind="variable"><name>elementSize</name></member>
+    <member refid="structdafg_1_1BufferCreateInfo_1ab501349a1802f0464b7979afa0a4a0f7" kind="variable"><name>elementCount</name></member>
+    <member refid="structdafg_1_1BufferCreateInfo_1a8382382f1397163e71e676facf411d61" kind="variable"><name>flags</name></member>
+    <member refid="structdafg_1_1BufferCreateInfo_1a7b6fda4b01c1802c8e05df0d9508ab60" kind="variable"><name>format</name></member>
+  </compound>
+  <compound refid="classdafg_1_1DispatchRequest" kind="class"><name>dafg::DispatchRequest</name>
+    <member refid="classdafg_1_1DispatchRequest_1acd15c06a75e57786c57fbd609a329fb9" kind="typedef"><name>RRP</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1abe7d7e04211dc3dc0b74af733fe5132b" kind="typedef"><name>DRP</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a7be08cd57f63d7d31e41d74ccbc0ec33" kind="typedef"><name>BlobRequest</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a92c64c0aa46557f6290e035729108f9f" kind="typedef"><name>TextureRequest</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ae84244061cb6e9357f69e82c7708b71a" kind="typedef"><name>Base</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ad01253ebd9c39272d2d3f9a14aba64fd" kind="variable"><name>true</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a949fb8ee5b97164be925072537300360" kind="friend"><name>DispatchRequest</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" kind="friend"><name>Registry</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a55e6372d1a4be0446a75af79723f46db" kind="function"><name>flipPolicy</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a7897cc94aad3d9696b1e29d75a8f2128" kind="function"><name>hasThreadsOrGroups</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a43f21fd1f7d74d9df5e63e7e2b5ca9ac" kind="function"><name>isBlob</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a51a70c6ee2ba438609ec6cc341a1b670" kind="function"><name>isValidBlob</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a5c0f62191dbfba9f08548c7c65e81554" kind="function"><name>isValidBlobProjector</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1afe3df50c6e06144da69db4336538dec2" kind="function"><name>isValidResolutionProjector</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a73971bb3b42cb7a398b34eff950a66b7" kind="function"><name>isValidTextureProjector</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a2322d92161580a8fa6adb7d8e3e3d18c" kind="function"><name>DispatchRequest</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a1963c640d844bd78865c9c5b50111436" kind="function"><name>mesh</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1aa2c0b08004b96ffb5dcf461e99aa018f" kind="function"><name>threads</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a0bba9dd43e2dcb7a3bdda12cda1ae0fc" kind="function"><name>groups</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1aa220a4c3d7c519ada24da43b28ca3f74" kind="function"><name>indirect</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1af2e706a1931928bdc67a2862da77ad06" kind="function"><name>x</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1af35bbddb63a0500b91bb41268188d8eb" kind="function"><name>x</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ae2afe58badba2eca13305077f93e13ac" kind="function"><name>x</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a0f77b86b0430c3e45811270121c84150" kind="function"><name>x</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a621f85546b83095e97242f53f9cfde40" kind="function"><name>x</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a3aa5ba43663c5943c0ed902f0650fde2" kind="function"><name>y</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1af3fa0f14d4739ac2b2dd02b0668e1f05" kind="function"><name>y</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a2d567e67356cd1420b306174f6c66b42" kind="function"><name>y</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a67617f680376bfd7b733006a15f88307" kind="function"><name>y</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a2e01118630c524786bbd1f27404f4804" kind="function"><name>y</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ac11edac938c8e7c42ec785c7e917132e" kind="function"><name>z</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a67fab29d47897e3a493e0c8ae05c2712" kind="function"><name>z</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1aeb58312e5747adee1118eda8f929d326" kind="function"><name>z</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a97a90dfbfbd91a37597cf10ce508e2c6" kind="function"><name>z</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a234cd9befb2088e56c6278f2f2d5992f" kind="function"><name>z</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ab4f819d8bafcc71ede071f86bef7195c" kind="function"><name>offset</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a3851fbcfcfca88e0170a1dc7f023af77" kind="function"><name>offset</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a0426fef2572a806708c113a971cdc52a" kind="function"><name>offset</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a99932ec3c424ce5eac1deba4d004dcf0" kind="function"><name>stride</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a28ea007cdb5bcf17b628db0fe024aa71" kind="function"><name>stride</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1acced572a1f1b5cc81143e551de41db31" kind="function"><name>stride</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1af176ecfb41ecb7c50b4dc0ae470bb9d8" kind="function"><name>count</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a5af70dc92a573d9e57cca431fc0979cc" kind="function"><name>count</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a91c9a321822be0ad2a47d61ffb925a0b" kind="function"><name>count</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1acb73f1e545e03c324c8da2d7f8e588c1" kind="function"><name>count</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a37d8c1b67fa3ab7a7d18fccf4d033a4e" kind="function"><name>countOffset</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ac875b8468892b1599fc239101a713662" kind="function"><name>countOffset</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a7e58169a4b04662fe0a20360e32f062d" kind="function"><name>countOffset</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1ab2ec147ab2b72bc96882295aa2944e64" kind="function"><name>maxCount</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1a33b23473937e7cbdf74e7a1ec3d1ca58" kind="function"><name>maxCount</name></member>
+    <member refid="classdafg_1_1DispatchRequest_1aa6adf70b7c0860f53e0f0559bd9e264c" kind="function"><name>maxCount</name></member>
+  </compound>
+  <compound refid="classdafg_1_1DrawRequest" kind="class"><name>dafg::DrawRequest</name>
+    <member refid="classdafg_1_1DrawRequest_1a9d156ce43bac573708863bd45f965f10" kind="typedef"><name>Base</name></member>
+    <member refid="classdafg_1_1DrawRequest_1ae5324eb7681c1107f4ddf4bc925a8edb" kind="typedef"><name>RRP</name></member>
+    <member refid="classdafg_1_1DrawRequest_1ad1cc9c3b834f53c03dc2d8c8276ca576" kind="typedef"><name>DRP</name></member>
+    <member refid="classdafg_1_1DrawRequest_1af812ebc57a6042b075bf5dc44a0f5e48" kind="typedef"><name>BlobRequest</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a5d6de53582df98529b17158511c172dc" kind="friend"><name>DrawRequest</name></member>
+    <member refid="classdafg_1_1DrawRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" kind="friend"><name>Registry</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a2b918eea15acce39d7e955b99580a926" kind="variable"><name>true</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a698cc6445c42b0454f27c1f78369fce1" kind="function"><name>flipPolicy</name></member>
+    <member refid="classdafg_1_1DrawRequest_1af21df022ef4c5a87e9d2d2b104a44614" kind="function"><name>isBlob</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a9b5f3afe60d78eb35b122a6ce8bd4b61" kind="function"><name>isValidBlob</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a1d84d1576bee645a032969eb6120ba19" kind="function"><name>isValidBlobProjector</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a6a4ec21cae9a1d426d7f998b6fefd1d8" kind="function"><name>DrawRequest</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a46d5f92fe9540799ecf312b26f6b6cf9" kind="function"><name>DrawRequest</name></member>
+    <member refid="classdafg_1_1DrawRequest_1ac8397871f67fd6a652b744799f0439d9" kind="function"><name>startVertex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a8447de8f1577f85fe82705dec61abdb4" kind="function"><name>startVertex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a5a65244e2a8bd45726a89b9567530d6a" kind="function"><name>startVertex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1aa8d4b519043c3af93e093650f6b18172" kind="function"><name>baseVertex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a10eaf320a333ecb367af770d549a0a47" kind="function"><name>baseVertex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1ab561ae41a8b0b0abf16a40ee122a8fbe" kind="function"><name>baseVertex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1aab374de1a4dbdaaada0d3c41ecd8f65b" kind="function"><name>startIndex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a58a3dfe6312a19bb878cad0118885d53" kind="function"><name>startIndex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a464a64b2e6ac2eb46d5415d92e95b0f0" kind="function"><name>startIndex</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a33985c7d8b11f2397ce808e5d193b882" kind="function"><name>primitiveCount</name></member>
+    <member refid="classdafg_1_1DrawRequest_1adaaba22f6ac29c8a9baad4255832f098" kind="function"><name>primitiveCount</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a63eb3099f5a38cdd1f39bf05b791c370" kind="function"><name>primitiveCount</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a4c3fb8b8d6455d48196d548dbf1ec03c" kind="function"><name>startInstance</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a667bfb551e63cff415c6d155f732ac7f" kind="function"><name>startInstance</name></member>
+    <member refid="classdafg_1_1DrawRequest_1aa9e0086663426bc13b03e04451656e61" kind="function"><name>startInstance</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a87bff104d9f55ab0b2208003b738a56a" kind="function"><name>instanceCount</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a65299c3a5f385b0c392d97c3fe502acf" kind="function"><name>instanceCount</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a0a3047a7d47fb22ec079c5e10b349727" kind="function"><name>instanceCount</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a5636c084b4a2763bb4c6ecd0e6148d40" kind="function"><name>indirect</name></member>
+    <member refid="classdafg_1_1DrawRequest_1aa213a1e72921957279cf38b94ed0e2e3" kind="function"><name>offset</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a8bc62c7d52d264834e6f550c2133db3a" kind="function"><name>offset</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a51d9b6d68bc4d0e1790790ffdb6132c1" kind="function"><name>offset</name></member>
+    <member refid="classdafg_1_1DrawRequest_1ae9cd1f36d3391a796bed9fffdb105e1d" kind="function"><name>stride</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a4c779219da1a54c15b5dcd81008ca92f" kind="function"><name>stride</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a6120bfd3ad1ff40cf9de858e233222f5" kind="function"><name>stride</name></member>
+    <member refid="classdafg_1_1DrawRequest_1ae48d867af5c6c24895a637bb6ee26f60" kind="function"><name>count</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a4a0e19840c3ac41a80c24e17b1a5f06c" kind="function"><name>count</name></member>
+    <member refid="classdafg_1_1DrawRequest_1a0ca00e28de7ca31dd59e2388aa41668c" kind="function"><name>count</name></member>
+  </compound>
+  <compound refid="structdafg_1_1multiplexing_1_1Extents" kind="struct"><name>dafg::multiplexing::Extents</name>
+    <member refid="structdafg_1_1multiplexing_1_1Extents_1abde7a9ecf1b8f2189cdf46b6bd8175ac" kind="variable"><name>superSamples</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Extents_1a08600a4d4ad8a30c0baf7c419cc8e650" kind="variable"><name>subSamples</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Extents_1a770618ec9efef1abcd9aa483ab6f9897" kind="variable"><name>viewports</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Extents_1aa41aa29520a96d36d1d0b4bbc0c09337" kind="variable"><name>subCameras</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Extents_1a95e2d901a481990a3d3993009c36b2f7" kind="function"><name>operator==</name></member>
+  </compound>
+  <compound refid="structdafg_1_1ExternalState" kind="struct"><name>dafg::ExternalState</name>
+    <member refid="structdafg_1_1ExternalState_1a5878ee20a057b391e608e8fc1dd1467a" kind="variable"><name>wireframeModeEnabled</name></member>
+    <member refid="structdafg_1_1ExternalState_1a9fadb151fc8300ed2f318fa36ee9ac9d" kind="variable"><name>vrsMaskEnabled</name></member>
+  </compound>
+  <compound refid="structeastl_1_1hash_3_01dafg_1_1NameSpace_01_4" kind="struct"><name>eastl::hash&lt; dafg::NameSpace &gt;</name>
+    <member refid="structeastl_1_1hash_3_01dafg_1_1NameSpace_01_4_1a8e98916895cf289b08a1b291c96830f7" kind="function"><name>operator()</name></member>
+  </compound>
+  <compound refid="structdafg_1_1multiplexing_1_1Index" kind="struct"><name>dafg::multiplexing::Index</name>
+    <member refid="structdafg_1_1multiplexing_1_1Index_1a18941bab9075627c23e327c9a004aad6" kind="variable"><name>superSample</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Index_1a749b62f01258283cdefab47fa425ddc5" kind="variable"><name>subSample</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Index_1a45bba8b9dea237b47f21c236d7a3db98" kind="variable"><name>viewport</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Index_1ae67888c36a95efe112fb61e53fab3d83" kind="variable"><name>subCamera</name></member>
+    <member refid="structdafg_1_1multiplexing_1_1Index_1a3f65f87ecac10a1b6360d1e0b0e9c2ec" kind="function"><name>operator==</name></member>
+  </compound>
+  <compound refid="structdafg_1_1detail_1_1IPointImpl" kind="struct"><name>dafg::detail::IPointImpl</name>
+  </compound>
+  <compound refid="structdafg_1_1detail_1_1IPointImpl_3_012_01_4" kind="struct"><name>dafg::detail::IPointImpl&lt; 2 &gt;</name>
+    <member refid="structdafg_1_1detail_1_1IPointImpl_3_012_01_4_1a3e22772020c1bf0cb36df45ed8c3248c" kind="typedef"><name>Value</name></member>
+  </compound>
+  <compound refid="structdafg_1_1detail_1_1IPointImpl_3_013_01_4" kind="struct"><name>dafg::detail::IPointImpl&lt; 3 &gt;</name>
+    <member refid="structdafg_1_1detail_1_1IPointImpl_3_013_01_4_1a3ae09dd960d99e2d9c4ceae404f6ec1f" kind="typedef"><name>Value</name></member>
+  </compound>
+  <compound refid="structdafg_1_1NamedSlot" kind="struct"><name>dafg::NamedSlot</name>
+    <member refid="structdafg_1_1NamedSlot_1add25a71e1e886f24300cd371b4f01597" kind="variable"><name>name</name></member>
+    <member refid="structdafg_1_1NamedSlot_1ac8c4fb3c90c5285dea72b975726a6100" kind="function"><name>NamedSlot</name></member>
+  </compound>
+  <compound refid="classdafg_1_1NameSpace" kind="class"><name>dafg::NameSpace</name>
+    <member refid="classdafg_1_1NameSpace_1a691932c65b285509b1c958b40a203893" kind="friend"><name>eastl::hash&lt; NameSpace &gt;</name></member>
+    <member refid="classdafg_1_1NameSpace_1a8069d5bda88d06acff5dbfeab0b3bed6" kind="friend"><name>root</name></member>
+    <member refid="classdafg_1_1NameSpace_1a774da712956d24dd7062634e236124c3" kind="friend"><name>operator==</name></member>
+    <member refid="classdafg_1_1NameSpace_1abcbea3425cd17afda02b280b0f9954fb" kind="friend"><name>operator&lt;</name></member>
+    <member refid="classdafg_1_1NameSpace_1aa8ebb3a159c09a5215b404a7b7a1ee8f" kind="variable"><name>nameId</name></member>
+    <member refid="classdafg_1_1NameSpace_1a542130ca220dfade440c96944de5ad1c" kind="function"><name>NameSpace</name></member>
+    <member refid="classdafg_1_1NameSpace_1ad7224cec9b8a76403018a029ccbb1961" kind="function"><name>NameSpace</name></member>
+    <member refid="classdafg_1_1NameSpace_1a5446ba4b421314410d66e033ffa32c8e" kind="function"><name>resolveName</name></member>
+    <member refid="classdafg_1_1NameSpace_1a5439b084b763e572a154406697062a83" kind="function"><name>operator/</name></member>
+    <member refid="classdafg_1_1NameSpace_1a54aea8ab5caafcc975df19c64eaab5cb" kind="function"><name>registerNode</name></member>
+    <member refid="classdafg_1_1NameSpace_1a1fbc5594fd28c7facc6d0d16fcb14b8b" kind="function"><name>setResolution</name></member>
+    <member refid="classdafg_1_1NameSpace_1ae03a69748fdad987326fb8372aab8041" kind="function"><name>setDynamicResolution</name></member>
+    <member refid="classdafg_1_1NameSpace_1ae0c678e180f0677e1ffc4ba4a37b4127" kind="function"><name>fillSlot</name></member>
+    <member refid="classdafg_1_1NameSpace_1a969d24afa74d4613e616bc206b5fb700" kind="function"><name>updateExternallyConsumedResourceSet</name></member>
+    <member refid="classdafg_1_1NameSpace_1a67cc8c72b86912962ad71d1a8ec6be32" kind="function"><name>updateExternallyConsumedResourceSet</name></member>
+    <member refid="classdafg_1_1NameSpace_1a0a7cf65859a94385851ae68a2afb3c20" kind="function"><name>markResourceExternallyConsumed</name></member>
+    <member refid="classdafg_1_1NameSpace_1a9e21fe6d39b7936f5a5526da5297190e" kind="function"><name>unmarkResourceExternallyConsumed</name></member>
+    <member refid="classdafg_1_1NameSpace_1ab279bdee66372fee604f57659ce72ae3" kind="function"><name>_make_namespace</name></member>
+  </compound>
+  <compound refid="classdafg_1_1NameSpaceRequest" kind="class"><name>dafg::NameSpaceRequest</name>
+    <member refid="classdafg_1_1NameSpaceRequest_1acf826146860eba9582985d46735d5f71" kind="function"><name>read</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a0098b6fe70c609042550b403a41f4cc7" kind="function"><name>read</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a7d3941992f30a118ecb4b513137ce2db" kind="function"><name>historyFor</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a271b4785944d9d913eed07e73a2540f7" kind="function"><name>modify</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a163bc5e04be88bae2334e95a7ad90d49" kind="function"><name>modify</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1ad78263009503117d45ac4e50de744d67" kind="function"><name>rename</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1afdc0e1987d6f4ea410e9437c27b47883" kind="function"><name>readTexture</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1aacd440f04993b5a30f76a26bedd71a46" kind="function"><name>readTexture</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a64808d7d43cef0f6bd50d1ddbf7b9723" kind="function"><name>readTextureHistory</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a5d3712018c4e8ad56177dd8a39e2bbf2" kind="function"><name>modifyTexture</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a01cd279634b59a8c4fb9ee68b73c009d" kind="function"><name>modifyTexture</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a8a7283ecf2a1a1fae485e56dc783f668" kind="function"><name>renameTexture</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1aa41fb46bcb791bf48ea13f6c2ad749b2" kind="function"><name>readBlob</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1afda530aa1cb20cbf8b93bb3e41397133" kind="function"><name>readBlobHistory</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a459ee396921264d41aab24ae7a7f5906" kind="function"><name>modifyBlob</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1af6f518fb92009bb57f4a6526c604fccb" kind="function"><name>renameBlob</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a91876f262ba8db9a85ee05e28b7b9397" kind="typedef"><name>RRP</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1abf2ff1eab8713fdd3f6a69c7a4c75349" kind="typedef"><name>VirtualTextureRequest</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a7e96c3d7b4337b6f5844818ec312e8d8" kind="typedef"><name>VirtualBufferRequest</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1afbb1c61f136d52ac424386c219bc56ad" kind="typedef"><name>VirtualBlobRequest</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" kind="friend"><name>Registry</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a9352850d029f58311b7fd47bccfac719" kind="variable"><name>NewRwRequestPolicy</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1abfa0fabaec1ea1ac707ddb3500392404" kind="variable"><name>NewRoRequestPolicy</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1a5cddd6c40c003fb4d4faae3324929845" kind="variable"><name>NewHistRequestPolicy</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1aebb743260380583ff7bbbbd3adae72ee" kind="variable"><name>nameSpaceId</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1aa7b5dc5238aec41e9b71d9c215b82eae" kind="variable"><name>nodeId</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1aa23c3b07a1e6e2584097b7afbff39f45" kind="variable"><name>registry</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1ac533d90492a573350598109e715e46f0" kind="function"><name>NameSpaceRequest</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1affd30e072775c758242467734f4fcc5e" kind="function"><name>operator/</name></member>
+    <member refid="classdafg_1_1NameSpaceRequest_1aef4c90cceb2b9b02580e5ff937de1adf" kind="function"><name>getResolution</name></member>
+  </compound>
+  <compound refid="classdafg_1_1NodeHandle" kind="class"><name>dafg::NodeHandle</name>
+    <member refid="classdafg_1_1NodeHandle_1a7934cf821b23d924a511e1b8b8ead041" kind="friend"><name>NameSpace</name></member>
+    <member refid="classdafg_1_1NodeHandle_1a5621b733309352592e84817b5af97430" kind="friend"><name>register_external_node</name></member>
+    <member refid="classdafg_1_1NodeHandle_1a184ec272ae4a12e4c8f9a9ad04b96b9c" kind="variable"><name>uid</name></member>
+    <member refid="classdafg_1_1NodeHandle_1a049b1cb97b08c6fc83926a8b9da8cf6f" kind="function"><name>NodeHandle</name></member>
+    <member refid="classdafg_1_1NodeHandle_1a5252b8797a8587cac7f25d13b9065da1" kind="function"><name>NodeHandle</name></member>
+    <member refid="classdafg_1_1NodeHandle_1ae9317dceaa5e17257861f87862033bb7" kind="function"><name>NodeHandle</name></member>
+    <member refid="classdafg_1_1NodeHandle_1afdb8a77be03fe8cae8e2f3a956fa8d57" kind="function"><name>operator=</name></member>
+    <member refid="classdafg_1_1NodeHandle_1aca61efe4e7cabddfa14fd9cd8f01e432" kind="function"><name>NodeHandle</name></member>
+    <member refid="classdafg_1_1NodeHandle_1a3672c86832e234d2cc2911678a7d20e2" kind="function"><name>operator=</name></member>
+    <member refid="classdafg_1_1NodeHandle_1a7ebbe86dc4dc4273dbd7c768df9fd80b" kind="function"><name>~NodeHandle</name></member>
+    <member refid="classdafg_1_1NodeHandle_1aaa2fa2fafb5fd9e8ee8128566f88c4c1" kind="function"><name>valid</name></member>
+    <member refid="classdafg_1_1NodeHandle_1ae4650918bc84a3a62ee0415c6849be4b" kind="function"><name>operator bool</name></member>
+  </compound>
+  <compound refid="classdafg_1_1Registry" kind="class"><name>dafg::Registry</name>
+    <member refid="classdafg_1_1Registry_1afe8090984324364b6ca9a09fecf49de4" kind="function"><name>create</name></member>
+    <member refid="classdafg_1_1Registry_1ab41daa404aaa9614f240448c1ba16485" kind="function"><name>registerTexture</name></member>
+    <member refid="classdafg_1_1Registry_1a1384f372274e62de5dd0598767d7cada" kind="function"><name>registerBackBuffer</name></member>
+    <member refid="classdafg_1_1Registry_1a51dd8643819f8e7ca2d24dd63c5f41cb" kind="function"><name>registerBuffer</name></member>
+    <member refid="classdafg_1_1Registry_1a7d3941992f30a118ecb4b513137ce2db" kind="function"><name>historyFor</name></member>
+    <member refid="classdafg_1_1Registry_1a271b4785944d9d913eed07e73a2540f7" kind="function"><name>modify</name></member>
+    <member refid="classdafg_1_1Registry_1a163bc5e04be88bae2334e95a7ad90d49" kind="function"><name>modify</name></member>
+    <member refid="classdafg_1_1Registry_1acf826146860eba9582985d46735d5f71" kind="function"><name>read</name></member>
+    <member refid="classdafg_1_1Registry_1a0098b6fe70c609042550b403a41f4cc7" kind="function"><name>read</name></member>
+    <member refid="classdafg_1_1Registry_1ad78263009503117d45ac4e50de744d67" kind="function"><name>rename</name></member>
+    <member refid="classdafg_1_1Registry_1aa79125dd6e50ef6eae0e83614eaa72c0" kind="function"><name>createTexture2d</name></member>
+    <member refid="classdafg_1_1Registry_1a987db9b03211e5ed24ff596f50bbb106" kind="function"><name>createBlob</name></member>
+    <member refid="classdafg_1_1Registry_1a459ee396921264d41aab24ae7a7f5906" kind="function"><name>modifyBlob</name></member>
+    <member refid="classdafg_1_1Registry_1a5d3712018c4e8ad56177dd8a39e2bbf2" kind="function"><name>modifyTexture</name></member>
+    <member refid="classdafg_1_1Registry_1a01cd279634b59a8c4fb9ee68b73c009d" kind="function"><name>modifyTexture</name></member>
+    <member refid="classdafg_1_1Registry_1aa41fb46bcb791bf48ea13f6c2ad749b2" kind="function"><name>readBlob</name></member>
+    <member refid="classdafg_1_1Registry_1afda530aa1cb20cbf8b93bb3e41397133" kind="function"><name>readBlobHistory</name></member>
+    <member refid="classdafg_1_1Registry_1afdc0e1987d6f4ea410e9437c27b47883" kind="function"><name>readTexture</name></member>
+    <member refid="classdafg_1_1Registry_1aacd440f04993b5a30f76a26bedd71a46" kind="function"><name>readTexture</name></member>
+    <member refid="classdafg_1_1Registry_1a64808d7d43cef0f6bd50d1ddbf7b9723" kind="function"><name>readTextureHistory</name></member>
+    <member refid="classdafg_1_1Registry_1af6f518fb92009bb57f4a6526c604fccb" kind="function"><name>renameBlob</name></member>
+    <member refid="classdafg_1_1Registry_1a8a7283ecf2a1a1fae485e56dc783f668" kind="function"><name>renameTexture</name></member>
+    <member refid="classdafg_1_1Registry_1a7934cf821b23d924a511e1b8b8ead041" kind="friend"><name>NameSpace</name></member>
+    <member refid="classdafg_1_1Registry_1af3e546017676b48718f983257a24e9df" kind="variable"><name>NewCreateRequestPolicy</name></member>
+    <member refid="classdafg_1_1Registry_1a6ad4692931bd0cfcdf17d9fe4967ce98" kind="variable"><name>TexCreateRequestPolicy</name></member>
+    <member refid="classdafg_1_1Registry_1a934191244e2bfa6813cbaa6a33561d5a" kind="variable"><name>NonTexCreateRequestPolicy</name></member>
+    <member refid="classdafg_1_1Registry_1acc6d29f3e9714c05fc16725919a403c2" kind="function"><name>Registry</name></member>
+    <member refid="classdafg_1_1Registry_1a1b1dc4aa74d9868b11d45c2898bcd59f" kind="function"><name>registerTextureImpl</name></member>
+    <member refid="classdafg_1_1Registry_1a515732293ffc5d61f5dd58fe747fa6a5" kind="function"><name>registerBufferImpl</name></member>
+    <member refid="classdafg_1_1Registry_1abf3c59cf6e27a9f8e162f91f11ff5150" kind="function"><name>allowAsyncPipelines</name></member>
+    <member refid="classdafg_1_1Registry_1a8bb9c91a26a5da60be6bd777c5c585bb" kind="function"><name>orderMeBefore</name></member>
+    <member refid="classdafg_1_1Registry_1aaaa8b9fabd926209891e8ff62a0bb771" kind="function"><name>orderMeBefore</name></member>
+    <member refid="classdafg_1_1Registry_1a6730fab27ba920a5026ee43345bd9800" kind="function"><name>orderMeAfter</name></member>
+    <member refid="classdafg_1_1Registry_1a3d6d0ea5977d31a92e81c9f5dc57cada" kind="function"><name>orderMeAfter</name></member>
+    <member refid="classdafg_1_1Registry_1a5576ec245c8ba3e1a24f6d19bf544365" kind="function"><name>setPriority</name></member>
+    <member refid="classdafg_1_1Registry_1a63976a191b711620318174fe4dcd665f" kind="function"><name>multiplex</name></member>
+    <member refid="classdafg_1_1Registry_1a9c78fd326d5ef77ac57df15b8f6c20ad" kind="function"><name>executionHas</name></member>
+    <member refid="classdafg_1_1Registry_1af0f6a8a1786c7ac5be1b87a78224dd92" kind="function"><name>requestState</name></member>
+    <member refid="classdafg_1_1Registry_1a5e3b92afbc2f80ab2949fe497a4726c3" kind="function"><name>requestRenderPass</name></member>
+    <member refid="classdafg_1_1Registry_1a08653687e7173c578266de9698b4ddce" kind="function"><name>draw</name></member>
+    <member refid="classdafg_1_1Registry_1a38b1de85dc150485a81b12a6ad812cb9" kind="function"><name>drawIndexed</name></member>
+    <member refid="classdafg_1_1Registry_1abfd92727b64b9129814f790dd6eeefd1" kind="function"><name>dispatchThreads</name></member>
+    <member refid="classdafg_1_1Registry_1ab7b31ce3268efd9215b57fc4df509674" kind="function"><name>dispatchGroups</name></member>
+    <member refid="classdafg_1_1Registry_1a9aab611d9e41f310f3eb031f9196b105" kind="function"><name>dispatchIndirect</name></member>
+    <member refid="classdafg_1_1Registry_1a5cf8c87e8ba14f0c9b9911cbeb363845" kind="function"><name>dispatchMeshThreads</name></member>
+    <member refid="classdafg_1_1Registry_1af20241874ba5186cfe090853be8e2259" kind="function"><name>dispatchMeshGroups</name></member>
+    <member refid="classdafg_1_1Registry_1af01ec21e4c5b853a798869efa1ea9861" kind="function"><name>dispatchMeshIndirect</name></member>
+    <member refid="classdafg_1_1Registry_1a2e26ce49879407adb5078744f2e33d46" kind="function"><name>currNameSpace</name></member>
+    <member refid="classdafg_1_1Registry_1acef88cd701159efe6af2a482ea4e3857" kind="function"><name>root</name></member>
+    <member refid="classdafg_1_1Registry_1aef4c90cceb2b9b02580e5ff937de1adf" kind="function"><name>getResolution</name></member>
+  </compound>
+  <compound refid="classdafg_1_1StateRequest" kind="class"><name>dafg::StateRequest</name>
+    <member refid="classdafg_1_1StateRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" kind="friend"><name>Registry</name></member>
+    <member refid="classdafg_1_1StateRequest_1a07b3e36af927dc7664da042c544fcbc7" kind="variable"><name>id</name></member>
+    <member refid="classdafg_1_1StateRequest_1a4328d8243867364a76f6600f2be52ee1" kind="variable"><name>registry</name></member>
+    <member refid="classdafg_1_1StateRequest_1a033a3790530578aaa2ce5dc86fa344d7" kind="function"><name>StateRequest</name></member>
+    <member refid="classdafg_1_1StateRequest_1afd7d242687de214e5993c7576ca04dc5" kind="function"><name>setFrameBlock</name></member>
+    <member refid="classdafg_1_1StateRequest_1a740426524b547f0cc770ebde0eb98dbb" kind="function"><name>setSceneBlock</name></member>
+    <member refid="classdafg_1_1StateRequest_1a5ab7210d08bac986458a9845460eae9b" kind="function"><name>setObjectBlock</name></member>
+    <member refid="classdafg_1_1StateRequest_1a7233020cac3113c6c628f94a753973cb" kind="function"><name>allowWireframe</name></member>
+    <member refid="classdafg_1_1StateRequest_1a0dd3e2d49052aac9fe63f270588afe84" kind="function"><name>maxVrs</name></member>
+    <member refid="classdafg_1_1StateRequest_1aee3a98bd1f753f4c950c3a00ea59f3c2" kind="function"><name>enableOverride</name></member>
+  </compound>
+  <compound refid="structdafg_1_1Texture2dCreateInfo" kind="struct"><name>dafg::Texture2dCreateInfo</name>
+    <member refid="structdafg_1_1Texture2dCreateInfo_1a7d2faaaae847522451becfb9a07f08ef" kind="variable"><name>creationFlags</name></member>
+    <member refid="structdafg_1_1Texture2dCreateInfo_1a8148f7ad18e3301efbf7a45cce49b2fd" kind="variable"><name>resolution</name></member>
+    <member refid="structdafg_1_1Texture2dCreateInfo_1a10e8f8306de46433c0a1b1a9ca540bc3" kind="variable"><name>mipLevels</name></member>
+  </compound>
+  <compound refid="structdafg_1_1Texture3dCreateInfo" kind="struct"><name>dafg::Texture3dCreateInfo</name>
+    <member refid="structdafg_1_1Texture3dCreateInfo_1a43b872426ff53c9b146a3bf72f7607a8" kind="variable"><name>creationFlags</name></member>
+    <member refid="structdafg_1_1Texture3dCreateInfo_1abf7a514243f24e5f3efe80da14bffcdc" kind="variable"><name>resolution</name></member>
+    <member refid="structdafg_1_1Texture3dCreateInfo_1a7d40ed0f2504f74432023a0948ffa98d" kind="variable"><name>mipLevels</name></member>
+  </compound>
+  <compound refid="classdafg_1_1detail_1_1VirtualAttachmentRequest" kind="class"><name>dafg::detail::VirtualAttachmentRequest</name>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1af70bafe91ce24832a728880ffaced8f4" kind="typedef"><name>RRP</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a274ff6dcca53429ecb6f7630a38c8cfc" kind="friend"><name>dafg::VirtualPassRequest</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a6ae9f5cc7af6329675caa24786c6be68" kind="variable"><name>image</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a2f62b5c0432682fd70339181e4f65c62" kind="variable"><name>mipLevel</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a59af5901e8b5c610ab52d24c18775a78" kind="variable"><name>layer</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a9ebfdb95984b94121d727975c96ae952" kind="function"><name>policyAllowed</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1af7a1834f4c48fffbec990f483e3dc7a7" kind="function"><name>policyAllowed</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a6efd55640b703ca907b36c9fea52e4b2" kind="function"><name>VirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a942108c38526631f2594935ded116781" kind="function"><name>VirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a62a1354cdef979469e16e149682066c2" kind="function"><name>VirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1detail_1_1VirtualAttachmentRequest_1a2488d04e8fd8038ca130ca0af4241553" kind="function"><name>VirtualAttachmentRequest</name></member>
+  </compound>
+  <compound refid="classdafg_1_1VirtualPassRequest" kind="class"><name>dafg::VirtualPassRequest</name>
+    <member refid="classdafg_1_1VirtualPassRequest_1a4d7fc0368009ea8601996a72a735c693" kind="typedef"><name>RRP</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a2feb8b1e53a038bdaab79be0a7b987ce" kind="typedef"><name>RwVirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a1be30db7ab23e8bdd4c38da457535af1" kind="typedef"><name>ColorRwVirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a14cafdb7603ce87690ba53dc19ebf3de" kind="typedef"><name>DepthRoVirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1ab67be3ccca032ac99939c2bdf910902e" kind="typedef"><name>DepthRoAndSvBindVirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a0870e7ee76f1016100627f2e15357df8" kind="typedef"><name>RoVirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1aedb2789854f5275ab99af99cb586bcfa" kind="typedef"><name>RwVirtualClearRequest</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" kind="friend"><name>Registry</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a0aa6c7dc12b380d60e59470e96c34160" kind="variable"><name>nodeId</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1acb682e3ec82735814fe34a3078900d38" kind="variable"><name>registry</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a3c5f1d65ae308a759497775ff21aad99" kind="function"><name>VirtualPassRequest</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1ab6ef8919b2ccd6cc47049a45eaeaffd8" kind="function"><name>getResUidForAttachment</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1abd8c19b66f232a883c932407d523bc6c" kind="function"><name>blobClearImpl</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a4523b510aef5dce6c6308e308b5f5170" kind="function"><name>color</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a5eb9b53b5ffa6fbebf15fd91fd1abc81" kind="function"><name>depthRw</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a5c18085f821e89efffe0a8200cc781d9" kind="function"><name>depthRo</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a1520136e11affb2cd013eac7827e23d3" kind="function"><name>depthRoAndBindToShaderVars</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a13dd6dbf34de1b34affb4e9f0fb94fec" kind="function"><name>resolve</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a8cd120a2f798bd55213344f2900ae037" kind="function"><name>vrsRate</name></member>
+    <member refid="classdafg_1_1VirtualPassRequest_1a6240dba0395a43fb128383c1891ed61f" kind="function"><name>area</name></member>
+  </compound>
+  <compound refid="classdafg_1_1VirtualResourceCreationSemiRequest" kind="class"><name>dafg::VirtualResourceCreationSemiRequest</name>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a50e5d530e5be674d40e421884f19727c" kind="function"><name>byteAddressBufferUaSr</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a7e7c2022e45089bbe56a6e0701de708c" kind="function"><name>byteAddressBufferUa</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1afbb4494d5f39a28aeaad70027f2ec444" kind="function"><name>structuredBufferUaSr</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a7ba8ee8e884e15c1309e2eb9e49bef24" kind="function"><name>structuredBufferUa</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ab833ce082f38390c82d647906417ac88" kind="function"><name>indirectBufferUa</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a82069fa6c6a69b1d980c5523ba3bb3e5" kind="function"><name>indirectBuffer</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a6c71709b9b89c5b54a42b5427c8a259c" kind="typedef"><name>Base</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a90efd3e4b2ff9d61f93c00faf90143ac" kind="typedef"><name>RRP</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" kind="friend"><name>Registry</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1af1353f641319dba9f26377631770995b" kind="function"><name>VirtualResourceCreationSemiRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ae9e60614f4bdfb6b403e3ed7852d15b5" kind="function"><name>texture</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1af1aac8f64a8e29a6ed420d81abdf99d5" kind="function"><name>texture</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1ab77cbff87e41105115fe1205849d7296" kind="function"><name>buffer</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a83a989997b5d4d0fe1d3c3ef1c10025a" kind="function"><name>blob</name></member>
+    <member refid="classdafg_1_1VirtualResourceCreationSemiRequest_1a8c7058d06c7d22bd7a1ab8f3d3e20694" kind="function"><name>blob</name></member>
+  </compound>
+  <compound refid="classdafg_1_1VirtualResourceHandle" kind="class"><name>dafg::VirtualResourceHandle</name>
+    <member refid="classdafg_1_1VirtualResourceHandle_1afffc830ee3932ff34408489f8120d9c2" kind="typedef"><name>Base</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a626f91f67d36d30c16029ccec1e22c87" kind="typedef"><name>ResNoConst</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a6d0d3d0b1537afadb49c942e0b4f7aff" kind="typedef"><name>View</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a89ee6a63e927cac45492ffd867edb640" kind="friend"><name>VirtualResourceRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a270a4d9f6df4d57efeee7172a0823082" kind="function"><name>VirtualResourceHandle</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a9c9acae3c1a3265bf7af08d41ab04e2d" kind="function"><name>ref</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a025d2b463e37470d0eb6e388a80e82e9" kind="function"><name>get</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a6753fc7b7bd44e3f7d8fcf38de2eafda" kind="function"><name>view</name></member>
+    <member refid="classdafg_1_1VirtualResourceHandle_1a6ce712a86754bb4f83bfe258766c2a4f" kind="function"><name>d3dResId</name></member>
+  </compound>
+  <compound refid="classdafg_1_1VirtualResourceRequest" kind="class"><name>dafg::VirtualResourceRequest</name>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a4462abb551f9ccae240e60abac38b95a" kind="typedef"><name>Base</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a009b7644429aaa803d508fce8e3c0856" kind="typedef"><name>RRP</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1ace8340cd508092c9ea8245dcbdb6d532" kind="typedef"><name>HandleType</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a923c3f69f17b81d0e9b12b2fb95d0296" kind="variable"><name>is_gpu</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1af5a08b8ee7939ead6bed167c8676d318" kind="variable"><name>true</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a5c118345dcb7ac9fd630e1eb927b31e5" kind="friend"><name>detail::VirtualAttachmentRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a89ee6a63e927cac45492ffd867edb640" kind="friend"><name>VirtualResourceRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1aa0692960a5b78ac80ae656ee82d0503b" kind="friend"><name>VirtualResourceCreationSemiRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a949fb8ee5b97164be925072537300360" kind="friend"><name>DispatchRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a5d6de53582df98529b17158511c172dc" kind="friend"><name>DrawRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a6046590c8b81f8d2f9cadc1a48f867c2" kind="friend"><name>VirtualResourceSemiRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1ac7b716e6d41ff508ad2d8e5dad655d72" kind="friend"><name>Registry</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a343d6a3916ba9b87af3b50b3c349f4a2" kind="function"><name>VirtualResourceRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a720fd31875673035aa6a15c906f9fec4" kind="function"><name>flipPolicy</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a4286afa2ca5bc718398b351ef74f6157" kind="function"><name>optional</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a36727cb71304bedb3a3b725ae498a0c5" kind="function"><name>bindToShaderVar</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a0da0567411e37f033940ebfd27d571b1" kind="function"><name>bindToShaderVar</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a97be262024938f5c17e7eabca5b83f8b" kind="function"><name>bindAsView</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a9aaa3841b849faaebc7764fa39c96891" kind="function"><name>bindAsView</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a4fb56f193e60c94a72c24a1692669f7f" kind="function"><name>bindAsProj</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1ac2ddb0859c4ad31d7cfbc36fbf767b4d" kind="function"><name>bindAsProj</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a45fb36eff15b14f276fa7e296673885a" kind="function"><name>bindAsVertexBuffer</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a821a586a2211540fd2a7415edd91b4b5" kind="function"><name>bindAsIndexBuffer</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a0084e536925983c5915a98346595b62e" kind="function"><name>atStage</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a19bd5e64ae7eed7e68e911e91eda42b3" kind="function"><name>useAs</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a40b6ee4845965b5c6b625d69cf486417" kind="function"><name>handle</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1aeff6e30c132fbbcd4d25395e9c6b064b" kind="function"><name>clear</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a3dfccdce64d2f3d1619dc715d8950c6e" kind="function"><name>clear</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1ad96a36b4b3875e6cdff200f358445ee3" kind="function"><name>clear</name></member>
+    <member refid="classdafg_1_1VirtualResourceRequest_1a8333df1bf2c93b4f4f3fa7ab4b714930" kind="function"><name>discard</name></member>
+  </compound>
+  <compound refid="classdafg_1_1VirtualResourceSemiRequest" kind="class"><name>dafg::VirtualResourceSemiRequest</name>
+    <member refid="classdafg_1_1VirtualResourceSemiRequest_1ad211f4dbbde70500395b42d346d589db" kind="typedef"><name>Base</name></member>
+    <member refid="classdafg_1_1VirtualResourceSemiRequest_1ad8a601007837e050685a914b6d74e8cb" kind="friend"><name>StateRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceSemiRequest_1af224c83d458368ae6a14843794518f16" kind="friend"><name>NameSpaceRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceSemiRequest_1a3a32d9f687ee989a1a8e291b529697be" kind="function"><name>VirtualResourceSemiRequest</name></member>
+    <member refid="classdafg_1_1VirtualResourceSemiRequest_1a72339a420e8b812f13066ad9cf8ff643" kind="function"><name>texture</name></member>
+    <member refid="classdafg_1_1VirtualResourceSemiRequest_1aaeef42b7d5ccbd06b5ee13219e4f0fa2" kind="function"><name>buffer</name></member>
+    <member refid="classdafg_1_1VirtualResourceSemiRequest_1aeb3a2110657f5e74ea8b299f858b24a4" kind="function"><name>blob</name></member>
+  </compound>
+  <compound refid="structdafg_1_1VrsSettings" kind="struct"><name>dafg::VrsSettings</name>
+    <member refid="structdafg_1_1VrsSettings_1aeaac98693b49a8271ce08dfcf8c27ae9" kind="variable"><name>rateX</name></member>
+    <member refid="structdafg_1_1VrsSettings_1acc69f007ce595eea50d7fe85ed6a7226" kind="variable"><name>rateY</name></member>
+    <member refid="structdafg_1_1VrsSettings_1aef1db349a461bf6deb17c8f88fc6eb51" kind="variable"><name>vertexCombiner</name></member>
+    <member refid="structdafg_1_1VrsSettings_1ac7e5ddbf2b068d6771634bb35dc5afa8" kind="variable"><name>pixelCombiner</name></member>
+  </compound>
+  <compound refid="namespacedafg" kind="namespace"><name>dafg</name>
+    <member refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209" kind="enum"><name>History</name></member>
+    <member refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209abafd7322c6e97d25b6299b5d6fe8920b" kind="enumvalue"><name>No</name></member>
+    <member refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209a34703f5435004c8a983bbce26a8476fb" kind="enumvalue"><name>ClearZeroOnFirstFrame</name></member>
+    <member refid="namespacedafg_1ad221eb8d4365e96f649fa08c74c0a209affc059c5154ced7686f64990ce2cd9b6" kind="enumvalue"><name>DiscardOnFirstFrame</name></member>
+    <member refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19" kind="enum"><name>DrawPrimitive</name></member>
+    <member refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19ad2632e54a7b9520714554554f4b9619d" kind="enumvalue"><name>POINT_LIST</name></member>
+    <member refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a195d93c98c5e94cad21509e910f65fae" kind="enumvalue"><name>LINE_LIST</name></member>
+    <member refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19ae64a4d2159ed46d077e21a505575c814" kind="enumvalue"><name>LINE_STRIP</name></member>
+    <member refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a14d20da17f6d27fc43c5f311c17eb912" kind="enumvalue"><name>TRIANGLE_LIST</name></member>
+    <member refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a708de017e3b83ccba21dfc9f6367d46f" kind="enumvalue"><name>TRIANGLE_STRIP</name></member>
+    <member refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19aa9f047dff7e4cd4d8d3bdeafc4029d47" kind="enumvalue"><name>TRIANGLE_FAN</name></member>
+    <member refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90" kind="enum"><name>SideEffects</name></member>
+    <member refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90a6adf97f83acf6453d4a6a4b1070f3754" kind="enumvalue"><name>None</name></member>
+    <member refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90aafbf0897a5a83fdd873dfb032ec695d3" kind="enumvalue"><name>Internal</name></member>
+    <member refid="namespacedafg_1ad8f150e152e95dc223e0ace3fe818f90ab206a1b4ea1097761f78e8876f6da779" kind="enumvalue"><name>External</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163" kind="enum"><name>Stage</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a696b031073e74bf2cb98e5ef201d4aa3" kind="enumvalue"><name>UNKNOWN</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a0d47b4a5dfb11c12c2382349513b9b2e" kind="enumvalue"><name>PRE_RASTER</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1309488addcb247cddce3f8ed38aebb6" kind="enumvalue"><name>POST_RASTER</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aac404d7ce6ca5862e9b8a2641fbafd90" kind="enumvalue"><name>COMPUTE</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163aeb5ddb3b6096fb90ff720d9c3e2a6628" kind="enumvalue"><name>TRANSFER</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a2c0fd52f85dbdb17fffd3d0d653013d3" kind="enumvalue"><name>RAYTRACE</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163ad3d4c5deb455ac79dd5ff47c88bd65d9" kind="enumvalue"><name>PS</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a2c54e23f4c5442c665a807ab19f61204" kind="enumvalue"><name>VS</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a8d7e99c73cd5a10adaaf4c9f9a520368" kind="enumvalue"><name>CS</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a9610cb37185d9e4d4316114bed2ab3c5" kind="enumvalue"><name>PS_OR_CS</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163a1b88f31774becdfc8ccef062b2496f5b" kind="enumvalue"><name>ALL_GRAPHICS</name></member>
+    <member refid="namespacedafg_1ac29dbbe44ec5c4ecbff2bb133ccd2163ad836d748421aedd50926610946a2612d" kind="enumvalue"><name>ALL_INDIRECTION</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885" kind="enum"><name>Usage</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a696b031073e74bf2cb98e5ef201d4aa3" kind="enumvalue"><name>UNKNOWN</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aa63816e658355cace69f46e9242fed85" kind="enumvalue"><name>COLOR_ATTACHMENT</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aba7579ee628893eb0c00a258beac2e61" kind="enumvalue"><name>DEPTH_ATTACHMENT</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aa458be3770c54edd6535c18ac1fe731f" kind="enumvalue"><name>RESOLVE_ATTACHMENT</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a46dbeefa1c9cf07f114b142fc7096f43" kind="enumvalue"><name>SHADER_RESOURCE</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a4ca062f3b263f76e4246287f4fce16bd" kind="enumvalue"><name>CONSTANT_BUFFER</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a24ba47a6b7ca772e4185e7a7b54d4c90" kind="enumvalue"><name>INDEX_BUFFER</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885aa77fcc0c8db7e3e4c3ca370997298c34" kind="enumvalue"><name>VERTEX_BUFFER</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885ae8606d021da140a92c7eba8d9b8af84f" kind="enumvalue"><name>COPY</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885afceb4f1763a5a673cad9b33713e8f265" kind="enumvalue"><name>BLIT</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a7b13946562f2c201cd5d104358ebe8af" kind="enumvalue"><name>INDIRECTION_BUFFER</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a03d68685b3c84c181aff34c8aac84f76" kind="enumvalue"><name>VRS_RATE_TEXTURE</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885a08ea2c247044640bd3e2d3ad238e0ac6" kind="enumvalue"><name>INPUT_ATTACHMENT</name></member>
+    <member refid="namespacedafg_1abcd6f808900c4a881e38118a91c9c885addee6c92527ce45bd946be2ca1ab5923" kind="enumvalue"><name>DEPTH_ATTACHMENT_AND_SHADER_RESOURCE</name></member>
+    <member refid="namespacedafg_1adb35aa40d69bcd097576bd8f1c0f8ace" kind="typedef"><name>IPoint</name></member>
+    <member refid="namespacedafg_1a586af6f25a430f249f6a8daeceb81200" kind="typedef"><name>DispatchComputeThreadsRequest</name></member>
+    <member refid="namespacedafg_1a36320871f9856273e0268b58b9540736" kind="typedef"><name>DispatchComputeGroupsRequest</name></member>
+    <member refid="namespacedafg_1a4839019b7a27899ebf3882262ed4a4bc" kind="typedef"><name>DispatchComputeIndirectRequest</name></member>
+    <member refid="namespacedafg_1a505faaf224aa5a9e42d8b3180f4f71da" kind="typedef"><name>DispatchMeshThreadsRequest</name></member>
+    <member refid="namespacedafg_1aad3d2469d471fc0af0e30fe90e872770" kind="typedef"><name>DispatchMeshGroupsRequest</name></member>
+    <member refid="namespacedafg_1aa3874f309a6b25a641dd83486eb2f256" kind="typedef"><name>DispatchMeshIndirectRequest</name></member>
+    <member refid="namespacedafg_1ae736bc1fe0d15e536353454f9ac04f0e" kind="typedef"><name>ExternalResource</name></member>
+    <member refid="namespacedafg_1a66da18b5e569598f333d9181e77eba36" kind="typedef"><name>ExternalResourceProvider</name></member>
+    <member refid="namespacedafg_1aea3737ab67021a65bb854142ab6aed24" kind="typedef"><name>priority_t</name></member>
+    <member refid="namespacedafg_1a1bb5a834e607dcd9de90cf2b3a79f4f3" kind="variable"><name>PRIO_DEFAULT</name></member>
+    <member refid="namespacedafg_1a436606c43fdd50ad658bc5e9b444d620" kind="variable"><name>PRIO_AS_LATE_AS_POSSIBLE</name></member>
+    <member refid="namespacedafg_1a1d9330256a3b21123618ec7387ea390d" kind="variable"><name>PRIO_AS_EARLY_AS_POSSIBLE</name></member>
+    <member refid="namespacedafg_1ae16099a071daf6f269658b1ce3de3387" kind="variable"><name>AUTO_MIP_COUNT</name></member>
+    <member refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kind="function"><name>root</name></member>
+    <member refid="group__DaFgCore_1gadcd1f8fcbd59c45221a4c019da78b8ef" kind="function"><name>set_multiplexing_default_mode</name></member>
+    <member refid="group__DaFgCore_1ga9c7ea4d4a1ff177e608822e2143caab7" kind="function"><name>set_multiplexing_extents</name></member>
+    <member refid="group__DaFgCore_1ga7b070b98495f0a529b0975f5397b227b" kind="function"><name>run_nodes</name></member>
+    <member refid="group__DaFgCore_1ga018106098f1b4d3b288101565f38854e" kind="function"><name>startup</name></member>
+    <member refid="group__DaFgCore_1ga195f1fa9c2e79c8d9e4d75e8edfbe274" kind="function"><name>shutdown</name></member>
+    <member refid="group__DaFgCore_1ga0a00bb8d9e8c9c430617ab9c53bdf033" kind="function"><name>invalidate_history</name></member>
+    <member refid="group__DaFgCore_1ga7faecc99c2d71ab2e7bf758093d1c0f2" kind="function"><name>update_external_state</name></member>
+    <member refid="group__DaFgCore_1ga94023330da759d5a4ffb118e9e3d499f" kind="function"><name>mark_external_resource_for_validation</name></member>
+    <member refid="group__DaFgCoreAliases_1ga809e6b0f9d075aea31d0f0a73599fc62" kind="function"><name>register_node</name></member>
+    <member refid="group__DaFgCoreAliases_1gada7d9ec98286cfca314b477b5dd934d2" kind="function"><name>set_resolution</name></member>
+    <member refid="group__DaFgCoreAliases_1ga031d2d7924b7baeb08647c431019452c" kind="function"><name>set_dynamic_resolution</name></member>
+    <member refid="group__DaFgCoreAliases_1ga62307e106e4ac06241f33b24995c651f" kind="function"><name>fill_slot</name></member>
+    <member refid="group__DaFgCoreAliases_1gab9fc6f86b483dbd2d7860c5f0272432d" kind="function"><name>update_externally_consumed_resource_set</name></member>
+    <member refid="group__DaFgCoreAliases_1ga2f6d90eeb6f8432df5db9bfe6e62f620" kind="function"><name>update_externally_consumed_resource_set</name></member>
+    <member refid="group__DaFgCoreAliases_1gaf75370aa6dbb49fd1c67e327b5c16b3e" kind="function"><name>mark_resource_externally_consumed</name></member>
+    <member refid="group__DaFgCoreAliases_1gaeefdb179bc6c743eedcfad4cae1f819a" kind="function"><name>unmark_resource_externally_consumed</name></member>
+    <member refid="namespacedafg_1a7fc7ea99b7081025054a76bb006deb05" kind="function"><name>show_dependencies_window</name></member>
+    <member refid="namespacedafg_1abeb7e04e54814f3713bc35417b8c3914" kind="function"><name>to_string</name></member>
+    <member refid="namespacedafg_1a8debf9eb114033a1f9a8fe4d9fdc8574" kind="function"><name>get_d3d_primitive</name></member>
+    <member refid="namespacedafg_1ad35bab11f8356648c11e5bd1744c99da" kind="function"><name>postFx</name></member>
+    <member refid="namespacedafg_1acd8aa8caea7e733172293bb61ed81a6d" kind="function"><name>operator|</name></member>
+    <member refid="namespacedafg_1a5fefe7386ef89e879f4f8988e5938406" kind="function"><name>operator|=</name></member>
+    <member refid="namespacedafg_1a3275c3d29c83d19143104a0c252bfeac" kind="function"><name>operator&amp;</name></member>
+    <member refid="namespacedafg_1a83035bc2075c76c48530000504e3565a" kind="function"><name>operator&amp;=</name></member>
+    <member refid="namespacedafg_1a69c38d35de6c7083bf0b4329884ccf11" kind="function"><name>operator~</name></member>
+    <member refid="namespacedafg_1aabc604cb0d2bcfd53e0f1bc981f495d1" kind="function"><name>stagesSubsetOf</name></member>
+    <member refid="namespacedafg_1a0c8a21d5dfbe461539f18f79ea7fab45" kind="function"><name>to_string</name></member>
+    <member refid="namespacedafg_1aa1e67097f94c1fff4559e9ed5f08daa0" kind="function"><name>operator|</name></member>
+    <member refid="namespacedafg_1a318a8cebb5a06d5c2538604910b28cbd" kind="function"><name>operator|=</name></member>
+    <member refid="namespacedafg_1af91dd4ba976b3db006e5f2ff873f76cc" kind="function"><name>operator&amp;</name></member>
+    <member refid="namespacedafg_1aee3c15d737d835e1ead832484383f7df" kind="function"><name>to_string</name></member>
+  </compound>
+  <compound refid="namespacedafg_1_1detail" kind="namespace"><name>dafg::detail</name>
+  </compound>
+  <compound refid="namespacedafg_1_1multiplexing" kind="namespace"><name>dafg::multiplexing</name>
+    <member refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kind="enum"><name>Mode</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba6adf97f83acf6453d4a6a4b1070f3754" kind="enumvalue"><name>None</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba600b8d8735a061492ac0b8210b82f080" kind="enumvalue"><name>SuperSampling</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba19266e60c709d32887ced4bc7d7f0f12" kind="enumvalue"><name>SubSampling</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba8d6f3510a5cca2c1281c9c6afe7e0da2" kind="enumvalue"><name>Viewport</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132baa5ef4f3aa876da9be4cd78b41c529551" kind="enumvalue"><name>CameraInCamera</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba2003b59fbe2d4c9acbce237f9a129de5" kind="enumvalue"><name>FullMultiplex</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1a5fc71487a287702f079f789236a5038c" kind="function"><name>operator|</name></member>
+    <member refid="namespacedafg_1_1multiplexing_1a0dcc5b505509d902f5401b8264131f76" kind="function"><name>operator&amp;</name></member>
+  </compound>
+  <compound refid="namespacedetail" kind="namespace"><name>detail</name>
+  </compound>
+  <compound refid="namespaceeastl" kind="namespace"><name>eastl</name>
+  </compound>
+  <compound refid="autoResolutionRequest_8h" kind="file"><name>autoResolutionRequest.h</name>
+  </compound>
+  <compound refid="daFG_8h" kind="file"><name>daFG.h</name>
+  </compound>
+  <compound refid="debug_8h" kind="file"><name>debug.h</name>
+  </compound>
+  <compound refid="dispatchRequest_8h" kind="file"><name>dispatchRequest.h</name>
+  </compound>
+  <compound refid="drawRequest_8h" kind="file"><name>drawRequest.h</name>
+  </compound>
+  <compound refid="externalResources_8h" kind="file"><name>externalResources.h</name>
+  </compound>
+  <compound refid="externalState_8h" kind="file"><name>externalState.h</name>
+  </compound>
+  <compound refid="history_8h" kind="file"><name>history.h</name>
+  </compound>
+  <compound refid="multiplexing_8h" kind="file"><name>multiplexing.h</name>
+  </compound>
+  <compound refid="nameSpace_8h" kind="file"><name>nameSpace.h</name>
+    <member refid="group__DaFgCore_1ga3c807a87c57b6b84868343ca83391614" kind="define"><name>DAFG_PP_NODE_SRC</name></member>
+  </compound>
+  <compound refid="nameSpaceRequest_8h" kind="file"><name>nameSpaceRequest.h</name>
+  </compound>
+  <compound refid="nodeHandle_8h" kind="file"><name>nodeHandle.h</name>
+  </compound>
+  <compound refid="primitive_8h" kind="file"><name>primitive.h</name>
+  </compound>
+  <compound refid="priority_8h" kind="file"><name>priority.h</name>
+  </compound>
+  <compound refid="registry_8h" kind="file"><name>registry.h</name>
+  </compound>
+  <compound refid="resourceCreation_8h" kind="file"><name>resourceCreation.h</name>
+  </compound>
+  <compound refid="sideEffects_8h" kind="file"><name>sideEffects.h</name>
+  </compound>
+  <compound refid="singleShaders_8h" kind="file"><name>singleShaders.h</name>
+  </compound>
+  <compound refid="stage_8h" kind="file"><name>stage.h</name>
+  </compound>
+  <compound refid="stateRequest_8h" kind="file"><name>stateRequest.h</name>
+  </compound>
+  <compound refid="usage_8h" kind="file"><name>usage.h</name>
+  </compound>
+  <compound refid="variableRateShading_8h" kind="file"><name>variableRateShading.h</name>
+  </compound>
+  <compound refid="virtualPassRequest_8h" kind="file"><name>virtualPassRequest.h</name>
+    <member refid="virtualPassRequest_8h_1aed8b66b2f70668e1a8be179ae908c094" kind="define"><name>ENABLE_IF</name></member>
+  </compound>
+  <compound refid="virtualResourceCreationSemiRequest_8h" kind="file"><name>virtualResourceCreationSemiRequest.h</name>
+  </compound>
+  <compound refid="virtualResourceHandle_8h" kind="file"><name>virtualResourceHandle.h</name>
+    <member refid="virtualResourceHandle_8h_1ad57835ba8f1bb419a865ada6bd011a85" kind="define"><name>REQUIRE</name></member>
+  </compound>
+  <compound refid="virtualResourceRequest_8h" kind="file"><name>virtualResourceRequest.h</name>
+    <member refid="virtualResourceRequest_8h_1a07ef1be6ac6d4f71411952ffd3aafd14" kind="define"><name>REQUIRE_IMPL</name></member>
+    <member refid="virtualResourceRequest_8h_1ad57835ba8f1bb419a865ada6bd011a85" kind="define"><name>REQUIRE</name></member>
+  </compound>
+  <compound refid="virtualResourceSemiRequest_8h" kind="file"><name>virtualResourceSemiRequest.h</name>
+  </compound>
+  <compound refid="group__DaFgCore" kind="group"><name>DaFgCore</name>
+    <member refid="group__DaFgCore_1ga565c0217dd16e34177d6b33b875a263e" kind="function"><name>root</name></member>
+    <member refid="group__DaFgCore_1gadcd1f8fcbd59c45221a4c019da78b8ef" kind="function"><name>set_multiplexing_default_mode</name></member>
+    <member refid="group__DaFgCore_1ga9c7ea4d4a1ff177e608822e2143caab7" kind="function"><name>set_multiplexing_extents</name></member>
+    <member refid="group__DaFgCore_1ga7b070b98495f0a529b0975f5397b227b" kind="function"><name>run_nodes</name></member>
+    <member refid="group__DaFgCore_1ga018106098f1b4d3b288101565f38854e" kind="function"><name>startup</name></member>
+    <member refid="group__DaFgCore_1ga195f1fa9c2e79c8d9e4d75e8edfbe274" kind="function"><name>shutdown</name></member>
+    <member refid="group__DaFgCore_1ga0a00bb8d9e8c9c430617ab9c53bdf033" kind="function"><name>invalidate_history</name></member>
+    <member refid="group__DaFgCore_1ga7faecc99c2d71ab2e7bf758093d1c0f2" kind="function"><name>update_external_state</name></member>
+    <member refid="group__DaFgCore_1ga94023330da759d5a4ffb118e9e3d499f" kind="function"><name>mark_external_resource_for_validation</name></member>
+    <member refid="group__DaFgCore_1ga3c807a87c57b6b84868343ca83391614" kind="define"><name>DAFG_PP_NODE_SRC</name></member>
+  </compound>
+  <compound refid="group__DaFgCoreAliases" kind="group"><name>DaFgCoreAliases</name>
+    <member refid="group__DaFgCoreAliases_1ga809e6b0f9d075aea31d0f0a73599fc62" kind="function"><name>register_node</name></member>
+    <member refid="group__DaFgCoreAliases_1gada7d9ec98286cfca314b477b5dd934d2" kind="function"><name>set_resolution</name></member>
+    <member refid="group__DaFgCoreAliases_1ga031d2d7924b7baeb08647c431019452c" kind="function"><name>set_dynamic_resolution</name></member>
+    <member refid="group__DaFgCoreAliases_1ga62307e106e4ac06241f33b24995c651f" kind="function"><name>fill_slot</name></member>
+    <member refid="group__DaFgCoreAliases_1gab9fc6f86b483dbd2d7860c5f0272432d" kind="function"><name>update_externally_consumed_resource_set</name></member>
+    <member refid="group__DaFgCoreAliases_1ga2f6d90eeb6f8432df5db9bfe6e62f620" kind="function"><name>update_externally_consumed_resource_set</name></member>
+    <member refid="group__DaFgCoreAliases_1gaf75370aa6dbb49fd1c67e327b5c16b3e" kind="function"><name>mark_resource_externally_consumed</name></member>
+    <member refid="group__DaFgCoreAliases_1gaeefdb179bc6c743eedcfad4cae1f819a" kind="function"><name>unmark_resource_externally_consumed</name></member>
+  </compound>
+</doxygenindex>

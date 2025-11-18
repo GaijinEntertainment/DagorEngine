@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="layout_8h" kind="file" language="C++">
+    <compoundname>layout.h</compoundname>
+    <includedby refid="common_8cpp" local="yes">common.cpp</includedby>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>common.cpp</label>
+        <link refid="common_8cpp"/>
+      </node>
+      <node id="3">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="4">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="1">
+        <label>layout.h</label>
+        <link refid="layout_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="layout_8h_1a480eeacd19590c8ec32486072c729272" prot="public" static="no">
+        <name>attach_layout_to_rollup</name>
+        <param><defname>hWnd</defname></param>
+        <param><defname>dialog_name</defname></param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="18" column="9" bodyfile="layout.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8h_1a669eed1f4b64faa16a46a73d7ea88298" prot="public" static="no">
+        <name>attach_layout_to_dialog</name>
+        <param><defname>hWnd</defname></param>
+        <param><defname>dialog_name</defname></param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="19" column="9" bodyfile="layout.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8h_1a0f78de1e7a5f8967c29550905ff30670" prot="public" static="no">
+        <name>update_layout</name>
+        <param><defname>hWnd</defname></param>
+        <param><defname>lParam</defname></param>
+        <initializer>;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="20" column="9" bodyfile="layout.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8h_1ac93033490bc8943cfc82ec3b40e5cd74" prot="public" static="no">
+        <name>IDC_STATIC</name>
+        <initializer>(-1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="25" column="9" bodyfile="layout.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8h_1aed00501af96b4cd497da0588c11beecc" prot="public" static="no">
+        <name>LAYOUT_MESSAGE</name>
+        <initializer>(WM_USER)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="28" column="9" bodyfile="layout.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>temporarily<sp/>disabled<sp/>due<sp/>to<sp/>visible<sp/>artifacts</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(ENABLE_LAYOUT)<sp/>&amp;&amp;<sp/>defined(MAX_RELEASE_R22)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R22</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">DialogLayout;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8h_1a480eeacd19590c8ec32486072c729272" kindref="member">attach_layout_to_rollup</ref>(HWND<sp/>hWnd,<sp/>LPCWSTR<sp/>dialog_name);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8h_1a669eed1f4b64faa16a46a73d7ea88298" kindref="member">attach_layout_to_dialog</ref>(HWND<sp/>hWnd,<sp/>LPCWSTR<sp/>dialog_name);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8h_1a0f78de1e7a5f8967c29550905ff30670" kindref="member">update_layout</ref>(HWND<sp/>hWnd,<sp/>LPARAM<sp/>lParam);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="layout_8h_1a480eeacd19590c8ec32486072c729272" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>attach_layout_to_rollup(hWnd,<sp/>dialog_name)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="layout_8h_1a669eed1f4b64faa16a46a73d7ea88298" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>attach_layout_to_dialog(hWnd,<sp/>dialog_name)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="layout_8h_1a0f78de1e7a5f8967c29550905ff30670" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>update_layout(hWnd,<sp/>lParam)<sp/>;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>IDC_STATIC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="layout_8h_1ac93033490bc8943cfc82ec3b40e5cd74" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>IDC_STATIC<sp/>(-1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="layout_8h_1aed00501af96b4cd497da0588c11beecc" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LAYOUT_MESSAGE<sp/>(WM_USER)</highlight></codeline>
+    </programlisting>
+    <location file="layout.h"/>
+  </compounddef>
+</doxygen>

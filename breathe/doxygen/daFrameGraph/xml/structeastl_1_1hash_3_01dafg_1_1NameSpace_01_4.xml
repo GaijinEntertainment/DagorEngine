@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structeastl_1_1hash_3_01dafg_1_1NameSpace_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>eastl::hash&lt; dafg::NameSpace &gt;</compoundname>
+    <includes refid="nameSpace_8h" local="no">nameSpace.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structeastl_1_1hash_3_01dafg_1_1NameSpace_01_4_1a8e98916895cf289b08a1b291c96830f7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t eastl::hash&lt; dafg::NameSpace &gt;::operator()</definition>
+        <argsstring>(dafg::NameSpace ns) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>eastl::hash&lt; dafg::NameSpace &gt;::operator()</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NameSpace" kindref="compound">dafg::NameSpace</ref></type>
+          <declname>ns</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nameSpace.h" line="196" column="10" bodyfile="nameSpace.h" bodystart="196" bodyend="199"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="nameSpace.h" line="194" column="1" bodyfile="nameSpace.h" bodystart="195" bodyend="200"/>
+    <listofallmembers>
+      <member refid="structeastl_1_1hash_3_01dafg_1_1NameSpace_01_4_1a8e98916895cf289b08a1b291c96830f7" prot="public" virt="non-virtual"><scope>eastl::hash&lt; dafg::NameSpace &gt;</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

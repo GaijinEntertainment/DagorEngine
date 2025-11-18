@@ -1,0 +1,245 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adding Light Fixtures to Building Composites</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Replacing or Modifying Lights in Props" href="replacing_or_modifying_lights.html" />
+    <link rel="prev" title="Photometric Lights (IES)" href="photometric_lights.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Lighting</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lights_creation_guide.html">Lights Creation Guide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lights.html">Lights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="flickering_lights.html">Flickering Lights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="photometric_lights.html">Photometric Lights (IES)</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Adding Light Fixtures to Building Composites</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#preparing-workspace">Preparing Workspace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#adding-light-fixture">Adding Light Fixture</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#exporting-the-map">Exporting the Map</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="replacing_or_modifying_lights.html">Replacing or Modifying Lights in Props</a></li>
+<li class="toctree-l3"><a class="reference internal" href="in_game_placeable_light_source.html">Placeable In-Game Light with Render Instance and Dynamic Model Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lighting_catalog.html">Lighting Catalog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Lighting</a></li>
+      <li class="breadcrumb-item active">Adding Light Fixtures to Building Composites</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/lighting/adding_light_fixtures_to_building_composites.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="adding-light-fixtures-to-building-composites">
+<h1>Adding Light Fixtures to Building Composites<a class="headerlink" href="#adding-light-fixtures-to-building-composites" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This article explains how to add light fixtures to existing building composites,
+using the <em>Enlisted</em> project as an example. However, the process is generally
+applicable to any <em>daNetGame</em>-based projects.</p>
+</section>
+<section id="preparing-workspace">
+<h2>Preparing Workspace<a class="headerlink" href="#preparing-workspace" title="Link to this heading"></a></h2>
+<p>For efficient and streamlined work with large composites, you will need to open
+three <a class="reference internal" href="../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.html"><span class="std std-doc"><em>Asset
+Viewer</em></span></a> windows
+and one <a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a> window.</p>
+<ol class="arabic simple">
+<li><p>Open <em>daEditor</em> and select the desired map. In this example, it’s the <em>Battle
+of Berlin</em>.</p></li>
+<li><p>Locate the building composite you want to modify and copy its name. For this
+guide, we will use <em>goebbels_villa</em> as the example.</p></li>
+<li><p>In the first <em>Asset Viewer</em> window, find the composite of the selected
+building.</p></li>
+<li><p>In the second <em>Asset Viewer</em> window, open the composite that contains the
+light fixtures or the one where the lights will be placed.</p></li>
+<li><p>In the third <em>Asset Viewer</em> window, open the specific light fixture that will
+be added to the composite.</p></li>
+</ol>
+<p>Your workspace should look something like this:</p>
+<p><img alt="Workspace" src="../../_images/adding_light_fixtures_01.jpg" /></p>
+</section>
+<section id="adding-light-fixture">
+<h2>Adding Light Fixture<a class="headerlink" href="#adding-light-fixture" title="Link to this heading"></a></h2>
+<p>The easiest way to add your light fixture is by replacing an existing object
+within the composite. While not the only method, this approach is currently the
+fastest, requiring minimal steps. Importantly, it preserves the original
+composite’s pivot points and avoids the need for manual edits in a text editor.</p>
+<ol class="arabic">
+<li><p>Select any convenient object within the composite and duplicate it by
+dragging the pivot arrows while holding down <code class="docutils literal notranslate"><span class="pre">Shift</span></code>. In the pop-up window,
+click <strong>OK</strong>.</p>
+<p><img alt="Adding Light Fixture" src="../../_images/adding_light_fixtures_02.jpg" /></p>
+</li>
+<li><p>In the <em>Outliner</em> window, select the duplicated asset, right-click on it, and
+choose <strong>Change asset</strong>.</p>
+<p><img alt="Adding Light Fixture" src="../../_images/adding_light_fixtures_03.jpg" /></p>
+</li>
+<li><p>In the pop-up window, type the name of the required light fixture in the
+<code class="docutils literal notranslate"><span class="pre">Filter</span></code> field (e.g., <code class="docutils literal notranslate"><span class="pre">is_chandelier_h_tall_double_on_cmp</span></code>). In the <em>ALL</em>
+tab, navigate to the directory where the light fixture is located. Then,
+select the asset from the list in the lower window and click <strong>Select
+asset</strong>. This will replace the existing object with the desired light
+fixture.</p>
+<p><img alt="Adding Light Fixture" src="../../_images/adding_light_fixtures_04.jpg" /></p>
+<p><img alt="Adding Light Fixture" src="../../_images/adding_light_fixtures_05.jpg" /></p>
+</li>
+<li><p>Adjust the position of the light fixture as needed, then save the composite.</p></li>
+<li><p>After saving, check the changes in the parent composite using the first
+<em>Asset Viewer</em> window and the <em>daEditor</em> window.</p></li>
+<li><p>If any adjustments are needed, make the necessary changes in the appropriate
+window, save again, and verify the updates in other windows.</p>
+<p><img alt="Adding Light Fixture" src="../../_images/adding_light_fixtures_06.jpg" /></p>
+</li>
+</ol>
+<section id="exporting-the-map">
+<h3>Exporting the Map<a class="headerlink" href="#exporting-the-map" title="Link to this heading"></a></h3>
+<p>If everything looks correct, export the map from <em>daEditor</em> by navigating to
+<strong>Project &gt; Export to Game (PC Format)</strong>. In the following windows, click <strong>OK</strong>
+without changing any settings. When prompted, overwrite the existing map by
+clicking <strong>OK</strong> in the dialog box.</p>
+<p><img alt="Exporting the Map" src="../../_images/adding_light_fixtures_07.jpg" /></p>
+<p>Finally, launch the game and check for any bugs or issues.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="photometric_lights.html" class="btn btn-neutral float-left" title="Photometric Lights (IES)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="replacing_or_modifying_lights.html" class="btn btn-neutral float-right" title="Replacing or Modifying Lights in Props" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceShaderGroup" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceShaderGroup</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceShaderGroup_1a04c4e95c45284d367c97b5c33f36a0fe" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__drvRayTrace_8h_1a1c5c92c9b0bc99c8c614166c603a761d" kindref="member">RaytraceShaderGroupType</ref></type>
+        <definition>RaytraceShaderGroupType RaytraceShaderGroup::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>RaytraceShaderGroup::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="150" column="27" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceShaderGroup_1a3fee8cac8a3c44166bb446c817dca28c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceShaderGroup::indexToGeneralShader</definition>
+        <argsstring></argsstring>
+        <name>indexToGeneralShader</name>
+        <qualifiedname>RaytraceShaderGroup::indexToGeneralShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="153" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceShaderGroup_1adc2a491984deb7112a0728358781f1f0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceShaderGroup::indexToClosestHitShader</definition>
+        <argsstring></argsstring>
+        <name>indexToClosestHitShader</name>
+        <qualifiedname>RaytraceShaderGroup::indexToClosestHitShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="157" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceShaderGroup_1a859b381bd20ef61b93243b22e7b54a6d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceShaderGroup::indexToAnyHitShader</definition>
+        <argsstring></argsstring>
+        <name>indexToAnyHitShader</name>
+        <qualifiedname>RaytraceShaderGroup::indexToAnyHitShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="161" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceShaderGroup_1a9c6eed2be701617a0bd2fd72b9421e7b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceShaderGroup::indexToIntersecionShader</definition>
+        <argsstring></argsstring>
+        <name>indexToIntersecionShader</name>
+        <qualifiedname>RaytraceShaderGroup::indexToIntersecionShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="165" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="148" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="149" bodyend="166"/>
+    <listofallmembers>
+      <member refid="structRaytraceShaderGroup_1a859b381bd20ef61b93243b22e7b54a6d" prot="public" virt="non-virtual"><scope>RaytraceShaderGroup</scope><name>indexToAnyHitShader</name></member>
+      <member refid="structRaytraceShaderGroup_1adc2a491984deb7112a0728358781f1f0" prot="public" virt="non-virtual"><scope>RaytraceShaderGroup</scope><name>indexToClosestHitShader</name></member>
+      <member refid="structRaytraceShaderGroup_1a3fee8cac8a3c44166bb446c817dca28c" prot="public" virt="non-virtual"><scope>RaytraceShaderGroup</scope><name>indexToGeneralShader</name></member>
+      <member refid="structRaytraceShaderGroup_1a9c6eed2be701617a0bd2fd72b9421e7b" prot="public" virt="non-virtual"><scope>RaytraceShaderGroup</scope><name>indexToIntersecionShader</name></member>
+      <member refid="structRaytraceShaderGroup_1a04c4e95c45284d367c97b5c33f36a0fe" prot="public" virt="non-virtual"><scope>RaytraceShaderGroup</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,397 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multidraw Context</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Multidraw Context</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dHelpers/multidrawContext.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="multidraw-context">
+<h1>Multidraw Context<a class="headerlink" href="#multidraw-context" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-defines">Defines</p>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.USE_STAGING_MULTIDRAW_BUF">
+<span class="target" id="dag__multidrawContext_8h_1a5dd04b7fdc23337872b770ff78956348"></span><span class="sig-name descname"><span class="n"><span class="pre">USE_STAGING_MULTIDRAW_BUF</span></span></span><a class="headerlink" href="#c.USE_STAGING_MULTIDRAW_BUF" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.CONSTEXPR_EXT_MULTIDRAW">
+<span class="target" id="dag__multidrawContext_8h_1aebd5bb84beae2508bd476ec015727cdd"></span><span class="sig-name descname"><span class="n"><span class="pre">CONSTEXPR_EXT_MULTIDRAW</span></span></span><a class="headerlink" href="#c.CONSTEXPR_EXT_MULTIDRAW" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if extended draw call arguments structure is used. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0E16MultidrawContext">
+<span id="_CPPv3I0E16MultidrawContext"></span><span id="_CPPv2I0E16MultidrawContext"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PerDrawDataT</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classMultidrawContext"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawContext</span></span></span><a class="headerlink" href="#_CPPv4I0E16MultidrawContext" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_multidrawContext.h&gt;</em></div>
+<p>Multidraw Context</p>
+<p>This class incapsulates logic of filling multidraw buffers. It implements draw call id/per draw parameters passing for different platforms and manages buffers required for it. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext16MultidrawContextEPKc">
+<span id="_CPPv3N16MultidrawContext16MultidrawContextEPKc"></span><span id="_CPPv2N16MultidrawContext16MultidrawContextEPKc"></span><span id="MultidrawContext::MultidrawContext__cCP"></span><span class="target" id="classMultidrawContext_1aaeb5a10d853e44d0e917377fb320d0bd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawContext</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16MultidrawContext16MultidrawContextEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Default constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – must be unique for each context. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext16MultidrawContextERR16MultidrawContext">
+<span id="_CPPv3N16MultidrawContext16MultidrawContextERR16MultidrawContext"></span><span id="_CPPv2N16MultidrawContext16MultidrawContextERR16MultidrawContext"></span><span id="MultidrawContext::MultidrawContext__MultidrawContextRR"></span><span class="target" id="classMultidrawContext_1ae84438bc7fd10f189b80d08a4f054b0f"></span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16MultidrawContext16MultidrawContextERR16MultidrawContext" title="MultidrawContext::MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext16MultidrawContextERR16MultidrawContext" title="Link to this definition"></a><br /></dt>
+<dd><p>Default move constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContextaSERR16MultidrawContext">
+<span id="_CPPv3N16MultidrawContextaSERR16MultidrawContext"></span><span id="_CPPv2N16MultidrawContextaSERR16MultidrawContext"></span><span id="MultidrawContext::assign-operator__MultidrawContextRR"></span><span class="target" id="classMultidrawContext_1add29777c511aeb9135a90dfb536ccc0a"></span><a class="reference internal" href="#_CPPv4I0E16MultidrawContext" title="MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0E16MultidrawContext" title="MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContextaSERR16MultidrawContext" title="Link to this definition"></a><br /></dt>
+<dd><p>Default move assignment operator. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext16MultidrawContextER16MultidrawContext">
+<span id="_CPPv3N16MultidrawContext16MultidrawContextER16MultidrawContext"></span><span id="_CPPv2N16MultidrawContext16MultidrawContextER16MultidrawContext"></span><span id="MultidrawContext::MultidrawContext__MultidrawContextR"></span><span class="target" id="classMultidrawContext_1ac806f166b566bca657521768973ced15"></span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16MultidrawContext16MultidrawContextER16MultidrawContext" title="MultidrawContext::MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext16MultidrawContextER16MultidrawContext" title="Link to this definition"></a><br /></dt>
+<dd><p>Removed copy constructor since we use unique buffer holders. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContextaSER16MultidrawContext">
+<span id="_CPPv3N16MultidrawContextaSER16MultidrawContext"></span><span id="_CPPv2N16MultidrawContextaSER16MultidrawContext"></span><span id="MultidrawContext::assign-operator__MultidrawContextR"></span><span class="target" id="classMultidrawContext_1a63351e750d4581ece42dee6f49cad55e"></span><a class="reference internal" href="#_CPPv4I0E16MultidrawContext" title="MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0E16MultidrawContext" title="MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContextaSER16MultidrawContext" title="Link to this definition"></a><br /></dt>
+<dd><p>Removed copy assignment operator since we use unique buffer holders. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN16MultidrawContext11fillBuffersE23MultidrawRenderExecutor8uint32_tRK1T">
+<span id="_CPPv3I0EN16MultidrawContext11fillBuffersE8uint32_tRK1T"></span><span id="_CPPv2I0EN16MultidrawContext11fillBuffersE8uint32_tRK1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classMultidrawContext_1aebaac51c0e58e5c9718e3d186eb319d3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutorE" title="MultidrawContext::MultidrawRenderExecutor"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fillBuffers</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">drawcalls_count</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN16MultidrawContext11fillBuffersE23MultidrawRenderExecutor8uint32_tRK1T" title="MultidrawContext::fillBuffers::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">set_cb</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN16MultidrawContext11fillBuffersE23MultidrawRenderExecutor8uint32_tRK1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Fills multidraw buffers. </p>
+<p>
+This method iterates over locked buffers content and calls params_setter for each draw call to fill only allowed parameters of drawcall. If the buffers are too small, it recreates them. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>drawcalls_count</strong> – number of draw calls. </p></li>
+<li><p><strong>set_cb</strong> – function that sets draw call parameters. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>executor that could be used to render draw calls.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext5closeEv">
+<span id="_CPPv3N16MultidrawContext5closeEv"></span><span id="_CPPv2N16MultidrawContext5closeEv"></span><span id="MultidrawContext::close"></span><span class="target" id="classMultidrawContext_1aea80f7ee14258eb0b126566533d3f234"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">close</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16MultidrawContext5closeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Closes buffers. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-functions">Private Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16MultidrawContext24getPerDrawArgsBufferNameEv">
+<span id="_CPPv3NK16MultidrawContext24getPerDrawArgsBufferNameEv"></span><span id="_CPPv2NK16MultidrawContext24getPerDrawArgsBufferNameEv"></span><span id="MultidrawContext::getPerDrawArgsBufferNameC"></span><span class="target" id="classMultidrawContext_1a49af27b71a330990ffe1857b795e051a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/Heap.html#_CPPv45eastl" title="eastl"><span class="n"><span class="pre">eastl</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPerDrawArgsBufferName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16MultidrawContext24getPerDrawArgsBufferNameEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns name for per draw parameters buffer. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-members">Private Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext4nameE">
+<span id="_CPPv3N16MultidrawContext4nameE"></span><span id="_CPPv2N16MultidrawContext4nameE"></span><span id="MultidrawContext::name__eastl::string"></span><span class="target" id="classMultidrawContext_1ad22aad44c481c8feac448488736311f7"></span><a class="reference internal" href="../d3dAPI/Heap.html#_CPPv45eastl" title="eastl"><span class="n"><span class="pre">eastl</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext4nameE" title="Link to this definition"></a><br /></dt>
+<dd><p>Name for context that is used as a buffer name and as a prefix for helper buffers. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext18multidrawArgumentsE">
+<span id="_CPPv3N16MultidrawContext18multidrawArgumentsE"></span><span id="_CPPv2N16MultidrawContext18multidrawArgumentsE"></span><span id="MultidrawContext::multidrawArguments__RingDynamicSB"></span><span class="target" id="classMultidrawContext_1aca56b5cb67cf54083ad0d680234290d2"></span><span class="n"><span class="pre">RingDynamicSB</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">multidrawArguments</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext18multidrawArgumentsE" title="Link to this definition"></a><br /></dt>
+<dd><p>Buffer for draw calls arguments. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext17perDrawArgsBufferE">
+<span id="_CPPv3N16MultidrawContext17perDrawArgsBufferE"></span><span id="_CPPv2N16MultidrawContext17perDrawArgsBufferE"></span><span id="MultidrawContext::perDrawArgsBuffer__UniqueBufHolder"></span><span class="target" id="classMultidrawContext_1af03d68df8ac368df9b1e8c7cf91df930"></span><span class="n"><span class="pre">UniqueBufHolder</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">perDrawArgsBuffer</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext17perDrawArgsBufferE" title="Link to this definition"></a><br /></dt>
+<dd><p>Buffer for per draw parameters. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext26allocatedDrawcallsInBufferE">
+<span id="_CPPv3N16MultidrawContext26allocatedDrawcallsInBufferE"></span><span id="_CPPv2N16MultidrawContext26allocatedDrawcallsInBufferE"></span><span id="MultidrawContext::allocatedDrawcallsInBuffer__uint32_t"></span><span class="target" id="classMultidrawContext_1a915e564faad4815364c38a788341cc78"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allocatedDrawcallsInBuffer</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext26allocatedDrawcallsInBufferE" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of draw calls that can be stored in buffer. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext11actualStartE">
+<span id="_CPPv3N16MultidrawContext11actualStartE"></span><span id="_CPPv2N16MultidrawContext11actualStartE"></span><span id="MultidrawContext::actualStart__uint32_t"></span><span class="target" id="classMultidrawContext_1ad2d8600f5edf4094979440ce109c729c"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">actualStart</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext11actualStartE" title="Link to this definition"></a><br /></dt>
+<dd><p>Offset in buffer for next draw call. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-static-functions">Private Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext27usesExtendedMultiDrawStructEv">
+<span id="_CPPv3N16MultidrawContext27usesExtendedMultiDrawStructEv"></span><span id="_CPPv2N16MultidrawContext27usesExtendedMultiDrawStructEv"></span><span id="MultidrawContext::usesExtendedMultiDrawStructCE"></span><span class="target" id="classMultidrawContext_1a3bbbed636b1e260ea30e16c73ba04fcd"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">usesExtendedMultiDrawStruct</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16MultidrawContext27usesExtendedMultiDrawStructEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23needPerDrawParamsBufferEv">
+<span id="_CPPv3N16MultidrawContext23needPerDrawParamsBufferEv"></span><span id="_CPPv2N16MultidrawContext23needPerDrawParamsBufferEv"></span><span id="MultidrawContext::needPerDrawParamsBufferCE"></span><span class="target" id="classMultidrawContext_1af91aae5c7a00062f5822ff3629022bd1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">needPerDrawParamsBuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16MultidrawContext23needPerDrawParamsBufferEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if per draw parameter could be stored instead of draw id. In this case we don’t need per draw parameters buffer. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-static-attributes">Private Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext21bytesCountPerDrawcallE">
+<span id="_CPPv3N16MultidrawContext21bytesCountPerDrawcallE"></span><span id="_CPPv2N16MultidrawContext21bytesCountPerDrawcallE"></span><span id="MultidrawContext::bytesCountPerDrawcall__uint8_t"></span><span class="target" id="classMultidrawContext_1aa526b932e3bf6e71ab4a3c40d20f37a5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bytesCountPerDrawcall</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">sizeof</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">DrawIndexedIndirectArgs</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext21bytesCountPerDrawcallE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext31ExtendedDrawIndexedIndirectArgsE">
+<span id="_CPPv3N16MultidrawContext31ExtendedDrawIndexedIndirectArgsE"></span><span id="_CPPv2N16MultidrawContext31ExtendedDrawIndexedIndirectArgsE"></span><span id="MultidrawContext::ExtendedDrawIndexedIndirectArgs"></span><span class="target" id="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExtendedDrawIndexedIndirectArgs</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext31ExtendedDrawIndexedIndirectArgsE" title="Link to this definition"></a><br /></dt>
+<dd><p>Extended draw call arguments structure. </p>
+<p>This structure is used for platforms that pass draw call id/per draw parameters using per draw root constants. Currently it is used only for DX12. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext31ExtendedDrawIndexedIndirectArgs10drawcallIdE">
+<span id="_CPPv3N16MultidrawContext31ExtendedDrawIndexedIndirectArgs10drawcallIdE"></span><span id="_CPPv2N16MultidrawContext31ExtendedDrawIndexedIndirectArgs10drawcallIdE"></span><span id="MultidrawContext::ExtendedDrawIndexedIndirectArgs::drawcallId__uint32_t"></span><span class="target" id="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs_1a510d82eb05a6207375ea2ecae9bb7975"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">drawcallId</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext31ExtendedDrawIndexedIndirectArgs10drawcallIdE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext31ExtendedDrawIndexedIndirectArgs4argsE">
+<span id="_CPPv3N16MultidrawContext31ExtendedDrawIndexedIndirectArgs4argsE"></span><span id="_CPPv2N16MultidrawContext31ExtendedDrawIndexedIndirectArgs4argsE"></span><span id="MultidrawContext::ExtendedDrawIndexedIndirectArgs::args__DrawIndexedIndirectArgs"></span><span class="target" id="structMultidrawContext_1_1ExtendedDrawIndexedIndirectArgs_1af2a0c0ab0443586fd38ff98a91f6ab17"></span><span class="n"><span class="pre">DrawIndexedIndirectArgs</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">args</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext31ExtendedDrawIndexedIndirectArgs4argsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutorE">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutorE"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutorE"></span><span id="MultidrawContext::MultidrawRenderExecutor"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutorE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_multidrawContext.h&gt;</em></div>
+<p>Executor for multidraw calls. </p>
+<p>This class is used to pass multidraw buffers to a draw call. It could be constructed only by <a class="reference internal" href="#classMultidrawContext"><span class="std std-ref">MultidrawContext</span></a>. It is used to hide multidraw buffers from a user. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEPK16MultidrawContext">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEPK16MultidrawContext"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEPK16MultidrawContext"></span><span id="MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor__MultidrawContextCP"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a74a1dd2d7023aa3a56e67c81901dfb11"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0E16MultidrawContext" title="MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">context</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEPK16MultidrawContext" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>context</strong> – reference to a context that is used for rendering. If context is a nullptr, render method does nothing. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK16MultidrawContext23MultidrawRenderExecutor6renderE8uint32_t8uint32_t8uint32_t">
+<span id="_CPPv3NK16MultidrawContext23MultidrawRenderExecutor6renderE8uint32_t8uint32_t8uint32_t"></span><span id="_CPPv2NK16MultidrawContext23MultidrawRenderExecutor6renderE8uint32_t8uint32_t8uint32_t"></span><span id="MultidrawContext::MultidrawRenderExecutor::render__uint32_t.uint32_t.uint32_tC"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1affbe689ead63d464c84504d64f9a9d8d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">render</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">primitive_type</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">first_drawcall</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">drawcalls_count</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK16MultidrawContext23MultidrawRenderExecutor6renderE8uint32_t8uint32_t8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Renders draw calls. </p>
+<p>
+This method renders draw calls using multidraw indirect buffers. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>primitive_type</strong> – type of primitive. </p></li>
+<li><p><strong>first_drawcall</strong> – index of first draw call in the buffer. </p></li>
+<li><p><strong>drawcalls_count</strong> – number of draw calls to execute.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-functions">Private Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEv">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEv"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEv"></span><span id="MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a29d04ce59455837c367457f96ef3703a"></span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Default constructors and operator= are deleted. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorERR23MultidrawRenderExecutor">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorERR23MultidrawRenderExecutor"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorERR23MultidrawRenderExecutor"></span><span id="MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor__MultidrawRenderExecutorRR"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1abb7da099b9fc1e0c7645a4da4dfa8fb4"></span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorERR23MultidrawRenderExecutor" title="MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorERR23MultidrawRenderExecutor" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutoraSERR23MultidrawRenderExecutor">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutoraSERR23MultidrawRenderExecutor"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutoraSERR23MultidrawRenderExecutor"></span><span id="MultidrawContext::MultidrawRenderExecutor::assign-operator__MultidrawRenderExecutorRR"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1af9bbfde02d68cd847cdd62a02f566fc5"></span><a class="reference internal" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutorE" title="MultidrawContext::MultidrawRenderExecutor"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutorE" title="MultidrawContext::MultidrawRenderExecutor"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutoraSERR23MultidrawRenderExecutor" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorER23MultidrawRenderExecutor">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorER23MultidrawRenderExecutor"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorER23MultidrawRenderExecutor"></span><span id="MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor__MultidrawRenderExecutorR"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a25ea5eb7c8b9ce7343d6017873d2fe9b"></span><span class="sig-name descname"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorER23MultidrawRenderExecutor" title="MultidrawContext::MultidrawRenderExecutor::MultidrawRenderExecutor"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutor23MultidrawRenderExecutorER23MultidrawRenderExecutor" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutoraSER23MultidrawRenderExecutor">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutoraSER23MultidrawRenderExecutor"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutoraSER23MultidrawRenderExecutor"></span><span id="MultidrawContext::MultidrawRenderExecutor::assign-operator__MultidrawRenderExecutorR"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1a43f75453155d891ab821555e8b6a5e91"></span><a class="reference internal" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutorE" title="MultidrawContext::MultidrawRenderExecutor"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutorE" title="MultidrawContext::MultidrawRenderExecutor"><span class="n"><span class="pre">MultidrawRenderExecutor</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutoraSER23MultidrawRenderExecutor" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-members">Private Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N16MultidrawContext23MultidrawRenderExecutor7contextE">
+<span id="_CPPv3N16MultidrawContext23MultidrawRenderExecutor7contextE"></span><span id="_CPPv2N16MultidrawContext23MultidrawRenderExecutor7contextE"></span><span id="MultidrawContext::MultidrawRenderExecutor::context__MultidrawContextCP"></span><span class="target" id="classMultidrawContext_1_1MultidrawRenderExecutor_1ae7e6f18d0765c7f498d8c174be539cfe"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0E16MultidrawContext" title="MultidrawContext"><span class="n"><span class="pre">MultidrawContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">context</span></span></span><a class="headerlink" href="#_CPPv4N16MultidrawContext23MultidrawRenderExecutor7contextE" title="Link to this definition"></a><br /></dt>
+<dd><p>Pointer to a context that is used for rendering. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl>
+<dt class="sig sig-object cpp">
+<em class="property"><span class="pre">friend</span> <span class="pre">class</span></em> <span class="pre">MultidrawContext</span></dt>
+</dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

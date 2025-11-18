@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1RayDispatchGroup" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::RayDispatchGroup</compoundname>
+    <derivedcompoundref refid="structraytrace_1_1RayDispatchGroupTable" prot="public" virt="non-virtual">raytrace::RayDispatchGroupTable</derivedcompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchGroup_1a49bfd27cd1e03bedf16c8240b7fa853b" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t raytrace::RayDispatchGroup::virtualGpuAddress</definition>
+        <argsstring></argsstring>
+        <name>virtualGpuAddress</name>
+        <qualifiedname>raytrace::RayDispatchGroup::virtualGpuAddress</qualifiedname>
+        <briefdescription>
+<para>Virtual GPU address to the beginning of the shader binding table of that group. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="937" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="937" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchGroup_1ae6c890b49b6d5fee5135807b0744d54e" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t raytrace::RayDispatchGroup::sizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>sizeInBytes</name>
+        <qualifiedname>raytrace::RayDispatchGroup::sizeInBytes</qualifiedname>
+        <briefdescription>
+<para>Total size of the group in the shader binding table. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="939" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="939" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A ray dispatch group definition. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>raytrace::RayDispatchGroup</label>
+        <link refid="structraytrace_1_1RayDispatchGroup"/>
+      </node>
+      <node id="2">
+        <label>raytrace::RayDispatchGroupTable</label>
+        <link refid="structraytrace_1_1RayDispatchGroupTable"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="934" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="935" bodyend="940"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1RayDispatchGroup_1ae6c890b49b6d5fee5135807b0744d54e" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroup</scope><name>sizeInBytes</name></member>
+      <member refid="structraytrace_1_1RayDispatchGroup_1a49bfd27cd1e03bedf16c8240b7fa853b" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroup</scope><name>virtualGpuAddress</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

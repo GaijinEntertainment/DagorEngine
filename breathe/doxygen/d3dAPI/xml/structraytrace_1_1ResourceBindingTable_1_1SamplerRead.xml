@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ResourceBindingTable_1_1SamplerRead" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ResourceBindingTable::SamplerRead</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a6bf324a3c7b577b01798c00314171869" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1aee766f4273f69e0942fff59ab388cfe2" kindref="member">d3d::SamplerHandle</ref></type>
+        <definition>d3d::SamplerHandle raytrace::ResourceBindingTable::SamplerRead::sampler</definition>
+        <argsstring></argsstring>
+        <name>sampler</name>
+        <qualifiedname>raytrace::ResourceBindingTable::SamplerRead::sampler</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1ac4554f9e2d21dfb2dade16cb321bb65d" kindref="member">d3d::INVALID_SAMPLER_HANDLE</ref></initializer>
+        <briefdescription>
+<para>Sampler to read. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="879" column="24" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="879" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a59fbb280d9db86c7105cffe08628b570" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::SamplerRead::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>raytrace::ResourceBindingTable::SamplerRead::slot</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>s register slot </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="881" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="881" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Defines a sampler read on a s register slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="876" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="877" bodyend="882"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a6bf324a3c7b577b01798c00314171869" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::SamplerRead</scope><name>sampler</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1SamplerRead_1a59fbb280d9db86c7105cffe08628b570" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::SamplerRead</scope><name>slot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

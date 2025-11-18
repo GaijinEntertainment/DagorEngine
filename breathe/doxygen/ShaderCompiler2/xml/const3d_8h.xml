@@ -1,0 +1,635 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="const3d_8h" kind="file" language="C++">
+    <compoundname>const3d.h</compoundname>
+    <includes local="no">drv/3d/dag_consts.h</includes>
+    <includedby refid="hlslRegisters_8cpp" local="yes">hlslRegisters.cpp</includedby>
+    <includedby refid="hlslStage_8h" local="yes">hlslStage.h</includedby>
+    <includedby refid="namedConst_8cpp" local="yes">namedConst.cpp</includedby>
+    <includedby refid="transcodeShader_8h" local="yes">transcodeShader.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="10">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="9">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="12">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="1">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="34">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="33">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="20">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>hlslRegisters.cpp</label>
+        <link refid="hlslRegisters_8cpp"/>
+      </node>
+      <node id="3">
+        <label>hlslStage.h</label>
+        <link refid="hlslStage_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="6">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="4">
+        <label>hwSemantic.h</label>
+        <link refid="hwSemantic_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="25">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="24">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="29">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="26">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="14">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="44">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="27">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="31">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="32">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="50">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+      </node>
+      <node id="49">
+        <label>shaderBytecodeCache.h</label>
+        <link refid="shaderBytecodeCache_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="17">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="15">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="40">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="42">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="18">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="46">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>transcodeShader.cpp</label>
+        <link refid="transcodeShader_8cpp"/>
+      </node>
+      <node id="51">
+        <label>transcodeShader.h</label>
+        <link refid="transcodeShader_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="19">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="35">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="37">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="const3d_8h_1ab6c9bf187dfc3187da8935db59d02f87" prot="public" static="no">
+        <name>DRV3DC</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="6" column="9" bodyfile="const3d.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="const3d_8h_1a0e38df57573e73202236611878ba34cb" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t MAX_CBUFFER_VECTORS</definition>
+        <argsstring></argsstring>
+        <name>MAX_CBUFFER_VECTORS</name>
+        <initializer>= 4096</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="8" column="27" bodyfile="const3d.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1ab376850b670dc343e3890ed9bbd8b0be" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* SHADER_STAGE_SHORT_NAMES[STAGE_MAX]</definition>
+        <argsstring>[STAGE_MAX]</argsstring>
+        <name>SHADER_STAGE_SHORT_NAMES</name>
+        <initializer>= {&quot;cs&quot;, &quot;ps&quot;, &quot;vs&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="10" column="29" bodyfile="const3d.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1a3abdba8616b59c9af5d39fdc5fe46d6b" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* SHADER_STAGE_NAMES[STAGE_MAX]</definition>
+        <argsstring>[STAGE_MAX]</argsstring>
+        <name>SHADER_STAGE_NAMES</name>
+        <initializer>= {&quot;compute&quot;, &quot;pixel&quot;, &quot;vertex&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="11" column="29" bodyfile="const3d.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1ae98ca1b68b1fb921348785a7694ed12c" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int MATERIAL_PARAMS_CONST_BUF_REGISTER</definition>
+        <argsstring></argsstring>
+        <name>MATERIAL_PARAMS_CONST_BUF_REGISTER</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="13" column="22" bodyfile="const3d.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1a516b3cf9a147c3a7f4b24934d36d3ef4" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int GLOBAL_CONST_BUF_REGISTER</definition>
+        <argsstring></argsstring>
+        <name>GLOBAL_CONST_BUF_REGISTER</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="14" column="22" bodyfile="const3d.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1acac5ed8d76ca2f79a103eea62528f820" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int MAX_U_REGISTERS</definition>
+        <argsstring></argsstring>
+        <name>MAX_U_REGISTERS</name>
+        <initializer>= 13</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="43" column="22" bodyfile="const3d.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1a1b26bc3808997622df7fcedb8370e043" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool UAVS_CONTEND_WITH_RTVS</definition>
+        <argsstring></argsstring>
+        <name>UAVS_CONTEND_WITH_RTVS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="49" column="23" bodyfile="const3d.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1adcefae8ee2da251ed0425a2f2360ebed" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int MAX_T_REGISTERS</definition>
+        <argsstring></argsstring>
+        <name>MAX_T_REGISTERS</name>
+        <initializer>= 32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="54" column="22" bodyfile="const3d.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1aff818fade0b06272f655d5a535399158" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int MAX_S_REGISTERS</definition>
+        <argsstring></argsstring>
+        <name>MAX_S_REGISTERS</name>
+        <initializer>= 16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="55" column="22" bodyfile="const3d.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="const3d_8h_1a1738522f66cb09e0d5d6f6061c206440" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int MAX_B_REGISTERS</definition>
+        <argsstring></argsstring>
+        <name>MAX_B_REGISTERS</name>
+        <initializer>= 14</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="const3d.h" line="56" column="22" bodyfile="const3d.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="const3d_8h_1ab6c9bf187dfc3187da8935db59d02f87" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DRV3DC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="const3d_8h_1a0e38df57573e73202236611878ba34cb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="const3d_8h_1a0e38df57573e73202236611878ba34cb" kindref="member">MAX_CBUFFER_VECTORS</ref><sp/>=<sp/>4096;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="const3d_8h_1ab376850b670dc343e3890ed9bbd8b0be" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="const3d_8h_1ab376850b670dc343e3890ed9bbd8b0be" kindref="member">SHADER_STAGE_SHORT_NAMES</ref>[STAGE_MAX]<sp/>=<sp/>{</highlight><highlight class="stringliteral">&quot;cs&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;ps&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;vs&quot;</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="11" refid="const3d_8h_1a3abdba8616b59c9af5d39fdc5fe46d6b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="const3d_8h_1a3abdba8616b59c9af5d39fdc5fe46d6b" kindref="member">SHADER_STAGE_NAMES</ref>[STAGE_MAX]<sp/>=<sp/>{</highlight><highlight class="stringliteral">&quot;compute&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;pixel&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;vertex&quot;</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="const3d_8h_1ae98ca1b68b1fb921348785a7694ed12c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1ae98ca1b68b1fb921348785a7694ed12c" kindref="member">MATERIAL_PARAMS_CONST_BUF_REGISTER</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="14" refid="const3d_8h_1a516b3cf9a147c3a7f4b24934d36d3ef4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1a516b3cf9a147c3a7f4b24934d36d3ef4" kindref="member">GLOBAL_CONST_BUF_REGISTER</ref><sp/>=<sp/>2;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/shadersMetaData/dxil/compiled_shader_header.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1adcefae8ee2da251ed0425a2f2360ebed" kindref="member">MAX_T_REGISTERS</ref><sp/>=<sp/>dxil::MAX_T_REGISTERS;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1aff818fade0b06272f655d5a535399158" kindref="member">MAX_S_REGISTERS</ref><sp/>=<sp/>dxil::MAX_S_REGISTERS;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1acac5ed8d76ca2f79a103eea62528f820" kindref="member">MAX_U_REGISTERS</ref><sp/>=<sp/>dxil::MAX_U_REGISTERS;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1a1738522f66cb09e0d5d6f6061c206440" kindref="member">MAX_B_REGISTERS</ref><sp/>=<sp/>dxil::MAX_B_REGISTERS;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>UAVS_CONTEND_WITH_RTVS<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_CROSS_TARGET_SPIRV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/shadersMetaData/spirv/compiled_meta_data.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1adcefae8ee2da251ed0425a2f2360ebed" kindref="member">MAX_T_REGISTERS</ref><sp/>=<sp/>spirv::T_REGISTER_INDEX_MAX;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1aff818fade0b06272f655d5a535399158" kindref="member">MAX_S_REGISTERS</ref><sp/>=<sp/>spirv::S_REGISTER_INDEX_MAX;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1acac5ed8d76ca2f79a103eea62528f820" kindref="member">MAX_U_REGISTERS</ref><sp/>=<sp/>spirv::U_REGISTER_INDEX_MAX;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1a1738522f66cb09e0d5d6f6061c206440" kindref="member">MAX_B_REGISTERS</ref><sp/>=<sp/>spirv::B_REGISTER_INDEX_MAX;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>UAVS_CONTEND_WITH_RTVS<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1acac5ed8d76ca2f79a103eea62528f820" kindref="member">MAX_U_REGISTERS</ref><sp/>=<sp/>8;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_CROSS_TARGET_METAL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1acac5ed8d76ca2f79a103eea62528f820" kindref="member">MAX_U_REGISTERS</ref><sp/>=<sp/>10;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="const3d_8h_1acac5ed8d76ca2f79a103eea62528f820" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1acac5ed8d76ca2f79a103eea62528f820" kindref="member">MAX_U_REGISTERS</ref><sp/>=<sp/>13;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>UAVS_CONTEND_WITH_RTVS<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>UAVS_CONTEND_WITH_RTVS<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO:<sp/>make<sp/>per-platform<sp/>limits<sp/>for<sp/>all<sp/>platforms<sp/>&amp;<sp/>drivers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="const3d_8h_1adcefae8ee2da251ed0425a2f2360ebed" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1adcefae8ee2da251ed0425a2f2360ebed" kindref="member">MAX_T_REGISTERS</ref><sp/>=<sp/>32;</highlight></codeline>
+<codeline lineno="55" refid="const3d_8h_1aff818fade0b06272f655d5a535399158" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1aff818fade0b06272f655d5a535399158" kindref="member">MAX_S_REGISTERS</ref><sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="56" refid="const3d_8h_1a1738522f66cb09e0d5d6f6061c206440" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="const3d_8h_1a1738522f66cb09e0d5d6f6061c206440" kindref="member">MAX_B_REGISTERS</ref><sp/>=<sp/>14;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="const3d.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,286 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structmkbindump_1_1PatchTabRef" kind="struct" language="C++" prot="public">
+    <compoundname>mkbindump::PatchTabRef</compoundname>
+    <includes refid="makeBindump_8h" local="no">makeBindump.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmkbindump_1_1PatchTabRef_1a548dbc3febc6fcafd4918d3c45dcd68a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::PatchTabRef::base</definition>
+        <argsstring></argsstring>
+        <name>base</name>
+        <qualifiedname>mkbindump::PatchTabRef::base</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="761" column="7" bodyfile="makeBindump.h" bodystart="761" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1PatchTabRef_1ac4f7469b552a3c4ae4fb10df7b74bfba" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::PatchTabRef::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>mkbindump::PatchTabRef::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="761" column="12" bodyfile="makeBindump.h" bodystart="761" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1PatchTabRef_1a77a86d63429adc576322e5e924c39a99" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::PatchTabRef::pos</definition>
+        <argsstring></argsstring>
+        <name>pos</name>
+        <qualifiedname>mkbindump::PatchTabRef::pos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="761" column="18" bodyfile="makeBindump.h" bodystart="761" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1PatchTabRef_1ace38699612f364cf2ee8100b15c23356" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::PatchTabRef::resvDataPos</definition>
+        <argsstring></argsstring>
+        <name>resvDataPos</name>
+        <qualifiedname>mkbindump::PatchTabRef::resvDataPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="761" column="22" bodyfile="makeBindump.h" bodystart="761" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1ac22d683d5c8eb13c70d094a07dee4b17" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>mkbindump::PatchTabRef::reset</qualifiedname>
+        <briefdescription>
+<para>resets patchable tab reference </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="691" column="8" bodyfile="makeBindump.h" bodystart="691" bodyend="697"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1a2d95191ef0e65a2c6cc3505ca6cf02ec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::reserveTab</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr)</argsstring>
+        <name>reserveTab</name>
+        <qualifiedname>mkbindump::PatchTabRef::reserveTab</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <briefdescription>
+<para>Step 1. Insert tab reference to stream and remember this pos. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="700" column="8" bodyfile="makeBindump.h" bodystart="700" bodyend="708"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1a1ee0ff5b0a98d4b50ec6a9a73ee1d090" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::startData</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, int cnt)</argsstring>
+        <name>startData</name>
+        <qualifiedname>mkbindump::PatchTabRef::startData</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+<para>Step 2. Start writing tab data (setup count and base offset) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="711" column="8" bodyfile="makeBindump.h" bodystart="711" bodyend="715"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1a8dae08e88833d1d09ef8598f7be23888" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::writeData</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, const T *data, int cnt)</argsstring>
+        <name>writeData</name>
+        <qualifiedname>mkbindump::PatchTabRef::writeData</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>const T *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+<para>Step 2. Write tab data (setup count and base offset) using data/cnt pair. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="718" column="8" bodyfile="makeBindump.h" bodystart="718" bodyend="722"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1a3cee02f33b4c9acc67cd82bb07721238" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class V</type>
+          </param>
+          <param>
+            <type>typename T</type>
+            <defval>typename V::value_type</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::writeData</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, const V &amp;data)</argsstring>
+        <name>writeData</name>
+        <qualifiedname>mkbindump::PatchTabRef::writeData</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>const V &amp;</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+<para>Step 2. Write tab data (setup count and base offset) using slice. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="725" column="8" bodyfile="makeBindump.h" bodystart="725" bodyend="729"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1ab350f577111d8265f21cf3c75ba38d74" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::startDataAt</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, int cnt, int ofs)</argsstring>
+        <name>startDataAt</name>
+        <qualifiedname>mkbindump::PatchTabRef::startDataAt</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+<para>Step 2. Setup count and base offset at relative position (useful for reference tabs) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="731" column="8" bodyfile="makeBindump.h" bodystart="731" bodyend="735"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1a8a1b7adba4b242acfe370289f7c7bbc7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::reserveData</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, int cnt, int elemsize)</argsstring>
+        <name>reserveData</name>
+        <qualifiedname>mkbindump::PatchTabRef::reserveData</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>elemsize</declname>
+        </param>
+        <briefdescription>
+<para>Step 2. Reserve space for tab data (setup count and base offset) using cnt/elemsize. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="737" column="8" bodyfile="makeBindump.h" bodystart="737" bodyend="743"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1PatchTabRef_1a7691a4ce0d4b3ab5ea0c3fe8fd41da25" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::PatchTabRef::finishTab</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, bool preserve_pos=true)</argsstring>
+        <name>finishTab</name>
+        <qualifiedname>mkbindump::PatchTabRef::finishTab</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>preserve_pos</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>Step 3. Fix reference written in step 1. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="746" column="8" bodyfile="makeBindump.h" bodystart="746" bodyend="758"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Helper object for writing PatchableTab data (offset,count) at any place of dump Usage is divided into 3 steps: 1: reserve space for PatchableTab in dump and remember this offset 2: actually write tab data to dump and remeber offset of data 3: get back and fill reserved space in dump with actual PatchableTab </para>
+    </detaileddescription>
+    <location file="makeBindump.h" line="687" column="1" bodyfile="makeBindump.h" bodystart="688" bodyend="762"/>
+    <listofallmembers>
+      <member refid="structmkbindump_1_1PatchTabRef_1a548dbc3febc6fcafd4918d3c45dcd68a" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>base</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1ac4f7469b552a3c4ae4fb10df7b74bfba" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>count</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1a7691a4ce0d4b3ab5ea0c3fe8fd41da25" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>finishTab</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1a77a86d63429adc576322e5e924c39a99" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>pos</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1a8a1b7adba4b242acfe370289f7c7bbc7" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>reserveData</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1a2d95191ef0e65a2c6cc3505ca6cf02ec" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>reserveTab</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1ac22d683d5c8eb13c70d094a07dee4b17" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>reset</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1ace38699612f364cf2ee8100b15c23356" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>resvDataPos</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1a1ee0ff5b0a98d4b50ec6a9a73ee1d090" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>startData</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1ab350f577111d8265f21cf3c75ba38d74" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>startDataAt</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1a8dae08e88833d1d09ef8598f7be23888" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>writeData</name></member>
+      <member refid="structmkbindump_1_1PatchTabRef_1a3cee02f33b4c9acc67cd82bb07721238" prot="public" virt="non-virtual"><scope>mkbindump::PatchTabRef</scope><name>writeData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

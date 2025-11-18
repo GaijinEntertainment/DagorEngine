@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIEditorCore" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IEditorCore</compoundname>
+    <includes refid="ec__IEditorCore_8h" local="no">ec_IEditorCore.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIEditorCore_1affd2093122bc3e8323325eb93cb23437" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIDagorRender" kindref="compound">IDagorRender</ref> *</type>
+        <definition>virtual IDagorRender * IEditorCore::getRender</definition>
+        <argsstring>()=0</argsstring>
+        <name>getRender</name>
+        <qualifiedname>IEditorCore::getRender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="537" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCore_1a83284ad6e09c7065039b7d16b2f589c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIDagorGeom" kindref="compound">IDagorGeom</ref> *</type>
+        <definition>virtual IDagorGeom * IEditorCore::getGeom</definition>
+        <argsstring>()=0</argsstring>
+        <name>getGeom</name>
+        <qualifiedname>IEditorCore::getGeom</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="538" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCore_1afefc34001d127c141b1cd9a51e8b62b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIDagorConsole" kindref="compound">IDagorConsole</ref> *</type>
+        <definition>virtual IDagorConsole * IEditorCore::getConsole</definition>
+        <argsstring>()=0</argsstring>
+        <name>getConsole</name>
+        <qualifiedname>IEditorCore::getConsole</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="539" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCore_1aae897209c9db3a494b73c901b07a8313" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIDagorInput" kindref="compound">IDagorInput</ref> *</type>
+        <definition>virtual IDagorInput * IEditorCore::getInput</definition>
+        <argsstring>()=0</argsstring>
+        <name>getInput</name>
+        <qualifiedname>IEditorCore::getInput</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="540" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCore_1add5d17249428c23e742ad3b20210f24e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIDagorTools" kindref="compound">IDagorTools</ref> *</type>
+        <definition>virtual IDagorTools * IEditorCore::getTools</definition>
+        <argsstring>()=0</argsstring>
+        <name>getTools</name>
+        <qualifiedname>IEditorCore::getTools</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="541" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCore_1a1ca83521984d141cda47c592988ceebb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIDagorScene" kindref="compound">IDagorScene</ref> *</type>
+        <definition>virtual IDagorScene * IEditorCore::getScene</definition>
+        <argsstring>()=0</argsstring>
+        <name>getScene</name>
+        <qualifiedname>IEditorCore::getScene</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="542" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCore_1a37f3c2f20a195ce8732415a4a2f7f656" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IEditorCore::getExePath</definition>
+        <argsstring>()=0</argsstring>
+        <name>getExePath</name>
+        <qualifiedname>IEditorCore::getExePath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="543" column="22"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classIEditorCore_1a1c19036c5294b31b73c73eeca97cac9b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIEditorCore" kindref="compound">IEditorCore</ref> &amp;</type>
+        <definition>static IEditorCore &amp; IEditorCore::make_instance</definition>
+        <argsstring>()</argsstring>
+        <name>make_instance</name>
+        <qualifiedname>IEditorCore::make_instance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="545" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="534" column="1" bodyfile="ec_IEditorCore.h" bodystart="535" bodyend="546"/>
+    <listofallmembers>
+      <member refid="classIEditorCore_1afefc34001d127c141b1cd9a51e8b62b3" prot="public" virt="pure-virtual"><scope>IEditorCore</scope><name>getConsole</name></member>
+      <member refid="classIEditorCore_1a37f3c2f20a195ce8732415a4a2f7f656" prot="public" virt="pure-virtual"><scope>IEditorCore</scope><name>getExePath</name></member>
+      <member refid="classIEditorCore_1a83284ad6e09c7065039b7d16b2f589c8" prot="public" virt="pure-virtual"><scope>IEditorCore</scope><name>getGeom</name></member>
+      <member refid="classIEditorCore_1aae897209c9db3a494b73c901b07a8313" prot="public" virt="pure-virtual"><scope>IEditorCore</scope><name>getInput</name></member>
+      <member refid="classIEditorCore_1affd2093122bc3e8323325eb93cb23437" prot="public" virt="pure-virtual"><scope>IEditorCore</scope><name>getRender</name></member>
+      <member refid="classIEditorCore_1a1ca83521984d141cda47c592988ceebb" prot="public" virt="pure-virtual"><scope>IEditorCore</scope><name>getScene</name></member>
+      <member refid="classIEditorCore_1add5d17249428c23e742ad3b20210f24e" prot="public" virt="pure-virtual"><scope>IEditorCore</scope><name>getTools</name></member>
+      <member refid="classIEditorCore_1a1c19036c5294b31b73c73eeca97cac9b" prot="public" virt="non-virtual"><scope>IEditorCore</scope><name>make_instance</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

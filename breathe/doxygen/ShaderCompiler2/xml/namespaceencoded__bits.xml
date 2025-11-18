@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceencoded__bits" kind="namespace" language="C++">
+    <compoundname>encoded_bits</compoundname>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>encoded_bits</qualifiedname>
+        <enumvalue id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837aa7834d96d5e3de53f430b56088069257" prot="public">
+          <name>SkipValidation</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a6d5ea8ffbf9ea098bcb708e6dd6f3a43" prot="public">
+          <name>Optimize</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a8ef76ab6c6c286aed8ac1955b3466f6d" prot="public">
+          <name>DebugInfo</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a30942171a2d46016589ec94fcfe4f3b7" prot="public">
+          <name>ScarlettW32</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a9c3974327e760551d9abe5f1f61df3d9" prot="public">
+          <name>HLSL2021</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837ae037fff6ab2d5b3b2a11e71f27d65209" prot="public">
+          <name>EnableFp16</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceencoded__bits_1aaec88309581c7934d290f6bf8ccdf837a0f7fe01152493b575383d285992b9cb2" prot="public">
+          <name>BitCount</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="encodedBits.h" line="6" column="1" bodyfile="encodedBits.h" bodystart="7" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceencoded__bits_1a3e4f5f92ca14d53e559b8ba355498df8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int encoded_bits::ProfileLength</definition>
+        <argsstring></argsstring>
+        <name>ProfileLength</name>
+        <qualifiedname>encoded_bits::ProfileLength</qualifiedname>
+        <initializer>= 6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="encodedBits.h" line="18" column="22" bodyfile="encodedBits.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceencoded__bits_1a714a2b3219d3b4f2ded0dbe6fa84feee" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int encoded_bits::ExtraBytes</definition>
+        <argsstring></argsstring>
+        <name>ExtraBytes</name>
+        <qualifiedname>encoded_bits::ExtraBytes</qualifiedname>
+        <initializer>= ProfileLength + 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="encodedBits.h" line="19" column="22" bodyfile="encodedBits.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="encodedBits.h" line="4" column="1"/>
+  </compounddef>
+</doxygen>

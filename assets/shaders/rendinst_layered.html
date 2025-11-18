@@ -1,0 +1,1469 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rendinst_layered</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="rendinst_layered_lightmap" href="rendinst_layered_lightmap.html" />
+    <link rel="prev" title="rendinst_interior_mapping" href="rendinst_interior_mapping.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Shaders</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="rendinst_interior_mapping.html"><code class="docutils literal notranslate"><span class="pre">rendinst_interior_mapping</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#textures">Textures</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#texture-assignment">Texture Assignment</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#global-normal-map">Global Normal Map</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#detail-textures-details">Detail Textures (Details)</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#overlay-map">Overlay Map</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#universal-overlay">Universal Overlay</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#unique-overlay">Unique Overlay</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#exclusion-mask">Exclusion Mask</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#blending-mask">Blending Mask</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#how-it-works">How It Works</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#specifics-of-using-the-blending-mask">Specifics of Using the Blending Mask</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#conclusion">Conclusion</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shader-setup">Shader Setup</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#general-shader-parameters">General Shader Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#id1">Texture Assignment</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#shader-parameters">Shader Parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#offset-of-uv-mapping-on-the-universal-overlay">Offset of UV-mapping on the Universal Overlay</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#detail-tiling-settings">Detail Tiling Settings</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#disabling-tiling-detail1-2-scroll-u-1">Disabling Tiling (detail1/2_scroll_u=-1)</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#configuring-detail-offset">Configuring Detail Offset</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#configuring-of-details-blending">Configuring of Details Blending</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#configuring-blend-mask-tiling">Configuring Blend Mask Tiling</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#configuring-blend-mask-offset">Configuring Blend Mask Offset</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#growing-grass-on-an-object">Growing Grass on an Object</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#coloring-the-detail2-in-the-daeditor-deprecated">Coloring the Detail2 in the daEditor (Deprecated)</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#top-projection-projecting-the-detail2-using-local-and-global-normals">Top Projection - Projecting the Detail2 using Local and Global Normals</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#top-projection">top_projection</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#top-projection-from">top_projection_from</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#top-projection-to">top_projection_to</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#top-projection-detail2-modulate">top_projection_detail2_modulate</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#blending-with-landscape-heightmap">Blending with Landscape Heightmap</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#global-shader-variables">Global Shader Variables</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#static-shader-variables">Static Shader Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#procedural-detail-layer-coloring">Procedural Detail Layer Coloring</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#normal-blending">Normal Blending</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#microdetails">Microdetails</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#material-shadows">Material Shadows</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#shader-configuration-errors">Shader Configuration Errors</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#sloped-roof">Sloped Roof</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#flat-roof">Flat Roof</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#wooden-roof-trim">Wooden Roof Trim</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_lightmap.html"><code class="docutils literal notranslate"><span class="pre">rendinst_layered_lightmap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_parallax_ice.html"><code class="docutils literal notranslate"><span class="pre">rendinst_parallax_ice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_perlin_layered.html"><code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_simple_emissive.html"><code class="docutils literal notranslate"><span class="pre">rendinst_simple_emissive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="simple_aces_detailed.html"><code class="docutils literal notranslate"><span class="pre">simple_aces_detailed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="rendinst_layered_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="land_mesh_combined_decal_family.html">Shader Family: <code class="docutils literal notranslate"><span class="pre">land_mesh_combined_decal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="dng-shaders/index.html">daNetGame-based Shaders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Shaders</a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code></li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/shaders/rendinst_layered.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="rendinst-layered">
+<h1><code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code><a class="headerlink" href="#rendinst-layered" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This shader is used for objects where we want to apply multiple material
+textures (e.g., brick and stucco tiles that are stored in different textures).</p>
+<p>It can work with both tiles and unique textures. However, its primary purpose is
+for using tiles – it allows objects to be created without visible tiling,
+without the need for unique textures.</p>
+<p>The shader uses the following types of textures:</p>
+<ul class="simple">
+<li><p><strong>UV1</strong>: Global normal map – the normal map for the entire object.</p></li>
+<li><p><strong>UV3</strong>: Details (detail textures) with normal maps and speculars – 2 tiling
+material textures.</p></li>
+<li><p><strong>UV2</strong>: Overlay map – applies effects of leaks/wear and tear to the
+unwrapped parts of objects, over the detail textures (tiles).</p></li>
+<li><p><strong>UV2</strong>: Exclusion mask – globally indicates where certain materials should
+appear on the object.</p></li>
+<li><p><strong>UV2</strong>: Blending mask – allows to randomize the blending of detail textures
+with the exclusion mask across the model, resulting in diverse appearances of
+the object using the same textures.</p></li>
+</ul>
+<p>Let’s take a closer look.</p>
+</section>
+<section id="textures">
+<h2>Textures<a class="headerlink" href="#textures" title="Link to this heading"></a></h2>
+<section id="texture-assignment">
+<h3>Texture Assignment<a class="headerlink" href="#texture-assignment" title="Link to this heading"></a></h3>
+<p>For more details, see <a class="reference internal" href="#id1"><span class="std std-ref">here</span></a>.</p>
+</section>
+<section id="global-normal-map">
+<h3>Global Normal Map<a class="headerlink" href="#global-normal-map" title="Link to this heading"></a></h3>
+<p>This is straightforward. For most simple objects (fences, bollards, sometimes
+houses), a standard normal map from our libraries is used. For more complex
+objects, unique normal maps are created.</p>
+<p>Their main purpose is to smooth out edges and chamfers. Since the objects
+themselves will be covered with material tiles (which contain their own normal
+maps), it’s important to achieve smoothing on the global normal map for those
+aspects that the tile normal maps cannot smooth out.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Do not create the texture details of the object’s materials on this texture.
+Only smooth out seams, worn edges, etc.</p>
+</div>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Without a global normal map</p></th>
+  <th style="text-align:center; width:49%"><p>With a normal map showing chamfers</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_01.jpg"><img alt="../../_images/rendinst_layered_01.jpg" class="bg-primary" src="../../_images/rendinst_layered_01.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_02.jpg"><img alt="../../_images/rendinst_layered_02.jpg" class="bg-primary" src="../../_images/rendinst_layered_02.jpg" style="width: 49%;" />
+</a>
+<p>The global normal map uses <strong>UV1</strong>. No other texture uses this UV channel.</p>
+</section>
+<section id="detail-textures-details">
+<h3>Detail Textures (Details)<a class="headerlink" href="#detail-textures-details" title="Link to this heading"></a></h3>
+<p>Let’s illustrate the concept using a brick house covered with stucco.</p>
+<p><strong>There are always two details!</strong></p>
+<ul class="simple">
+<li><p><strong>Detail1</strong> represents the material the object is made of. For instance, if
+the house wall is made of bricks, then Detail1 would be bricks.</p></li>
+<li><p><strong>Detail2</strong> represents the material covering the object (such as moss on a
+tree or dirt on a cobblestone). For the house wall covered in stucco, Detail2
+would be the stucco.</p></li>
+</ul>
+<p>In this example, we use <code class="docutils literal notranslate"><span class="pre">modern_brick_brown_dirt_d.tif</span></code> and
+<code class="docutils literal notranslate"><span class="pre">stucco_new_d.tif</span></code>, along with their respective normal maps, which contain
+corresponding specular maps in their alpha channels.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>1st map - Dirty Brickwork</p></th>
+  <th style="text-align:center; width:49%"><p>2nd map - Fresh Stucco</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_03.jpg"><img alt="../../_images/rendinst_layered_03.jpg" class="bg-primary" src="../../_images/rendinst_layered_03.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_04.jpg"><img alt="../../_images/rendinst_layered_04.jpg" class="bg-primary" src="../../_images/rendinst_layered_04.jpg" style="width: 49%;" />
+</a>
+<p>In general, the process is straightforward, with one exception – we need to
+blend these textures automatically on the model. To achieve this, we use the
+alpha channel of the diffuse maps, which contains heightmaps: the lighter the
+pixel, the “heavier” it is. The material with the higher heightmap at any given
+point will dominate in that texel.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_05.jpg"><img alt="../../_images/rendinst_layered_05.jpg" class="bg-primary" src="../../_images/rendinst_layered_05.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_06.jpg"><img alt="../../_images/rendinst_layered_06.jpg" class="bg-primary" src="../../_images/rendinst_layered_06.jpg" style="width: 49%;" />
+</a>
+<p>By blending these two heightmaps in the shader, we achieve a non-uniform texture
+appearance: in some areas, the brickwork is visible because its heightmap is
+higher, while in others, the stucco dominates. For example:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_07.jpg"><img alt="../../_images/rendinst_layered_07.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_07.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>What happens if we modify these heightmaps? Suppose we want the stucco to cover
+the entire brick surface completely. To do this, we need to eliminate all the
+light pixels in the brick’s heightmap, as these are the areas where the brick
+shows through the stucco.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:43%"><p>Making the heightmap entirely black:</p></th>
+  <th style="text-align:center; width:55%"><p>Results in:</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_08.jpg"><img alt="../../_images/rendinst_layered_08.jpg" class="bg-primary" src="../../_images/rendinst_layered_08.jpg" style="width: 43%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_09.jpg"><img alt="../../_images/rendinst_layered_09.jpg" class="bg-primary" src="../../_images/rendinst_layered_09.jpg" style="width: 55%;" />
+</a>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Of course, this approach isn’t advisable – this was merely a demonstration of
+how heightmaps work. These maps are essential for creating a seamless,
+non-repeating overlay of stucco on top of the bricks.</p>
+</div>
+<p><strong>Details use UV3 mapping</strong>, typically mapped using a 3x3x3 meter box without
+packing.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Ensure that the geometry does not exceed 7 tiles in the UV layout; otherwise,
+artifacts may appear on consoles.</p>
+</div>
+</section>
+<section id="overlay-map">
+<h3>Overlay Map<a class="headerlink" href="#overlay-map" title="Link to this heading"></a></h3>
+<p>The texture is named “overlay” because the shader applies it to the object using
+a method similar to the “overlay” blend mode in Photoshop – <code class="docutils literal notranslate"><span class="pre">multiply2X</span></code>.</p>
+<p>The purpose of the overlay is to give the object a “lived-in” appearance:
+stains, cracks, dirt, soot, etc.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:50%"><p>Here is our house without the overlay (technically with a 50% gray overlay – completely disabling it would prevent the shader from functioning). We can see only the brick and stucco – the object looks plasticky:</p></th>
+  <th style="text-align:center; width:48%"><p>And here's the house with the overlay applied:</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_10.jpg"><img alt="../../_images/rendinst_layered_10.jpg" class="bg-primary" src="../../_images/rendinst_layered_10.jpg" style="width: 50%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_11.jpg"><img alt="../../_images/rendinst_layered_11.jpg" class="bg-primary" src="../../_images/rendinst_layered_11.jpg" style="width: 48%;" />
+</a>
+</section>
+<section id="universal-overlay">
+<h3>Universal Overlay<a class="headerlink" href="#universal-overlay" title="Link to this heading"></a></h3>
+<p>For this demonstration, we used a universal overlay –
+<code class="docutils literal notranslate"><span class="pre">buildings_overlay_tex_d.tif</span></code>, which we apply to our houses and simpler
+structures like fences. It looks like this:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_12.jpg"><img alt="../../_images/rendinst_layered_12.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_12.jpg" style="width: 50%;" />
+</a>
+<br>
+<p>Conceptually, it’s divided into 16 cells (with indices starting from 0, not 1):</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_13.jpg"><img alt="../../_images/rendinst_layered_13.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_13.jpg" style="width: 50%;" />
+</a>
+<br>
+<ul>
+<li><p><strong>Cells 0-1</strong> are used to decorate the building’s interior materials (walls
+with wallpaper/stucco).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As shown, these two cells contain four smaller cells each – ensure that the
+seams between these cells do not fall on a flat surface, or else a distinct
+vertical line will appear on the model! For example:</p>
+</div>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_14.jpg"><img alt="../../_images/rendinst_layered_14.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_14.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Cell 2</strong> is used to decorate wooden roof trim, similar to this:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_15.jpg"><img alt="../../_images/rendinst_layered_15.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_15.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>It should be mapped as follows:</p>
+<ul class="simple">
+<li><p>Either using a horizontal plane of 55x55 meters. Vertical supports should
+be mapped separately in the vertical plane;</p></li>
+<li><p>Or using box and flatten mapping.</p></li>
+</ul>
+</li>
+<li><p><strong>Cells 3, 6, 7</strong> are currently unused.</p></li>
+<li><p><strong>Cells 4-5</strong> are used to decorate roofs:</p>
+<ul class="simple">
+<li><p><strong>Cell 4</strong> is for sloped roofs;</p></li>
+<li><p><strong>Cell 5</strong> is for flat roofs.</p></li>
+</ul>
+</li>
+<li><p><strong>Cells 8-15</strong> are used to decorate the building’s exterior.</p></li>
+</ul>
+<p>In the example above, <strong>cell 11</strong> was used. Here’s how it works:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_16.jpg"><img alt="../../_images/rendinst_layered_16.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_16.jpg" style="width: 80%;" />
+</a>
+<br>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All external surfaces of the building, except for the roof, should only be
+mapped to <strong>cell 8</strong>. The shader will automatically shift the mapping to cells
+<strong>9-15</strong>. More on this in the shader settings.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the early stages of <em>War Thunder</em>’s development, universal overlays were
+widely used. However, as the project evolved, we transitioned to unique
+overlays. Consequently, the content of this section is now outdated. Despite
+this, universal overlays can still be employed, though they are better suited
+for smaller objects rather than larger structures like buildings.</p>
+</div>
+</section>
+<section id="unique-overlay">
+<h3>Unique Overlay<a class="headerlink" href="#unique-overlay" title="Link to this heading"></a></h3>
+<p>The universal overlay was designed to automate visual variety in objects – by
+creating one house, you can give it up to eight different appearances without
+any additional work. However, this map is not suitable for unique objects, as it
+cannot emphasize the distinctive features that make an object more “alive”.</p>
+<p>Let’s look at an example of a unique overlay:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_17.jpg"><img alt="../../_images/rendinst_layered_17.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_17.jpg" style="width: 50%;" />
+</a>
+<br>
+<p>As you can see, the entire texture is dedicated to a unique UV layout,
+reflecting soot marks on walls at bullet impact sites, rotting wood (small
+details), moss-covered foundations, etc.</p>
+<p>It was created for a partially ruined church:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_18.jpg"><img alt="../../_images/rendinst_layered_18.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_18.jpg" style="width: 80%;" />
+</a>
+<br>
+</section>
+<section id="exclusion-mask">
+<h3>Exclusion Mask<a class="headerlink" href="#exclusion-mask" title="Link to this heading"></a></h3>
+<p>This texture resides in the alpha channel of the overlay map and therefore uses
+the same UV2. Let’s examine it using the universal overlay’s alpha channel as an
+example.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_19.jpg"><img alt="../../_images/rendinst_layered_19.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_19.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>This is a black-and-white mask. It defines the global areas on the model where
+we want to preserve only the first detail or only the second.</p>
+<ul class="simple">
+<li><p><strong>Black pixels</strong> – only the first detail will remain.</p></li>
+<li><p><strong>White pixels</strong> – only the second detail will remain.</p></li>
+<li><p><strong>Intermediate grayscale values</strong> – adjust the global heightmaps of the two
+details.</p></li>
+</ul>
+<p>Why is this necessary? Let’s see how the details mix with a 50% gray exclusion
+mask. (For clarity, we’ll set the overlay to the same 50% gray so it doesn’t
+interfere with the detail mixing.)</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_20.jpg"><img alt="../../_images/rendinst_layered_20.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_20.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Several issues are apparent:</p>
+<ol class="arabic">
+<li><p>The tiling pattern is fully readable. Even after applying the overlay, this
+might not be corrected, as the overlay cells (when using the universal
+overlay) have varying levels of “dirtiness.” For example, using <strong>cell 8</strong>
+produces the following result:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_21.jpg"><img alt="../../_images/rendinst_layered_21.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_21.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+</ol>
+<p>It’s clear that the tiling is still visible.</p>
+<ol class="arabic" start="2">
+<li><p>Detail2 (stucco) blends with Detail1 (bricks) uniformly and boringly across
+the entire wall area. This can be somewhat improved by using a dirtier
+overlay. For example, let’s try <strong>cell 11</strong>:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_22.jpg"><img alt="../../_images/rendinst_layered_22.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_22.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+</ol>
+<p>Yes, it looks better. However, problem 1 remains – the cells are used
+automatically, and the mapping will inevitably shift to a less detailed cell.</p>
+<p>The exclusion mask is designed to address these specific issues. It globally
+overrides the heightmaps of the details across the entire object mapped to it,
+causing the blending to be rough and uneven. This helps hide the tiling (it’s
+hard to notice when Detail2 covers different parts of Detail1) and eliminates
+uniform blending.</p>
+<p>Let’s switch the exclusion mask from gray to the original.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_23.jpg"><img alt="../../_images/rendinst_layered_23.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_23.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>The result is clear – both issues are resolved. However, <strong>cell 8</strong> is rather
+sparse for both the overlay and the exclusion mask.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_24.jpg"><img alt="../../_images/rendinst_layered_24.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_24.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Let’s see what happens if we shift the UV2 mapping to <strong>cell 11</strong>. In the
+screenshots above, it worked with a gray exclusion mask. Now let’s see its full
+effect.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_25.jpg"><img alt="../../_images/rendinst_layered_25.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_25.jpg" style="width: 80%;" />
+</a>
+<br>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_26.jpg"><img alt="../../_images/rendinst_layered_26.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_26.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>There is no visible tiling. The details blend randomly. The overlay adds even
+more detail.</p>
+<p>The more varied the exclusion mask, the smoother the detail
+blending. The more gradients and fewer sharp transitions it contains, the
+smoother the boundaries between details.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>In summary, the exclusion mask controls where Detail1 (the object’s base
+material) is visible – where its pixels are black–and where Detail2 (the
+object’s covering) appears – where its pixels are white.</p>
+<p>Where the pixels are gray, the details blend based on their heightmaps, taking
+into account the “grayness” of the exclusion mask:</p>
+<ul class="simple">
+<li><p>If the mask is 50% gray, only the heightmaps are used.</p></li>
+<li><p>If it is darker than 50%, the heightmap of Detail1 is stronger.</p></li>
+<li><p>If it is lighter than 50%, the heightmap of Detail2 takes precedence.</p></li>
+</ul>
+</div>
+</section>
+<section id="blending-mask">
+<h3>Blending Mask<a class="headerlink" href="#blending-mask" title="Link to this heading"></a></h3>
+<section id="how-it-works">
+<h4>How It Works<a class="headerlink" href="#how-it-works" title="Link to this heading"></a></h4>
+<p>The blending mask is the final texture we utilize. Let’s examine it using the
+example of the <code class="docutils literal notranslate"><span class="pre">brick_stucco_m.tif</span></code> texture, which was applied to the house we
+discussed earlier.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_27.jpg"><img alt="../../_images/rendinst_layered_27.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_27.jpg" style="width: 50%;" />
+</a>
+<br>
+<p><strong>What does it do?</strong> Essentially, it performs the same function as the exclusion
+mask:</p>
+<ul class="simple">
+<li><p>Black areas reveal Detail1.</p></li>
+<li><p>White areas reveal Detail2.</p></li>
+<li><p>Gray areas blend the two details based on their heightmaps and the gray value
+of the blending mask.</p></li>
+</ul>
+<p>Let’s recall how the house looked without a blending mask (in the earlier
+screenshots, it was filled with 50% gray).</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_28.jpg"><img alt="../../_images/rendinst_layered_28.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_28.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Now, let’s see how the house appears with the <code class="docutils literal notranslate"><span class="pre">brick_stucco_m.tif</span></code> blending
+mask applied.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_29.jpg"><img alt="../../_images/rendinst_layered_29.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_29.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>The difference is subtle – the exclusion mask creates a more noticeable change.
+This is because, on UV2, our house occupies a single cell, which is quite
+insignificant in the context of the blending mask.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_30.jpg"><img alt="../../_images/rendinst_layered_30.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_30.jpg" style="width: 50%;" />
+</a>
+<br>
+<p>So, why do we need a blending mask that seemingly duplicates the exclusion mask,
+but with less impact?</p>
+<p>There are four key points to understand:</p>
+<ol class="arabic">
+<li><p>In reality, details are not blended solely by the exclusion mask.</p></li>
+<li><p>Similarly, details are not blended solely by the blending mask.</p></li>
+<li><p>The exclusion mask and blending mask are combined to create the final global
+blending mask, which dictates how the details are blended.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These masks are combined using standard multiplication (not <em>Photoshop</em>’s
+Multiply mode).</p>
+</div>
+</li>
+<li><p>Our <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code> shader randomly offsets the blending mask (the local
+one we’re discussing) based on the position of the house on the map.</p></li>
+</ol>
+<p>To summarize in simpler terms:</p>
+<ol class="arabic simple">
+<li><p>Place the house on the map, for instance, at the center.</p></li>
+<li><p>The blending mask and exclusion mask combine to form the global blending
+mask.</p>
+<ul class="simple">
+<li><p>Black areas reveal Detail1.</p></li>
+<li><p>White areas reveal Detail2.</p></li>
+<li><p>Intermediate gray values influence the blending of details based on their
+heightmaps.</p></li>
+</ul>
+</li>
+<li><p>Move the house slightly, and the blending mask and exclusion mask are
+multiplied again, creating a new global blending mask and altering how the
+details blend.</p></li>
+</ol>
+<p>Here’s how it looks in practice:</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_31.webm" type="video/webm"></video><p>Each movement triggers a reassembly of the global blending mask via multiplying
+the exclusion mask and the local blending mask, which results in the same object
+having a different appearance as it is repositioned.</p>
+<p>This is the core function of the blending mask. We cannot offset the exclusion
+mask since it contains a unique mapping of detail blending (even within the
+cells). The blending mask is designed precisely for this purpose.</p>
+</section>
+<section id="specifics-of-using-the-blending-mask">
+<h4>Specifics of Using the Blending Mask<a class="headerlink" href="#specifics-of-using-the-blending-mask" title="Link to this heading"></a></h4>
+<p>We used the <code class="docutils literal notranslate"><span class="pre">brick_stucco_m.tif</span></code> as our example. The name itself indicates that
+it represents stucco over brick, meaning it’s intended for a specific type of
+detail blending – Detail2 (stucco) is layered over Detail1 (brick) with clear
+boundaries.</p>
+<p>Let’s look at a real brick house with stucco, such as this one:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_32.jpg"><img alt="../../_images/rendinst_layered_32.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_32.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>The concept becomes clear – stucco peels off in sheets, revealing the underlying
+wall material.</p>
+<p>How did we achieve this effect on our house? The current blending mask has sharp
+transitions between black and white, with almost no gradients. This means we
+either see the brick (black areas) or the stucco (white areas).</p>
+<p>But what if we want to create a stone wall with moss growing between the stones?
+We’d use a stone texture (<code class="docutils literal notranslate"><span class="pre">medieval_brick_d.tif</span></code>) and a moss texture
+(<code class="docutils literal notranslate"><span class="pre">moss_different_d.tif</span></code>). Let’s examine these textures and their heightmaps.</p>
+<ol class="arabic">
+<li><p><strong>Stone Masonry</strong>: Its heightmap clearly indicates that any Detail2 should
+only appear between the stones. Recall that the heightmap function – the
+lighter the area, the stronger the effect.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_33.jpg"><img alt="../../_images/rendinst_layered_33.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_33.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+<li><p><strong>Moss</strong>: Its heightmap suggests that it doesn’t matter where it grows. It’s
+uniformly gray, meaning it will be overpowered by almost any other detail’s
+heightmap.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_34.jpg"><img alt="../../_images/rendinst_layered_34.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_34.jpg" style="width: 80%;" />
+</a>
+<br>
+</li>
+</ol>
+<p>Let’s see how these details blend with the current blending mask. Remember, the
+moss heightmap will likely be overridden by the stone heightmap, so the moss
+should only appear between the stones – exactly what we want.</p>
+<p>However, what we get is moss applied over the entire wall surface.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_35.jpg"><img alt="../../_images/rendinst_layered_35.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_35.jpg" style="width: 80%;" />
+</a>
+<br>
+<p><strong>Why did this happen?</strong></p>
+<p>Because our blending mask is unsuitable. As stated earlier:</p>
+<ul class="simple">
+<li><p>“What does the blending mask do? It functions exactly like the exclusion mask.
+Black areas reveal Detail1, white areas reveal Detail2, and gray areas blend
+the two details according to their heightmaps and the gray value of the
+blending mask.”</p></li>
+<li><p>“The current blending mask has sharp transitions between black and white, with
+almost no gradients. This means we either see the brick (black) or the stucco
+(white).”</p></li>
+</ul>
+<p>Our <code class="docutils literal notranslate"><span class="pre">brick_stucco_m.tif</span></code> blending mask has overridden the detail heightmaps and
+distributed them as it saw fit.</p>
+<p><strong>What to do in such cases?</strong> Change the blending mask.</p>
+<p>The approach is straightforward:</p>
+<ul class="simple">
+<li><p>Ensure that the detail heightmaps are not overridden.</p></li>
+<li><p>Detail heightmaps are not overridden by gray.</p></li>
+<li><p>We need smooth transitions between the details.</p></li>
+</ul>
+<p><strong>Conclusion</strong>: We need a blending mask with lots of gray and few sharp
+boundaries – everything should be gradient-based.</p>
+<p>Let’s try <code class="docutils literal notranslate"><span class="pre">gypsum_m.tif</span></code>. It’s not a perfect mask, but it’s better than the
+previous one. We can see that it contains a lot of gray, with minimal
+black/white areas and many gradients. There are some patches, but they’re small
+and sparse.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_36.jpg"><img alt="../../_images/rendinst_layered_36.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_36.jpg" style="width: 50%;" />
+</a>
+<br>
+<p>Now, let’s see how it performs.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_37.jpg"><img alt="../../_images/rendinst_layered_37.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_37.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>The moss remains in some places, but mostly it has receded to the gaps between
+the stones. The remaining local patches can be removed if needed, but that would
+require additional methods.</p>
+<p>Remember that these masks will be multiplied, and the final appearance will
+continue to evolve:</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_38.webm" type="video/webm"></video></section>
+</section>
+<section id="conclusion">
+<h3>Conclusion<a class="headerlink" href="#conclusion" title="Link to this heading"></a></h3>
+<p>A concise summary of how the shader uses textures:</p>
+<ol class="arabic">
+<li><p>Two details are blended based on their heightmaps (through alpha test).</p></li>
+<li><p>The exclusion and blending masks combine to create the final global blending
+mask for detail blending (using standard multiplication, not <em>Photoshop</em>’s
+Multiply mode).</p>
+<p>This raises a question: Why not blend the details directly using this mask?
+Why do we need detail heightmaps as well?</p>
+<p>Because the blending mask has a large texel size, blending directly would
+result in blurry textures. Using the detail heightmaps allows for a sharper
+blend.</p>
+</li>
+<li><p>When the heightmaps are combined with the blended masks, the result is that
+within the large texel of the global blending mask (which covers the entire
+building), several smaller texels of the local blending mask are nested.
+These smaller texels are where the detail heightmaps interact. This process
+ensures that the image remains sharp, as the local blending mask allows for
+finer detail within each texel of the global mask.</p></li>
+<li><p>Next, a normal map and an overlay map are applied on top of the blended
+details. These maps add texture and additional detail to the surface,
+enhancing the visual complexity of the material.</p></li>
+<li><p>Finally, when the object using this shader is repositioned, the blending mask
+is offset. This offsetting causes the global blending mask to change, which
+in turn alters how the details are mixed. As a result, the object’s
+appearance shifts as the blending of the details adjusts to the new position.</p></li>
+</ol>
+</section>
+<section id="shader-setup">
+<h3>Shader Setup<a class="headerlink" href="#shader-setup" title="Link to this heading"></a></h3>
+<section id="general-shader-parameters">
+<h4>General Shader Parameters<a class="headerlink" href="#general-shader-parameters" title="Link to this heading"></a></h4>
+<p>When setting up the shader, the initial view displays the basic parameters,
+which can be further expanded for customization.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_39.jpg"><img alt="../../_images/rendinst_layered_39.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_39.jpg" style="width: 80%;" />
+</a>
+<br>
+<p><strong>Two key points to note:</strong></p>
+<ol class="arabic">
+<li><p>The shader is part of the <strong>Dagor Material 2</strong> set.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_40.jpg"><img alt="../../_images/rendinst_layered_40.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_40.jpg" style="width: 50%;" />
+</a>
+<br>
+</li>
+<li><p>The <strong>Add</strong> button allows access to additional parameters.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_41.jpg"><img alt="../../_images/rendinst_layered_41.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_41.jpg" style="width: 50%;" />
+</a>
+<br>
+</li>
+</ol>
+</section>
+<section id="id1">
+<h4>Texture Assignment<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<p>Textures are assigned to slots in the following order:</p>
+<ul class="simple">
+<li><p>Slot 1 – Overlay</p></li>
+<li><p>Slot 2 – Blending Mask</p></li>
+<li><p>Slot 3 – Normal Map</p></li>
+<li><p>Slot 4 – Detail1 Diffuse</p></li>
+<li><p>Slot 5 – Detail1 Normal Map</p></li>
+<li><p>Slot 6 – Detail2 Diffuse</p></li>
+<li><p>Slot 7 – Detail2 Normal Map</p></li>
+</ul>
+</section>
+<section id="shader-parameters">
+<h4>Shader Parameters<a class="headerlink" href="#shader-parameters" title="Link to this heading"></a></h4>
+<p>The shader offers a range of parameters for customization:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_first_tile</span></code>/<code class="docutils literal notranslate"><span class="pre">atlas_last_tile</span></code>/<code class="docutils literal notranslate"><span class="pre">atlas_tile_u</span></code>/<code class="docutils literal notranslate"><span class="pre">atlas_tile_v</span></code>: Group of
+parameters that manages the offset of uv-mapping on the universal overlay.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail_tile_u/v</span></code>: Controls the tiling of details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail_scroll_u/v</span></code>: Adjusts the scrolling of details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_gamma_start/end</span></code>: Configures the transparency of Detail1 through
+Detail2.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_tile_u/v</span></code>: Controls the tiling of the blending mask.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_scroll_u/v</span></code>: Adjusts the scrolling of the blending mask.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">draw_grass</span></code>: Enables grass growth on the object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail2_colored</span></code>: Allows to colorize Detail2 in the <em>Dagor Editor</em> tool (an
+outdated feature rarely used).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection</span></code>: Group of parameters that allows to project Detail2 above the
+Detail1 using global and local normals.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection_from</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection_to</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection_detail2_modulate</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">use_painting</span></code>: Group of parameters used for colorizing of details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">painting_line</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paint1stdetail</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail2_combined_normal</span></code>: Blends details’ normal maps.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer1</span></code>: Group of parameters for microdetails.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer2</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer1_uv_scale</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">micro_detail_layer2_uv_scale</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">material_shadow_influence</span></code>: Controls shadow strength from the details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">material_shadow_scale</span></code>: Adjusts the shadow size from the details.</p></li>
+</ul>
+</section>
+<section id="offset-of-uv-mapping-on-the-universal-overlay">
+<h4>Offset of UV-mapping on the Universal Overlay<a class="headerlink" href="#offset-of-uv-mapping-on-the-universal-overlay" title="Link to this heading"></a></h4>
+<p>To use the universal overlay effectively, remember the rule stated earlier:</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All exterior surfaces of the building, except the roof, should be mapped to
+<strong>cell 8</strong>. The shader will automatically shift the mapping across <strong>cells
+9-15</strong>.</p>
+</div>
+<p>The shader and universal overlay/mask are designed to automate content
+variation. By mapping the exterior of the building to <strong>cell 8</strong>, the shader
+will automatically shift the mapping to other cells, creating varied appearances
+without manual intervention.</p>
+<p>For example, if the walls and exterior parts of the house are mapped to <strong>cell
+8</strong>:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_42.jpg"><img alt="../../_images/rendinst_layered_42.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_42.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>The shader will automatically shift the mapping to <strong>cell 9</strong>:</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_43.webm" type="video/webm"></video><p>However, this automatic shifting requires specific parameters to be set. The
+universal overlay cells are as follows:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_44.jpg"><img alt="../../_images/rendinst_layered_44.jpg" class="bg-primary align-left" src="../../_images/rendinst_layered_44.jpg" style="width: 50%;" />
+</a>
+<ul class="simple">
+<li><p><strong>cells 0-1</strong>: For internal materials (walls with wallpaper/stucco).</p></li>
+<li><p><strong>cell 2</strong>: For decorative wooden roof elements.</p></li>
+<li><p><strong>cells 3, 6, 7</strong>: Currently unused.</p></li>
+<li><p><strong>cells 4-5</strong>: For roof decoration: <strong>cell 4</strong> for sloped roofs, <strong>cell 5</strong>
+for flat roofs.</p></li>
+<li><p><strong>cells 8-15</strong>: For decorating external parts of buildings.</p></li>
+</ul>
+<br clear="left">
+<p>To enable the shader to recognize and use these cells, the following parameters
+must be set:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_first_tile</span></code>: Start cell number for the mapping jump (usually <strong>cell
+8</strong>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_last_tile</span></code>: End cell number for the mapping jump (usually <strong>cell 15</strong>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_tile_u</span></code>: Horizontal jump size in fractions of the texture width (e.g.,
+0.5).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_tile_v</span></code>: Vertical jump size in fractions of the texture height (e.g.,
+0.125).</p></li>
+</ul>
+<p>For the universal overlay to work correctly, you need to add these parameters
+using the <strong>Add</strong> button and set their values as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_first_tile</span> <span class="pre">=</span> <span class="pre">8</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_last_tile</span> <span class="pre">=</span> <span class="pre">15</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_tile_u</span> <span class="pre">=</span> <span class="pre">0.5</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atlas_tile_v</span> <span class="pre">=</span> <span class="pre">0.125</span></code></p></li>
+</ul>
+<p>If these parameters are not set, the overlay will not shift correctly:</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_45.webm" type="video/webm"></video><p>In some cases, you may want to limit the use of certain cells. For example,
+wooden walls may not look good with stucco cracks and stains.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_46.jpg"><img alt="../../_images/rendinst_layered_46.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_46.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>In such cases, set <code class="docutils literal notranslate"><span class="pre">atlas_last_tile</span> <span class="pre">=</span> <span class="pre">10</span></code> to limit the jump to <strong>cells 8-10</strong>,
+which are more neutral:</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_47.webm" type="video/webm"></video></section>
+<section id="detail-tiling-settings">
+<h4>Detail Tiling Settings<a class="headerlink" href="#detail-tiling-settings" title="Link to this heading"></a></h4>
+<p>The tiling of details is controlled by the parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">detail1/2_tile_u</span></code>: Adjusts the horizontal tiling of Detail1/2.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail1/2_tile_v</span></code>: Adjusts the vertical tiling of Detail1/2.</p></li>
+</ul>
+<p>By default, if these parameters are not set, they are assumed to be <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<p>These settings are useful when:</p>
+<ul class="simple">
+<li><p>The texels of the detail textures do not match, or</p></li>
+<li><p>You want to adjust the display size of one detail relative to another.</p></li>
+</ul>
+<p>Here’s an example of a house corner with the brick detail tiling set to <code class="docutils literal notranslate"><span class="pre">1</span></code> and
+the stucco detail tiling set to <code class="docutils literal notranslate"><span class="pre">0.5</span></code>:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_48.jpg"><img alt="../../_images/rendinst_layered_48.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_48.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>The stucco appears blurry because its texel size is twice as large as the brick.
+Comparing the textures:</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Modern Brick Brown Dirt (1024x1024)</p></th>
+  <th style="text-align:center; width:49%"><p>Stucco New (512x512)</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_49.jpg"><img alt="../../_images/rendinst_layered_49.jpg" class="bg-primary" src="../../_images/rendinst_layered_49.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_50.jpg"><img alt="../../_images/rendinst_layered_50.jpg" class="bg-primary" src="../../_images/rendinst_layered_50.jpg" style="width: 49%;" />
+</a>
+<p>Increasing the stucco tile by 2x for both axes corrects this:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_51.jpg"><img alt="../../_images/rendinst_layered_51.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_51.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>However, you might want a more refined stucco finish without large, clear holes.
+Setting the stucco tile to <code class="docutils literal notranslate"><span class="pre">2.54</span></code> achieves this:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_52.jpg"><img alt="../../_images/rendinst_layered_52.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_52.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>The result is a house with a more refined stucco texture. However, be cautious,
+as extreme mismatches in texel sizes can lead to visual inconsistencies,
+particularly on less detailed surfaces like roofs.</p>
+<p>For instance, moss with a tile of <code class="docutils literal notranslate"><span class="pre">5.35</span></code> on a roof with a tile of 1 shows a
+noticeable mismatch:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_53.jpg"><img alt="../../_images/rendinst_layered_53.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_53.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>To avoid such issues, always check texture sizes and the final result, ensuring
+there’s no visible mismatch.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>It’s better to use non-integer tiling parameters (e.g., <code class="docutils literal notranslate"><span class="pre">1.54</span></code> instead of <code class="docutils literal notranslate"><span class="pre">1.5</span></code>,
+<code class="docutils literal notranslate"><span class="pre">2.35</span></code> instead of <code class="docutils literal notranslate"><span class="pre">2</span></code>). This reduces the visibility of the tiling pattern.</p>
+</div>
+</section>
+<section id="disabling-tiling-detail1-2-scroll-u-1">
+<h4>Disabling Tiling (detail1/2_scroll_u=-1)<a class="headerlink" href="#disabling-tiling-detail1-2-scroll-u-1" title="Link to this heading"></a></h4>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Use just <code class="docutils literal notranslate"><span class="pre">detail1/2_scroll_u</span></code> to disable detail scaling. Don’t use <code class="docutils literal notranslate"><span class="pre">scroll_v</span></code>,
+because it’s incorrect and leads to visual bugs.</p>
+</div>
+<p>When scaling an object, tiling is often automatically applied based on the
+object’s size, which can cause unwanted effects on unique UV mappings. For
+instance, scaling a stone object 100 times can make the details tile 100 times
+more frequent.</p>
+<p><strong>Example:</strong></p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:48%"><p>100% scale</p></th>
+  <th style="text-align:center; width:50%"><p>1000% scale</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_54.jpg"><img alt="../../_images/rendinst_layered_54.jpg" class="bg-primary" src="../../_images/rendinst_layered_54.jpg" style="width: 48%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_55.jpg"><img alt="../../_images/rendinst_layered_55.jpg" class="bg-primary" src="../../_images/rendinst_layered_55.jpg" style="width: 50%;" />
+</a>
+<p>The technology is useful, because it saves us texel when scaling objects.
+However, a problem arises when we use such a shader on objects with unique UV.
+For example, we take a bunch of tires and make them “dusty”. Detail1 mapping is
+scaled when we scale the model of tires. But uv-mapping for this model is unique</p>
+<ul class="simple">
+<li><p>we get visual bug.</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:44%"><p>100% scale:</p></th>
+  <th style="text-align:center; width:54%"><p>200% scale:</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_56.jpg"><img alt="../../_images/rendinst_layered_56.jpg" class="bg-primary" src="../../_images/rendinst_layered_56.jpg" style="width: 44%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_57.jpg"><img alt="../../_images/rendinst_layered_57.jpg" class="bg-primary" src="../../_images/rendinst_layered_57.jpg" style="width: 54%;" />
+</a>
+<p>To prevent this, set <code class="docutils literal notranslate"><span class="pre">detail1_scroll_u=-1</span></code> to disable tiling for a specific
+detail when scaling is not desired.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:98%"><p>200% scale with detail1_scroll_u=-1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_58.jpg"><img alt="../../_images/rendinst_layered_58.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_58.jpg" style="width: 54%;" />
+</a>
+<br>
+</section>
+</section>
+<section id="configuring-detail-offset">
+<h3>Configuring Detail Offset<a class="headerlink" href="#configuring-detail-offset" title="Link to this heading"></a></h3>
+<p>Control the horizontal and vertical offsets of details using:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">detail1/2_scroll_u</span></code> – Horizontal offset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detail1/2_scroll_v</span></code> – Vertical offset.</p></li>
+</ul>
+<p>Default values are <code class="docutils literal notranslate"><span class="pre">1</span></code>. Use these settings when precise alignment of details is
+necessary, such as aligning bricks in a wall section.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_62.jpg"><img alt="../../_images/rendinst_layered_62.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_62.jpg" style="width: 80%;" />
+</a>
+<br>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_63.jpg"><img alt="../../_images/rendinst_layered_63.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_63.jpg" style="width: 80%;" />
+</a>
+<br>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_64.jpg"><img alt="../../_images/rendinst_layered_64.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_64.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>To do this, we set the brick parameters <code class="docutils literal notranslate"><span class="pre">detail1_scroll_u</span></code> and
+<code class="docutils literal notranslate"><span class="pre">detail1_scroll_v</span></code> to 0. What happens if we don’t set these parameters? For
+example, <code class="docutils literal notranslate"><span class="pre">detail1_scroll_u</span></code>:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_65.jpg"><img alt="../../_images/rendinst_layered_65.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_65.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>We ended up with horizontal shifts in the texture, resulting in uneven seams: in
+some places, the bricks vary in thickness, while in others, they appear
+unusually short.</p>
+<p>It’s easy to imagine what happens if <code class="docutils literal notranslate"><span class="pre">detail1_scroll_v=0</span></code> is not set – complete
+misalignment of the fence edges.”</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_66.jpg"><img alt="../../_images/rendinst_layered_66.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_66.jpg" style="width: 80%;" />
+</a>
+<br>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Don’t set these parameters without a good reason. They limit the number of
+variations you can achieve with your objects, so only use them when absolutely
+necessary.</p>
+</div>
+</section>
+<section id="configuring-of-details-blending">
+<h3>Configuring of Details Blending<a class="headerlink" href="#configuring-of-details-blending" title="Link to this heading"></a></h3>
+<p>Details are blended with the final blending mask, that represents a result of
+combining of several masks (details’ heightmaps, exclusion mask, blending mask).</p>
+<p>We can modify this final blending mask by raising it to the needed power - we
+call it Gamma.</p>
+<p>There’re 2 parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_gamma_start</span></code> – smallest needed gamma value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_gamma_end</span></code> – largest needed gamma value.</p></li>
+</ul>
+<p>We specify them both and <code class="docutils literal notranslate"><span class="pre">Dagor</span></code> chooses final gamma value between them
+randomly. Our final blending mask is raised to the power of this gamma value.</p>
+<p>Imagine final blending mask as a set of values – not colors. Black is <code class="docutils literal notranslate"><span class="pre">0</span></code>. White
+is <code class="docutils literal notranslate"><span class="pre">1</span></code>. Nearly white is, for instance, <code class="docutils literal notranslate"><span class="pre">0.95</span></code>.</p>
+<p>Raise <code class="docutils literal notranslate"><span class="pre">0.95</span></code> to the power of <code class="docutils literal notranslate"><span class="pre">2</span></code> and you’ll get <code class="docutils literal notranslate"><span class="pre">0.9</span></code>. But raise <code class="docutils literal notranslate"><span class="pre">0.95</span></code> to the
+power of <code class="docutils literal notranslate"><span class="pre">0.2</span></code> and you’ll get <code class="docutils literal notranslate"><span class="pre">0.9898</span></code>.</p>
+<p>It means that the smaller gamma values you specify – the brighter final blending
+mask you get. And more of Detail2 will be seen.</p>
+<p>On the contrary the larger gamma values you specify – the darker final blending
+mask you get. And more of detail1 will be seen.</p>
+<p>For instance, we want to reduce the visibility of the stucco on this house.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_67.jpg"><img alt="../../_images/rendinst_layered_67.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_67.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>We assign the blend mask <code class="docutils literal notranslate"><span class="pre">gypsum_m</span></code> as it is the most “gentle” and gray, and we
+get the following result:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_68.jpg"><img alt="../../_images/rendinst_layered_68.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_68.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>This is not sufficient. Let’s set the following parameter values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_gamma_start</span> <span class="pre">=</span> <span class="pre">4</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_gamma_end</span> <span class="pre">=</span> <span class="pre">8</span></code></p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_69.jpg"><img alt="../../_images/rendinst_layered_69.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_69.jpg" style="width: 80%;" />
+</a>
+<br>
+</section>
+<section id="configuring-blend-mask-tiling">
+<h3>Configuring Blend Mask Tiling<a class="headerlink" href="#configuring-blend-mask-tiling" title="Link to this heading"></a></h3>
+<p>This is controlled by the following parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_tile_u</span></code> – horizontal tiling of the blend mask;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_tile_v</span></code> – vertical tiling of the blend mask.</p></li>
+</ul>
+<p>If these parameters are not set, they default to <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<p>These parameters are usually needed to add variety to the appearance of an
+object. For example, here is our fence with the <code class="docutils literal notranslate"><span class="pre">gypsum_m</span></code> mask tiling set to
+<code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_70.jpg"><img alt="../../_images/rendinst_layered_70.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_70.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>We want to reduce the size of the moss patches but increase their frequency.
+Let’s set the mask tiling to <code class="docutils literal notranslate"><span class="pre">8.75</span></code>.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_71.jpg"><img alt="../../_images/rendinst_layered_71.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_71.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Unlike detail textures, the blend mask can be tiled non-proportionally. For
+instance, we can keep the vertical tiling at <code class="docutils literal notranslate"><span class="pre">1</span></code> while setting the horizontal
+tiling to <code class="docutils literal notranslate"><span class="pre">8.75</span></code>.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_72.jpg"><img alt="../../_images/rendinst_layered_72.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_72.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>There will be no stretching of textures – we’ve simply created narrower and
+taller blend areas, as the mask tiles nearly 9 times more frequently
+horizontally than vertically. This technique can be useful when you need to
+create “leaks” using the Detail2 layer.</p>
+</section>
+<section id="configuring-blend-mask-offset">
+<h3>Configuring Blend Mask Offset<a class="headerlink" href="#configuring-blend-mask-offset" title="Link to this heading"></a></h3>
+<p>This is controlled by the following parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_scroll_u</span></code> – horizontal offset of the mask;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mask_scroll_v</span></code> – vertical offset of the mask.</p></li>
+</ul>
+<p>By default (when not added to the material), these values are set to <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<p>In the shader textures documentation, we mentioned that the blend mask offsets
+each time the object’s position in space changes. Let’s revisit how this looks
+with the overlay removed:</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_73.webm" type="video/webm"></video><p>These parameters increase the offset value, allowing for more varied blending of
+detail layers. Let’s set these values to <code class="docutils literal notranslate"><span class="pre">0.5</span></code>.</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_74.webm" type="video/webm"></video><p>As you can see, the changes between blends became</p>
+<ul class="simple">
+<li><p>sometimes more visible,</p></li>
+<li><p>sometimes less visible.</p></li>
+</ul>
+<p>This is because the offsets of our blend mask became smaller. And uv-mapping
+stays more time on areas that it used to jump over with offset=1.</p>
+<p>We rarely use this parameter, because it’s much easier to random blending change
+with more varied blending mask.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If you need to disable blend mask jumps, use the parameter <code class="docutils literal notranslate"><span class="pre">mask_tile_u=-1</span></code>.
+Not the scroll, but the tiling, specifically <code class="docutils literal notranslate"><span class="pre">mask_tile_u</span></code> set to <code class="docutils literal notranslate"><span class="pre">-1</span></code>.</p>
+</div>
+</section>
+<section id="growing-grass-on-an-object">
+<h3>Growing Grass on an Object<a class="headerlink" href="#growing-grass-on-an-object" title="Link to this heading"></a></h3>
+<p>If you need to “grow” grass on a rendinst geometry, set the <code class="docutils literal notranslate"><span class="pre">draw_grass</span></code>
+parameter in its material to a value of <code class="docutils literal notranslate"><span class="pre">1</span></code>. It’s important to apply this on a
+nearly horizontal surface to prevent grass from growing on walls.</p>
+</section>
+<section id="coloring-the-detail2-in-the-daeditor-deprecated">
+<h3>Coloring the Detail2 in the daEditor (Deprecated)<a class="headerlink" href="#coloring-the-detail2-in-the-daeditor-deprecated" title="Link to this heading"></a></h3>
+<p>In the initial version of the coloring process, the color range was specified
+directly in the <a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a>.
+Only the Detail2 (the “upper” one) was colored, using a simple multiply
+operation. This required careful selection of colors to avoid over-saturation.</p>
+<p>The process was as follows:</p>
+<ol class="arabic simple">
+<li><p>The parameter <code class="docutils literal notranslate"><span class="pre">detail2_colored</span></code> was set to <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p>In the <em>daEditor</em>, a color gradient was applied set in the <strong>Properties &gt;
+Textures &gt; Rendinst 2-nd detail color</strong> section.</p></li>
+</ol>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_112.jpg"><img alt="../../_images/rendinst_layered_112.jpg" class="bg-primary" src="../../_images/rendinst_layered_112.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_113.jpg"><img alt="../../_images/rendinst_layered_113.jpg" class="bg-primary" src="../../_images/rendinst_layered_113.jpg" style="width: 49%;" />
+</a>
+</section>
+<section id="top-projection-projecting-the-detail2-using-local-and-global-normals">
+<h3>Top Projection - Projecting the Detail2 using Local and Global Normals<a class="headerlink" href="#top-projection-projecting-the-detail2-using-local-and-global-normals" title="Link to this heading"></a></h3>
+<p>There are scenarios where you need to add snow, sand, or moss to an object. For
+this, the <code class="docutils literal notranslate"><span class="pre">top_projection</span></code> feature is used. It projects the Detail2 layer on top
+of the Detail1 at a specified angle. For instance, on a stone surface, you can
+project snow on top of the stone detail.</p>
+<p>The parameters for this feature are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection</span></code> – 0/1 (off/on);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection_from</span></code> – the angle at which the projected detail starts to
+appear (at a minimal amount);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection_to</span></code> – the angle at which the projected detail fully covers the
+object;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">top_projection_detail2_modulate</span></code> – the intensity of the projection’s effect
+on the Detail2 layer.</p></li>
+</ul>
+<p>The function takes into account all normals:</p>
+<ol class="arabic simple">
+<li><p>Global geometry normals.</p></li>
+<li><p>Global normal map normals.</p></li>
+<li><p>Local detail layer normals.</p></li>
+</ol>
+<p>The function also takes into consideration the masks:</p>
+<ol class="arabic simple">
+<li><p>Exclusion mask (overlay alpha) – if set to black, the Detail2 layer
+will not appear.</p></li>
+<li><p>Blend mask.</p></li>
+<li><p>However, it does NOT take into account the heightmap of the Detail1 layer,
+as it could be very bright (e.g., stucco). If it were considered, projection
+would be difficult.</p></li>
+</ol>
+<p>This is a procedural function – rotate the object as you like, and the Detail2
+layer will cover it according to the specified rules, from the appropriate side.</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_75.webm" type="video/webm"></video><p>Let’s examine how these parameters work.</p>
+<section id="top-projection">
+<h4>top_projection<a class="headerlink" href="#top-projection" title="Link to this heading"></a></h4>
+<p>This parameter has values <code class="docutils literal notranslate"><span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">1</span></code> (off/on).</p>
+</section>
+<section id="top-projection-from">
+<h4>top_projection_from<a class="headerlink" href="#top-projection-from" title="Link to this heading"></a></h4>
+<p>Specifies the angle at which the projected detail begins to appear (at a minimal
+amount). The angle is specified not in degrees but in the sine of the angle. For
+example, if you want the snow to start at 45 degrees, take sin(45) = 0.7 and
+enter <code class="docutils literal notranslate"><span class="pre">0.7</span></code> as the value.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:46%"><p>Parameter value = 0.7</p></th>
+  <th style="text-align:center; width:52%"><p>Parameter value = 0.1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_76.jpg"><img alt="../../_images/rendinst_layered_76.jpg" class="bg-primary" src="../../_images/rendinst_layered_76.jpg" style="width: 46%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_77.jpg"><img alt="../../_images/rendinst_layered_77.jpg" class="bg-primary" src="../../_images/rendinst_layered_77.jpg" style="width: 52%;" />
+</a>
+</section>
+<section id="top-projection-to">
+<h4>top_projection_to<a class="headerlink" href="#top-projection-to" title="Link to this heading"></a></h4>
+<p>Specifies the angle at which the projected detail fully covers the object.
+Again, this is specified in the sine of the angle. The difference is less
+noticeable than with the starting parameter – it’s more apparent on flatter
+objects than on steep ones.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Parameter value = 0.5</p></th>
+  <th style="text-align:center; width:49%"><p>Parameter value = 1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_78.jpg"><img alt="../../_images/rendinst_layered_78.jpg" class="bg-primary" src="../../_images/rendinst_layered_78.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_79.jpg"><img alt="../../_images/rendinst_layered_79.jpg" class="bg-primary" src="../../_images/rendinst_layered_79.jpg" style="width: 49%;" />
+</a>
+</section>
+<section id="top-projection-detail2-modulate">
+<h4>top_projection_detail2_modulate<a class="headerlink" href="#top-projection-detail2-modulate" title="Link to this heading"></a></h4>
+<p>Specifies the intensity of the overlay’s effect on the second detail layer. If
+you want pure white snow, set the value to <code class="docutils literal notranslate"><span class="pre">0</span></code>. If you want it to appear dirtier,
+increase the parameter up to <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Parameter value = 0.2</p></th>
+  <th style="text-align:center; width:49%"><p>Parameter value = 1</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_80.jpg"><img alt="../../_images/rendinst_layered_80.jpg" class="bg-primary" src="../../_images/rendinst_layered_80.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_81.jpg"><img alt="../../_images/rendinst_layered_81.jpg" class="bg-primary" src="../../_images/rendinst_layered_81.jpg" style="width: 49%;" />
+</a>
+<p>In this example, the difference is not very noticeable because the overlay
+itself is grayish.</p>
+</section>
+</section>
+<section id="blending-with-landscape-heightmap">
+<h3>Blending with Landscape Heightmap<a class="headerlink" href="#blending-with-landscape-heightmap" title="Link to this heading"></a></h3>
+<p>To improve the visual integration of objects with the landscape, you can use
+special parameters that allow detail layers of terrain and assets to blend based
+on the intersection mask of the asset with the heightmap. This is particularly
+useful for piles, rocks, cliffs, and similar objects.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This is a computationally expensive technique, so use it sparingly.</p>
+</div>
+<p><strong>Examples:</strong></p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Without blend</p></th>
+  <th style="text-align:center; width:49%"><p>With blend</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_82.jpg"><img alt="../../_images/rendinst_layered_82.jpg" class="bg-primary" src="../../_images/rendinst_layered_82.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_83.jpg"><img alt="../../_images/rendinst_layered_83.jpg" class="bg-primary" src="../../_images/rendinst_layered_83.jpg" style="width: 49%;" />
+</a>
+<p>Blending parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enable_hmap_blend=1</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>) – Enables/disables heightmap blending.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hmap_blend_height=0.1</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code>) – Height of the blending.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_min_blend_angle=40</span></code> – Angle where landscape blending starts to fade
+out. (90 degrees is upward).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_max_blend_angle=50</span></code> – Angle where landscape blending completely fades
+out. (90 degrees is upward).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_angle_vertex_normal_amount=0.75</span></code> – Floating value between texel
+(0) or vertex (1) normals as dominant for the blend mask. The higher the
+vertex normal dominance, the lower the chance of the projection appearing on
+triangles with a vertical normal, even if the texel normal is directed upward.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_check_holes=1</span></code> – Cuts the blend band at the intersection with
+heightmap holes created using <code class="docutils literal notranslate"><span class="pre">ground_hole:gameobj</span></code>. This parameter should be
+added <strong>only</strong> for rocks (or other objects that intersect between the
+heightmap and underground space), as unnecessary checks can significantly
+impact performance.</p></li>
+</ul>
+<p>GPU objects and grass now correctly generate on objects with Heightmap Blending.</p>
+<section id="global-shader-variables">
+<h4>Global Shader Variables<a class="headerlink" href="#global-shader-variables" title="Link to this heading"></a></h4>
+<p>These are shader parameters initialized in <code class="docutils literal notranslate"><span class="pre">gamedata/.../scene.blk2</span></code> within the
+<code class="docutils literal notranslate"><span class="pre">shader_vars__vars:object</span></code> block:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness=8.0</span></code> (default: <code class="docutils literal notranslate"><span class="pre">8.0</span></code>) – The higher the value, the
+sharper the blend boundary.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_perlin_tex_scale=0.25</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0.25</span></code>) – Perlin noise tiling
+multiplier.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_min_height=0.5</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0.5</span></code>) – Minimum blend height, overriding
+the shader parameter if necessary.</p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>ri_hmap_blend_sharpness=2</p></th>
+  <th style="text-align:center; width:32%"><p>ri_hmap_blend_sharpness=4</p></th>
+  <th style="text-align:center; width:32%"><p>ri_hmap_blend_sharpness=8</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_103.jpg"><img alt="../../_images/rendinst_layered_103.jpg" class="bg-primary" src="../../_images/rendinst_layered_103.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_104.jpg"><img alt="../../_images/rendinst_layered_104.jpg" class="bg-primary" src="../../_images/rendinst_layered_104.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_105.jpg"><img alt="../../_images/rendinst_layered_105.jpg" class="bg-primary" src="../../_images/rendinst_layered_105.jpg" style="width: 32%;" />
+</a>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>ri_hmap_perlin_tex_scale=0.01</p></th>
+  <th style="text-align:center; width:32%"><p>ri_hmap_perlin_tex_scale=0.25</p></th>
+  <th style="text-align:center; width:32%"><p>ri_hmap_perlin_tex_scale=4</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_106.jpg"><img alt="../../_images/rendinst_layered_106.jpg" class="bg-primary" src="../../_images/rendinst_layered_106.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_107.jpg"><img alt="../../_images/rendinst_layered_107.jpg" class="bg-primary" src="../../_images/rendinst_layered_107.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_108.jpg"><img alt="../../_images/rendinst_layered_108.jpg" class="bg-primary" src="../../_images/rendinst_layered_108.jpg" style="width: 32%;" />
+</a>
+<table style="text-align:center; width:96%"><tr>
+  <th style="text-align:center; width:32%"><p>ri_hmap_min_height=0.1</p></th>
+  <th style="text-align:center; width:32%"><p>ri_hmap_min_height=0.5</p></th>
+  <th style="text-align:center; width:32%"><p>ri_hmap_min_height=3</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_109.jpg"><img alt="../../_images/rendinst_layered_109.jpg" class="bg-primary" src="../../_images/rendinst_layered_109.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_110.jpg"><img alt="../../_images/rendinst_layered_110.jpg" class="bg-primary" src="../../_images/rendinst_layered_110.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_111.jpg"><img alt="../../_images/rendinst_layered_111.jpg" class="bg-primary" src="../../_images/rendinst_layered_111.jpg" style="width: 32%;" />
+</a>
+</section>
+<section id="static-shader-variables">
+<h4>Static Shader Variables<a class="headerlink" href="#static-shader-variables" title="Link to this heading"></a></h4>
+<p>These are additional shader parameters that adjust the influence of global
+shader variables for a specific asset:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness_mul=1.0</span></code> – Multiplier for <code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_perlin_tex_scale_mul=1.0</span></code> – Multiplier for
+<code class="docutils literal notranslate"><span class="pre">ri_hmap_perlin_tex_scale</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ri_hmap_min_height_mul=1.0</span></code> – Multiplier for <code class="docutils literal notranslate"><span class="pre">ri_hmap_min_height</span></code>.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Global and Static Shader Variables for ri_hmap</strong></p>
+<ol class="arabic simple">
+<li><p>Global shader variables affect all assets on the level with initialized
+blending.</p></li>
+<li><p>If global shader variables are not initialized in <code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>, the default
+values listed above are applied.</p></li>
+<li><p>Static shader variables are multipliers of the global shader variables,
+initialized in <code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>, for a specific asset.</p></li>
+</ol>
+<p>For example, if the global shader variable is set to:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness=8.0</span></code></p>
+<p>and the static shader variable for the asset <code class="docutils literal notranslate"><span class="pre">example.dag</span></code> is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ri_hmap_blend_sharpness_mul=0.5</span></code></p>
+<p>then the final <code class="docutils literal notranslate"><span class="pre">blend_sharpness</span></code> value for the asset <code class="docutils literal notranslate"><span class="pre">example.dag</span></code> on the level
+will be calculated as:</p>
+<p><code class="docutils literal notranslate"><span class="pre">blend_sharpness</span> <span class="pre">=</span> <span class="pre">ri_hmap_blend_sharpness</span> <span class="pre">*</span> <span class="pre">ri_hmap_blend_sharpness_mul</span> <span class="pre">=</span> <span class="pre">8.0</span> <span class="pre">*</span> <span class="pre">0.5</span> <span class="pre">=</span> <span class="pre">4</span></code></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>```{important}
+The heightmap blending shader also works in
+[*daEditor*](../../dagor-tools/daeditor/daeditor/daeditor.md), but since global
+shader variables for the editor are initialized separately and not pulled from
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">scene.blk</span></code>, keep in mind that if you choose global shader variable values in
+<code class="docutils literal notranslate"><span class="pre">scene.blk</span></code> that differ from the defaults, the editor will display something
+different from what you’ll see in the game.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Instructions on how to configure global shader variables for the editor will be
+added to the article later.
+```
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="procedural-detail-layer-coloring">
+<h3>Procedural Detail Layer Coloring<a class="headerlink" href="#procedural-detail-layer-coloring" title="Link to this heading"></a></h3>
+<p>You can procedurally color any detail layer (only one at a time) using a
+palette.</p>
+<p>The palette is called <code class="docutils literal notranslate"><span class="pre">paint_colors.dds</span></code> and is located at
+<code class="docutils literal notranslate"><span class="pre">...\develop\assets\textures\colorize_textures</span></code>.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_86.jpg"><img alt="../../_images/rendinst_layered_86.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_86.jpg" style="width: 30%;" />
+</a>
+<br>
+<p>It consists of a set of single-pixel rows, each containing between 1 and 64
+colors. In the coloring parameters, you specify a particular row for a specific
+object (from 0 to the last row in the texture). As the object moves across the
+map, each step will randomly shift the pixel within the selected coloring row.
+If multiple colors are specified, the object will be procedurally recolored.</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_87.webm" type="video/webm"></video><p>The coloring is applied based on the diffuse alpha (either the heightmap of the
+detail layer or simply a coloring mask for a unique texture).</p>
+<p><strong>Shader parameters:</strong></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">use_painting</span></code> – Controls whether to color detail layers from the palette
+defined in the scene’s shader variables.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> – color,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> – don’t color;</p></li>
+<li><p>values between <code class="docutils literal notranslate"><span class="pre">0.(01)</span></code> and <code class="docutils literal notranslate"><span class="pre">0.(9)</span></code> – partial coloring (multiplier).</p></li>
+</ul>
+<p>Coloring is based on the diffuse alpha, multiplied by the <code class="docutils literal notranslate"><span class="pre">use_painting</span></code>
+value. Values between <code class="docutils literal notranslate"><span class="pre">1.(0)1</span></code> and <code class="docutils literal notranslate"><span class="pre">1.(9)</span></code> also affect the coloring strength
+from 0.0 to 1.0 but disable random pixel selection from the coloring row when
+the object changes height – useful for consistently coloring modular
+skyscrapers, for example.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">painting_line</span></code> – The coloring row (from 0 to the last row in the texture).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paint1stdetail</span></code> – Default value is <code class="docutils literal notranslate"><span class="pre">1</span></code> (colors the first detail layer). If
+you need to color the Detail2 layer, set the value to <code class="docutils literal notranslate"><span class="pre">-1</span></code>.</p></li>
+</ul>
+</section>
+<section id="normal-blending">
+<h3>Normal Blending<a class="headerlink" href="#normal-blending" title="Link to this heading"></a></h3>
+<p>There are situations where you need to reveal the underlying texture of the
+Detail1 layer (such as metal texture) through the Detail2 layer (such as paint).
+This is achieved using the <code class="docutils literal notranslate"><span class="pre">detail2_combined_normal</span></code> parameter, which has two
+possible values: <code class="docutils literal notranslate"><span class="pre">0</span></code> (disabled) or <code class="docutils literal notranslate"><span class="pre">1</span></code> (enabled).</p>
+<table style="text-align:center; width:98%"><tr>
+  <th style="text-align:center; width:49%"><p>Parameter value = 1</p></th>
+  <th style="text-align:center; width:49%"><p>Parameter value = 0</p></th></tr>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_88.jpg"><img alt="../../_images/rendinst_layered_88.jpg" class="bg-primary" src="../../_images/rendinst_layered_88.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_89.jpg"><img alt="../../_images/rendinst_layered_89.jpg" class="bg-primary" src="../../_images/rendinst_layered_89.jpg" style="width: 49%;" />
+</a>
+</section>
+<section id="microdetails">
+<h3>Microdetails<a class="headerlink" href="#microdetails" title="Link to this heading"></a></h3>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>For information on microdetails, see
+<a class="reference internal" href="../about-assets/microdetails/microdetails.html"><span class="std std-doc">Microdetails on Assets</span></a>.</p>
+</div>
+</section>
+<section id="material-shadows">
+<h3>Material Shadows<a class="headerlink" href="#material-shadows" title="Link to this heading"></a></h3>
+<p>Material shadows are generated based on the heightmap of detail layers. The
+following parameters are available:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">material_shadow_influence=0.5,</span> <span class="pre">1,</span> <span class="pre">0,</span> <span class="pre">0</span></code> – Controls the “intensity” of
+shadows. Each component affects the corresponding detail layer. For instance,
+<code class="docutils literal notranslate"><span class="pre">0.5</span></code> affects the Detail1 layer, and <code class="docutils literal notranslate"><span class="pre">1</span></code> affects the Detail2 layer. The third
+and fourth components are not used in the <code class="docutils literal notranslate"><span class="pre">rendinst_layered</span></code> shader since it
+only supports two detail layers. However, in the <code class="docutils literal notranslate"><span class="pre">rendinst_perlin_layered</span></code>
+shader, the first three components are used, as it supports three detail
+layers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">material_shadow_scale=2</span></code> – Acts as a multiplier for the “size” of the
+shadows. This applies to the shadows of all detail layers, as calculating it
+separately for each layer would be computationally expensive.</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_90.jpg"><img alt="../../_images/rendinst_layered_90.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_90.jpg" style="width: 80%;" />
+</a>
+<br>
+</section>
+</section>
+<section id="shader-configuration-errors">
+<h2>Shader Configuration Errors<a class="headerlink" href="#shader-configuration-errors" title="Link to this heading"></a></h2>
+<p>This occurs when you forget to set all the necessary values. For example, you
+might add the parameter <code class="docutils literal notranslate"><span class="pre">detail2_tile_u=2.54</span></code> but forget to include
+<code class="docutils literal notranslate"><span class="pre">detail2_tile_v=2.54</span></code>.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_91.jpg"><img alt="../../_images/rendinst_layered_91.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_91.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>At first glance, this might seem insignificant (and this is often where the
+inspection ends, unfortunately). However, upon closer examination:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_92.jpg"><img alt="../../_images/rendinst_layered_92.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_92.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Such subtle issues are common and often go unnoticed until you closely inspect
+the settings. Sometimes, for instance, values like <code class="docutils literal notranslate"><span class="pre">detail2_tile_u=2.3</span></code> and
+<code class="docutils literal notranslate"><span class="pre">detail2_tile_v=2.4</span></code> are set, which only becomes noticeable upon careful
+examination.</p>
+<section id="sloped-roof">
+<h3>Sloped Roof<a class="headerlink" href="#sloped-roof" title="Link to this heading"></a></h3>
+<p>Let’s recall what a sloped roof tile looks like and how it reflects details:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_93.jpg"><img alt="../../_images/rendinst_layered_93.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_93.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Remember that each overlay tile contains a specifically designed blending mask.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_94.jpg"><img alt="../../_images/rendinst_layered_94.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_94.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Here’s how this mask works with a house roof:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_95.jpg"><img alt="../../_images/rendinst_layered_95.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_95.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>What happens if we leave the tiling parameters on the roof material?</p>
+<p>First, the roof will never land on the correct roof cell because
+<code class="docutils literal notranslate"><span class="pre">atlas_first_tile</span> <span class="pre">=</span> <span class="pre">8</span></code>. Second, you’ll end up with completely arbitrary overlays
+and blending.</p>
+<p>For example:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_96.jpg"><img alt="../../_images/rendinst_layered_96.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_96.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>As you can see, the logic of material blending on the roof is completely lost.
+The materials blend across the entire surface as if they were on walls, not a
+roof. Now, let’s see how the overlay appears on the roof.</p>
+<video controls="True" preload="auto" width="80%"><source src="../../_images/rendinst_layered_97.webm" type="video/webm"></video><p>The result is completely abstract decorations, which have nothing to do with the
+intended metal sheets of the roof. This is precisely why the roof cell was
+designed to be universal and neutral.</p>
+</section>
+<section id="flat-roof">
+<h3>Flat Roof<a class="headerlink" href="#flat-roof" title="Link to this heading"></a></h3>
+<p>Let’s recall how the flat roof cell looks and what it represents:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_98.jpg"><img alt="../../_images/rendinst_layered_98.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_98.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>Here’s its exclusion mask:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_99.jpg"><img alt="../../_images/rendinst_layered_99.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_99.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>In this case, there’s no need to show examples of incorrect atlas usage because
+there simply aren’t any other cells that can fulfill the same function.</p>
+</section>
+<section id="wooden-roof-trim">
+<h3>Wooden Roof Trim<a class="headerlink" href="#wooden-roof-trim" title="Link to this heading"></a></h3>
+<p>Recall that the wooden trim has its own designated - <strong>cell 2</strong>:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_100.jpg"><img alt="../../_images/rendinst_layered_100.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_100.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>When mapped correctly, the wooden planks look like this (Detail2 shows charred
+wood):</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_101.jpg"><img alt="../../_images/rendinst_layered_101.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_101.jpg" style="width: 80%;" />
+</a>
+<br>
+<p>What happens when you apply overlay tiling parameters here?</p>
+<p>The mapping jumps to <strong>cell 8</strong>, and instead of smooth blending and a bronzed
+appearance, you get these bright planks smeared with tar:</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/rendinst_layered_102.jpg"><img alt="../../_images/rendinst_layered_102.jpg" class="bg-primary align-center" src="../../_images/rendinst_layered_102.jpg" style="width: 80%;" />
+</a>
+<br>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rendinst_interior_mapping.html" class="btn btn-neutral float-left" title="rendinst_interior_mapping" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rendinst_layered_lightmap.html" class="btn btn-neutral float-right" title="rendinst_layered_lightmap" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

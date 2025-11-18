@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExportENCB_1_1DataTypeHeader" kind="struct" language="C++" prot="public">
+    <compoundname>ExportENCB::DataTypeHeader</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExportENCB_1_1DataTypeHeader_1ac4445e31ede20158538e869e971e0857" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::DataTypeHeader::dataType</definition>
+        <argsstring></argsstring>
+        <name>dataType</name>
+        <qualifiedname>ExportENCB::DataTypeHeader::dataType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3282" column="14" bodyfile="expUtil.cpp" bodystart="3282" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1DataTypeHeader_1aa684c8fd0527b80e5c65176c9b8d68bf" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::DataTypeHeader::offsetInKeyPool</definition>
+        <argsstring></argsstring>
+        <name>offsetInKeyPool</name>
+        <qualifiedname>ExportENCB::DataTypeHeader::offsetInKeyPool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3283" column="14" bodyfile="expUtil.cpp" bodystart="3283" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1DataTypeHeader_1a13f28ab1248f5f6eed832f324510dfce" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::DataTypeHeader::offsetInTimePool</definition>
+        <argsstring></argsstring>
+        <name>offsetInTimePool</name>
+        <qualifiedname>ExportENCB::DataTypeHeader::offsetInTimePool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3284" column="14" bodyfile="expUtil.cpp" bodystart="3284" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1DataTypeHeader_1ac6eb5e37974aff33e1fe8ffc9ba6b80d" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::DataTypeHeader::channelNum</definition>
+        <argsstring></argsstring>
+        <name>channelNum</name>
+        <qualifiedname>ExportENCB::DataTypeHeader::channelNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3285" column="14" bodyfile="expUtil.cpp" bodystart="3285" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="3280" column="3" bodyfile="expUtil.cpp" bodystart="3281" bodyend="3286"/>
+    <listofallmembers>
+      <member refid="structExportENCB_1_1DataTypeHeader_1ac6eb5e37974aff33e1fe8ffc9ba6b80d" prot="public" virt="non-virtual"><scope>ExportENCB::DataTypeHeader</scope><name>channelNum</name></member>
+      <member refid="structExportENCB_1_1DataTypeHeader_1ac4445e31ede20158538e869e971e0857" prot="public" virt="non-virtual"><scope>ExportENCB::DataTypeHeader</scope><name>dataType</name></member>
+      <member refid="structExportENCB_1_1DataTypeHeader_1aa684c8fd0527b80e5c65176c9b8d68bf" prot="public" virt="non-virtual"><scope>ExportENCB::DataTypeHeader</scope><name>offsetInKeyPool</name></member>
+      <member refid="structExportENCB_1_1DataTypeHeader_1a13f28ab1248f5f6eed832f324510dfce" prot="public" virt="non-virtual"><scope>ExportENCB::DataTypeHeader</scope><name>offsetInTimePool</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

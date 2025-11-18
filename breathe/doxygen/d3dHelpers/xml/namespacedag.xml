@@ -1,0 +1,807 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedag" kind="namespace" language="C++">
+    <compoundname>dag</compoundname>
+    <innernamespace refid="namespacedag_1_1buffers">dag::buffers</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacedag_1a9c69900b4aa45c10b5c11e54a4fc8574" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; BaseTexture &gt;</type>
+        <definition>static ResFactory&lt; BaseTexture &gt; dag::create_tex</definition>
+        <argsstring>(TexImage32 *img, int w, int h, int flg, int levels, const char *name)</argsstring>
+        <name>create_tex</name>
+        <qualifiedname>dag::create_tex</qualifiedname>
+        <param>
+          <type>TexImage32 *</type>
+          <declname>img</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="633" column="26" bodyfile="dag_resPtr.h" bodystart="633" bodyend="636"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a040ea79d251412df40080d6c920da502" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; CubeTexture &gt;</type>
+        <definition>static ResFactory&lt; CubeTexture &gt; dag::create_cubetex</definition>
+        <argsstring>(int size, int flg, int levels, const char *name)</argsstring>
+        <name>create_cubetex</name>
+        <qualifiedname>dag::create_cubetex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="637" column="26" bodyfile="dag_resPtr.h" bodystart="637" bodyend="640"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1af929f9a26b278947c77d3ad177ef6a49" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; VolTexture &gt;</type>
+        <definition>static ResFactory&lt; VolTexture &gt; dag::create_voltex</definition>
+        <argsstring>(int w, int h, int d, int flg, int levels, const char *name)</argsstring>
+        <name>create_voltex</name>
+        <qualifiedname>dag::create_voltex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="641" column="26" bodyfile="dag_resPtr.h" bodystart="641" bodyend="644"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1aae38ac5454ee795eb2de2e976aacaf09" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; ArrayTexture &gt;</type>
+        <definition>static ResFactory&lt; ArrayTexture &gt; dag::create_array_tex</definition>
+        <argsstring>(int w, int h, int d, int flg, int levels, const char *name)</argsstring>
+        <name>create_array_tex</name>
+        <qualifiedname>dag::create_array_tex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="645" column="26" bodyfile="dag_resPtr.h" bodystart="645" bodyend="648"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a8c6660f5d911909af0a55a8dd74f4d15" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; ArrayTexture &gt;</type>
+        <definition>static ResFactory&lt; ArrayTexture &gt; dag::create_cube_array_tex</definition>
+        <argsstring>(int side, int d, int flg, int levels, const char *name)</argsstring>
+        <name>create_cube_array_tex</name>
+        <qualifiedname>dag::create_cube_array_tex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>side</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="649" column="26" bodyfile="dag_resPtr.h" bodystart="649" bodyend="652"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a2f35da1beadbcc955c1652a321de7786" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a2843cb879e1e856fec571a07af43ac59" kindref="member">TexPtr</ref></type>
+        <definition>static TexPtr dag::create_ddsx_tex</definition>
+        <argsstring>(IGenLoad &amp;crd, int flg, int quality_id, int levels=0, const char *name=nullptr)</argsstring>
+        <name>create_ddsx_tex</name>
+        <qualifiedname>dag::create_ddsx_tex</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>quality_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="653" column="22" bodyfile="dag_resPtr.h" bodystart="653" bodyend="656"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a42f692dd3b9d2817888ffe01d190966b" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a2843cb879e1e856fec571a07af43ac59" kindref="member">TexPtr</ref></type>
+        <definition>static TexPtr dag::alias_tex</definition>
+        <argsstring>(BaseTexture *base_tex, TexImage32 *img, int w, int h, int flg, int levels, const char *name=nullptr)</argsstring>
+        <name>alias_tex</name>
+        <qualifiedname>dag::alias_tex</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>base_tex</declname>
+        </param>
+        <param>
+          <type>TexImage32 *</type>
+          <declname>img</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="657" column="22" bodyfile="dag_resPtr.h" bodystart="657" bodyend="660"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1afec0f9951dbe57c95ffd29da03e56106" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a2843cb879e1e856fec571a07af43ac59" kindref="member">TexPtr</ref></type>
+        <definition>static TexPtr dag::alias_cubetex</definition>
+        <argsstring>(BaseTexture *base_tex, int side, int flg, int levels, const char *name=nullptr)</argsstring>
+        <name>alias_cubetex</name>
+        <qualifiedname>dag::alias_cubetex</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>base_tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>side</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="661" column="22" bodyfile="dag_resPtr.h" bodystart="661" bodyend="664"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1ab3011a8d2c41891d657950aa58d1ef44" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a2843cb879e1e856fec571a07af43ac59" kindref="member">TexPtr</ref></type>
+        <definition>static TexPtr dag::alias_voltex</definition>
+        <argsstring>(BaseTexture *base_tex, int w, int h, int d, int flg, int levels, const char *name=nullptr)</argsstring>
+        <name>alias_voltex</name>
+        <qualifiedname>dag::alias_voltex</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>base_tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="665" column="22" bodyfile="dag_resPtr.h" bodystart="665" bodyend="668"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a26751e96e442a6ec85bc776c04f21da8" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a2843cb879e1e856fec571a07af43ac59" kindref="member">TexPtr</ref></type>
+        <definition>static TexPtr dag::alias_array_tex</definition>
+        <argsstring>(BaseTexture *base_tex, int w, int h, int d, int flg, int levels, const char *name=nullptr)</argsstring>
+        <name>alias_array_tex</name>
+        <qualifiedname>dag::alias_array_tex</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>base_tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="669" column="22" bodyfile="dag_resPtr.h" bodystart="669" bodyend="672"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1af9684ced980f3b68c5f7d221273b152a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a2843cb879e1e856fec571a07af43ac59" kindref="member">TexPtr</ref></type>
+        <definition>static TexPtr dag::alias_cube_array_tex</definition>
+        <argsstring>(BaseTexture *base_tex, int side, int d, int flg, int levels, const char *name=nullptr)</argsstring>
+        <name>alias_cube_array_tex</name>
+        <qualifiedname>dag::alias_cube_array_tex</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>base_tex</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>side</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="673" column="22" bodyfile="dag_resPtr.h" bodystart="673" bodyend="676"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a73bbedde53c78766e132f64c6d217877" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Vbuffer &gt;</type>
+        <definition>static ResFactory&lt; Vbuffer &gt; dag::create_vb</definition>
+        <argsstring>(int sz, int f, const char *name)</argsstring>
+        <name>create_vb</name>
+        <qualifiedname>dag::create_vb</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="678" column="26" bodyfile="dag_resPtr.h" bodystart="678" bodyend="681"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a28240a294f2b746d705c5b8a35c71d9a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Ibuffer &gt;</type>
+        <definition>static ResFactory&lt; Ibuffer &gt; dag::create_ib</definition>
+        <argsstring>(int size_bytes, int flags, const char *name)</argsstring>
+        <name>create_ib</name>
+        <qualifiedname>dag::create_ib</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="682" column="26" bodyfile="dag_resPtr.h" bodystart="682" bodyend="685"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a7cc9c905c8660f2d6d2ab35627ee9255" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>static ResFactory&lt; Sbuffer &gt; dag::create_sbuffer</definition>
+        <argsstring>(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name)</argsstring>
+        <name>create_sbuffer</name>
+        <qualifiedname>dag::create_sbuffer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>struct_size</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>elements</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>texfmt</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="686" column="26" bodyfile="dag_resPtr.h" bodystart="686" bodyend="689"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1ab09ca3c1f1eb148d7e4622a8f147b11d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1ab28fd7dade0b33bc070404898de4be17" kindref="member">SharedTex</ref></type>
+        <definition>static SharedTex dag::get_tex_gameres</definition>
+        <argsstring>(const char *resname)</argsstring>
+        <name>get_tex_gameres</name>
+        <qualifiedname>dag::get_tex_gameres</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>resname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="800" column="25" bodyfile="dag_resPtr.h" bodystart="800" bodyend="800"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a850d2198de32b832e90a9a48d42fabf2" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8eb35782ace8ba87a5bd6f718a26dd1a" kindref="member">SharedTexHolder</ref></type>
+        <definition>static SharedTexHolder dag::get_tex_gameres</definition>
+        <argsstring>(const char *resname, const char *varname)</argsstring>
+        <name>get_tex_gameres</name>
+        <qualifiedname>dag::get_tex_gameres</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>resname</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>varname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="801" column="31" bodyfile="dag_resPtr.h" bodystart="801" bodyend="804"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a5e3ba40b3183d19a07f772264c29f003" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1ab28fd7dade0b33bc070404898de4be17" kindref="member">SharedTex</ref></type>
+        <definition>static SharedTex dag::add_managed_array_texture</definition>
+        <argsstring>(const char *name, dag::ConstSpan&lt; const char * &gt; tex_slice_nm)</argsstring>
+        <name>add_managed_array_texture</name>
+        <qualifiedname>dag::add_managed_array_texture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; const char * &gt;</type>
+          <declname>tex_slice_nm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="805" column="25" bodyfile="dag_resPtr.h" bodystart="805" bodyend="808"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a23a0699ac9edf0cac6cb218dffac5c9d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8eb35782ace8ba87a5bd6f718a26dd1a" kindref="member">SharedTexHolder</ref></type>
+        <definition>static SharedTexHolder dag::add_managed_array_texture</definition>
+        <argsstring>(const char *name, dag::ConstSpan&lt; const char * &gt; tex_slice_nm, const char *varname)</argsstring>
+        <name>add_managed_array_texture</name>
+        <qualifiedname>dag::add_managed_array_texture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; const char * &gt;</type>
+          <declname>tex_slice_nm</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>varname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="809" column="31" bodyfile="dag_resPtr.h" bodystart="809" bodyend="813"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a2434ffbc307ce7906028cd4c1879e51f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; BaseTexture &gt;</type>
+        <definition>static ResFactory&lt; BaseTexture &gt; dag::place_texture_in_resource_heap</definition>
+        <argsstring>(ResourceHeap *heap, const ResourceDescription &amp;desc, size_t offset, const ResourceAllocationProperties &amp;alloc_info, const char *name)</argsstring>
+        <name>place_texture_in_resource_heap</name>
+        <qualifiedname>dag::place_texture_in_resource_heap</qualifiedname>
+        <param>
+          <type>ResourceHeap *</type>
+          <declname>heap</declname>
+        </param>
+        <param>
+          <type>const ResourceDescription &amp;</type>
+          <declname>desc</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>const ResourceAllocationProperties &amp;</type>
+          <declname>alloc_info</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="814" column="26" bodyfile="dag_resPtr.h" bodystart="814" bodyend="819"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1aed6695803fff8b38f5d96c6e833d1d30" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; Sbuffer &gt;</type>
+        <definition>static ResFactory&lt; Sbuffer &gt; dag::place_buffer_in_resource_heap</definition>
+        <argsstring>(ResourceHeap *heap, const ResourceDescription &amp;desc, size_t offset, const ResourceAllocationProperties &amp;alloc_info, const char *name)</argsstring>
+        <name>place_buffer_in_resource_heap</name>
+        <qualifiedname>dag::place_buffer_in_resource_heap</qualifiedname>
+        <param>
+          <type>ResourceHeap *</type>
+          <declname>heap</declname>
+        </param>
+        <param>
+          <type>const ResourceDescription &amp;</type>
+          <declname>desc</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>const ResourceAllocationProperties &amp;</type>
+          <declname>alloc_info</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="821" column="26" bodyfile="dag_resPtr.h" bodystart="821" bodyend="826"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1ac1c0b6bb5fafd405ab14b499fa6484f8" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1aeb059912bdbd3b989796f4003002f667" kindref="member">ExternalTex</ref></type>
+        <definition>static ExternalTex dag::get_backbuffer</definition>
+        <argsstring>()</argsstring>
+        <name>get_backbuffer</name>
+        <qualifiedname>dag::get_backbuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="828" column="27" bodyfile="dag_resPtr.h" bodystart="828" bodyend="828"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a978c9fd8e91a725dad9d9159cf686907" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1aeb059912bdbd3b989796f4003002f667" kindref="member">ExternalTex</ref></type>
+        <definition>static ExternalTex dag::get_secondary_backbuffer</definition>
+        <argsstring>()</argsstring>
+        <name>get_secondary_backbuffer</name>
+        <qualifiedname>dag::get_secondary_backbuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="829" column="27" bodyfile="dag_resPtr.h" bodystart="829" bodyend="832"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a7b5e3598a971a249dcc26c922e2bf6ca" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8b11f131afcc2fb9c7151f974c09e9bd" kindref="member">ResFactory</ref>&lt; BaseTexture &gt;</type>
+        <definition>static ResFactory&lt; BaseTexture &gt; dag::make_texture_raw</definition>
+        <argsstring>(Drv3dMakeTextureParams &amp;makeParams)</argsstring>
+        <name>make_texture_raw</name>
+        <qualifiedname>dag::make_texture_raw</qualifiedname>
+        <param>
+          <type>Drv3dMakeTextureParams &amp;</type>
+          <declname>makeParams</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="834" column="26" bodyfile="dag_resPtr.h" bodystart="834" bodyend="841"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1adf07bb200d8453f9cecdbd8b653b9002" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8eb35782ace8ba87a5bd6f718a26dd1a" kindref="member">SharedTexHolder</ref></type>
+        <definition>static SharedTexHolder dag::set_texture</definition>
+        <argsstring>(int var_id, SharedTex tex)</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>dag::set_texture</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__resPtr_8h_1ab28fd7dade0b33bc070404898de4be17" kindref="member">SharedTex</ref></type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="843" column="31" bodyfile="dag_resPtr.h" bodystart="843" bodyend="843"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1ab189bf31657421e6b56a84afc67c6fa5" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1ac689eb60b3c3bba692f665ac19ea719b" kindref="member">SharedBufHolder</ref></type>
+        <definition>static SharedBufHolder dag::set_buffer</definition>
+        <argsstring>(int var_id, SharedBuf buf)</argsstring>
+        <name>set_buffer</name>
+        <qualifiedname>dag::set_buffer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__resPtr_8h_1a108c31bad537ef78159f53be8d3a5ab1" kindref="member">SharedBuf</ref></type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="845" column="31" bodyfile="dag_resPtr.h" bodystart="845" bodyend="845"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a18020ffece06478a3f517ceddcdd9b42" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1a8eb35782ace8ba87a5bd6f718a26dd1a" kindref="member">SharedTexHolder</ref></type>
+        <definition>static SharedTexHolder dag::set_texture</definition>
+        <argsstring>(int var_id, const SharedTexHolder &amp;tex)</argsstring>
+        <name>set_texture</name>
+        <qualifiedname>dag::set_texture</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="dag__resPtr_8h_1a8eb35782ace8ba87a5bd6f718a26dd1a" kindref="member">SharedTexHolder</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="847" column="31" bodyfile="dag_resPtr.h" bodystart="847" bodyend="850"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedag_1a3a07601c3269c1439fa9b3320ec1ce4a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__resPtr_8h_1ac689eb60b3c3bba692f665ac19ea719b" kindref="member">SharedBufHolder</ref></type>
+        <definition>static SharedBufHolder dag::set_buffer</definition>
+        <argsstring>(int var_id, const SharedBufHolder &amp;buf)</argsstring>
+        <name>set_buffer</name>
+        <qualifiedname>dag::set_buffer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="dag__resPtr_8h_1ac689eb60b3c3bba692f665ac19ea719b" kindref="member">SharedBufHolder</ref> &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="852" column="31" bodyfile="dag_resPtr.h" bodystart="852" bodyend="855"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resPtr.h" line="630" column="1"/>
+  </compounddef>
+</doxygen>

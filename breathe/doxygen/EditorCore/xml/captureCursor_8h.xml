@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="captureCursor_8h" kind="file" language="C++">
+    <compoundname>captureCursor.h</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="captureCursor_8h_1a7e37e7b52a48f88be2b6fd3570db6f98" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void capture_cursor</definition>
+        <argsstring>(void *handle)</argsstring>
+        <name>capture_cursor</name>
+        <param>
+          <type>void *</type>
+          <declname>handle</declname>
+        </param>
+        <briefdescription>
+<para>Capture mouse cursor and hold it inside main Editor window. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="captureCursor.h" line="10" column="6" declfile="captureCursor.h" declline="10" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="captureCursor_8h_1a8399bf36c748b92120d7aec7913c3a00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void release_cursor</definition>
+        <argsstring>()</argsstring>
+        <name>release_cursor</name>
+        <briefdescription>
+<para>Release mouse cursor captured by <ref refid="captureCursor_8h_1a7e37e7b52a48f88be2b6fd3570db6f98" kindref="member">capture_cursor()</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="captureCursor.h" line="13" column="6" declfile="captureCursor.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="captureCursor_8h_1a7f56fd15eb27ec22592817b72d6d6d4d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void cursor_wrap</definition>
+        <argsstring>(int &amp;p1, int &amp;p2, void *handle=NULL)</argsstring>
+        <name>cursor_wrap</name>
+        <param>
+          <type>int &amp;</type>
+          <declname>p1</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>p2</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>handle</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Wrap mouse cursor. The function wraps mouse cursor to opposite side of Editor&apos;s main window when it reaches window border and continues moving. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p1</parametername>
+<parametername direction="in">p2</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- initial x,y coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">p1</parametername>
+<parametername direction="out">p2</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- final (wraped) x,y coordinates </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="captureCursor.h" line="20" column="6" declfile="captureCursor.h" declline="20" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="captureCursor_8h_1ac29efad04a9c33935cd9aa2a760f4d8e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void area_cursor_wrap</definition>
+        <argsstring>(const EcRect &amp;rc, int &amp;p1, int &amp;p2, int &amp;wrapedX, int &amp;wrapedY)</argsstring>
+        <name>area_cursor_wrap</name>
+        <param>
+          <type>const <ref refid="structEcRect" kindref="compound">EcRect</ref> &amp;</type>
+          <declname>rc</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>p1</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>p2</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>wrapedX</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>wrapedY</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Wrap mouse cursor. The function wraps mouse cursor to opposite side of specified area when it reaches area border and continues moving. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">rc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- area coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">p1</parametername>
+<parametername direction="in">p2</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- initial x,y coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">p1</parametername>
+<parametername direction="out">p2</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- final (wraped) x,y coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">wrapedX</parametername>
+<parametername direction="out">wrapedY</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- dX,dY increment storage. Used for accumulating cursor increments and creating objects with sizes greater than window size. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="captureCursor.h" line="30" column="6" declfile="captureCursor.h" declline="30" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structEcRect" kindref="compound">EcRect</ref>;</highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>global<sp/>functions</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="captureCursor_8h_1a7e37e7b52a48f88be2b6fd3570db6f98" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="captureCursor_8h_1a7e37e7b52a48f88be2b6fd3570db6f98" kindref="member">capture_cursor</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*handle);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="captureCursor_8h_1a8399bf36c748b92120d7aec7913c3a00" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="captureCursor_8h_1a8399bf36c748b92120d7aec7913c3a00" kindref="member">release_cursor</ref>();</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="captureCursor_8h_1a7f56fd15eb27ec22592817b72d6d6d4d" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="captureCursor_8h_1a7f56fd15eb27ec22592817b72d6d6d4d" kindref="member">cursor_wrap</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;p1,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;p2,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*handle<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="captureCursor_8h_1ac29efad04a9c33935cd9aa2a760f4d8e" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="captureCursor_8h_1ac29efad04a9c33935cd9aa2a760f4d8e" kindref="member">area_cursor_wrap</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structEcRect" kindref="compound">EcRect</ref><sp/>&amp;rc,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;p1,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;p2,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;wrapedX,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;wrapedY);</highlight></codeline>
+    </programlisting>
+    <location file="captureCursor.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicAtlasFencedTexUpdater_1_1CopyRec" kind="struct" language="C++" prot="public">
+    <compoundname>DynamicAtlasFencedTexUpdater::CopyRec</compoundname>
+    <includes refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1af876491cfdee43bd9a2da4d0a2a8a034" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::src_idx</definition>
+        <argsstring></argsstring>
+        <name>src_idx</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::src_idx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="14" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a283a8a7791ab9fa9622c13af4d33b96e" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::x0</definition>
+        <argsstring></argsstring>
+        <name>x0</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::x0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="22" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a69725ab17288a3f6abd9753852a316d2" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::y0</definition>
+        <argsstring></argsstring>
+        <name>y0</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::y0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="25" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a5f52f1e91f0cc383a9d76a105c3bd0a9" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="28" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a372cc340b2cb51608eb6c0f23790a549" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::h</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="30" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a203d59cd42f6eb39194671f645ab5ccb" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::dest_idx</definition>
+        <argsstring></argsstring>
+        <name>dest_idx</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::dest_idx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="32" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1aaa3d61ded118b70fa32b25801902d774" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::dest_x0</definition>
+        <argsstring></argsstring>
+        <name>dest_x0</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::dest_x0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="41" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a0f7467074ca2ced43dd40762ddd776d0" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasFencedTexUpdater::CopyRec::dest_y0</definition>
+        <argsstring></argsstring>
+        <name>dest_y0</name>
+        <qualifiedname>DynamicAtlasFencedTexUpdater::CopyRec::dest_y0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="547" column="49" bodyfile="dag_dynAtlas.h" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynAtlas.h" line="545" column="3" bodyfile="dag_dynAtlas.h" bodystart="546" bodyend="548"/>
+    <listofallmembers>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a203d59cd42f6eb39194671f645ab5ccb" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>dest_idx</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1aaa3d61ded118b70fa32b25801902d774" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>dest_x0</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a0f7467074ca2ced43dd40762ddd776d0" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>dest_y0</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a372cc340b2cb51608eb6c0f23790a549" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>h</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1af876491cfdee43bd9a2da4d0a2a8a034" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>src_idx</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a5f52f1e91f0cc383a9d76a105c3bd0a9" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>w</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a283a8a7791ab9fa9622c13af4d33b96e" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>x0</name></member>
+      <member refid="structDynamicAtlasFencedTexUpdater_1_1CopyRec_1a69725ab17288a3f6abd9753852a316d2" prot="public" virt="non-virtual"><scope>DynamicAtlasFencedTexUpdater::CopyRec</scope><name>y0</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

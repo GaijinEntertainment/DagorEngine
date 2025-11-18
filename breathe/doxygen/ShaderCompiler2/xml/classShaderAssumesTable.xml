@@ -1,0 +1,241 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderAssumesTable" kind="class" language="C++" prot="public">
+    <compoundname>ShaderAssumesTable</compoundname>
+    <includes refid="shAssumes_8h" local="no">shAssumes.h</includes>
+    <innerclass refid="structShaderAssumesTable_1_1AssumeRecord" prot="private">ShaderAssumesTable::AssumeRecord</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderAssumesTable_1a1819fc6973045f67237859ffeef3ffb2" prot="private" static="no" mutable="no">
+        <type>const DataBlock &amp;</type>
+        <definition>const DataBlock&amp; ShaderAssumesTable::config</definition>
+        <argsstring></argsstring>
+        <name>config</name>
+        <qualifiedname>ShaderAssumesTable::config</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="20" column="19" bodyfile="shAssumes.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderAssumesTable_1a5ad9797a65d972362d7e366f34db1ec9" prot="private" static="no" mutable="no">
+        <type>const <ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref> *</type>
+        <definition>const ShaderAssumesTable* ShaderAssumesTable::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>ShaderAssumesTable::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="21" column="28" bodyfile="shAssumes.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderAssumesTable_1a383ca43aa75687a69f71407440873785" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; eastl::string, AssumeRecord &gt;</type>
+        <definition>ska::flat_hash_map&lt;eastl::string, AssumeRecord&gt; ShaderAssumesTable::assumes</definition>
+        <argsstring></argsstring>
+        <name>assumes</name>
+        <qualifiedname>ShaderAssumesTable::assumes</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="22" column="22" bodyfile="shAssumes.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderAssumesTable_1a0d3008ef153e498b70bb2d9246c41d6d" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderAssumesTable::debugName</definition>
+        <argsstring></argsstring>
+        <name>debugName</name>
+        <qualifiedname>ShaderAssumesTable::debugName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="23" column="14" bodyfile="shAssumes.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderAssumesTable_1a476ea9e907d63c8afcadda0c8232d85a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderAssumesTable::ShaderAssumesTable</definition>
+        <argsstring>(const DataBlock &amp;config_assumes, const ShaderAssumesTable *parent_table=nullptr, const char *debug_name=nullptr)</argsstring>
+        <name>ShaderAssumesTable</name>
+        <qualifiedname>ShaderAssumesTable::ShaderAssumesTable</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>config_assumes</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderAssumesTable" kindref="compound">ShaderAssumesTable</ref> *</type>
+          <declname>parent_table</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>debug_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="26" column="3" bodyfile="shAssumes.h" bodystart="26" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderAssumesTable_1a8a6641ff334762ff56de6fcf78a310b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float ShaderAssumesTable::addAssume</definition>
+        <argsstring>(const char *name, float val, bool is_fallback, Parser &amp;parser, Terminal *t=nullptr)</argsstring>
+        <name>addAssume</name>
+        <qualifiedname>ShaderAssumesTable::addAssume</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_fallback</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>t</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="37" column="9" bodyfile="shAssumes.cpp" bodystart="7" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderAssumesTable_1aed503435493331a95c59aae9cd0fe3b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float ShaderAssumesTable::addIntervalAssume</definition>
+        <argsstring>(const char *name, const IntervalValue &amp;interv_val, bool is_fallback, Parser &amp;parser, Terminal *t=nullptr)</argsstring>
+        <name>addIntervalAssume</name>
+        <qualifiedname>ShaderAssumesTable::addIntervalAssume</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classIntervalValue" kindref="compound">IntervalValue</ref> &amp;</type>
+          <declname>interv_val</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_fallback</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>Terminal *</type>
+          <declname>t</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="38" column="9" bodyfile="shAssumes.cpp" bodystart="46" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderAssumesTable_1a8279eb5b559bfac980d005b1f9832326" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; float &gt;</type>
+        <definition>eastl::optional&lt; float &gt; ShaderAssumesTable::getAssumedVal</definition>
+        <argsstring>(const char *varname, bool var_is_global) const</argsstring>
+        <name>getAssumedVal</name>
+        <qualifiedname>ShaderAssumesTable::getAssumedVal</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>varname</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>var_is_global</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="40" column="19" bodyfile="shAssumes.cpp" bodystart="53" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderAssumesTable_1a35fe76767f64aee7a9d76df206d6e404" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderAssumesTable::getDebugName</definition>
+        <argsstring>() const</argsstring>
+        <name>getDebugName</name>
+        <qualifiedname>ShaderAssumesTable::getDebugName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="42" column="14" bodyfile="shAssumes.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderAssumesTable_1abe6fdae272eb45cfaad5d7ccb5205638" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; float &gt;</type>
+        <definition>eastl::optional&lt; float &gt; ShaderAssumesTable::getAssumedValFromConfig</definition>
+        <argsstring>(const char *varname) const</argsstring>
+        <name>getAssumedValFromConfig</name>
+        <qualifiedname>ShaderAssumesTable::getAssumedValFromConfig</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>varname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shAssumes.h" line="45" column="19" bodyfile="shAssumes.cpp" bodystart="69" bodyend="83"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shAssumes.h" line="12" column="1" bodyfile="shAssumes.h" bodystart="13" bodyend="46"/>
+    <listofallmembers>
+      <member refid="classShaderAssumesTable_1a8a6641ff334762ff56de6fcf78a310b8" prot="public" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>addAssume</name></member>
+      <member refid="classShaderAssumesTable_1aed503435493331a95c59aae9cd0fe3b6" prot="public" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>addIntervalAssume</name></member>
+      <member refid="classShaderAssumesTable_1a383ca43aa75687a69f71407440873785" prot="private" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>assumes</name></member>
+      <member refid="classShaderAssumesTable_1a1819fc6973045f67237859ffeef3ffb2" prot="private" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>config</name></member>
+      <member refid="classShaderAssumesTable_1a0d3008ef153e498b70bb2d9246c41d6d" prot="private" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>debugName</name></member>
+      <member refid="classShaderAssumesTable_1a8279eb5b559bfac980d005b1f9832326" prot="public" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>getAssumedVal</name></member>
+      <member refid="classShaderAssumesTable_1abe6fdae272eb45cfaad5d7ccb5205638" prot="private" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>getAssumedValFromConfig</name></member>
+      <member refid="classShaderAssumesTable_1a35fe76767f64aee7a9d76df206d6e404" prot="public" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>getDebugName</name></member>
+      <member refid="classShaderAssumesTable_1a5ad9797a65d972362d7e366f34db1ec9" prot="private" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>parent</name></member>
+      <member refid="classShaderAssumesTable_1a476ea9e907d63c8afcadda0c8232d85a" prot="public" virt="non-virtual"><scope>ShaderAssumesTable</scope><name>ShaderAssumesTable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

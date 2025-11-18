@@ -1,0 +1,829 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Barriers</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Bindless Resources API" href="Bindless.html" />
+    <link rel="prev" title="D3D API" href="../d3dAPI.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Barriers</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv419ResourceBarrierDesc"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEv"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescERK19ResourceBarrierDesc"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrier"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P7SbufferRA1N_15ResourceBarrier"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP11BaseTexture15ResourceBarrierjj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC11BaseTexturePK15ResourceBarrierPKjPKjj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP35RaytraceBottomAccelerationStructure"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC35RaytraceBottomAccelerationStructurej"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P35RaytraceBottomAccelerationStructure"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP35RaytraceBottomAccelerationStructureEE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEN8raytrace25AccelerationStructurePoolE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPKN8raytrace25AccelerationStructurePoolEj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_N8raytrace25AccelerationStructurePoolE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIN8raytrace25AccelerationStructurePoolEEE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjPPC11BaseTexturePK15ResourceBarrierPKjPKjj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierPPC11BaseTexturePK15ResourceBarrierPKjPKjj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjP11BaseTexture15ResourceBarrierjj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierP11BaseTexture15ResourceBarrierjj"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescE15ResourceBarrier"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::ResourceBarrierDesc()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc23enumerateBufferBarriersEv1T"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::enumerateBufferBarriers()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc24enumerateTextureBarriersEv1T"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::enumerateTextureBarriers()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc21enumerateBlasBarriersEv1T"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::enumerateBlasBarriers()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc42enumerateAccelerationStructurePoolBarriersEv1T"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::enumerateAccelerationStructurePoolBarriers()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc6bufferE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::buffer</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc7buffersE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::buffers</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc7textureE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::texture</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc8texturesE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textures</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc4blasE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::blas</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc6blasesE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::blases</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc4poolE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::pool</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc5poolsE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::pools</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc11bufferStateE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::bufferState</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc12bufferStatesE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::bufferStates</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc12textureStateE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textureState</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc13textureStatesE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textureStates</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc18textureSubResIndexE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textureSubResIndex</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc20textureSubResIndicesE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textureSubResIndices</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc18textureSubResRangeE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textureSubResRange</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19textureSubResRangesE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textureSubResRanges</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc11bufferCountE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::bufferCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc12textureCountE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::textureCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc9blasCountE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::blasCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc11asPoolCountE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::asPoolCount</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc20single_element_countE"><code class="docutils literal notranslate"><span class="pre">ResourceBarrierDesc::single_element_count</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PipelineCompilationHelpers.html">Pipeline Compilation Helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Barriers</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/Barrier.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="barriers">
+<h1>Barriers<a class="headerlink" href="#barriers" title="Link to this heading"></a></h1>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv419ResourceBarrierDesc">
+<span id="_CPPv319ResourceBarrierDesc"></span><span id="_CPPv219ResourceBarrierDesc"></span><span id="ResourceBarrierDesc"></span><span class="target" id="classResourceBarrierDesc"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><a class="headerlink" href="#_CPPv419ResourceBarrierDesc" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_barrier.h&gt;</em></div>
+<p>The <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> class represents the input type for ‘<a class="reference internal" href="other.html#namespaced3d_1a0e9e30745ddca2f11f21b9ef223f088c"><span class="std std-ref">d3d::resource_barrier</span></a>’. It allows one function to handle multiple input data layouts. Inputs can be simple single values, arrays of values, pointers to values, and initializer lists of values. To interpret the stored values, use the provided enumerate functions to get the buffer and texture barriers. For more details on resource barriers, see <a class="reference external" href="https://dagor.rtd.gaijin.lan/en/latest/api-references/dagor-render/index/resource_and_execution_barriers.html">https://dagor.rtd.gaijin.lan/en/latest/api-references/dagor-render/index/resource_and_execution_barriers.html</a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEv">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEv"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEv"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc"></span><span class="target" id="classResourceBarrierDesc_1af8afe46ecf1a383e44c061b34358f64b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Default constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescERK19ResourceBarrierDesc">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescERK19ResourceBarrierDesc"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescERK19ResourceBarrierDesc"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__ResourceBarrierDescCR"></span><span class="target" id="classResourceBarrierDesc_1a7fffa6d712cb0ad171c7a4977a5d3ed4"></span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescERK19ResourceBarrierDesc" title="ResourceBarrierDesc::ResourceBarrierDesc"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescERK19ResourceBarrierDesc" title="Link to this definition"></a><br /></dt>
+<dd><p>Copy constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>desc</strong> – The <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> object to be copied. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrier">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrier"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrier"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__SbufferP.ResourceBarrier"></span><span class="target" id="classResourceBarrierDesc_1aa1f7fee616161297146cb5309c69235a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buf</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rb</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrier" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a single buffer and resource barrier. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buf</strong> – The buffer. </p></li>
+<li><p><strong>rb</strong> – The resource barrier. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__SbufferPCP.ResourceBarrierCP.unsigned"></span><span class="target" id="classResourceBarrierDesc_1ab2529b2f1ca8baea96953a0129e8ccef"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bufs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">rb</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with an array of buffers and resource barriers. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bufs</strong> – The array of buffers. </p></li>
+<li><p><strong>rb</strong> – The array of resource barriers. </p></li>
+<li><p><strong>count</strong> – The number of buffers and resource barriers. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P7SbufferRA1N_15ResourceBarrier">
+<span id="_CPPv3I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P7SbufferRA1N_15ResourceBarrier"></span><span id="_CPPv2I_jEN19ResourceBarrierDesc19ResourceBarrierDescERAN_P7SbufferRAN_15ResourceBarrier"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1a8cdf5e936887acbdbd05d983e8b54961"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">bufs</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P7SbufferRA1N_15ResourceBarrier" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rb</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P7SbufferRA1N_15ResourceBarrier" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P7SbufferRA1N_15ResourceBarrier" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a fixed-size array of buffers and resource barriers. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>N</strong> – The size of the fixed-size array. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>bufs</strong> – The fixed-size array of buffers. </p></li>
+<li><p><strong>rb</strong> – The fixed-size array of resource barriers. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEE">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEE"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEE"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__std::initializer_list:SbufferP:.std::initializer_list:ResourceBarrier:"></span><span class="target" id="classResourceBarrierDesc_1a86e6bffa9fcfe7fa7f6043f47bd40db5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bufs</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rb</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with initializer lists of buffers and resource barriers. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bufs</strong> – The initializer list of buffers. </p></li>
+<li><p><strong>rb</strong> – The initializer list of resource barriers. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP11BaseTexture15ResourceBarrierjj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEP11BaseTexture15ResourceBarrierjj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEP11BaseTexture15ResourceBarrierjj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__BaseTextureP.ResourceBarrier.unsigned.unsigned"></span><span class="target" id="classResourceBarrierDesc_1a6cc56a943815b4a15f5bbdbc111a8674"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rb</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sub_res_index</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sub_res_range</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP11BaseTexture15ResourceBarrierjj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a single texture, resource barrier, and sub-resource index and range. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tex</strong> – The texture. </p></li>
+<li><p><strong>rb</strong> – The resource barrier. </p></li>
+<li><p><strong>sub_res_index</strong> – The sub-resource index. </p></li>
+<li><p><strong>sub_res_range</strong> – The sub-resource range. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC11BaseTexturePK15ResourceBarrierPKjPKjj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEPPC11BaseTexturePK15ResourceBarrierPKjPKjj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEPPC11BaseTexturePK15ResourceBarrierPKjPKjj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__BaseTexturePCP.ResourceBarrierCP.unsignedCP.unsignedCP.unsigned"></span><span class="target" id="classResourceBarrierDesc_1a3ed55fc8b83d5b8ed79db2688eacd221"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">texs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">rb</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">sub_res_index</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">sub_res_range</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC11BaseTexturePK15ResourceBarrierPKjPKjj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with an array of textures, resource barriers, sub-resource indices, and sub-resource ranges. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>texs</strong> – The array of textures. </p></li>
+<li><p><strong>rb</strong> – The array of resource barriers. </p></li>
+<li><p><strong>sub_res_index</strong> – The array of sub-resource indices. </p></li>
+<li><p><strong>sub_res_range</strong> – The array of sub-resource ranges. </p></li>
+<li><p><strong>count</strong> – The number of textures, resource barriers, sub-resource indices, and sub-resource ranges. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j">
+<span id="_CPPv3I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j"></span><span id="_CPPv2I_jEN19ResourceBarrierDesc19ResourceBarrierDescERAN_P11BaseTextureRAN_15ResourceBarrierRAN_jRAN_j"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1a49d71c3b1abd9c986452d8b708e03b0d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">texs</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rb</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">sub_res_index</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">sub_res_range</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P11BaseTextureRA1N_15ResourceBarrierRA1N_jRA1N_j" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a fixed-size array of textures, resource barriers, sub-resource indices, and sub-resource ranges. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>N</strong> – The size of the fixed-size array. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>texs</strong> – The fixed-size array of textures. </p></li>
+<li><p><strong>rb</strong> – The fixed-size array of resource barriers. </p></li>
+<li><p><strong>sub_res_index</strong> – The fixed-size array of sub-resource indices. </p></li>
+<li><p><strong>sub_res_range</strong> – The fixed-size array of sub-resource ranges. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__std::initializer_list:BaseTextureP:.std::initializer_list:ResourceBarrier:.std::initializer_list:unsigned:.std::initializer_list:unsigned:"></span><span class="target" id="classResourceBarrierDesc_1a62c2860d3467cf9452830af308f71840"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">texs</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rb</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sub_res_index</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sub_res_range</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with initializer lists of textures, resource barriers, sub-resource indices, and sub-resource ranges. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>texs</strong> – The initializer list of textures. </p></li>
+<li><p><strong>rb</strong> – The initializer list of resource barriers. </p></li>
+<li><p><strong>sub_res_index</strong> – The initializer list of sub-resource indices. </p></li>
+<li><p><strong>sub_res_range</strong> – The initializer list of sub-resource ranges. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP35RaytraceBottomAccelerationStructure">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEP35RaytraceBottomAccelerationStructure"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEP35RaytraceBottomAccelerationStructure"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__RaytraceBottomAccelerationStructureP"></span><span class="target" id="classResourceBarrierDesc_1a3a131650698e43eb12c0dbbc7db5ed79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">RaytraceBottomAccelerationStructure</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">blas</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP35RaytraceBottomAccelerationStructure" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a single bottom level acceleration structure. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blas</strong> – The bottom level acceleration structure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC35RaytraceBottomAccelerationStructurej">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEPPC35RaytraceBottomAccelerationStructurej"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEPPC35RaytraceBottomAccelerationStructurej"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__RaytraceBottomAccelerationStructurePCP.unsigned"></span><span class="target" id="classResourceBarrierDesc_1a8b4fcb61616bfb24388c0e58c4f43551"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">RaytraceBottomAccelerationStructure</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">blases</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC35RaytraceBottomAccelerationStructurej" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with an array of bottom level acceleration structures. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blases</strong> – The array of bottom level acceleration structures. </p></li>
+<li><p><strong>count</strong> – The number of bottom level acceleration structures. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P35RaytraceBottomAccelerationStructure">
+<span id="_CPPv3I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P35RaytraceBottomAccelerationStructure"></span><span id="_CPPv2I_jEN19ResourceBarrierDesc19ResourceBarrierDescERAN_P35RaytraceBottomAccelerationStructure"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1ad5a6e273bf45a9e1bb679b60d5ab3b59"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">RaytraceBottomAccelerationStructure</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">blases</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P35RaytraceBottomAccelerationStructure" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_P35RaytraceBottomAccelerationStructure" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a fixed-size array of bottom level acceleration structures. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>N</strong> – The size of the fixed-size array. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>blases</strong> – The fixed-size array of bottom level acceleration structures. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP35RaytraceBottomAccelerationStructureEE">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP35RaytraceBottomAccelerationStructureEE"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP35RaytraceBottomAccelerationStructureEE"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__std::initializer_list:RaytraceBottomAccelerationStructureP:"></span><span class="target" id="classResourceBarrierDesc_1ab8c8b3ca0ba937164e0a1a19e4882734"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">RaytraceBottomAccelerationStructure</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">blases</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP35RaytraceBottomAccelerationStructureEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with initializer lists of bottom level acceleration structures. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blases</strong> – The initializer list of bottom level acceleration structures. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEN8raytrace25AccelerationStructurePoolE">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEN8raytrace25AccelerationStructurePoolE"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEN8raytrace25AccelerationStructurePoolE"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__raytrace::AccelerationStructurePool"></span><span class="target" id="classResourceBarrierDesc_1a4920f4bcb447e5118fd6a5d11a0055ca"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="RayTracing.html#_CPPv48raytrace" title="raytrace"><span class="n"><span class="pre">raytrace</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N8raytrace25AccelerationStructurePoolE" title="raytrace::AccelerationStructurePool"><span class="n"><span class="pre">AccelerationStructurePool</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">pool</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEN8raytrace25AccelerationStructurePoolE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a single ray trace acceleration structure pool. This barrier will flush all pending writes (eg builds) to this pool. This is more efficient than submitting multiple barriers for individual BLASes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pool</strong> – The ray trace acceleration structure pool. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPKN8raytrace25AccelerationStructurePoolEj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEPKN8raytrace25AccelerationStructurePoolEj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEPKN8raytrace25AccelerationStructurePoolEj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__raytrace::AccelerationStructurePoolCP.unsigned"></span><span class="target" id="classResourceBarrierDesc_1abdd41002b8fcddbf2aa94889c8802b5c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="RayTracing.html#_CPPv48raytrace" title="raytrace"><span class="n"><span class="pre">raytrace</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N8raytrace25AccelerationStructurePoolE" title="raytrace::AccelerationStructurePool"><span class="n"><span class="pre">AccelerationStructurePool</span></span></a><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">pools</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPKN8raytrace25AccelerationStructurePoolEj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with an array of ray trace acceleration structure pools. This barrier will flush all pending writes (eg builds) to the pools. This is more efficient than submitting multiple barriers for individual BLASes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pools</strong> – The array of ray trace acceleration structure pools. </p></li>
+<li><p><strong>count</strong> – The number of ray trace acceleration structure pools. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_N8raytrace25AccelerationStructurePoolE">
+<span id="_CPPv3I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_N8raytrace25AccelerationStructurePoolE"></span><span id="_CPPv2I_jEN19ResourceBarrierDesc19ResourceBarrierDescERAN_N8raytrace25AccelerationStructurePoolE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1aa572f8c414c74f357604de86cc890e58"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="RayTracing.html#_CPPv48raytrace" title="raytrace"><span class="n"><span class="pre">raytrace</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N8raytrace25AccelerationStructurePoolE" title="raytrace::AccelerationStructurePool"><span class="n"><span class="pre">AccelerationStructurePool</span></span></a><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">pools</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_N8raytrace25AccelerationStructurePoolE" title="ResourceBarrierDesc::ResourceBarrierDesc::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">]</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_jEN19ResourceBarrierDesc19ResourceBarrierDescERA1N_N8raytrace25AccelerationStructurePoolE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with an array of ray trace acceleration structure pools. This barrier will flush all pending writes (eg builds) to the pools. This is more efficient than submitting multiple barriers for individual BLASes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>N</strong> – The size of the fixed-size array. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>pools</strong> – The fixed size array of ray trace acceleration structure pools. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIN8raytrace25AccelerationStructurePoolEEE">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIN8raytrace25AccelerationStructurePoolEEE"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIN8raytrace25AccelerationStructurePoolEEE"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__std::initializer_list:raytrace::AccelerationStructurePool:"></span><span class="target" id="classResourceBarrierDesc_1a8521b925231236499ec2ca2174fa1afe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="RayTracing.html#_CPPv48raytrace" title="raytrace"><span class="n"><span class="pre">raytrace</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N8raytrace25AccelerationStructurePoolE" title="raytrace::AccelerationStructurePool"><span class="n"><span class="pre">AccelerationStructurePool</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pools</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIN8raytrace25AccelerationStructurePoolEEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a initializer list of ray trace acceleration structure pools. This barrier will flush all pending writes (eg builds) to the pools. This is more efficient than submitting multiple barriers for individual BLASes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pools</strong> – The initializer list of ray trace acceleration structure pools. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjPPC11BaseTexturePK15ResourceBarrierPKjPKjj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjPPC11BaseTexturePK15ResourceBarrierPKjPKjj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjPPC11BaseTexturePK15ResourceBarrierPKjPKjj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__SbufferPCP.ResourceBarrierCP.unsigned.BaseTexturePCP.ResourceBarrierCP.unsignedCP.unsignedCP.unsigned"></span><span class="target" id="classResourceBarrierDesc_1a894f3641c648b78025ca5604c4b236fc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bufs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">b_rb</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b_count</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">texs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t_rb</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t_sub_res_index</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t_sub_res_range</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t_count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjPPC11BaseTexturePK15ResourceBarrierPKjPKjj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with arrays of buffers, resource barriers, textures, resource barriers, sub-resource indices, and sub-resource ranges. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bufs</strong> – The array of buffers. </p></li>
+<li><p><strong>b_rb</strong> – The array of resource barriers for buffers. </p></li>
+<li><p><strong>b_count</strong> – The number of buffers and resource barriers for buffers. </p></li>
+<li><p><strong>texs</strong> – The array of textures. </p></li>
+<li><p><strong>t_rb</strong> – The array of resource barriers for textures. </p></li>
+<li><p><strong>t_sub_res_index</strong> – The array of sub-resource indices for textures. </p></li>
+<li><p><strong>t_sub_res_range</strong> – The array of sub-resource ranges for textures. </p></li>
+<li><p><strong>t_count</strong> – The number of textures, resource barriers for textures, sub-resource indices for textures, and sub-resource ranges for textures. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierPPC11BaseTexturePK15ResourceBarrierPKjPKjj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierPPC11BaseTexturePK15ResourceBarrierPKjPKjj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierPPC11BaseTexturePK15ResourceBarrierPKjPKjj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__SbufferP.ResourceBarrier.BaseTexturePCP.ResourceBarrierCP.unsignedCP.unsignedCP.unsigned"></span><span class="target" id="classResourceBarrierDesc_1af0f0332910ada35d5abce3ee5ba86448"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buf</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">b_rb</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">texs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t_rb</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t_sub_res_index</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">t_sub_res_range</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t_count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierPPC11BaseTexturePK15ResourceBarrierPKjPKjj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a single buffer, resource barrier, array of textures, resource barriers, sub-resource indices, and sub-resource ranges. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buf</strong> – The buffer. </p></li>
+<li><p><strong>b_rb</strong> – The resource barrier for the buffer. </p></li>
+<li><p><strong>texs</strong> – The array of textures. </p></li>
+<li><p><strong>t_rb</strong> – The array of resource barriers for textures. </p></li>
+<li><p><strong>t_sub_res_index</strong> – The array of sub-resource indices for textures. </p></li>
+<li><p><strong>t_sub_res_range</strong> – The array of sub-resource ranges for textures. </p></li>
+<li><p><strong>t_count</strong> – The number of textures, resource barriers for textures, sub-resource indices for textures, and sub-resource ranges for textures. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjP11BaseTexture15ResourceBarrierjj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjP11BaseTexture15ResourceBarrierjj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjP11BaseTexture15ResourceBarrierjj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__SbufferPCP.ResourceBarrierCP.unsigned.BaseTextureP.ResourceBarrier.unsigned.unsigned"></span><span class="target" id="classResourceBarrierDesc_1a882d12d266860849cedeacd0dc8af669"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bufs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">b_rb</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b_count</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">t_rb</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t_sub_res_index</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t_sub_res_range</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEPPC7SbufferPK15ResourceBarrierjP11BaseTexture15ResourceBarrierjj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with arrays of buffers, resource barriers, a single texture, resource barrier, sub-resource index, and sub-resource range. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bufs</strong> – The array of buffers. </p></li>
+<li><p><strong>b_rb</strong> – The array of resource barriers for buffers. </p></li>
+<li><p><strong>b_count</strong> – The number of buffers and resource barriers for buffers. </p></li>
+<li><p><strong>tex</strong> – The texture. </p></li>
+<li><p><strong>t_rb</strong> – The resource barrier for the texture. </p></li>
+<li><p><strong>t_sub_res_index</strong> – The sub-resource index for the texture. </p></li>
+<li><p><strong>t_sub_res_range</strong> – The sub-resource range for the texture. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierP11BaseTexture15ResourceBarrierjj">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierP11BaseTexture15ResourceBarrierjj"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierP11BaseTexture15ResourceBarrierjj"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__SbufferP.ResourceBarrier.BaseTextureP.ResourceBarrier.unsigned.unsigned"></span><span class="target" id="classResourceBarrierDesc_1a03195b1629bb46358fc5fb6a6d189e65"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">buf</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">b_rb</span></span>, <a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tex</span></span>, <a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">t_rb</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t_sub_res_index</span></span>, <span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t_sub_res_range</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescEP7Sbuffer15ResourceBarrierP11BaseTexture15ResourceBarrierjj" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a single buffer, resource barrier, a single texture, resource barrier, sub-resource index, and sub-resource range. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buf</strong> – The buffer. </p></li>
+<li><p><strong>b_rb</strong> – The resource barrier for the buffer. </p></li>
+<li><p><strong>tex</strong> – The texture. </p></li>
+<li><p><strong>t_rb</strong> – The resource barrier for the texture. </p></li>
+<li><p><strong>t_sub_res_index</strong> – The sub-resource index for the texture. </p></li>
+<li><p><strong>t_sub_res_range</strong> – The sub-resource range for the texture. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__std::initializer_list:SbufferP:.std::initializer_list:ResourceBarrier:.std::initializer_list:BaseTextureP:.std::initializer_list:ResourceBarrier:.std::initializer_list:unsigned:.std::initializer_list:unsigned:"></span><span class="target" id="classResourceBarrierDesc_1a93e5bbca274e53c53ae14fe03e46ef03"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bufs</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">buf_rb</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">texs</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tex_rb</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sub_res_index</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">unsigned</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sub_res_range</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescENSt16initializer_listIP7SbufferEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIP11BaseTextureEENSt16initializer_listI15ResourceBarrierEENSt16initializer_listIjEENSt16initializer_listIjEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with initializer lists of buffers, resource barriers, textures, resource barriers, sub-resource indices, and sub-resource ranges. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bufs</strong> – The initializer list of buffers. </p></li>
+<li><p><strong>buf_rb</strong> – The initializer list of resource barriers for buffers. </p></li>
+<li><p><strong>texs</strong> – The initializer list of textures. </p></li>
+<li><p><strong>tex_rb</strong> – The initializer list of resource barriers for textures. </p></li>
+<li><p><strong>sub_res_index</strong> – The initializer list of sub-resource indices for textures. </p></li>
+<li><p><strong>sub_res_range</strong> – The initializer list of sub-resource ranges for textures. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescE15ResourceBarrier">
+<span id="_CPPv3N19ResourceBarrierDesc19ResourceBarrierDescE15ResourceBarrier"></span><span id="_CPPv2N19ResourceBarrierDesc19ResourceBarrierDescE15ResourceBarrier"></span><span id="ResourceBarrierDesc::ResourceBarrierDesc__ResourceBarrier"></span><span class="target" id="classResourceBarrierDesc_1a2a045790f285c68504b450498ddef488"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResourceBarrierDesc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rb</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19ResourceBarrierDescE15ResourceBarrier" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructor for <a class="reference internal" href="#classResourceBarrierDesc"><span class="std std-ref">ResourceBarrierDesc</span></a> with a single resource barrier. The expected use case is that ‘rb’ has the RB_FLUSH_UAV flag set for all pending UAV access. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rb</strong> – The resource barrier. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK19ResourceBarrierDesc23enumerateBufferBarriersEv1T">
+<span id="_CPPv3I0ENK19ResourceBarrierDesc23enumerateBufferBarriersE1T"></span><span id="_CPPv2I0ENK19ResourceBarrierDesc23enumerateBufferBarriersE1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1aba23048e816a1004460ad9a49641dc3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enumerateBufferBarriers</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc23enumerateBufferBarriersEv1T" title="ResourceBarrierDesc::enumerateBufferBarriers::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK19ResourceBarrierDesc23enumerateBufferBarriersEv1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Enumerates the buffer barriers and calls the provided callback function for each buffer barrier. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type of the callback function. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>clb</strong> – The callback function that takes a buffer and a resource barrier as arguments. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK19ResourceBarrierDesc24enumerateTextureBarriersEv1T">
+<span id="_CPPv3I0ENK19ResourceBarrierDesc24enumerateTextureBarriersE1T"></span><span id="_CPPv2I0ENK19ResourceBarrierDesc24enumerateTextureBarriersE1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1a40f84933300c116a5fc62d5981bd1d41"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enumerateTextureBarriers</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc24enumerateTextureBarriersEv1T" title="ResourceBarrierDesc::enumerateTextureBarriers::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK19ResourceBarrierDesc24enumerateTextureBarriersEv1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Enumerates the texture barriers and calls the provided callback function for each texture barrier. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type of the callback function. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>clb</strong> – The callback function that takes a texture, a resource barrier, a sub-resource index, and a sub-resource range as arguments. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK19ResourceBarrierDesc21enumerateBlasBarriersEv1T">
+<span id="_CPPv3I0ENK19ResourceBarrierDesc21enumerateBlasBarriersE1T"></span><span id="_CPPv2I0ENK19ResourceBarrierDesc21enumerateBlasBarriersE1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1a455869776917943980ca9b6a8c0d6dd6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enumerateBlasBarriers</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc21enumerateBlasBarriersEv1T" title="ResourceBarrierDesc::enumerateBlasBarriers::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK19ResourceBarrierDesc21enumerateBlasBarriersEv1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Enumerates the bottom level acceleration structure barriers and calls the provided callback function for each bottom level acceleration structure barrier. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type of the callback function. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>clb</strong> – The callback function that takes a bottom level acceleration structure as argument. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK19ResourceBarrierDesc42enumerateAccelerationStructurePoolBarriersEv1T">
+<span id="_CPPv3I0ENK19ResourceBarrierDesc42enumerateAccelerationStructurePoolBarriersE1T"></span><span id="_CPPv2I0ENK19ResourceBarrierDesc42enumerateAccelerationStructurePoolBarriersE1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classResourceBarrierDesc_1ad69f484fe03b62d88fa2bc19a0085329"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enumerateAccelerationStructurePoolBarriers</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK19ResourceBarrierDesc42enumerateAccelerationStructurePoolBarriersEv1T" title="ResourceBarrierDesc::enumerateAccelerationStructurePoolBarriers::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK19ResourceBarrierDesc42enumerateAccelerationStructurePoolBarriersEv1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Enumerates the ray trace acceleration structure pool barriers and calls the provided callback function for each ray trace acceleration structure pool barrier. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – The type of the callback function. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>clb</strong> – The callback function that takes a ray trace acceleration structure pool as argument. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc6bufferE">
+<span id="_CPPv3N19ResourceBarrierDesc6bufferE"></span><span id="_CPPv2N19ResourceBarrierDesc6bufferE"></span><span id="ResourceBarrierDesc::buffer__SbufferP"></span><span class="target" id="classResourceBarrierDesc_1a9d7bd2035f63521bab11366c1c4309a7"></span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">buffer</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc6bufferE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc7buffersE">
+<span id="_CPPv3N19ResourceBarrierDesc7buffersE"></span><span id="_CPPv2N19ResourceBarrierDesc7buffersE"></span><span id="ResourceBarrierDesc::buffers__SbufferPCP"></span><span class="target" id="classResourceBarrierDesc_1a4e5b1078c5c35822f088ceefcb79c68f"></span><a class="reference internal" href="Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">buffers</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc7buffersE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc7textureE">
+<span id="_CPPv3N19ResourceBarrierDesc7textureE"></span><span id="_CPPv2N19ResourceBarrierDesc7textureE"></span><span id="ResourceBarrierDesc::texture__BaseTextureP"></span><span class="target" id="classResourceBarrierDesc_1a3172bad3616a3dc9379b3588906a4ee7"></span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">texture</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc7textureE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc8texturesE">
+<span id="_CPPv3N19ResourceBarrierDesc8texturesE"></span><span id="_CPPv2N19ResourceBarrierDesc8texturesE"></span><span id="ResourceBarrierDesc::textures__BaseTexturePCP"></span><span class="target" id="classResourceBarrierDesc_1a92e7435cb0cbfc3cf4687de68dee151b"></span><a class="reference internal" href="textures.html#_CPPv411BaseTexture" title="BaseTexture"><span class="n"><span class="pre">BaseTexture</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">textures</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc8texturesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc4blasE">
+<span id="_CPPv3N19ResourceBarrierDesc4blasE"></span><span id="_CPPv2N19ResourceBarrierDesc4blasE"></span><span id="ResourceBarrierDesc::blas__RaytraceBottomAccelerationStructureP"></span><span class="target" id="classResourceBarrierDesc_1aafafc6df3051dfb4bcb31b95c9307790"></span><span class="n"><span class="pre">RaytraceBottomAccelerationStructure</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">blas</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc4blasE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc6blasesE">
+<span id="_CPPv3N19ResourceBarrierDesc6blasesE"></span><span id="_CPPv2N19ResourceBarrierDesc6blasesE"></span><span id="ResourceBarrierDesc::blases__RaytraceBottomAccelerationStructurePCP"></span><span class="target" id="classResourceBarrierDesc_1a964eb1022d7e0cd9eb468ea8b5ac0fe6"></span><span class="n"><span class="pre">RaytraceBottomAccelerationStructure</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">blases</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc6blasesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc4poolE">
+<span id="_CPPv3N19ResourceBarrierDesc4poolE"></span><span id="_CPPv2N19ResourceBarrierDesc4poolE"></span><span id="ResourceBarrierDesc::pool__raytrace::AccelerationStructurePool"></span><span class="target" id="classResourceBarrierDesc_1a9ae4cf426b213dec55083cae75cd46f8"></span><a class="reference internal" href="RayTracing.html#_CPPv48raytrace" title="raytrace"><span class="n"><span class="pre">raytrace</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N8raytrace25AccelerationStructurePoolE" title="raytrace::AccelerationStructurePool"><span class="n"><span class="pre">AccelerationStructurePool</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pool</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc4poolE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc5poolsE">
+<span id="_CPPv3N19ResourceBarrierDesc5poolsE"></span><span id="_CPPv2N19ResourceBarrierDesc5poolsE"></span><span id="ResourceBarrierDesc::pools__raytrace::AccelerationStructurePoolCP"></span><span class="target" id="classResourceBarrierDesc_1a09c7a552c7e023ef86a687f7953cdb83"></span><a class="reference internal" href="RayTracing.html#_CPPv48raytrace" title="raytrace"><span class="n"><span class="pre">raytrace</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="constants.html#_CPPv4N8raytrace25AccelerationStructurePoolE" title="raytrace::AccelerationStructurePool"><span class="n"><span class="pre">AccelerationStructurePool</span></span></a><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">pools</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc5poolsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc11bufferStateE">
+<span id="_CPPv3N19ResourceBarrierDesc11bufferStateE"></span><span id="_CPPv2N19ResourceBarrierDesc11bufferStateE"></span><span id="ResourceBarrierDesc::bufferState__ResourceBarrier"></span><span class="target" id="classResourceBarrierDesc_1a282602367087769d26307cd4ab8a5468"></span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bufferState</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc11bufferStateE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc12bufferStatesE">
+<span id="_CPPv3N19ResourceBarrierDesc12bufferStatesE"></span><span id="_CPPv2N19ResourceBarrierDesc12bufferStatesE"></span><span id="ResourceBarrierDesc::bufferStates__ResourceBarrierCP"></span><span class="target" id="classResourceBarrierDesc_1a68065401a0450ac3533e5832f10014d7"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">bufferStates</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc12bufferStatesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc12textureStateE">
+<span id="_CPPv3N19ResourceBarrierDesc12textureStateE"></span><span id="_CPPv2N19ResourceBarrierDesc12textureStateE"></span><span id="ResourceBarrierDesc::textureState__ResourceBarrier"></span><span class="target" id="classResourceBarrierDesc_1a62a5e66fde8d79c450b74efc54eaff00"></span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">textureState</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc12textureStateE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc13textureStatesE">
+<span id="_CPPv3N19ResourceBarrierDesc13textureStatesE"></span><span id="_CPPv2N19ResourceBarrierDesc13textureStatesE"></span><span id="ResourceBarrierDesc::textureStates__ResourceBarrierCP"></span><span class="target" id="classResourceBarrierDesc_1a096207dc0f33ad25607cb611e5a11302"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="constants.html#_CPPv415ResourceBarrier" title="ResourceBarrier"><span class="n"><span class="pre">ResourceBarrier</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">textureStates</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc13textureStatesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc18textureSubResIndexE">
+<span id="_CPPv3N19ResourceBarrierDesc18textureSubResIndexE"></span><span id="_CPPv2N19ResourceBarrierDesc18textureSubResIndexE"></span><span id="ResourceBarrierDesc::textureSubResIndex__unsigned"></span><span class="target" id="classResourceBarrierDesc_1a05baf1671929e37c081d73b2d1955b95"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">textureSubResIndex</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc18textureSubResIndexE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc20textureSubResIndicesE">
+<span id="_CPPv3N19ResourceBarrierDesc20textureSubResIndicesE"></span><span id="_CPPv2N19ResourceBarrierDesc20textureSubResIndicesE"></span><span id="ResourceBarrierDesc::textureSubResIndices__unsignedCP"></span><span class="target" id="classResourceBarrierDesc_1a4868b0427b9977b022ef75dc2d432f84"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">textureSubResIndices</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc20textureSubResIndicesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc18textureSubResRangeE">
+<span id="_CPPv3N19ResourceBarrierDesc18textureSubResRangeE"></span><span id="_CPPv2N19ResourceBarrierDesc18textureSubResRangeE"></span><span id="ResourceBarrierDesc::textureSubResRange__unsigned"></span><span class="target" id="classResourceBarrierDesc_1a1be01dd323fc55ae0e88167bcda6a016"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">textureSubResRange</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc18textureSubResRangeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc19textureSubResRangesE">
+<span id="_CPPv3N19ResourceBarrierDesc19textureSubResRangesE"></span><span id="_CPPv2N19ResourceBarrierDesc19textureSubResRangesE"></span><span id="ResourceBarrierDesc::textureSubResRanges__unsignedCP"></span><span class="target" id="classResourceBarrierDesc_1a04987f614559121f9dd96d1ed1b54a28"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">textureSubResRanges</span></span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc19textureSubResRangesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-members">Private Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a7c6dc09965c5fe197965f44285ef71b2"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a6d29fd9a2bc797abbade02e36c396c78"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a381c07d6d91ba549ad70f869f18a43e6"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a8b175cb07cd96f4f7853e128877b5fe2"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a3b0b7fc7b358e86c30685a33c1ea3b5f"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a62e5955566ebfda26b1d3c3423af8231"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a3aeb27a7ace0599091f9911498c8d1de"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classResourceBarrierDesc_1a8584fd1f0f67fd11e78d60a055fb254a"></span><span class="sig-name descname"><span class="pre">union</span> <span class="pre">ResourceBarrierDesc</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc11bufferCountE">
+<span id="_CPPv3N19ResourceBarrierDesc11bufferCountE"></span><span id="_CPPv2N19ResourceBarrierDesc11bufferCountE"></span><span id="ResourceBarrierDesc::bufferCount__unsigned"></span><span class="target" id="classResourceBarrierDesc_1a8daa06e7c10d152c419075c82fcb8e97"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bufferCount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc11bufferCountE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc12textureCountE">
+<span id="_CPPv3N19ResourceBarrierDesc12textureCountE"></span><span id="_CPPv2N19ResourceBarrierDesc12textureCountE"></span><span id="ResourceBarrierDesc::textureCount__unsigned"></span><span class="target" id="classResourceBarrierDesc_1a9e627f4744237ed9e4a3259f819fba5a"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">textureCount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc12textureCountE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc9blasCountE">
+<span id="_CPPv3N19ResourceBarrierDesc9blasCountE"></span><span id="_CPPv2N19ResourceBarrierDesc9blasCountE"></span><span id="ResourceBarrierDesc::blasCount__unsigned"></span><span class="target" id="classResourceBarrierDesc_1a5230b182c983456ce515aca43b544bb4"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blasCount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc9blasCountE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc11asPoolCountE">
+<span id="_CPPv3N19ResourceBarrierDesc11asPoolCountE"></span><span id="_CPPv2N19ResourceBarrierDesc11asPoolCountE"></span><span id="ResourceBarrierDesc::asPoolCount__unsigned"></span><span class="target" id="classResourceBarrierDesc_1a1b390b2de2b43a17e73d44991ccba25e"></span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asPoolCount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc11asPoolCountE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-static-attributes">Private Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19ResourceBarrierDesc20single_element_countE">
+<span id="_CPPv3N19ResourceBarrierDesc20single_element_countE"></span><span id="_CPPv2N19ResourceBarrierDesc20single_element_countE"></span><span id="ResourceBarrierDesc::single_element_count__unsigned"></span><span class="target" id="classResourceBarrierDesc_1ac770e91098b1433339f241cc7fedc843"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">unsigned</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">single_element_count</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">~</span></span><span class="m"><span class="pre">0u</span></span><a class="headerlink" href="#_CPPv4N19ResourceBarrierDesc20single_element_countE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../d3dAPI.html" class="btn btn-neutral float-left" title="D3D API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Bindless.html" class="btn btn-neutral float-right" title="Bindless Resources API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

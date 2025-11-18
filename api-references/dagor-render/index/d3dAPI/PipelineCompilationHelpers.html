@@ -1,0 +1,337 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline Compilation Helpers</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Queries" href="Query.html" />
+    <link rel="prev" title="Mesh Shader Dispatch API" href="MeshShaderDispatch.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../d3dAPI.html">D3D API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Barrier.html">Barriers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bindless.html">Bindless Resources API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Buffers.html">Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Dispatch.html">Compute Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DispatchMesh.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Draw.html">Draw Calls API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCodeMatcherTemplates.html">Driver Code Matcher Templates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverCommands.html">Driver Commands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="DriverInfoAPI.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="GPUCaptureAndDebugTools.html">GPU Capture and Debug Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Heap.html">Heaps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Info.html">Driver Info API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Lock.html">GPU Related Locks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatricesAndPerspective.html">D3D API for Working with Matrices and Perspective Object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MeshShaderDispatch.html">Mesh Shader Dispatch API</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Pipeline Compilation Helpers</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv43d3d"><code class="docutils literal notranslate"><span class="pre">d3d</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_bEN3d3d24AutoPipelineAsyncCompileE"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompile</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEv"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompile::AutoPipelineAsyncCompile()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEPv"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompile::AutoPipelineAsyncCompile()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d24AutoPipelineAsyncCompileD0Ev"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompile::~AutoPipelineAsyncCompile()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4I_bEN3d3d32AutoPipelineAsyncCompileFeedbackE"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback13isRetryNeededEv"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::isRetryNeeded()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback21isExternalRetryNeededEv"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::isExternalRetryNeeded()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback11isSupportedEv"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::isSupported()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback32AutoPipelineAsyncCompileFeedbackEP8uint32_t"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::AutoPipelineAsyncCompileFeedback()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedbackD0Ev"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::~AutoPipelineAsyncCompileFeedback()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback9needRetryE"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::needRetry</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback9supportedE"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::supported</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback17externalNeedRetryE"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineAsyncCompileFeedback::externalNeedRetry</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N3d3d23AutoPipelineSyncCompileE"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineSyncCompile</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d23AutoPipelineSyncCompile23AutoPipelineSyncCompileEv"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineSyncCompile::AutoPipelineSyncCompile()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N3d3d23AutoPipelineSyncCompileD0Ev"><code class="docutils literal notranslate"><span class="pre">d3d::AutoPipelineSyncCompile::~AutoPipelineSyncCompile()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="Query.html">Queries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RayTracing.html">Ray Tracing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderPass.html">Render Pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderState.html">Render State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RenderTarget.html">Render Targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResUpdateBuffer.html">Resource Update Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Resource.html">Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RwResource.html">Read/Write (UAV) Resources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Sampler.html">Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Shader.html">Shader Programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderConstants.html">Shader Constants and Const Buffers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ShaderModelVersions.html">Shader Model Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Streamout.html">Stream Output API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TiledResource.html">Tiled Resource</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VariableRateShading.html">Variable Rate Shading API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="VertexIndexBuffer.html">Vertex and Index Buffer API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ViewScissor.html">View and Scissor D3D API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="constants.html">Constants, Structures and Enumerations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="other.html">All Other Methods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="textures.html">Textures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../shaders.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../d3dAPI.html">D3D API</a></li>
+      <li class="breadcrumb-item active">Pipeline Compilation Helpers</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/d3dAPI/PipelineCompilationHelpers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pipeline-compilation-helpers">
+<h1>Pipeline Compilation Helpers<a class="headerlink" href="#pipeline-compilation-helpers" title="Link to this heading"></a></h1>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv43d3d">
+<span id="_CPPv33d3d"></span><span id="_CPPv23d3d"></span><span id="d3d"></span><span class="target" id="namespaced3d"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">d3d</span></span></span><br /></dt>
+<dd><dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4I_bEN3d3d24AutoPipelineAsyncCompileE">
+<span id="_CPPv3I_bEN3d3d24AutoPipelineAsyncCompileE"></span><span id="_CPPv2I_bEN3d3d24AutoPipelineAsyncCompileE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allow_compute_pipelines</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structd3d_1_1AutoPipelineAsyncCompile"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AutoPipelineAsyncCompile</span></span></span><a class="headerlink" href="#_CPPv4I_bEN3d3d24AutoPipelineAsyncCompileE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_async_pipeline.h&gt;</em></div>
+<p>Enables async pipeline compilation in its scope when allow_compute_pipelines is false, only graphics pipelines are async compiled (compute compiled as is) override parameter in constructor may be used to supply game logic for async pipeline enable/disable. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEv">
+<span id="_CPPv3N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEv"></span><span id="_CPPv2N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEv"></span><span id="d3d::AutoPipelineAsyncCompile::AutoPipelineAsyncCompile"></span><span class="target" id="structd3d_1_1AutoPipelineAsyncCompile_1a1d672141fec814d046209b02aae8639e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AutoPipelineAsyncCompile</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEPv">
+<span id="_CPPv3N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEPv"></span><span id="_CPPv2N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEPv"></span><span id="d3d::AutoPipelineAsyncCompile::AutoPipelineAsyncCompile__voidP"></span><span class="target" id="structd3d_1_1AutoPipelineAsyncCompile_1a5dd69d8f7b3ee111a98fe7cc40db3080"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AutoPipelineAsyncCompile</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">override_value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d24AutoPipelineAsyncCompile24AutoPipelineAsyncCompileEPv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d24AutoPipelineAsyncCompileD0Ev">
+<span id="_CPPv3N3d3d24AutoPipelineAsyncCompileD0Ev"></span><span id="_CPPv2N3d3d24AutoPipelineAsyncCompileD0Ev"></span><span id="d3d::AutoPipelineAsyncCompile::~AutoPipelineAsyncCompile"></span><span class="target" id="structd3d_1_1AutoPipelineAsyncCompile_1a52b056018338ce02213e60e4ae1fc256"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~AutoPipelineAsyncCompile</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d24AutoPipelineAsyncCompileD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I_bEN3d3d32AutoPipelineAsyncCompileFeedbackE">
+<span id="_CPPv3I_bEN3d3d32AutoPipelineAsyncCompileFeedbackE"></span><span id="_CPPv2I_bEN3d3d32AutoPipelineAsyncCompileFeedbackE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allow_compute_pipelines</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AutoPipelineAsyncCompileFeedback</span></span></span><a class="headerlink" href="#_CPPv4I_bEN3d3d32AutoPipelineAsyncCompileFeedbackE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_async_pipeline.h&gt;</em></div>
+<p>When feedback supported, enables async pipeline compilation and captures async compilation skip count into feedback_ptr in its scope needRetry field will be set if any pipeline was skipped in previous frames externalNeedRetry field will be set if any other (external) AsyncCompileFeedback in frame has needRetry set when feedback not supported, does nothing when allow_compute_pipelines is false, only graphics pipelines are async compiled (compute compiled as is) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback13isRetryNeededEv">
+<span id="_CPPv3NK3d3d32AutoPipelineAsyncCompileFeedback13isRetryNeededEv"></span><span id="_CPPv2NK3d3d32AutoPipelineAsyncCompileFeedback13isRetryNeededEv"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::isRetryNeededC"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1a220f49aae33441cd155858f902c7847d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isRetryNeeded</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback13isRetryNeededEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback21isExternalRetryNeededEv">
+<span id="_CPPv3NK3d3d32AutoPipelineAsyncCompileFeedback21isExternalRetryNeededEv"></span><span id="_CPPv2NK3d3d32AutoPipelineAsyncCompileFeedback21isExternalRetryNeededEv"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::isExternalRetryNeededC"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1add7b5b0c1e6e514d60f6dcf74bfeae3a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isExternalRetryNeeded</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback21isExternalRetryNeededEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback11isSupportedEv">
+<span id="_CPPv3NK3d3d32AutoPipelineAsyncCompileFeedback11isSupportedEv"></span><span id="_CPPv2NK3d3d32AutoPipelineAsyncCompileFeedback11isSupportedEv"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::isSupportedC"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1a0a6b2ad104f589e6b9af1733ce87fe56"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isSupported</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK3d3d32AutoPipelineAsyncCompileFeedback11isSupportedEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback32AutoPipelineAsyncCompileFeedbackEP8uint32_t">
+<span id="_CPPv3N3d3d32AutoPipelineAsyncCompileFeedback32AutoPipelineAsyncCompileFeedbackEP8uint32_t"></span><span id="_CPPv2N3d3d32AutoPipelineAsyncCompileFeedback32AutoPipelineAsyncCompileFeedbackEP8uint32_t"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::AutoPipelineAsyncCompileFeedback__uint32_tP"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1a6ddedb76704fb2fc3666df605514f527"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AutoPipelineAsyncCompileFeedback</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">feedback_ptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback32AutoPipelineAsyncCompileFeedbackEP8uint32_t" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d32AutoPipelineAsyncCompileFeedbackD0Ev">
+<span id="_CPPv3N3d3d32AutoPipelineAsyncCompileFeedbackD0Ev"></span><span id="_CPPv2N3d3d32AutoPipelineAsyncCompileFeedbackD0Ev"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::~AutoPipelineAsyncCompileFeedback"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1afffb8a9fdaba5b7c181577a3943ffbcf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~AutoPipelineAsyncCompileFeedback</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedbackD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-members">Private Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback9needRetryE">
+<span id="_CPPv3N3d3d32AutoPipelineAsyncCompileFeedback9needRetryE"></span><span id="_CPPv2N3d3d32AutoPipelineAsyncCompileFeedback9needRetryE"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::needRetry__b"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1a622163cbccf3ac5043f4ecce35987204"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">needRetry</span></span></span><a class="headerlink" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback9needRetryE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback9supportedE">
+<span id="_CPPv3N3d3d32AutoPipelineAsyncCompileFeedback9supportedE"></span><span id="_CPPv2N3d3d32AutoPipelineAsyncCompileFeedback9supportedE"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::supported__b"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1aa8929c052ae081472c9b7cfe0d8b011a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supported</span></span></span><a class="headerlink" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback9supportedE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback17externalNeedRetryE">
+<span id="_CPPv3N3d3d32AutoPipelineAsyncCompileFeedback17externalNeedRetryE"></span><span id="_CPPv2N3d3d32AutoPipelineAsyncCompileFeedback17externalNeedRetryE"></span><span id="d3d::AutoPipelineAsyncCompileFeedback::externalNeedRetry__b"></span><span class="target" id="classd3d_1_1AutoPipelineAsyncCompileFeedback_1ac3aef60c85df3e5fe3ef5195046d011c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">externalNeedRetry</span></span></span><a class="headerlink" href="#_CPPv4N3d3d32AutoPipelineAsyncCompileFeedback17externalNeedRetryE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d23AutoPipelineSyncCompileE">
+<span id="_CPPv3N3d3d23AutoPipelineSyncCompileE"></span><span id="_CPPv2N3d3d23AutoPipelineSyncCompileE"></span><span id="d3d::AutoPipelineSyncCompile"></span><span class="target" id="structd3d_1_1AutoPipelineSyncCompile"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AutoPipelineSyncCompile</span></span></span><a class="headerlink" href="#_CPPv4N3d3d23AutoPipelineSyncCompileE" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_async_pipeline.h&gt;</em></div>
+<p>Disables async pipeline compilation in its scope. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d23AutoPipelineSyncCompile23AutoPipelineSyncCompileEv">
+<span id="_CPPv3N3d3d23AutoPipelineSyncCompile23AutoPipelineSyncCompileEv"></span><span id="_CPPv2N3d3d23AutoPipelineSyncCompile23AutoPipelineSyncCompileEv"></span><span id="d3d::AutoPipelineSyncCompile::AutoPipelineSyncCompile"></span><span class="target" id="structd3d_1_1AutoPipelineSyncCompile_1ac44dcdfa40c69b629e060e0e31ac9bfd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AutoPipelineSyncCompile</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d23AutoPipelineSyncCompile23AutoPipelineSyncCompileEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N3d3d23AutoPipelineSyncCompileD0Ev">
+<span id="_CPPv3N3d3d23AutoPipelineSyncCompileD0Ev"></span><span id="_CPPv2N3d3d23AutoPipelineSyncCompileD0Ev"></span><span id="d3d::AutoPipelineSyncCompile::~AutoPipelineSyncCompile"></span><span class="target" id="structd3d_1_1AutoPipelineSyncCompile_1a4b43a66c493450673ccfff242c6376d6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~AutoPipelineSyncCompile</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N3d3d23AutoPipelineSyncCompileD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="MeshShaderDispatch.html" class="btn btn-neutral float-left" title="Mesh Shader Dispatch API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Query.html" class="btn btn-neutral float-right" title="Queries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

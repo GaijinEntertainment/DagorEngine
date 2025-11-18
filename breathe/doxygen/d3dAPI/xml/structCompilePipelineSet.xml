@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCompilePipelineSet" kind="struct" language="C++" prot="public">
+    <compoundname>CompilePipelineSet</compoundname>
+    <includes refid="dag__commands_8h" local="no">dag_commands.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCompilePipelineSet_1a138b146df3b7dc68dec186fb3a5fcfb3" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* CompilePipelineSet::defaultFormat</definition>
+        <argsstring></argsstring>
+        <name>defaultFormat</name>
+        <qualifiedname>CompilePipelineSet::defaultFormat</qualifiedname>
+        <briefdescription>
+<para>V1 and V2 value. When not specified, the driver assumes its driver specific format (if supported) and otherwise engine. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="532" column="14" bodyfile="dag_commands.h" bodystart="532" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1ae2f3592ce9ffac9ed36af64bac5f2779" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::featureSet</definition>
+        <argsstring></argsstring>
+        <name>featureSet</name>
+        <qualifiedname>CompilePipelineSet::featureSet</qualifiedname>
+        <briefdescription>
+<para>V1 and V2 block. A block with a set of feature sets referenced by pipelines in the pipeline sets to indicate required features. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="534" column="19" bodyfile="dag_commands.h" bodystart="534" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1a6268f16795380926d5f71dc99e6deab9" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::inputLayoutSet</definition>
+        <argsstring></argsstring>
+        <name>inputLayoutSet</name>
+        <qualifiedname>CompilePipelineSet::inputLayoutSet</qualifiedname>
+        <briefdescription>
+<para>V1 and V2 block. A block with a set of blocks describing input layouts. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="536" column="19" bodyfile="dag_commands.h" bodystart="536" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1a3b779ff7d839bcbe442f762697ef3a74" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::renderStateSet</definition>
+        <argsstring></argsstring>
+        <name>renderStateSet</name>
+        <qualifiedname>CompilePipelineSet::renderStateSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 and V2 block. A block with a set of blocks describing render states. The driver will ignore render states that are incompatible with the system. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="539" column="19" bodyfile="dag_commands.h" bodystart="539" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1a3db5f29bf38520f35445b27c165c861e" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::outputFormatSet</definition>
+        <argsstring></argsstring>
+        <name>outputFormatSet</name>
+        <qualifiedname>CompilePipelineSet::outputFormatSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 and V2 block. A block with a set of blocks describing output format states. The driver will ignore output format states that are incompatible wit the system. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="542" column="19" bodyfile="dag_commands.h" bodystart="542" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1a7a05fd61c46997a9212bff92ee8fc37e" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsPipelineSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsPipelineSet</name>
+        <qualifiedname>CompilePipelineSet::graphicsPipelineSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 block. A block with a set of blocks describing graphics pipelines. The driver will ignore pipelines using unsupported input layouts, render states or output formats. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="545" column="19" bodyfile="dag_commands.h" bodystart="545" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1ae7ef38d4e772b6b7139df0304fa5e982" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::meshPipelineSet</definition>
+        <argsstring></argsstring>
+        <name>meshPipelineSet</name>
+        <qualifiedname>CompilePipelineSet::meshPipelineSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 block. A block with a set of blocks describing mesh pipelines. The driver will ignore pipelines using unsupported render states or output formats. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="548" column="19" bodyfile="dag_commands.h" bodystart="548" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1a8570c5937f2f5fe605f987fcba1db7cf" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::computePipelineSet</definition>
+        <argsstring></argsstring>
+        <name>computePipelineSet</name>
+        <qualifiedname>CompilePipelineSet::computePipelineSet</qualifiedname>
+        <briefdescription>
+<para>V1 block. A block with a set of blocks describing compute pipelines. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="550" column="19" bodyfile="dag_commands.h" bodystart="550" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1aa838a4c49c42d0709bead9506eecc2a6" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::signature</definition>
+        <argsstring></argsstring>
+        <name>signature</name>
+        <qualifiedname>CompilePipelineSet::signature</qualifiedname>
+        <briefdescription>
+<para>V2 block, this block stores shader class signatures, this ensures we try not to load incompatible shader class uses. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="552" column="19" bodyfile="dag_commands.h" bodystart="552" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1a789caa81ad84dd7a372d85e2d15c6883" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::computeSet</definition>
+        <argsstring></argsstring>
+        <name>computeSet</name>
+        <qualifiedname>CompilePipelineSet::computeSet</qualifiedname>
+        <briefdescription>
+<para>V2 block, new compute use set, uses shader class names and codes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="554" column="19" bodyfile="dag_commands.h" bodystart="554" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1ac96d748b13688d100054a2bb4a902878" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsSet</name>
+        <qualifiedname>CompilePipelineSet::graphicsSet</qualifiedname>
+        <briefdescription>
+<para>V2 block, new graphics use set, uses shader class names and codes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="556" column="19" bodyfile="dag_commands.h" bodystart="556" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1acada38ffc277563c94105b8c5b3f8da5" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsNullPixelOverrideSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsNullPixelOverrideSet</name>
+        <qualifiedname>CompilePipelineSet::graphicsNullPixelOverrideSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader is replaced by the null pixel shader. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="559" column="19" bodyfile="dag_commands.h" bodystart="559" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompilePipelineSet_1a75beef7bd11a818cc4781bb4e5cfd217" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsPixelOverrideSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsPixelOverrideSet</name>
+        <qualifiedname>CompilePipelineSet::graphicsPixelOverrideSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader uses a differen shader class name and codes than the vertex shader. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="562" column="19" bodyfile="dag_commands.h" bodystart="562" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>All values are optional, but graphics and mesh pipelines can not be created without output and render state sets. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_commands.h" line="529" column="1" bodyfile="dag_commands.h" bodystart="530" bodyend="563"/>
+    <listofallmembers>
+      <member refid="structCompilePipelineSet_1a8570c5937f2f5fe605f987fcba1db7cf" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>computePipelineSet</name></member>
+      <member refid="structCompilePipelineSet_1a789caa81ad84dd7a372d85e2d15c6883" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>computeSet</name></member>
+      <member refid="structCompilePipelineSet_1a138b146df3b7dc68dec186fb3a5fcfb3" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>defaultFormat</name></member>
+      <member refid="structCompilePipelineSet_1ae2f3592ce9ffac9ed36af64bac5f2779" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>featureSet</name></member>
+      <member refid="structCompilePipelineSet_1acada38ffc277563c94105b8c5b3f8da5" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsNullPixelOverrideSet</name></member>
+      <member refid="structCompilePipelineSet_1a7a05fd61c46997a9212bff92ee8fc37e" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsPipelineSet</name></member>
+      <member refid="structCompilePipelineSet_1a75beef7bd11a818cc4781bb4e5cfd217" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsPixelOverrideSet</name></member>
+      <member refid="structCompilePipelineSet_1ac96d748b13688d100054a2bb4a902878" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsSet</name></member>
+      <member refid="structCompilePipelineSet_1a6268f16795380926d5f71dc99e6deab9" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>inputLayoutSet</name></member>
+      <member refid="structCompilePipelineSet_1ae7ef38d4e772b6b7139df0304fa5e982" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>meshPipelineSet</name></member>
+      <member refid="structCompilePipelineSet_1a3db5f29bf38520f35445b27c165c861e" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>outputFormatSet</name></member>
+      <member refid="structCompilePipelineSet_1a3b779ff7d839bcbe442f762697ef3a74" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>renderStateSet</name></member>
+      <member refid="structCompilePipelineSet_1aa838a4c49c42d0709bead9506eecc2a6" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>signature</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

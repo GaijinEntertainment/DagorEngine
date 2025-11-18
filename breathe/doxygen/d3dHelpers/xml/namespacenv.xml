@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacenv" kind="namespace" language="C++">
+    <compoundname>nv</compoundname>
+    <innerclass refid="structnv_1_1Camera" prot="public">nv::Camera</innerclass>
+    <innerclass refid="structnv_1_1DLSS" prot="public">nv::DLSS</innerclass>
+    <innerclass refid="structnv_1_1DLSSFrameGeneration" prot="public">nv::DLSSFrameGeneration</innerclass>
+    <innerclass refid="structnv_1_1DlssGParams" prot="public">nv::DlssGParams</innerclass>
+    <innerclass refid="structnv_1_1DlssParams" prot="public">nv::DlssParams</innerclass>
+    <innerclass refid="structnv_1_1Reflex" prot="public">nv::Reflex</innerclass>
+    <innerclass refid="structnv_1_1Streamline" prot="public">nv::Streamline</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>SupportState</name>
+        <qualifiedname>nv::SupportState</qualifiedname>
+        <enumvalue id="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65aeaa4dc5078017a5c5bebf383ab6f5124" prot="public">
+          <name>Supported</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65a2ab7991fb6ec6c147702f17e1698308d" prot="public">
+          <name>OSOutOfDate</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65ad307d0d9f834687639e227e3b544abc6" prot="public">
+          <name>DriverOutOfDate</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65aabc5dae91d2d2eef6921a9a572e596ba" prot="public">
+          <name>AdapterNotSupported</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65a571dbc2407fbfabd65e1cb34e075e2cd" prot="public">
+          <name>DisabledHWS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacenv_1a9ccc082a49ecd84be0f67bd088a58c65a9ed2d871602556951e39f3cebd08d6cb" prot="public">
+          <name>NotSupported</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="19" column="1" bodyfile="dag_nvFeatures.h" bodystart="20" bodyend="27"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacenv_1aee7a8d25ab0ee7f0376db63ccb79fb48" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename InHandleType</type>
+          </param>
+          <param>
+            <type>typename F</type>
+          </param>
+        </templateparamlist>
+        <type>auto</type>
+        <definition>auto nv::convertDlssParams</definition>
+        <argsstring>(const DlssParams&lt; InHandleType &gt; &amp;in, F &amp;&amp;converter) -&gt; DlssParams&lt; eastl::remove_pointer_t&lt; decltype(converter(nullptr))&gt; &gt;</argsstring>
+        <name>convertDlssParams</name>
+        <qualifiedname>nv::convertDlssParams</qualifiedname>
+        <param>
+          <type>const <ref refid="structnv_1_1DlssParams" kindref="compound">DlssParams</ref>&lt; InHandleType &gt; &amp;</type>
+          <declname>in</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>converter</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="86" column="6" bodyfile="dag_nvFeatures.h" bodystart="86" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacenv_1aca423500fd4275eef0b185501393eae5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename InHandleType</type>
+          </param>
+          <param>
+            <type>typename F</type>
+          </param>
+        </templateparamlist>
+        <type>auto</type>
+        <definition>auto nv::convertDlssGParams</definition>
+        <argsstring>(const DlssGParams&lt; InHandleType &gt; &amp;in, F &amp;&amp;converter) -&gt; DlssGParams&lt; eastl::remove_pointer_t&lt; decltype(converter(nullptr))&gt; &gt;</argsstring>
+        <name>convertDlssGParams</name>
+        <qualifiedname>nv::convertDlssGParams</qualifiedname>
+        <param>
+          <type>const <ref refid="structnv_1_1DlssGParams" kindref="compound">DlssGParams</ref>&lt; InHandleType &gt; &amp;</type>
+          <declname>in</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>converter</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="119" column="6" bodyfile="dag_nvFeatures.h" bodystart="119" bodyend="125"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="16" column="1"/>
+  </compounddef>
+</doxygen>

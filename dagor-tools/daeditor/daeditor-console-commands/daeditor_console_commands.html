@@ -1,0 +1,777 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daEditor Console Commands</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Navigation Mesh" href="../navmesh/index.html" />
+    <link rel="prev" title="daEditor Console Commands" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">daEditor</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">daEditor Console Commands</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">daEditor Console Commands</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#camera-dir">camera.dir</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#camera-pos">camera.pos</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#clear">clear</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#driver-reset">driver.reset</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#entity-stat">entity.stat</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#envi-set">envi.set</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#sun-from-time">.sun_from_time</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#exit">exit</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#help">help</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#land-commit-changes">land.commit_changes</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#land-ltmap">land.ltmap</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#land-rebuild-colors">land.rebuild_colors</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#list">list</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#perf-dump">perf.dump</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#perf-off">perf.off</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#perf-on">perf.on</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-export-all">project.export.all</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-export-and">project.export.and</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-export-ios">project.export.ios</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-export-pc">project.export.pc</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-export-ps3">project.export.ps3</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-export-ps4">project.export.ps4</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-export-xbox">project.export.xbox</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-open">project.open</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#project-tex-metrics">project.tex_metrics</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#screenshot-ortho">screenshot.ortho</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#set-workspace">set_workspace</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaders-list">shaders.list</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaders-reload">shaders.reload</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaders-set">shaders.set</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shadervar">shadervar</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-hide">tex.hide</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-info-full">tex.info full</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-refs">tex.refs</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-show">tex.show</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#time-speed">time.speed</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#render-shadervar">render.shaderVar</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#render-shaderblk">render.shaderBlk</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#app-tex">app.tex</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#app-tex-refs">app.tex_refs</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#app-save-tex">app.save_tex</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#app-save-all-tex">app.save_all_tex</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#app-stcode">app.stcode</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#render-reset-device">render.reset_device</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#render-hang-device">render.hang_device</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#render-send-gpu-dump">render.send_gpu_dump</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#render-reload-shaders">render.reload_shaders</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-hq">water.hq</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-foam-hats">water.foam_hats</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-surface-folding-foam">water.surface_folding_foam</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-foam-turbulent">water.foam_turbulent</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-dependency-wind">water.dependency_wind</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-alignment-wind">water.alignment_wind</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-choppiness">water.choppiness</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-facet-size">water.facet_size</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-amplitude">water.amplitude</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-small-wave-fraction">water.small_wave_fraction</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-cascade-window-length">water.cascade_window_length</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-cascade-facet-size">water.cascade_facet_size</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-roughness">water.roughness</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-fft-resolution">water.fft_resolution</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-tesselation">water.tesselation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-fft-period">water.fft_period</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-spectrum">water.spectrum</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-vs-samplers">water.vs_samplers</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-reset-render">water.reset_render</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#water-num-cascades">water.num_cascades</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#debug-mesh-range">debug_mesh.range</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#skies-convert-weather-blk-to-entity">skies.convert_weather_blk_to_entity</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#rendinst-hide-object">rendinst.hide_object</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#rendinst-list">rendinst.list</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#rendinst-profiling">rendinst.profiling</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#rendinst-verify-lods">rendinst.verify_lods</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#ri-gpu-objects-invalidate">ri_gpu_objects.invalidate</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#rigrid-stats">rigrid.stats</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaded-collision-none">shaded_collision.none</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaded-collision-alone">shaded_collision.alone</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaded-collision-with-visual">shaded_collision.with_visual</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaded-collision-alone-diff">shaded_collision.alone_diff</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaded-collision-with-visual-diff">shaded_collision.with_visual_diff</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaded-collision-wireframe">shaded_collision.wireframe</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#shaded-collision-face-orientation">shaded_collision.face_orientation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#gameres-update-pack">gameres.update_pack</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#gameres-list-missing-for-res">gameres.list_missing_for_res</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#gameres-list-missing-for-tex">gameres.list_missing_for_tex</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#gameres-list-missing-for-all-tex">gameres.list_missing_for_all_tex</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#riunitedvdata-list">riUnitedVdata.list</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#riunitedvdata-status">riUnitedVdata.status</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#riunitedvdata-dumpmem">riUnitedVdata.dumpMem</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#riunitedvdata-perfstat">riUnitedVdata.perfStat</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dmunitedvdata-list">dmUnitedVdata.list</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dmunitedvdata-status">dmUnitedVdata.status</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dmunitedvdata-dumpmem">dmUnitedVdata.dumpMem</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#dmunitedvdata-perfstat">dmUnitedVdata.perfStat</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-list">tex.list</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-downgrade">tex.downgrade</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-setmaxlev">tex.setMaxLev</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-set">tex.set</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-addref">tex.addRef</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-delref">tex.delRef</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#tex-marklfu">tex.markLFU</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../navmesh/index.html">Navigation Mesh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../splines_in_daeditor.html">Splines in daEditor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">daEditor</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daEditor Console Commands</a></li>
+      <li class="breadcrumb-item active">daEditor Console Commands</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="daeditor-console-commands">
+<h1>daEditor Console Commands<a class="headerlink" href="#daeditor-console-commands" title="Link to this heading"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To view a list of all registered commands, use the <code class="docutils literal notranslate"><span class="pre">list</span></code> command in the
+console. For syntax details and brief descriptions of each command, use the
+<code class="docutils literal notranslate"><span class="pre">help</span></code> command.</p>
+</div>
+<section id="camera-dir">
+<h2>camera.dir<a class="headerlink" href="#camera-dir" title="Link to this heading"></a></h2>
+<p>Sets the current direction of the camera.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">camera.dir</span> <span class="pre">x</span> <span class="pre">y</span> <span class="pre">z</span> <span class="pre">[x_up</span> <span class="pre">=</span> <span class="pre">0</span> <span class="pre">y_up</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">z_up</span> <span class="pre">=</span> <span class="pre">0]</span></code></p>
+</section>
+<section id="camera-pos">
+<h2>camera.pos<a class="headerlink" href="#camera-pos" title="Link to this heading"></a></h2>
+<p>Shows and sets the current position of the camera.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">camera.pos</span></code> to know camera position in last active viewport.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">camera.pos</span> <span class="pre">x</span> <span class="pre">y</span> <span class="pre">z</span></code> to set camera position in last active viewport.</p>
+</section>
+<section id="clear">
+<h2>clear<a class="headerlink" href="#clear" title="Link to this heading"></a></h2>
+<p>Clears the console output.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">clear</span></code></p>
+</section>
+<section id="driver-reset">
+<h2>driver.reset<a class="headerlink" href="#driver-reset" title="Link to this heading"></a></h2>
+<p>Resets the graphics driver to its default state.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">driver.reset</span></code></p>
+</section>
+<section id="entity-stat">
+<h2>entity.stat<a class="headerlink" href="#entity-stat" title="Link to this heading"></a></h2>
+<p>Outputs statistics for entity pools to console.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">entity.stat</span></code></p>
+</section>
+<section id="envi-set">
+<h2>envi.set<a class="headerlink" href="#envi-set" title="Link to this heading"></a></h2>
+<p>Configures the environment settings.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">envi.set</span> <span class="pre">&lt;envi_name&gt;</span></code></p>
+</section>
+<section id="sun-from-time">
+<h2>.sun_from_time<a class="headerlink" href="#sun-from-time" title="Link to this heading"></a></h2>
+<p>Adjusts the sun position based on the specified time.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">.sun_from_time</span> <span class="pre">year</span> <span class="pre">month</span> <span class="pre">day</span> <span class="pre">time</span> <span class="pre">lattitude</span> <span class="pre">longtitude</span></code></p>
+</section>
+<section id="exit">
+<h2>exit<a class="headerlink" href="#exit" title="Link to this heading"></a></h2>
+<p>Exits the daEditor.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">exit</span> <span class="pre">[save_project]</span></code></p>
+<p>If save_project is set no message box will be shown.</p>
+</section>
+<section id="help">
+<h2>help<a class="headerlink" href="#help" title="Link to this heading"></a></h2>
+<p>Displays a list of available commands along with their syntax and descriptions.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">help</span> <span class="pre">&lt;command</span> <span class="pre">name&gt;</span></code></p>
+</section>
+<section id="land-commit-changes">
+<h2>land.commit_changes<a class="headerlink" href="#land-commit-changes" title="Link to this heading"></a></h2>
+<p>Commits changes made to the land data.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">land.commit_changes</span></code></p>
+</section>
+<section id="land-ltmap">
+<h2>land.ltmap<a class="headerlink" href="#land-ltmap" title="Link to this heading"></a></h2>
+<p>Generates or modifies the lightmap for the land.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">land.ltmap</span> <span class="pre">[file_path]</span></code> to calculate and save lightmaps; optional
+<code class="docutils literal notranslate"><span class="pre">file_path</span></code> is relative to develop; with no file_path builtScene/lightmap.dds is
+saved.</p>
+</section>
+<section id="land-rebuild-colors">
+<h2>land.rebuild_colors<a class="headerlink" href="#land-rebuild-colors" title="Link to this heading"></a></h2>
+<p>Rebuilds the color information for the landmesh/heightmap.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">land.rebuild_colors</span></code></p>
+</section>
+<section id="list">
+<h2>list<a class="headerlink" href="#list" title="Link to this heading"></a></h2>
+<p>Lists all registered commands.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">list</span></code></p>
+</section>
+<section id="perf-dump">
+<h2>perf.dump<a class="headerlink" href="#perf-dump" title="Link to this heading"></a></h2>
+<p>Dumps performance data for analysis.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">perf.dump</span></code></p>
+</section>
+<section id="perf-off">
+<h2>perf.off<a class="headerlink" href="#perf-off" title="Link to this heading"></a></h2>
+<p>Turns off performance monitoring.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">perf.off</span></code></p>
+</section>
+<section id="perf-on">
+<h2>perf.on<a class="headerlink" href="#perf-on" title="Link to this heading"></a></h2>
+<p>Enables performance monitoring.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">perf.on</span></code></p>
+</section>
+<section id="project-export-all">
+<h2>project.export.all<a class="headerlink" href="#project-export-all" title="Link to this heading"></a></h2>
+<p>Exports project in all formats.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.export.all</span> <span class="pre">level_name_pc</span> <span class="pre">level_name_xbox</span> <span class="pre">level_name_ps3</span></code> to
+export project in all formats where <code class="docutils literal notranslate"><span class="pre">level_name_*</span></code> – path to exported level
+relative application levels directory.</p>
+</section>
+<section id="project-export-and">
+<h2>project.export.and<a class="headerlink" href="#project-export-and" title="Link to this heading"></a></h2>
+<p>Exports project for the Android platform.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.export.and</span> <span class="pre">level_name</span></code> to export project in Android (Tegra GPU
+family) format where level_name – path to exported level relative application
+levels directory.</p>
+</section>
+<section id="project-export-ios">
+<h2>project.export.ios<a class="headerlink" href="#project-export-ios" title="Link to this heading"></a></h2>
+<p>Exports project for the iOS platform.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.export.iOS</span> <span class="pre">level_name</span></code> to export project in iOS format where
+<code class="docutils literal notranslate"><span class="pre">level_name</span></code> – path to exported level relative application levels directory.</p>
+</section>
+<section id="project-export-pc">
+<h2>project.export.pc<a class="headerlink" href="#project-export-pc" title="Link to this heading"></a></h2>
+<p>Exports the project for PC platforms.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.export.pc</span> <span class="pre">level_name</span></code> to export project in PC format where
+<code class="docutils literal notranslate"><span class="pre">level_name</span></code> – path to exported level relative application levels directory.</p>
+</section>
+<section id="project-export-ps3">
+<h2>project.export.ps3<a class="headerlink" href="#project-export-ps3" title="Link to this heading"></a></h2>
+<p>Exports the project for PlayStation 3 platforms.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.export.ps3</span> <span class="pre">level_name</span></code> to export project in PS3 format where
+level_name – path to exported level relative application levels directory.</p>
+</section>
+<section id="project-export-ps4">
+<h2>project.export.ps4<a class="headerlink" href="#project-export-ps4" title="Link to this heading"></a></h2>
+<p>Exports the project for PlayStation 4 platforms.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.export.ps4</span> <span class="pre">level_name</span></code> to export project in PS4 format where
+<code class="docutils literal notranslate"><span class="pre">level_name</span></code> – path to exported level relative application levels directory.</p>
+</section>
+<section id="project-export-xbox">
+<h2>project.export.xbox<a class="headerlink" href="#project-export-xbox" title="Link to this heading"></a></h2>
+<p>Exports the project for Xbox platforms.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.export.xbox</span> <span class="pre">level_name</span></code> to export project in XBOX 360 format
+where <code class="docutils literal notranslate"><span class="pre">level_name</span></code> – path to exported level relative application levels
+directory.</p>
+</section>
+<section id="project-open">
+<h2>project.open<a class="headerlink" href="#project-open" title="Link to this heading"></a></h2>
+<p>Opens a specified project.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.open</span> <span class="pre">file_path</span> <span class="pre">[lock</span> <span class="pre">=</span> <span class="pre">false]</span> <span class="pre">[save_project]</span></code> where <code class="docutils literal notranslate"><span class="pre">file_path</span></code>
+– full path to <code class="docutils literal notranslate"><span class="pre">level.blk</span></code> or path relative to project<code class="docutils literal notranslate"><span class="pre">s</span> </code>develop<code class="docutils literal notranslate"><span class="pre">directory,</span></code>lock<code class="docutils literal notranslate"><span class="pre">–</span> <span class="pre">boolean</span> <span class="pre">value</span> <span class="pre">to</span> <span class="pre">determine</span> <span class="pre">to</span> <span class="pre">lock</span> <span class="pre">project</span> <span class="pre">or</span> <span class="pre">not,</span></code>save_project` –
+boolean value to supress save question message box</p>
+</section>
+<section id="project-tex-metrics">
+<h2>project.tex_metrics<a class="headerlink" href="#project-tex-metrics" title="Link to this heading"></a></h2>
+<p>Computes and outputs tex metrics to console.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">project.tex_metrics</span> <span class="pre">[verbose]</span> <span class="pre">[nodlg]</span></code></p>
+</section>
+<section id="screenshot-ortho">
+<h2>screenshot.ortho<a class="headerlink" href="#screenshot-ortho" title="Link to this heading"></a></h2>
+<p>Outputs orthographic screenshot using extents from landscape.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">screenshot.ortho</span></code></p>
+</section>
+<section id="set-workspace">
+<h2>set_workspace<a class="headerlink" href="#set-workspace" title="Link to this heading"></a></h2>
+<p>Sets the current workspace configuration.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">set_workspace</span> <span class="pre">application_blk_path</span> <span class="pre">[save_project]</span></code> to load workspace
+from mentioned “application.blk” file where <code class="docutils literal notranslate"><span class="pre">application_blk_path</span></code> – path to
+desired <code class="docutils literal notranslate"><span class="pre">application.blk</span></code> file. Must be full or relative to <em>daEditor</em> folder
+<code class="docutils literal notranslate"><span class="pre">save_project</span></code> – boolean value to disable save question message box.</p>
+</section>
+<section id="shaders-list">
+<h2>shaders.list<a class="headerlink" href="#shaders-list" title="Link to this heading"></a></h2>
+<p>Lists all available shaders.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">shaders.list</span> <span class="pre">[name_substr]</span></code></p>
+</section>
+<section id="shaders-reload">
+<h2>shaders.reload<a class="headerlink" href="#shaders-reload" title="Link to this heading"></a></h2>
+<p>Reloads all shaders from disk.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">shaders.reload</span> <span class="pre">[shaders-binary-dump-fname]</span></code>.</p>
+</section>
+<section id="shaders-set">
+<h2>shaders.set<a class="headerlink" href="#shaders-set" title="Link to this heading"></a></h2>
+<p>Sets a specified shader configuration.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">shaders.set</span> <span class="pre">&lt;shader-var-name&gt;</span> <span class="pre">&lt;value&gt;</span></code></p>
+</section>
+<section id="shadervar">
+<h2>shadervar<a class="headerlink" href="#shadervar" title="Link to this heading"></a></h2>
+<p>Lists shader variables.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">shadervar</span></code></p>
+</section>
+<section id="tex-hide">
+<h2>tex.hide<a class="headerlink" href="#tex-hide" title="Link to this heading"></a></h2>
+<p>Hides the specified texture.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">tex.hide</span></code></p>
+</section>
+<section id="tex-info-full">
+<h2><a class="reference external" href="http://tex.info">tex.info</a> full<a class="headerlink" href="#tex-info-full" title="Link to this heading"></a></h2>
+<p>Gives a detailed list of textures in a .log/debug file.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">tex.info</span> <span class="pre">full</span></code></p>
+</section>
+<section id="tex-refs">
+<h2>tex.refs<a class="headerlink" href="#tex-refs" title="Link to this heading"></a></h2>
+<p>Lists references to the specified texture.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">tex.refs</span></code></p>
+</section>
+<section id="tex-show">
+<h2>tex.show<a class="headerlink" href="#tex-show" title="Link to this heading"></a></h2>
+<p>Shows the specified texture.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">tex.show</span></code></p>
+</section>
+<section id="time-speed">
+<h2>time.speed<a class="headerlink" href="#time-speed" title="Link to this heading"></a></h2>
+<p>Sets the current simulation speed.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">time.speed</span> <span class="pre">&lt;scale&gt;</span></code></p>
+</section>
+<section id="render-shadervar">
+<h2>render.shaderVar<a class="headerlink" href="#render-shadervar" title="Link to this heading"></a></h2>
+<p>Sets shader variables with specified values.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">render.shaderVar</span>&#160; <span class="pre">&lt;x&gt;</span> <span class="pre">[x]</span> <span class="pre">[x]</span> <span class="pre">[x]</span> <span class="pre">[x]</span></code></p>
+</section>
+<section id="render-shaderblk">
+<h2>render.shaderBlk<a class="headerlink" href="#render-shaderblk" title="Link to this heading"></a></h2>
+<p>Applies a shader block configuration.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">render.shaderBlk</span>&#160; <span class="pre">&lt;x&gt;</span></code></p>
+</section>
+<section id="app-tex">
+<h2>app.tex<a class="headerlink" href="#app-tex" title="Link to this heading"></a></h2>
+<p>Manages application textures.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">app.tex</span></code></p>
+</section>
+<section id="app-tex-refs">
+<h2>app.tex_refs<a class="headerlink" href="#app-tex-refs" title="Link to this heading"></a></h2>
+<p>Calculates amount of references for application textures.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">app.tex_refs</span></code></p>
+</section>
+<section id="app-save-tex">
+<h2>app.save_tex<a class="headerlink" href="#app-save-tex" title="Link to this heading"></a></h2>
+<p>Saves the specified texture(s).</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">app.save_tex</span>&#160; <span class="pre">&lt;x&gt;</span> <span class="pre">[x]</span></code></p>
+</section>
+<section id="app-save-all-tex">
+<h2>app.save_all_tex<a class="headerlink" href="#app-save-all-tex" title="Link to this heading"></a></h2>
+<p>Saves all application textures.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">app.save_all_tex</span></code></p>
+</section>
+<section id="app-stcode">
+<h2>app.stcode<a class="headerlink" href="#app-stcode" title="Link to this heading"></a></h2>
+<p>Displays shader code for debugging.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">app.stcode</span></code></p>
+</section>
+<section id="render-reset-device">
+<h2>render.reset_device<a class="headerlink" href="#render-reset-device" title="Link to this heading"></a></h2>
+<p>Resets the rendering device to its default state.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">render.reset_device</span></code></p>
+</section>
+<section id="render-hang-device">
+<h2>render.hang_device<a class="headerlink" href="#render-hang-device" title="Link to this heading"></a></h2>
+<p>Causes the rendering device to hang or pause for debugging purposes.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">render.hang_device</span>&#160; <span class="pre">&lt;x&gt;</span></code></p>
+</section>
+<section id="render-send-gpu-dump">
+<h2>render.send_gpu_dump<a class="headerlink" href="#render-send-gpu-dump" title="Link to this heading"></a></h2>
+<p>Sends a GPU memory dump for analysis. Parameters specify details.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">render.send_gpu_dump</span>&#160; <span class="pre">&lt;x&gt;</span> <span class="pre">[x]</span></code></p>
+</section>
+<section id="render-reload-shaders">
+<h2>render.reload_shaders<a class="headerlink" href="#render-reload-shaders" title="Link to this heading"></a></h2>
+<p>Reloads shaders with optional parameters for synchronization and shader binding
+dumps.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">render.reload_shaders</span>&#160; <span class="pre">[use_fence]</span> <span class="pre">[shaders_bindump_name]</span></code></p>
+</section>
+<section id="water-hq">
+<h2>water.hq<a class="headerlink" href="#water-hq" title="Link to this heading"></a></h2>
+<p>Configures high-quality settings for water rendering.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.hq</span>&#160; <span class="pre">[x]</span> <span class="pre">[x]</span> <span class="pre">[x]</span> <span class="pre">[x]</span></code></p>
+</section>
+<section id="water-foam-hats">
+<h2>water.foam_hats<a class="headerlink" href="#water-foam-hats" title="Link to this heading"></a></h2>
+<p>Adjusts settings for foam effects on water surfaces.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.foam_hats</span> <span class="pre">&lt;hats_mul&gt;</span> <span class="pre">&lt;hats_threshold&gt;</span> <span class="pre">&lt;hats_folding&gt;</span></code></p>
+</section>
+<section id="water-surface-folding-foam">
+<h2>water.surface_folding_foam<a class="headerlink" href="#water-surface-folding-foam" title="Link to this heading"></a></h2>
+<p>Configures settings for surface folding foam in water.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.surface_folding_foam</span> <span class="pre">&lt;mul&gt;</span> <span class="pre">&lt;pow&gt;</span></code></p>
+</section>
+<section id="water-foam-turbulent">
+<h2>water.foam_turbulent<a class="headerlink" href="#water-foam-turbulent" title="Link to this heading"></a></h2>
+<p>Adjusts settings for turbulent foam effects on water.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.foam_turbulent</span> <span class="pre">&lt;generation_threshold&gt;</span> <span class="pre">&lt;generation_amount&gt;</span> <span class="pre">&lt;dissipation_speed&gt;</span> <span class="pre">&lt;falloff_speed&gt;</span></code></p>
+</section>
+<section id="water-dependency-wind">
+<h2>water.dependency_wind<a class="headerlink" href="#water-dependency-wind" title="Link to this heading"></a></h2>
+<p>Configures water rendering to depend on wind settings.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.wind_dependency</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-alignment-wind">
+<h2>water.alignment_wind<a class="headerlink" href="#water-alignment-wind" title="Link to this heading"></a></h2>
+<p>Adjusts water alignment based on wind settings.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.alignment_wind</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-choppiness">
+<h2>water.choppiness<a class="headerlink" href="#water-choppiness" title="Link to this heading"></a></h2>
+<p>Configures the choppiness of water surfaces.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.choppiness</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-facet-size">
+<h2>water.facet_size<a class="headerlink" href="#water-facet-size" title="Link to this heading"></a></h2>
+<p>Sets the facet size for water tessellation.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.facet_size</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-amplitude">
+<h2>water.amplitude<a class="headerlink" href="#water-amplitude" title="Link to this heading"></a></h2>
+<p>Adjusts the amplitude of water waves.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.amplitude</span> <span class="pre">&lt;a01234&gt;</span> <span class="pre">or</span> <span class="pre">water.amplitude</span> <span class="pre">&lt;a0&gt;</span> <span class="pre">&lt;a1&gt;</span> <span class="pre">&lt;a2&gt;</span> <span class="pre">&lt;a3&gt;</span> <span class="pre">&lt;a4&gt;</span></code></p>
+</section>
+<section id="water-small-wave-fraction">
+<h2>water.small_wave_fraction<a class="headerlink" href="#water-small-wave-fraction" title="Link to this heading"></a></h2>
+<p>Configures the fraction of small waves in water rendering.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.smallWaveFraction</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-cascade-window-length">
+<h2>water.cascade_window_length<a class="headerlink" href="#water-cascade-window-length" title="Link to this heading"></a></h2>
+<p>Sets the length of the cascade window for water rendering.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.cascade_window_length</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-cascade-facet-size">
+<h2>water.cascade_facet_size<a class="headerlink" href="#water-cascade-facet-size" title="Link to this heading"></a></h2>
+<p>Configures facet size for water cascades.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.cascade_facet_size</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-roughness">
+<h2>water.roughness<a class="headerlink" href="#water-roughness" title="Link to this heading"></a></h2>
+<p>Adjusts the roughness of water surfaces.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.roughness</span> <span class="pre">&lt;base&gt;</span> <span class="pre">&lt;cascadesBase&gt;</span></code></p>
+</section>
+<section id="water-fft-resolution">
+<h2>water.fft_resolution<a class="headerlink" href="#water-fft-resolution" title="Link to this heading"></a></h2>
+<p>Sets the FFT resolution for water rendering.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.fft_resolution</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-tesselation">
+<h2>water.tesselation<a class="headerlink" href="#water-tesselation" title="Link to this heading"></a></h2>
+<p>Configures the tessellation level for water surfaces.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.tesselation</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-fft-period">
+<h2>water.fft_period<a class="headerlink" href="#water-fft-period" title="Link to this heading"></a></h2>
+<p>Sets the FFT period for water waves.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.fft_period</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="water-spectrum">
+<h2>water.spectrum<a class="headerlink" href="#water-spectrum" title="Link to this heading"></a></h2>
+<p>Configures the water spectrum for wave patterns.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.spectrum</span> <span class="pre">&lt;spectra</span> <span class="pre">index&gt;</span> <span class="pre">&lt;bf_scale&gt;</span></code> where <code class="docutils literal notranslate"><span class="pre">&lt;spectra</span> <span class="pre">index&gt;</span></code>:
+phillips = 0, unified_directional = 1.</p>
+</section>
+<section id="water-vs-samplers">
+<h2>water.vs_samplers<a class="headerlink" href="#water-vs-samplers" title="Link to this heading"></a></h2>
+<p>Sets the number of vertex shader samplers for water.</p>
+</section>
+<section id="water-reset-render">
+<h2>water.reset_render<a class="headerlink" href="#water-reset-render" title="Link to this heading"></a></h2>
+<p>Resets water rendering settings to default.</p>
+</section>
+<section id="water-num-cascades">
+<h2>water.num_cascades<a class="headerlink" href="#water-num-cascades" title="Link to this heading"></a></h2>
+<p>Configures the number of cascades for water rendering.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">water.num_cascades</span> <span class="pre">&lt;size&gt;</span></code></p>
+</section>
+<section id="debug-mesh-range">
+<h2>debug_mesh.range<a class="headerlink" href="#debug-mesh-range" title="Link to this heading"></a></h2>
+<p>Sets the range for displaying debug mesh information.</p>
+</section>
+<section id="skies-convert-weather-blk-to-entity">
+<h2>skies.convert_weather_blk_to_entity<a class="headerlink" href="#skies-convert-weather-blk-to-entity" title="Link to this heading"></a></h2>
+<p>Converts a weather block to an entity format.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">rendinst.hide_object</span> <span class="pre">&lt;rendinst</span> <span class="pre">name&gt;</span></code></p>
+</section>
+<section id="rendinst-hide-object">
+<h2>rendinst.hide_object<a class="headerlink" href="#rendinst-hide-object" title="Link to this heading"></a></h2>
+<p>Hides a specified rendering instance object.</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">rendinst.hide_object</span> <span class="pre">&lt;rendinst</span> <span class="pre">name&gt;</span></code></p>
+</section>
+<section id="rendinst-list">
+<h2>rendinst.list<a class="headerlink" href="#rendinst-list" title="Link to this heading"></a></h2>
+<p>Lists all rendering instances.</p>
+</section>
+<section id="rendinst-profiling">
+<h2>rendinst.profiling<a class="headerlink" href="#rendinst-profiling" title="Link to this heading"></a></h2>
+<p>Toggles rendinst in profiles by name, or include all ri in profiler (<code class="docutils literal notranslate"><span class="pre">all</span></code>), or
+exclude all rendinst from profiler (<code class="docutils literal notranslate"><span class="pre">none</span></code>).</p>
+<p>Usage: <code class="docutils literal notranslate"><span class="pre">rendinst.profiling</span> <span class="pre">&lt;rendins</span> <span class="pre">tname&gt;|all|none</span></code></p>
+</section>
+<section id="rendinst-verify-lods">
+<h2>rendinst.verify_lods<a class="headerlink" href="#rendinst-verify-lods" title="Link to this heading"></a></h2>
+<p>Verifies level of detail (LOD) settings for rendering instances.</p>
+</section>
+<section id="ri-gpu-objects-invalidate">
+<h2>ri_gpu_objects.invalidate<a class="headerlink" href="#ri-gpu-objects-invalidate" title="Link to this heading"></a></h2>
+<p>Invalidates GPU objects for the rendering interface, potentially forcing a
+reload.</p>
+</section>
+<section id="rigrid-stats">
+<h2>rigrid.stats<a class="headerlink" href="#rigrid-stats" title="Link to this heading"></a></h2>
+<p>Displays statistics about the rig grid.</p>
+</section>
+<section id="shaded-collision-none">
+<h2>shaded_collision.none<a class="headerlink" href="#shaded-collision-none" title="Link to this heading"></a></h2>
+<p>Disables shaded collision rendering.</p>
+</section>
+<section id="shaded-collision-alone">
+<h2>shaded_collision.alone<a class="headerlink" href="#shaded-collision-alone" title="Link to this heading"></a></h2>
+<p>Displays shaded collision alone without any visual elements.</p>
+</section>
+<section id="shaded-collision-with-visual">
+<h2>shaded_collision.with_visual<a class="headerlink" href="#shaded-collision-with-visual" title="Link to this heading"></a></h2>
+<p>Displays shaded collision with visual elements.</p>
+</section>
+<section id="shaded-collision-alone-diff">
+<h2>shaded_collision.alone_diff<a class="headerlink" href="#shaded-collision-alone-diff" title="Link to this heading"></a></h2>
+<p>Shows differences in shaded collision alone.</p>
+</section>
+<section id="shaded-collision-with-visual-diff">
+<h2>shaded_collision.with_visual_diff<a class="headerlink" href="#shaded-collision-with-visual-diff" title="Link to this heading"></a></h2>
+<p>Displays differences in shaded collision with visual elements.</p>
+</section>
+<section id="shaded-collision-wireframe">
+<h2>shaded_collision.wireframe<a class="headerlink" href="#shaded-collision-wireframe" title="Link to this heading"></a></h2>
+<p>Renders shaded collision in wireframe mode.</p>
+</section>
+<section id="shaded-collision-face-orientation">
+<h2>shaded_collision.face_orientation<a class="headerlink" href="#shaded-collision-face-orientation" title="Link to this heading"></a></h2>
+<p>Displays the face orientation for shaded collision.</p>
+</section>
+<section id="gameres-update-pack">
+<h2>gameres.update_pack<a class="headerlink" href="#gameres-update-pack" title="Link to this heading"></a></h2>
+<p>Updates the specified resource pack for the game.</p>
+</section>
+<section id="gameres-list-missing-for-res">
+<h2>gameres.list_missing_for_res<a class="headerlink" href="#gameres-list-missing-for-res" title="Link to this heading"></a></h2>
+<p>Lists missing resources for a specified category.</p>
+</section>
+<section id="gameres-list-missing-for-tex">
+<h2>gameres.list_missing_for_tex<a class="headerlink" href="#gameres-list-missing-for-tex" title="Link to this heading"></a></h2>
+<p>Lists missing textures for the specified category.</p>
+</section>
+<section id="gameres-list-missing-for-all-tex">
+<h2>gameres.list_missing_for_all_tex<a class="headerlink" href="#gameres-list-missing-for-all-tex" title="Link to this heading"></a></h2>
+<p>Lists missing textures across all categories.</p>
+</section>
+<section id="riunitedvdata-list">
+<h2>riUnitedVdata.list<a class="headerlink" href="#riunitedvdata-list" title="Link to this heading"></a></h2>
+<p>Lists UnitedV data for rendering interface.</p>
+</section>
+<section id="riunitedvdata-status">
+<h2>riUnitedVdata.status<a class="headerlink" href="#riunitedvdata-status" title="Link to this heading"></a></h2>
+<p>Displays the status of UnitedV data.</p>
+</section>
+<section id="riunitedvdata-dumpmem">
+<h2>riUnitedVdata.dumpMem<a class="headerlink" href="#riunitedvdata-dumpmem" title="Link to this heading"></a></h2>
+<p>Dumps memory for UnitedV data.</p>
+</section>
+<section id="riunitedvdata-perfstat">
+<h2>riUnitedVdata.perfStat<a class="headerlink" href="#riunitedvdata-perfstat" title="Link to this heading"></a></h2>
+<p>Provides performance statistics for UnitedV data.</p>
+</section>
+<section id="dmunitedvdata-list">
+<h2>dmUnitedVdata.list<a class="headerlink" href="#dmunitedvdata-list" title="Link to this heading"></a></h2>
+<p>Lists UnitedV data for data management.</p>
+</section>
+<section id="dmunitedvdata-status">
+<h2>dmUnitedVdata.status<a class="headerlink" href="#dmunitedvdata-status" title="Link to this heading"></a></h2>
+<p>Displays the status of UnitedV data in data management.</p>
+</section>
+<section id="dmunitedvdata-dumpmem">
+<h2>dmUnitedVdata.dumpMem<a class="headerlink" href="#dmunitedvdata-dumpmem" title="Link to this heading"></a></h2>
+<p>Dumps memory for UnitedV data in data management.</p>
+</section>
+<section id="dmunitedvdata-perfstat">
+<h2>dmUnitedVdata.perfStat<a class="headerlink" href="#dmunitedvdata-perfstat" title="Link to this heading"></a></h2>
+<p>Provides performance statistics for UnitedV data in data management.</p>
+</section>
+<section id="tex-list">
+<h2>tex.list<a class="headerlink" href="#tex-list" title="Link to this heading"></a></h2>
+<p>Lists textures with optional filtering parameters.</p>
+</section>
+<section id="tex-downgrade">
+<h2>tex.downgrade<a class="headerlink" href="#tex-downgrade" title="Link to this heading"></a></h2>
+<p>Downgrades the specified texture to a lower quality.</p>
+</section>
+<section id="tex-setmaxlev">
+<h2>tex.setMaxLev<a class="headerlink" href="#tex-setmaxlev" title="Link to this heading"></a></h2>
+<p>Sets the maximum level for texture detail.</p>
+</section>
+<section id="tex-set">
+<h2>tex.set<a class="headerlink" href="#tex-set" title="Link to this heading"></a></h2>
+<p>Sets the specified texture.</p>
+</section>
+<section id="tex-addref">
+<h2>tex.addRef<a class="headerlink" href="#tex-addref" title="Link to this heading"></a></h2>
+<p>Adds a reference to the specified texture.</p>
+</section>
+<section id="tex-delref">
+<h2>tex.delRef<a class="headerlink" href="#tex-delref" title="Link to this heading"></a></h2>
+<p>Removes a reference from the specified texture.</p>
+</section>
+<section id="tex-marklfu">
+<h2>tex.markLFU<a class="headerlink" href="#tex-marklfu" title="Link to this heading"></a></h2>
+<p>Marks the specified texture as Least Frequently Used (LFU).</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="daEditor Console Commands" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../navmesh/index.html" class="btn btn-neutral float-right" title="Navigation Mesh" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

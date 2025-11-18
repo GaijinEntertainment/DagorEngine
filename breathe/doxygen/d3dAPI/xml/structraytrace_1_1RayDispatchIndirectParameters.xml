@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1RayDispatchIndirectParameters" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::RayDispatchIndirectParameters</compoundname>
+    <basecompoundref refid="structraytrace_1_1RayDispatchIndirectBaseParameters" prot="public" virt="non-virtual">raytrace::RayDispatchIndirectBaseParameters</basecompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchIndirectParameters_1a730f29e16fd38c377ed84c0adc45856e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::RayDispatchIndirectParameters::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>raytrace::RayDispatchIndirectParameters::count</qualifiedname>
+        <briefdescription>
+<para>Number of indirect dispatches to execute. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="1003" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="1003" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Parameters for a indirect dispatch command, with predefined count. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>raytrace::RayDispatchIndirectBaseParameters</label>
+        <link refid="structraytrace_1_1RayDispatchIndirectBaseParameters"/>
+      </node>
+      <node id="1">
+        <label>raytrace::RayDispatchIndirectParameters</label>
+        <link refid="structraytrace_1_1RayDispatchIndirectParameters"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="5">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="3">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::RayDispatchIndirectBaseParameters</label>
+        <link refid="structraytrace_1_1RayDispatchIndirectBaseParameters"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>indirectBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::RayDispatchIndirectParameters</label>
+        <link refid="structraytrace_1_1RayDispatchIndirectParameters"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="1000" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="1001" bodyend="1004"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1RayDispatchIndirectParameters_1a730f29e16fd38c377ed84c0adc45856e" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectParameters</scope><name>count</name></member>
+      <member refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1af2a246f71e76b6c7813a0decd0619b8f" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectParameters</scope><name>indirectBuffer</name></member>
+      <member refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1a66bb693b8fa84bce8d1425cea5ffc80b" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectParameters</scope><name>indirectByteOffset</name></member>
+      <member refid="structraytrace_1_1RayDispatchIndirectBaseParameters_1a56e10c694cc47e3bb7919ade7d7b8771" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchIndirectParameters</scope><name>indirectByteStride</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

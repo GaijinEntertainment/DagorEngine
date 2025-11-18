@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::AssembleShaderEvalCB::HlslCompile</compoundname>
+    <includes refid="assemblyShader_8h" local="no">assemblyShader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1a45c6bf0047fc5f3bbca3976db9a9f775" prot="public" static="no" mutable="no">
+        <type>eastl::optional&lt; <ref refid="structsemantic_1_1HlslCompileDirective" kindref="compound">semantic::HlslCompileDirective</ref> &gt;</type>
+        <definition>eastl::optional&lt;semantic::HlslCompileDirective&gt; ShaderParser::AssembleShaderEvalCB::HlslCompile::compile</definition>
+        <argsstring></argsstring>
+        <name>compile</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::HlslCompile::compile</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="47" column="21" bodyfile="assemblyShader.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1a95df4c466fa20f95016b4d70b4dad134" prot="public" static="no" mutable="no">
+        <type>hlsl_compile_class *</type>
+        <definition>hlsl_compile_class* ShaderParser::AssembleShaderEvalCB::HlslCompile::symbol</definition>
+        <argsstring></argsstring>
+        <name>symbol</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::HlslCompile::symbol</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="48" column="24" bodyfile="assemblyShader.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1ac08c310bbcadfda3d12831adf631ac35" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderParser::AssembleShaderEvalCB::HlslCompile::stageName</definition>
+        <argsstring></argsstring>
+        <name>stageName</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::HlslCompile::stageName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="49" column="16" bodyfile="assemblyShader.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1a3d10d2539cccac1845837e4c5332314f" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShaderParser::AssembleShaderEvalCB::HlslCompile::defaultTarget</definition>
+        <argsstring></argsstring>
+        <name>defaultTarget</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::HlslCompile::defaultTarget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="50" column="12" bodyfile="assemblyShader.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1ad937640261f7025bb67293d3b22f60bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::AssembleShaderEvalCB::HlslCompile::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::HlslCompile::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="52" column="10" bodyfile="assemblyShader.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1afb5883dcf9c6d0624d33ffd4da9df460" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::AssembleShaderEvalCB::HlslCompile::hasCompilation</definition>
+        <argsstring>() const</argsstring>
+        <name>hasCompilation</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::HlslCompile::hasCompilation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="53" column="10" bodyfile="assemblyShader.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="assemblyShader.h" line="45" column="3" bodyfile="assemblyShader.h" bodystart="46" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1a45c6bf0047fc5f3bbca3976db9a9f775" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::HlslCompile</scope><name>compile</name></member>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1a3d10d2539cccac1845837e4c5332314f" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::HlslCompile</scope><name>defaultTarget</name></member>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1afb5883dcf9c6d0624d33ffd4da9df460" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::HlslCompile</scope><name>hasCompilation</name></member>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1ad937640261f7025bb67293d3b22f60bd" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::HlslCompile</scope><name>reset</name></member>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1ac08c310bbcadfda3d12831adf631ac35" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::HlslCompile</scope><name>stageName</name></member>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1HlslCompile_1a95df4c466fa20f95016b4d70b4dad134" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::HlslCompile</scope><name>symbol</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

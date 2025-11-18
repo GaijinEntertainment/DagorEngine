@@ -1,0 +1,365 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSbufferHeapManager" kind="struct" language="C++" prot="public">
+    <compoundname>SbufferHeapManager</compoundname>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structSbufferHeapManager_1a0cc09d6319e32b43c84eea0cd0158806" prot="public" static="no">
+        <type>UniqueBuf</type>
+        <definition>typedef UniqueBuf SbufferHeapManager::Heap</definition>
+        <argsstring></argsstring>
+        <name>Heap</name>
+        <qualifiedname>SbufferHeapManager::Heap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="13" column="21" bodyfile="dag_linearSbufferAllocator.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structSbufferHeapManager_1a287c2bf1fe76590b2837e4673986a29e" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t SbufferHeapManager::elementSize</definition>
+        <argsstring></argsstring>
+        <name>elementSize</name>
+        <qualifiedname>SbufferHeapManager::elementSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="51" column="12" bodyfile="dag_linearSbufferAllocator.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1a4440507d9bad0cd93af798f44e8e9b41" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t SbufferHeapManager::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>SbufferHeapManager::flags</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="51" column="25" bodyfile="dag_linearSbufferAllocator.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1ae9c8b847631b27c506ec357a551ee6ca" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t SbufferHeapManager::texfmt</definition>
+        <argsstring></argsstring>
+        <name>texfmt</name>
+        <qualifiedname>SbufferHeapManager::texfmt</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="51" column="32" bodyfile="dag_linearSbufferAllocator.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1a1a99e0ec5ee87c56b0e537f5c9b4fefb" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t SbufferHeapManager::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>SbufferHeapManager::id</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="52" column="12" bodyfile="dag_linearSbufferAllocator.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1aaa46c4b3d785e19bcc900a07a2ed1898" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t SbufferHeapManager::generation</definition>
+        <argsstring></argsstring>
+        <name>generation</name>
+        <qualifiedname>SbufferHeapManager::generation</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="52" column="16" bodyfile="dag_linearSbufferAllocator.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1a31c27e68a9242027814dbd1f701dc1ec" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SbufferHeapManager::overlappedCopy</definition>
+        <argsstring></argsstring>
+        <name>overlappedCopy</name>
+        <qualifiedname>SbufferHeapManager::overlappedCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="53" column="8" bodyfile="dag_linearSbufferAllocator.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1aaea62be8707c29455d48713e5e31b465" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SbufferHeapManager::overlappedRegionCopy</definition>
+        <argsstring></argsstring>
+        <name>overlappedRegionCopy</name>
+        <qualifiedname>SbufferHeapManager::overlappedRegionCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="53" column="24" bodyfile="dag_linearSbufferAllocator.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1a1993907358802fe146d10eb75d51458b" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SbufferHeapManager::shouldCopy</definition>
+        <argsstring></argsstring>
+        <name>shouldCopy</name>
+        <qualifiedname>SbufferHeapManager::shouldCopy</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="53" column="46" bodyfile="dag_linearSbufferAllocator.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSbufferHeapManager_1a07eefd262e723f10ea0a85a2f3b1d5e7" prot="protected" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string SbufferHeapManager::baseName</definition>
+        <argsstring></argsstring>
+        <name>baseName</name>
+        <qualifiedname>SbufferHeapManager::baseName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="54" column="17" bodyfile="dag_linearSbufferAllocator.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structSbufferHeapManager_1abaf06da9b64d073ed4d816e987f829b6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SbufferHeapManager::SbufferHeapManager</definition>
+        <argsstring>(const char *name, uint32_t elem_sz, uint32_t flags_, uint32_t texfmt_=0)</argsstring>
+        <name>SbufferHeapManager</name>
+        <qualifiedname>SbufferHeapManager::SbufferHeapManager</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elem_sz</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>flags_</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>texfmt_</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="14" column="3" bodyfile="dag_linearSbufferAllocator.h" bodystart="14" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1a61c46bb31f5fc3ae1eb10743ac61a7a0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SbufferHeapManager::copy</definition>
+        <argsstring>(Heap &amp;to, size_t to_offset, const Heap &amp;from, size_t from_offset, size_t len)</argsstring>
+        <name>copy</name>
+        <qualifiedname>SbufferHeapManager::copy</qualifiedname>
+        <param>
+          <type>Heap &amp;</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>to_offset</declname>
+        </param>
+        <param>
+          <type>const Heap &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>from_offset</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="17" column="8" bodyfile="dag_linearSbufferAllocator.h" bodystart="17" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1a00a647b53b47e4be828a8268c2e525fb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool SbufferHeapManager::canCopyInSameHeap</definition>
+        <argsstring>() const</argsstring>
+        <name>canCopyInSameHeap</name>
+        <qualifiedname>SbufferHeapManager::canCopyInSameHeap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="25" column="8" bodyfile="dag_linearSbufferAllocator.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1a541e0385b683f1b7801bb36e948bd525" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool SbufferHeapManager::canCopyOverlapped</definition>
+        <argsstring>() const</argsstring>
+        <name>canCopyOverlapped</name>
+        <qualifiedname>SbufferHeapManager::canCopyOverlapped</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="26" column="8" bodyfile="dag_linearSbufferAllocator.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1a814e867aa9c6ad0f81017cde2cd122aa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool SbufferHeapManager::create</definition>
+        <argsstring>(Heap &amp;h, size_t sz)</argsstring>
+        <name>create</name>
+        <qualifiedname>SbufferHeapManager::create</qualifiedname>
+        <param>
+          <type>Heap &amp;</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="27" column="8" bodyfile="dag_linearSbufferAllocator.h" bodystart="27" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1ad62fa26eb964d0e32a31f2acdb4b7169" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SbufferHeapManager::orphan</definition>
+        <argsstring>(Heap &amp;h)</argsstring>
+        <name>orphan</name>
+        <qualifiedname>SbufferHeapManager::orphan</qualifiedname>
+        <param>
+          <type>Heap &amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="45" column="8" bodyfile="dag_linearSbufferAllocator.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1af89668f897c29881e015b307a93f3732" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * SbufferHeapManager::getName</definition>
+        <argsstring>() const</argsstring>
+        <name>getName</name>
+        <qualifiedname>SbufferHeapManager::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="46" column="14" bodyfile="dag_linearSbufferAllocator.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1a55b134bee54efb4584f5110e3b9982b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SbufferHeapManager::setShouldCopyToNewHeap</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>setShouldCopyToNewHeap</name>
+        <qualifiedname>SbufferHeapManager::setShouldCopyToNewHeap</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="47" column="8" bodyfile="dag_linearSbufferAllocator.h" bodystart="47" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="structSbufferHeapManager_1a45c9b9a6630706bf17403d1505dda285" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t SbufferHeapManager::getHeapGeneration</definition>
+        <argsstring>() const</argsstring>
+        <name>getHeapGeneration</name>
+        <qualifiedname>SbufferHeapManager::getHeapGeneration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearSbufferAllocator.h" line="48" column="12" bodyfile="dag_linearSbufferAllocator.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_linearSbufferAllocator.h" line="11" column="1" bodyfile="dag_linearSbufferAllocator.h" bodystart="12" bodyend="56"/>
+    <listofallmembers>
+      <member refid="structSbufferHeapManager_1a07eefd262e723f10ea0a85a2f3b1d5e7" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>baseName</name></member>
+      <member refid="structSbufferHeapManager_1a00a647b53b47e4be828a8268c2e525fb" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>canCopyInSameHeap</name></member>
+      <member refid="structSbufferHeapManager_1a541e0385b683f1b7801bb36e948bd525" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>canCopyOverlapped</name></member>
+      <member refid="structSbufferHeapManager_1a61c46bb31f5fc3ae1eb10743ac61a7a0" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>copy</name></member>
+      <member refid="structSbufferHeapManager_1a814e867aa9c6ad0f81017cde2cd122aa" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>create</name></member>
+      <member refid="structSbufferHeapManager_1a287c2bf1fe76590b2837e4673986a29e" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>elementSize</name></member>
+      <member refid="structSbufferHeapManager_1a4440507d9bad0cd93af798f44e8e9b41" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>flags</name></member>
+      <member refid="structSbufferHeapManager_1aaa46c4b3d785e19bcc900a07a2ed1898" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>generation</name></member>
+      <member refid="structSbufferHeapManager_1a45c9b9a6630706bf17403d1505dda285" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>getHeapGeneration</name></member>
+      <member refid="structSbufferHeapManager_1af89668f897c29881e015b307a93f3732" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>getName</name></member>
+      <member refid="structSbufferHeapManager_1a0cc09d6319e32b43c84eea0cd0158806" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>Heap</name></member>
+      <member refid="structSbufferHeapManager_1a1a99e0ec5ee87c56b0e537f5c9b4fefb" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>id</name></member>
+      <member refid="structSbufferHeapManager_1ad62fa26eb964d0e32a31f2acdb4b7169" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>orphan</name></member>
+      <member refid="structSbufferHeapManager_1a31c27e68a9242027814dbd1f701dc1ec" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>overlappedCopy</name></member>
+      <member refid="structSbufferHeapManager_1aaea62be8707c29455d48713e5e31b465" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>overlappedRegionCopy</name></member>
+      <member refid="structSbufferHeapManager_1abaf06da9b64d073ed4d816e987f829b6" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>SbufferHeapManager</name></member>
+      <member refid="structSbufferHeapManager_1a55b134bee54efb4584f5110e3b9982b0" prot="public" virt="non-virtual"><scope>SbufferHeapManager</scope><name>setShouldCopyToNewHeap</name></member>
+      <member refid="structSbufferHeapManager_1a1993907358802fe146d10eb75d51458b" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>shouldCopy</name></member>
+      <member refid="structSbufferHeapManager_1ae9c8b847631b27c506ec357a551ee6ca" prot="protected" virt="non-virtual"><scope>SbufferHeapManager</scope><name>texfmt</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

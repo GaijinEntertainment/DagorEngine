@@ -1,0 +1,722 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="objonsrf_8cpp" kind="file" language="C++">
+    <compoundname>objonsrf.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">utilapi.h</includes>
+    <includes local="no">bmmlib.h</includes>
+    <includes local="no">stdmat.h</includes>
+    <includes local="no">splshape.h</includes>
+    <includes local="no">notetrck.h</includes>
+    <includes local="no">modstack.h</includes>
+    <includes local="no">random.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="enumnode_8h" local="yes">enumnode.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <includes refid="debug_8h" local="yes">debug.h</includes>
+    <incdepgraph>
+      <node id="10">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="14">
+        <label>debug.h</label>
+        <link refid="debug_8h"/>
+      </node>
+      <node id="11">
+        <label>enumnode.h</label>
+        <link refid="enumnode_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>objonsrf.cpp</label>
+        <link refid="objonsrf_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="4">
+        <label>bmmlib.h</label>
+      </node>
+      <node id="12">
+        <label>ilayer.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="8">
+        <label>modstack.h</label>
+      </node>
+      <node id="7">
+        <label>notetrck.h</label>
+      </node>
+      <node id="9">
+        <label>random.h</label>
+      </node>
+      <node id="6">
+        <label>splshape.h</label>
+      </node>
+      <node id="5">
+        <label>stdmat.h</label>
+      </node>
+      <node id="3">
+        <label>utilapi.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="objonsrf_8cpp_1ac8a1ffc6c93d76daeb8355d730b16d23" prot="public" static="no">
+        <name>IPNSS</name>
+        <initializer>ip</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="170" column="10"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="objonsrf_8cpp_1ae57928af375b53c3eedd63841e12e37c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void calc_mesh_info</definition>
+        <argsstring>(Mesh &amp;m, Point3 *vert, Tab&lt; float &gt; &amp;faceS, bool selectedfaces)</argsstring>
+        <name>calc_mesh_info</name>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>vert</declname>
+        </param>
+        <param>
+          <type>Tab&lt; float &gt; &amp;</type>
+          <declname>faceS</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>selectedfaces</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="49" column="13" bodyfile="objonsrf.cpp" bodystart="49" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="objonsrf_8cpp_1a87c42d5cfa7835a2d6bec8fab3011aa6" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int find_selset_by_name</definition>
+        <argsstring>(Interface *ip, TCHAR *selsname)</argsstring>
+        <name>find_selset_by_name</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>TCHAR *</type>
+          <declname>selsname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="80" column="12" bodyfile="objonsrf.cpp" bodystart="80" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="objonsrf_8cpp_1a1e145f4c35093228f3f55ab08c790e3b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int find_face</definition>
+        <argsstring>(float t, Tab&lt; float &gt; &amp;faceS)</argsstring>
+        <name>find_face</name>
+        <param>
+          <type>float</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Tab&lt; float &gt; &amp;</type>
+          <declname>faceS</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="94" column="12" bodyfile="objonsrf.cpp" bodystart="94" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="objonsrf_8cpp_1a6a528c5b53cbe16f1971503d2cc0fdc0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int find_face</definition>
+        <argsstring>(float t, Tab&lt; float &gt; &amp;faceS, Tab&lt; int &gt; &amp;face_count, int &amp;founded_node)</argsstring>
+        <name>find_face</name>
+        <param>
+          <type>float</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Tab&lt; float &gt; &amp;</type>
+          <declname>faceS</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>face_count</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>founded_node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="119" column="12" bodyfile="objonsrf.cpp" bodystart="119" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="objonsrf_8cpp_1a427eb46b0ae07b697c78ddb06078c803" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TriObject *</type>
+        <definition>static TriObject * GetTriObjectFromNode</definition>
+        <argsstring>(INode *node, int &amp;deleteIt)</argsstring>
+        <name>GetTriObjectFromNode</name>
+        <param>
+          <type>INode *</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>deleteIt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="131" column="18" bodyfile="objonsrf.cpp" bodystart="131" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="objonsrf_8cpp_1aa9380f027cef26519e0cd707e6d382ea" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>static Point3 get_normal</definition>
+        <argsstring>(DWORD s, RVertex &amp;rv)</argsstring>
+        <name>get_normal</name>
+        <param>
+          <type>DWORD</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>RVertex &amp;</type>
+          <declname>rv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="147" column="15" bodyfile="objonsrf.cpp" bodystart="147" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="objonsrf_8cpp_1a5e0b9330ac7b63f66915a7c34e1f7925" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void put_meshes_on_mesh</definition>
+        <argsstring>(Interface *ip, TCHAR *selsname, Tab&lt; INode * &gt; &amp;snode, int objnum, int seed, bool set_to_norm, bool use_smgr, bool rotatez, float slope, bool selfaces, float xydiap[2], float zdiap[2], bool xys, char zs)</argsstring>
+        <name>put_meshes_on_mesh</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>TCHAR *</type>
+          <declname>selsname</declname>
+        </param>
+        <param>
+          <type>Tab&lt; INode * &gt; &amp;</type>
+          <declname>snode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>objnum</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>set_to_norm</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_smgr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>rotatez</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>slope</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>selfaces</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>xydiap</declname>
+          <array>[2]</array>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zdiap</declname>
+          <array>[2]</array>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>xys</declname>
+        </param>
+        <param>
+          <type>char</type>
+          <declname>zs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objonsrf.cpp" line="164" column="6" bodyfile="objonsrf.cpp" bodystart="164" bodyend="394"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;utilapi.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;bmmlib.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdmat.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;splshape.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;notetrck.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;modstack.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;random.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="enumnode_8h" kindref="compound">enumnode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="debug_8h" kindref="compound">debug.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R13)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R13</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;INamedSelectionSetManager.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">/*struct<sp/>NodeInfo{</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/><sp/>Matrix3<sp/>tm;</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/><sp/>INode</highlight></codeline>
+<codeline lineno="22"><highlight class="comment">};</highlight></codeline>
+<codeline lineno="23"><highlight class="comment">class<sp/>GenerateObjectOnSurfRestore<sp/>:<sp/>public<sp/>RestoreObj<sp/>{</highlight></codeline>
+<codeline lineno="24"><highlight class="comment">public:</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/><sp/>Tab&lt;NewNodeInfo&gt;<sp/>nodes;</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/><sp/>bool</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"></highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/><sp/>GenerateObjectOnSurfRestore()<sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/><sp/>void<sp/>Restore(int<sp/>isUndo)<sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/><sp/><sp/><sp/>setList-&gt;AppendSet<sp/>(set,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/><sp/><sp/><sp/>if<sp/>(ep-&gt;ip)<sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/>ep-&gt;ip-&gt;NamedSelSetListChanged();</highlight></codeline>
+<codeline lineno="34"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/>ep-&gt;UpdateNamedSelDropDown<sp/>();</highlight></codeline>
+<codeline lineno="35"><highlight class="comment"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="comment"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="comment"><sp/><sp/>void<sp/>Redo()<sp/>{</highlight></codeline>
+<codeline lineno="38"><highlight class="comment"><sp/><sp/><sp/><sp/>setList-&gt;RemoveSet<sp/>(name);</highlight></codeline>
+<codeline lineno="39"><highlight class="comment"><sp/><sp/><sp/><sp/>if<sp/>(ep-&gt;ip)<sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/>ep-&gt;ip-&gt;NamedSelSetListChanged();</highlight></codeline>
+<codeline lineno="41"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/>ep-&gt;UpdateNamedSelDropDown<sp/>();</highlight></codeline>
+<codeline lineno="42"><highlight class="comment"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="comment"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="comment"></highlight></codeline>
+<codeline lineno="45"><highlight class="comment"><sp/><sp/>TSTR<sp/>Description()<sp/>{return<sp/>TSTR(_T(&quot;Generate<sp/>objects&quot;));}</highlight></codeline>
+<codeline lineno="46"><highlight class="comment">};*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>calc_mesh_info(Mesh<sp/>&amp;m,<sp/>Point3<sp/>*vert,<sp/>Tab&lt;float&gt;<sp/>&amp;faceS,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>selectedfaces)</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sumS<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>faceS.SetCount(m.numFaces);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>m.numFaces;<sp/>++i)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Point3<sp/>n=CrossProd((vert[m.faces[i].v[2]]-vert[m.faces[i].v[0]]),(vert[m.faces[i].v[1]]-vert[m.faces[i].v[0]]));</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>S;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(selectedfaces<sp/>&amp;&amp;<sp/>!<ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(m)[i])</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>S<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>lg<sp/>=<sp/>Length(m.FaceNormal(i));</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lg<sp/>!=<sp/>0)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>S<sp/>=<sp/>0.5f<sp/>*<sp/>lg;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>S<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>sumS<sp/>+=<sp/>S;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>faceS[i]<sp/>=<sp/>sumS;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R13)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R13</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_selset_by_name(Interface<sp/>*,<sp/>TCHAR<sp/>*selsname)</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>INamedSelectionSetManager<sp/>*ip<sp/>=<sp/>INamedSelectionSetManager::GetInstance();</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_selset_by_name(Interface<sp/>*ip,<sp/>TCHAR<sp/>*selsname)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>selset;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(selset<sp/>=<sp/>0;<sp/>selset<sp/>&lt;<sp/>ip-&gt;GetNumNamedSelSets();<sp/>++selset)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(_tcscmp(ip-&gt;GetNamedSelSetName(selset),<sp/>selsname)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(selset<sp/>&gt;=<sp/>ip-&gt;GetNumNamedSelSets())</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>selset;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_face(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>t,<sp/>Tab&lt;float&gt;<sp/>&amp;faceS)</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>0,<sp/>b<sp/>=<sp/>faceS.Count()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a<sp/>==<sp/>b)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(faceS[a]<sp/>&gt;=<sp/>t)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(faceS[b<sp/>-<sp/>1]<sp/>&lt;=<sp/>t)</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>b;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(a<sp/>&lt;=<sp/>b)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>c<sp/>=<sp/>(a<sp/>+<sp/>b)<sp/>/<sp/>2;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(c<sp/>==<sp/>a)</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(faceS[c]<sp/>&lt;<sp/>t)</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>a<sp/>=<sp/>c;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(faceS[c<sp/>-<sp/>1]<sp/>&gt;<sp/>t)</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>b<sp/>=<sp/>c;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>c;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>b;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>find_face(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>t,<sp/>Tab&lt;float&gt;<sp/>&amp;faceS,<sp/>Tab&lt;int&gt;<sp/>&amp;face_count,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;founded_node)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/>founded_node<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fface<sp/>=<sp/>find_face(t,<sp/>faceS);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>face_count.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fface<sp/>&lt;<sp/>face_count[i])</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>founded_node<sp/>=<sp/>i;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>fface;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>TriObject<sp/>*GetTriObjectFromNode(INode<sp/>*node,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;deleteIt)</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>deleteIt<sp/>=<sp/>FALSE;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>Object<sp/>*obj<sp/>=<sp/>node-&gt;EvalWorldState(0).obj;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(obj-&gt;CanConvertToType(Class_ID(TRIOBJ_CLASS_ID,<sp/>0)))</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>TriObject<sp/>*tri<sp/>=<sp/>(TriObject<sp/>*)obj-&gt;ConvertToType(0,<sp/>Class_ID(TRIOBJ_CLASS_ID,<sp/>0));</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(obj<sp/>!=<sp/>tri)</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>deleteIt<sp/>=<sp/>TRUE;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>tri;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="146"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>Point3<sp/>get_normal(DWORD<sp/>s,<sp/>RVertex<sp/>&amp;rv)</highlight></codeline>
+<codeline lineno="148"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fnc<sp/>=<sp/>rv.rFlags<sp/>&amp;<sp/>NORCT_MASK;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fnc<sp/>&lt;=<sp/>1)</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rv.rn.getNormal();</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>fnc<sp/>-<sp/>1;<sp/>++i)</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(rv.ern[i].getSmGroup()<sp/>&amp;<sp/>s)</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rv.ern[i].getNormal();</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rv.ern[i].getNormal();</highlight></codeline>
+<codeline lineno="159"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="comment">//<sp/>void<sp/>put_meshes_on_mesh(Interface<sp/>*ip,TCHAR<sp/>*selsname,Tab&lt;INode<sp/>*&gt;<sp/>&amp;snode,int<sp/>objnum,int<sp/>seed,bool<sp/>set_to_norm,bool<sp/>use_smgr,bool</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight><highlight class="comment">//<sp/>rotatez,float<sp/>slope,bool<sp/>selfaces){</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="objonsrf_8cpp_1a5e0b9330ac7b63f66915a7c34e1f7925" kindref="member">put_meshes_on_mesh</ref>(Interface<sp/>*ip,<sp/>TCHAR<sp/>*selsname,<sp/>Tab&lt;INode<sp/>*&gt;<sp/>&amp;snode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>objnum,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>seed,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_to_norm,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>use_smgr,</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>rotatez,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>slope,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>selfaces,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>xydiap[2],<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zdiap[2],<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>xys,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>zs)</highlight></codeline>
+<codeline lineno="166"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R13)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R13</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>INamedSelectionSetManager<sp/>*<ref refid="objonsrf_8cpp_1ac8a1ffc6c93d76daeb8355d730b16d23" kindref="member">IPNSS</ref><sp/>=<sp/>INamedSelectionSetManager::GetInstance();</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>IPNSS<sp/>ip</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/>deleteIt;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>Tab&lt;TriObject<sp/>*&gt;<sp/>triObjects;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/>face_count;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!snode.Count())</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/>face_count.SetCount(snode.Count());</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>triObjects.SetCount(snode.Count());</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/>deleteIt.SetCount(snode.Count());</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;11&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>snode.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>triObjects[i]<sp/>=<sp/>GetTriObjectFromNode(snode[i],<sp/>deleteIt[i]);</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(triObjects[i]<sp/>&amp;&amp;<sp/>deleteIt[i])</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(triObjects[i]-&gt;mesh).SetAll();</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;21&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sels<sp/>=<sp/>find_selset_by_name(ip,<sp/>selsname);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sels<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/>TSTR<sp/>s;</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/>s.printf(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a0fedaeb948543da14a77b4eac79dc1ae" kindref="member">IDS_NO_SUCHSELSET</ref>),<sp/>selsname);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(s);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>snode.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(deleteIt[i])</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>triObjects[i]-&gt;DeleteMe();</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;31&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="objonsrf_8cpp_1ac8a1ffc6c93d76daeb8355d730b16d23" kindref="member">IPNSS</ref>-&gt;GetNamedSelSetItemCount(sels))</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>snode.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(deleteIt[i])</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>triObjects[i]-&gt;DeleteMe();</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;41&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/>Mesh<sp/>surf;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fc<sp/>=<sp/>0,<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>triObjects.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(triObjects[i])</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fc<sp/>+=<sp/>triObjects[i]-&gt;mesh.numFaces;</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>face_count[i]<sp/>=<sp/>fc;</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Matrix3<sp/>tm<sp/>=<sp/>snode[i]-&gt;GetObjectTM(ip-&gt;GetTime());</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Mesh<sp/>surf1(surf);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CombineMeshes(surf,<sp/>surf1,<sp/>triObjects[i]-&gt;mesh,<sp/>NULL,<sp/>&amp;tm,<sp/>-1);</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fsi<sp/>=<sp/>0;<sp/>fsi<sp/>&lt;<sp/>surf1.numFaces;<sp/>++fsi)</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(surf1)[fsi])</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(surf).Set(fsi);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fsi1<sp/>=<sp/>0,<sp/>fsi<sp/>=<sp/>surf1.numFaces;<sp/>fsi<sp/>&lt;<sp/>surf.numFaces;<sp/>++fsi,<sp/>++fsi1)</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(triObjects[i]-&gt;mesh)[fsi1])</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(surf).Set(fsi);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>face_count[i]<sp/>=<sp/>fc;</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;51&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!surf.numVerts<sp/>||<sp/>!surf.numFaces)</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>snode.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(deleteIt[i])</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>triObjects[i]-&gt;DeleteMe();</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;61&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/>Tab&lt;float&gt;<sp/>faceS;</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/>calc_mesh_info(surf,<sp/>&amp;surf.verts[0],<sp/>faceS,<sp/>selfaces);</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;71&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/>Random<sp/>r;</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!seed)</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/>seed<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/>r.srand(seed);</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>selnodecnt<sp/>=<sp/><ref refid="objonsrf_8cpp_1ac8a1ffc6c93d76daeb8355d730b16d23" kindref="member">IPNSS</ref>-&gt;GetNamedSelSetItemCount(sels);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sumS<sp/>=<sp/>faceS[faceS.Count()<sp/>-<sp/>1];</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(set_to_norm<sp/>&amp;&amp;<sp/>use_smgr)</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/>surf.buildNormals();</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"></highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(xydiap[0]<sp/>&gt;<sp/>xydiap[1])</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>xydiap[0];</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/>xydiap[0]<sp/>=<sp/>xydiap[1];</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/>xydiap[1]<sp/>=<sp/>a;</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(zdiap[0]<sp/>&gt;<sp/>zdiap[1])</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>zdiap[0];</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/>zdiap[0]<sp/>=<sp/>zdiap[1];</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/>zdiap[1]<sp/>=<sp/>a;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/>theHold.Begin();</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>objnum;<sp/>++i)</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>nodnm<sp/>=<sp/>r.get(selnodecnt);</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/>INode<sp/>*putn<sp/>=<sp/><ref refid="objonsrf_8cpp_1ac8a1ffc6c93d76daeb8355d730b16d23" kindref="member">IPNSS</ref>-&gt;GetNamedSelSetItem(sels,<sp/>nodnm);</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>Sval<sp/>=<sp/>r.getf(sumS);</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>u<sp/>=<sp/>r.getf();</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v<sp/>=<sp/>r.getf();</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>rota<sp/>=<sp/>r.getf(TWOPI);</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>slopea<sp/>=<sp/>r.getf(slope);</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sloperota<sp/>=<sp/>r.getf(TWOPI);</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>scalexy,<sp/>scalez;</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(xydiap[0]<sp/>!=<sp/>xydiap[1])</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>scalexy<sp/>=<sp/>r.getf(xydiap[1],<sp/>xydiap[0]);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>r.getf();</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>scalexy<sp/>=<sp/>xydiap[0];</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(zdiap[0]<sp/>!=<sp/>zdiap[1])</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>scalez<sp/>=<sp/>r.getf(zdiap[1],<sp/>zdiap[0]);</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>r.getf();</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>scalez<sp/>=<sp/>zdiap[0];</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>founded_node;</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>fi<sp/>=<sp/>find_face(Sval,<sp/>faceS,<sp/>face_count,<sp/>founded_node);</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"></highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(u<sp/>+<sp/>v<sp/>&gt;<sp/>1)</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>u<sp/>=<sp/>1<sp/>-<sp/>u;</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>v<sp/>=<sp/>1<sp/>-<sp/>v;</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/>&amp;v0<sp/>=<sp/>surf.verts[surf.faces[fi].v[0]];</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>=<sp/>(surf.verts[surf.faces[fi].v[1]]<sp/>-<sp/>v0)<sp/>*<sp/>u<sp/>+<sp/>(surf.verts[surf.faces[fi].v[2]]<sp/>-<sp/>v0)<sp/>*<sp/>v<sp/>+<sp/>v0;</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/><sp/><sp/>INode<sp/>*nnode<sp/>=<sp/>ip-&gt;CreateObjectNode(putn-&gt;GetObjectRef());</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><sp/><sp/>TSTR<sp/>name;</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/>name.printf(_T(</highlight><highlight class="stringliteral">&quot;%s_on_%s_&quot;</highlight><highlight class="normal">),<sp/>putn-&gt;GetName(),<sp/>snode[founded_node]-&gt;GetName());</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><sp/><sp/>ip-&gt;MakeNameUnique(name);</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><sp/><sp/>nnode-&gt;SetName(name);</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/><sp/><sp/>Matrix3<sp/>ntm<sp/>=<sp/>putn-&gt;GetNodeTM(ip-&gt;GetTime());</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(set_to_norm)</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Point3<sp/>a2;</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(use_smgr)</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Point3<sp/>n0<sp/>=<sp/>get_normal(surf.faces[fi].smGroup,<sp/>surf.getRVert(surf.faces[fi].v[0]));</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Point3<sp/>n1<sp/>=<sp/>get_normal(surf.faces[fi].smGroup,<sp/>surf.getRVert(surf.faces[fi].v[1]));</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Point3<sp/>n2<sp/>=<sp/>get_normal(surf.faces[fi].smGroup,<sp/>surf.getRVert(surf.faces[fi].v[2]));</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>a2<sp/>=<sp/>Normalize((n1<sp/>-<sp/>n0)<sp/>*<sp/>u<sp/>+<sp/>(n2<sp/>-<sp/>n0)<sp/>*<sp/>v<sp/>+<sp/>n0);</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>a2<sp/>=<sp/>surf.FaceNormal(fi,<sp/>TRUE);</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>;</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a2.x<sp/>&gt;<sp/>0.9<sp/>||<sp/>a2.x<sp/>&lt;<sp/>-0.9)</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>=<sp/>Normalize(Point3(0,<sp/>-1,<sp/>0)<sp/>^<sp/>a2);</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>=<sp/>Normalize(Point3(-1,<sp/>0,<sp/>0)<sp/>^<sp/>a2);</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Matrix3<sp/>positm;</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>positm.SetRow(0,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>);</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>positm.SetRow(1,<sp/>Normalize(a2<sp/>^<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>));</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>positm.SetRow(2,<sp/>a2);</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>positm.SetRow(3,<sp/>Point3(0,<sp/>0,<sp/>0));</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ntm=ntm*positm;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ntm<sp/>=<sp/>positm;</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(slopea<sp/>!=<sp/>0)</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ntm<sp/>=<sp/>ntm<sp/>*<sp/>RotAngleAxisMatrix(Point3(cosf(sloperota),<sp/>sinf(sloperota),<sp/>0.0f),<sp/>slopea);</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(rotatez)</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ntm.PreRotateZ(rota);<sp/></highlight><highlight class="comment">//*RotateZMatrix(rota);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="361"><highlight class="normal"><sp/><sp/><sp/><sp/>ntm.SetTrans(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>);</highlight></codeline>
+<codeline lineno="362"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!xys<sp/>&amp;&amp;<sp/>!zs)</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ntm.PreScale(Point3(scalexy,<sp/>scalexy,<sp/>scalexy));</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="368"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!xys)</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>scalexy<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="370"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!zs)</highlight></codeline>
+<codeline lineno="371"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>scalez<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ntm.PreScale(Point3(scalexy,<sp/>scalexy,<sp/>scalez));</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"></highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/><sp/><sp/>nnode-&gt;SetNodeTM(ip-&gt;GetTime(),<sp/>ntm);</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"><sp/><sp/><sp/><sp/>nnode-&gt;SetObjOffsetPos(putn-&gt;GetObjOffsetPos());</highlight></codeline>
+<codeline lineno="377"><highlight class="normal"><sp/><sp/><sp/><sp/>nnode-&gt;SetObjOffsetRot(putn-&gt;GetObjOffsetRot());</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/><sp/><sp/>nnode-&gt;SetObjOffsetScale(putn-&gt;GetObjOffsetScale());</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/>TSTR<sp/>holdopname;</highlight></codeline>
+<codeline lineno="381"><highlight class="normal"><sp/><sp/>holdopname.printf(_T(</highlight><highlight class="stringliteral">&quot;Generating<sp/>%d<sp/>objects&quot;</highlight><highlight class="normal">),<sp/>objnum);</highlight></codeline>
+<codeline lineno="382"><highlight class="normal"><sp/><sp/>theHold.Accept(holdopname);</highlight></codeline>
+<codeline lineno="383"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;81&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="384"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="385"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>snode.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="386"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="387"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(deleteIt[i])</highlight></codeline>
+<codeline lineno="388"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>triObjects[i]-&gt;DeleteMe();</highlight></codeline>
+<codeline lineno="389"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="390"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="391"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;91&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="392"><highlight class="normal"><sp/><sp/>ip-&gt;RedrawViews(ip-&gt;GetTime());</highlight></codeline>
+<codeline lineno="393"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>debug(&quot;01&quot;);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="394"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="objonsrf.cpp"/>
+  </compounddef>
+</doxygen>

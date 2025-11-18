@@ -1,0 +1,267 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1ShaderValidVariantList" kind="struct" language="C++" prot="public">
+    <compoundname>shc::ShaderValidVariantList</compoundname>
+    <innerclass refid="structshc_1_1ShaderValidVariantList_1_1Ref" prot="public">shc::ShaderValidVariantList::Ref</innerclass>
+    <innerclass refid="structshc_1_1ShaderValidVariantList_1_1VarVal" prot="public">shc::ShaderValidVariantList::VarVal</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1a948ff19acd251868eaf242f674dee3b7" prot="public" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap shc::ShaderValidVariantList::vars</definition>
+        <argsstring></argsstring>
+        <name>vars</name>
+        <qualifiedname>shc::ShaderValidVariantList::vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="670" column="17" bodyfile="shCompiler.cpp" bodystart="670" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1aa869e9a29e4adc5e39e8840ae27d8271" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structshc_1_1ShaderValidVariantList_1_1VarVal" kindref="compound">VarVal</ref> &gt;</type>
+        <definition>Tab&lt;VarVal&gt; shc::ShaderValidVariantList::vvData</definition>
+        <argsstring></argsstring>
+        <name>vvData</name>
+        <qualifiedname>shc::ShaderValidVariantList::vvData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="671" column="7" bodyfile="shCompiler.cpp" bodystart="671" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1a125892edadc6616cebe124f92c5281a1" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structshc_1_1ShaderValidVariantList_1_1Ref" kindref="compound">Ref</ref> &gt;</type>
+        <definition>Tab&lt;Ref&gt; shc::ShaderValidVariantList::vv</definition>
+        <argsstring></argsstring>
+        <name>vv</name>
+        <qualifiedname>shc::ShaderValidVariantList::vv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="672" column="7" bodyfile="shCompiler.cpp" bodystart="672" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1aced0cb1523137fe1f439bca44f2f4e21" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool shc::ShaderValidVariantList::invalidAsNull</definition>
+        <argsstring></argsstring>
+        <name>invalidAsNull</name>
+        <qualifiedname>shc::ShaderValidVariantList::invalidAsNull</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="673" column="8" bodyfile="shCompiler.cpp" bodystart="673" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1aa6353c2252be16a5350815f39c41327a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shc::ShaderValidVariantList::ShaderValidVariantList</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderValidVariantList</name>
+        <qualifiedname>shc::ShaderValidVariantList::ShaderValidVariantList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="675" column="3" bodyfile="shCompiler.cpp" bodystart="675" bodyend="675"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1a130a4402d183d0d07efa9e45f655a33d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::ShaderValidVariantList::fill</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>fill</name>
+        <qualifiedname>shc::ShaderValidVariantList::fill</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="676" column="8" bodyfile="shCompiler.cpp" bodystart="676" bodyend="705"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1ad6f735c145d945a488b7bebe0d725765" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::ShaderValidVariantList::makeTypeMap</definition>
+        <argsstring>(Tab&lt; int &gt; &amp;map, const ShaderVariant::TypeTable &amp;v)</argsstring>
+        <name>makeTypeMap</name>
+        <qualifiedname>shc::ShaderValidVariantList::makeTypeMap</qualifiedname>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>map</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="706" column="8" bodyfile="shCompiler.cpp" bodystart="706" bodyend="716"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1ad52b5075e1aaa086d08f51a45b05081f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::ShaderValidVariantList::gatherRelevantIdx</definition>
+        <argsstring>(FastIntList &amp;idx, dag::ConstSpan&lt; int &gt; map)</argsstring>
+        <name>gatherRelevantIdx</name>
+        <qualifiedname>shc::ShaderValidVariantList::gatherRelevantIdx</qualifiedname>
+        <param>
+          <type>FastIntList &amp;</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="717" column="8" bodyfile="shCompiler.cpp" bodystart="717" bodyend="732"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1a913691c2717636d810d147bdc8f5d676" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::ShaderValidVariantList::gatherRelevantIdx2</definition>
+        <argsstring>(FastIntList &amp;idx, dag::ConstSpan&lt; int &gt; map, const FastIntList &amp;idx_base, dag::ConstSpan&lt; int &gt; base_map)</argsstring>
+        <name>gatherRelevantIdx2</name>
+        <qualifiedname>shc::ShaderValidVariantList::gatherRelevantIdx2</qualifiedname>
+        <param>
+          <type>FastIntList &amp;</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>map</declname>
+        </param>
+        <param>
+          <type>const FastIntList &amp;</type>
+          <declname>idx_base</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>base_map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="733" column="8" bodyfile="shCompiler.cpp" bodystart="733" bodyend="749"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1a52c61fb587619d2a9b8acbc2bc57f709" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::ShaderValidVariantList::checkValid</definition>
+        <argsstring>(dag::ConstSpan&lt; int &gt; idx, dag::ConstSpan&lt; int &gt; map, const ShaderVariant::VariantSrc &amp;v)</argsstring>
+        <name>checkValid</name>
+        <qualifiedname>shc::ShaderValidVariantList::checkValid</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>map</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="751" column="8" bodyfile="shCompiler.cpp" bodystart="751" bodyend="771"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1a0500b7eb2fbd41b4b87f8de02369b4d7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::ShaderValidVariantList::checkValid2</definition>
+        <argsstring>(dag::ConstSpan&lt; int &gt; idx, dag::ConstSpan&lt; int &gt; map, const ShaderVariant::VariantSrc &amp;v, dag::ConstSpan&lt; int &gt; map2, const ShaderVariant::VariantSrc &amp;v2)</argsstring>
+        <name>checkValid2</name>
+        <qualifiedname>shc::ShaderValidVariantList::checkValid2</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>map</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>map2</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref> &amp;</type>
+          <declname>v2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="772" column="8" bodyfile="shCompiler.cpp" bodystart="772" bodyend="796"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1ShaderValidVariantList_1a9c742bbb1a0a4e712e707e77b40a1c88" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::ShaderValidVariantList::dump</definition>
+        <argsstring>()</argsstring>
+        <name>dump</name>
+        <qualifiedname>shc::ShaderValidVariantList::dump</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="798" column="8" bodyfile="shCompiler.cpp" bodystart="798" bodyend="807"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shCompiler.cpp" line="659" column="1" bodyfile="shCompiler.cpp" bodystart="660" bodyend="808"/>
+    <listofallmembers>
+      <member refid="structshc_1_1ShaderValidVariantList_1a52c61fb587619d2a9b8acbc2bc57f709" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>checkValid</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1a0500b7eb2fbd41b4b87f8de02369b4d7" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>checkValid2</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1a9c742bbb1a0a4e712e707e77b40a1c88" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>dump</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1a130a4402d183d0d07efa9e45f655a33d" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>fill</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1ad52b5075e1aaa086d08f51a45b05081f" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>gatherRelevantIdx</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1a913691c2717636d810d147bdc8f5d676" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>gatherRelevantIdx2</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1aced0cb1523137fe1f439bca44f2f4e21" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>invalidAsNull</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1ad6f735c145d945a488b7bebe0d725765" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>makeTypeMap</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1aa6353c2252be16a5350815f39c41327a" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>ShaderValidVariantList</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1a948ff19acd251868eaf242f674dee3b7" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>vars</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1a125892edadc6616cebe124f92c5281a1" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>vv</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1aa869e9a29e4adc5e39e8840ae27d8271" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList</scope><name>vvData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

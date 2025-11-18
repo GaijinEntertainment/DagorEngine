@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1RayDispatchGroupTable" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::RayDispatchGroupTable</compoundname>
+    <basecompoundref refid="structraytrace_1_1RayDispatchGroup" prot="public" virt="non-virtual">raytrace::RayDispatchGroup</basecompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1RayDispatchGroupTable_1a70f18ae6b0730aefda1e5c2ecfcfe5a1" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t raytrace::RayDispatchGroupTable::strideInBytes</definition>
+        <argsstring></argsstring>
+        <name>strideInBytes</name>
+        <qualifiedname>raytrace::RayDispatchGroupTable::strideInBytes</qualifiedname>
+        <briefdescription>
+<para>Stride in bytes of a entry of the group in the shader binding table. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="946" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="946" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A ray dispatch group definition, for groups with multiple entries. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>raytrace::RayDispatchGroup</label>
+        <link refid="structraytrace_1_1RayDispatchGroup"/>
+      </node>
+      <node id="1">
+        <label>raytrace::RayDispatchGroupTable</label>
+        <link refid="structraytrace_1_1RayDispatchGroupTable"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>raytrace::RayDispatchGroup</label>
+        <link refid="structraytrace_1_1RayDispatchGroup"/>
+      </node>
+      <node id="1">
+        <label>raytrace::RayDispatchGroupTable</label>
+        <link refid="structraytrace_1_1RayDispatchGroupTable"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="943" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="944" bodyend="947"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1RayDispatchGroup_1ae6c890b49b6d5fee5135807b0744d54e" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroupTable</scope><name>sizeInBytes</name></member>
+      <member refid="structraytrace_1_1RayDispatchGroupTable_1a70f18ae6b0730aefda1e5c2ecfcfe5a1" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroupTable</scope><name>strideInBytes</name></member>
+      <member refid="structraytrace_1_1RayDispatchGroup_1a49bfd27cd1e03bedf16c8240b7fa853b" prot="public" virt="non-virtual"><scope>raytrace::RayDispatchGroupTable</scope><name>virtualGpuAddress</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

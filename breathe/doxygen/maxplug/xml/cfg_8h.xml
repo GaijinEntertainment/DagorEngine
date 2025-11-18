@@ -1,0 +1,485 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="cfg_8h" kind="file" language="C++">
+    <compoundname>cfg.h</compoundname>
+    <includes local="no">string</includes>
+    <includes local="no">vector</includes>
+    <includedby refid="cfg_8cpp" local="yes">cfg.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>cfg.h</label>
+        <link refid="cfg_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>string</label>
+      </node>
+      <node id="3">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>cfg.cpp</label>
+        <link refid="cfg_8cpp"/>
+      </node>
+      <node id="1">
+        <label>cfg.h</label>
+        <link refid="cfg_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="4">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="5">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="6">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classCfgReader" prot="public">CfgReader</innerclass>
+    <innerclass refid="classCfgShader" prot="public">CfgShader</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="cfg_8h_1a96207da05a1aa30288b2bbdda2b898dc" prot="public" static="no">
+        <name>MAX_CFG_DATA</name>
+        <initializer>2048</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="7" column="9" bodyfile="cfg.h" bodystart="7" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a7d5889d7f608708468ee44cfb37c87ed" prot="public" static="no">
+        <name>CFG_GLOBAL_NAME</name>
+        <initializer>_T(&quot;_global_params&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="8" column="9" bodyfile="cfg.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a0a8c6d6836bb49bddee5ed0a742b8fd9" prot="public" static="no">
+        <name>CFG_SETTINGS_NAME</name>
+        <initializer>_T(&quot;_settings&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="9" column="9" bodyfile="cfg.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1af565f3c7f63f7fa6e2a29095b8d4ef14" prot="public" static="no">
+        <name>CFG_PARAM_TEXT</name>
+        <initializer>_T(&quot;text&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="11" column="9" bodyfile="cfg.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a5f2803b10a5a4234d9f957aabbcb4d80" prot="public" static="no">
+        <name>CFG_PARAM_BOOL</name>
+        <initializer>_T(&quot;bool&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="12" column="9" bodyfile="cfg.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a1e96625b70590c0c998d9e970429ff64" prot="public" static="no">
+        <name>CFG_PARAM_INT</name>
+        <initializer>_T(&quot;int&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="13" column="9" bodyfile="cfg.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a54c0959b1d63ca5c2112f6e9c5fea324" prot="public" static="no">
+        <name>CFG_PARAM_REAL</name>
+        <initializer>_T(&quot;real&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="14" column="9" bodyfile="cfg.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a9e26b7199be7a56fe3b18adf24d0703d" prot="public" static="no">
+        <name>CFG_PARAM_ENUM</name>
+        <initializer>_T(&quot;enum&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="15" column="9" bodyfile="cfg.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a45b28f9c88aaf65dbebb8a29333a7ac8" prot="public" static="no">
+        <name>CFG_PARAM_COLOR</name>
+        <initializer>_T(&quot;color&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="16" column="9" bodyfile="cfg.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a4ccd0f7188c5993c856ba42397549254" prot="public" static="no">
+        <name>CFG_PARAM_GLOBAL</name>
+        <initializer>_T(&quot;global&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="18" column="9" bodyfile="cfg.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a25c414e374bd5617d7118bb0c3ca3ac6" prot="public" static="no">
+        <name>CFG_PARAM_OPTIONAL</name>
+        <initializer>_T(&quot;optional&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="19" column="9" bodyfile="cfg.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1ae35a4b04ebf0091c88584b6a2be6f02e" prot="public" static="no">
+        <name>CFG_PARAM_COMMON</name>
+        <initializer>_T(&quot;common&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="20" column="9" bodyfile="cfg.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a99bb71a098f90657eb834fe344babdb8" prot="public" static="no">
+        <name>CFG_PARAM_GLOBAL_</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="22" column="9" bodyfile="cfg.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1ada8122be6a1bedf0d8f75f53f32b7ea0" prot="public" static="no">
+        <name>CFG_PARAM_OPTIONAL_</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="23" column="9" bodyfile="cfg.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1acb1c858a500a21ee89042ffd0841c392" prot="public" static="no">
+        <name>CFG_PARAM_COMMON_</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="24" column="9" bodyfile="cfg.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1af74dba494d55608840fb42fad84b7599" prot="public" static="no">
+        <name>CFG_GLOBAL</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="26" column="9" bodyfile="cfg.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a6029c2807fc8be8a0badb839d8c3d2b0" prot="public" static="no">
+        <name>CFG_SHADER</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="27" column="9" bodyfile="cfg.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a656f669725160f145e77a33e4c2c8e5c" prot="public" static="no">
+        <name>CFG_COMMON</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="29" column="9" bodyfile="cfg.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a5a1ba25a0d7cdbf2c6e21ac45b882629" prot="public" static="no">
+        <name>CFG_OPTIONAL</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="30" column="9" bodyfile="cfg.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1af99c3266ec45dab4edee71e837f59d0e" prot="public" static="no">
+        <name>CFG_UNKNOWN</name>
+        <initializer>(-1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="32" column="9" bodyfile="cfg.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1aec55b3a65a3f58292528d7b9c8738da8" prot="public" static="no">
+        <name>CFG_TEXT</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="33" column="9" bodyfile="cfg.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a76b80ef368237e0cc0043e77fa3c9685" prot="public" static="no">
+        <name>CFG_BOOL</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="34" column="9" bodyfile="cfg.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a7d1135c7b62498f490ca92f6d5ae7d8f" prot="public" static="no">
+        <name>CFG_INT</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="35" column="9" bodyfile="cfg.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1ae5563f13799e5399bfa88b3cf71ea0b7" prot="public" static="no">
+        <name>CFG_REAL</name>
+        <initializer>3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="36" column="9" bodyfile="cfg.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a48ba8c4c90fb4ff065e565a870aa7fa1" prot="public" static="no">
+        <name>CFG_ENUM</name>
+        <initializer>4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="37" column="9" bodyfile="cfg.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a7c925ba8d4c36f3d2a85bdd83fd11d46" prot="public" static="no">
+        <name>CFG_COLOR</name>
+        <initializer>5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="38" column="9" bodyfile="cfg.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" prot="public" static="no">
+        <type>std::vector&lt; <ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &gt;</type>
+        <definition>typedef std::vector&lt;M_STD_STRING&gt; StringVector</definition>
+        <argsstring></argsstring>
+        <name>StringVector</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="40" column="21" bodyfile="cfg.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="cfg_8h_1a96207da05a1aa30288b2bbdda2b898dc" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAX_CFG_DATA<sp/><sp/><sp/><sp/><sp/><sp/>2048</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="cfg_8h_1a7d5889d7f608708468ee44cfb37c87ed" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_GLOBAL_NAME<sp/><sp/><sp/>_T(&quot;_global_params&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="9" refid="cfg_8h_1a0a8c6d6836bb49bddee5ed0a742b8fd9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_SETTINGS_NAME<sp/>_T(&quot;_settings&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="cfg_8h_1af565f3c7f63f7fa6e2a29095b8d4ef14" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_TEXT<sp/><sp/>_T(&quot;text&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="12" refid="cfg_8h_1a5f2803b10a5a4234d9f957aabbcb4d80" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_BOOL<sp/><sp/>_T(&quot;bool&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="13" refid="cfg_8h_1a1e96625b70590c0c998d9e970429ff64" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_INT<sp/><sp/><sp/>_T(&quot;int&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="14" refid="cfg_8h_1a54c0959b1d63ca5c2112f6e9c5fea324" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_REAL<sp/><sp/>_T(&quot;real&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="15" refid="cfg_8h_1a9e26b7199be7a56fe3b18adf24d0703d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_ENUM<sp/><sp/>_T(&quot;enum&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="16" refid="cfg_8h_1a45b28f9c88aaf65dbebb8a29333a7ac8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_COLOR<sp/>_T(&quot;color&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="cfg_8h_1a4ccd0f7188c5993c856ba42397549254" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_GLOBAL<sp/><sp/><sp/>_T(&quot;global&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="19" refid="cfg_8h_1a25c414e374bd5617d7118bb0c3ca3ac6" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_OPTIONAL<sp/>_T(&quot;optional&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="20" refid="cfg_8h_1ae35a4b04ebf0091c88584b6a2be6f02e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_COMMON<sp/><sp/><sp/>_T(&quot;common&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="cfg_8h_1a99bb71a098f90657eb834fe344babdb8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_GLOBAL_<sp/><sp/><sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="cfg_8h_1ada8122be6a1bedf0d8f75f53f32b7ea0" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_OPTIONAL_<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="cfg_8h_1acb1c858a500a21ee89042ffd0841c392" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_PARAM_COMMON_<sp/><sp/><sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="cfg_8h_1af74dba494d55608840fb42fad84b7599" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_GLOBAL<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="cfg_8h_1a6029c2807fc8be8a0badb839d8c3d2b0" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_SHADER<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="cfg_8h_1a656f669725160f145e77a33e4c2c8e5c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_COMMON<sp/><sp/><sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="cfg_8h_1a5a1ba25a0d7cdbf2c6e21ac45b882629" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_OPTIONAL<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="cfg_8h_1af99c3266ec45dab4edee71e837f59d0e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_UNKNOWN<sp/>(-1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="cfg_8h_1aec55b3a65a3f58292528d7b9c8738da8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_TEXT<sp/><sp/><sp/><sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="cfg_8h_1a76b80ef368237e0cc0043e77fa3c9685" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_BOOL<sp/><sp/><sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="cfg_8h_1a7d1135c7b62498f490ca92f6d5ae7d8f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_INT<sp/><sp/><sp/><sp/><sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="cfg_8h_1ae5563f13799e5399bfa88b3cf71ea0b7" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_REAL<sp/><sp/><sp/><sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="cfg_8h_1a48ba8c4c90fb4ff065e565a870aa7fa1" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_ENUM<sp/><sp/><sp/><sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="cfg_8h_1a7c925ba8d4c36f3d2a85bdd83fd11d46" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_COLOR<sp/><sp/><sp/>5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>std::vector&lt;M_STD_STRING&gt;<sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref>;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classCfgReader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classCfgReader" kindref="compound">CfgReader</ref></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>lists<sp/>to<sp/>keep<sp/>sections<sp/>and<sp/>section<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" kindref="member">section_names</ref>;</highlight></codeline>
+<codeline lineno="47" refid="classCfgReader_1a206fa92a391db69d9231547bb69220a3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgReader_1a206fa92a391db69d9231547bb69220a3" kindref="member">section_datas</ref>;</highlight></codeline>
+<codeline lineno="48" refid="classCfgReader_1abeeaf1240482d67170c1243ad984dbe6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgReader_1abeeaf1240482d67170c1243ad984dbe6" kindref="member">section_keys</ref>;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>cfg<sp/>file<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="classCfgReader_1a44ce811a3ca7ee7279e54da42e8d1448" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="classCfgReader_1a44ce811a3ca7ee7279e54da42e8d1448" kindref="member">filename</ref>;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><ref refid="classCfgReader_1ad79a9527a47b2a9bdc4b91d5e197e504" kindref="member">CfgReader</ref>();</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><ref refid="classCfgReader_1ad79a9527a47b2a9bdc4b91d5e197e504" kindref="member">CfgReader</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>name);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><ref refid="classCfgReader_1a8782aa5589495a4ca6fdac31ceb8e4f1" kindref="member">~CfgReader</ref>();</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>methods<sp/>to<sp/>return<sp/>the<sp/>lists<sp/>of<sp/>section<sp/>data<sp/>and<sp/>section<sp/>names</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" kindref="member">GetSectionNames</ref>();</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgReader_1aa4a382e9af173b41cf92a612a1e156d6" kindref="member">GetSectionDatas</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>sec);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>all<sp/>section<sp/>keys</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgReader_1acb058d3e530f33e0a193ee8ec0e5ec61" kindref="member">GetSectionKeys</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>sec);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>check<sp/>if<sp/>the<sp/>section<sp/>exists<sp/>in<sp/>the<sp/>file</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classCfgReader_1a3ffc11138ad6220f6ab2656468c9da92" kindref="member">FindSection</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>sec);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>give<sp/>the<sp/>key<sp/>value<sp/>for<sp/>the<sp/>specified<sp/>key<sp/>of<sp/>a<sp/>section</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="classCfgReader_1a50748b567edd53f77e1c7b1ad841fcf9" kindref="member">GetKeyValue</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>key,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>sec);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>set<sp/>the<sp/>key<sp/>value<sp/>for<sp/>the<sp/>specified<sp/>key<sp/>of<sp/>a<sp/>section</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCfgReader_1a1b855f546b31eb2792efa54f1ca9ca56" kindref="member">WriteKeyVal</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>key,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>sec,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*new_val);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>replace<sp/>all<sp/>substrings<sp/>in<sp/>string</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="classCfgReader_1a4e8db9c514a510167a0d87959b824748" kindref="member">Replace</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>str,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>dst,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>src);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>remove<sp/>all<sp/>sequence<sp/>in<sp/>string</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="classCfgReader_1aaab34e760450150e8b1a2bd4a3d7b0d4" kindref="member">Remove</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>str,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>seq);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classCfgShader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classCfgShader" kindref="compound">CfgShader</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classCfgReader" kindref="compound">CfgReader</ref></highlight></codeline>
+<codeline lineno="82"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="84" refid="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" kindref="member">shader_names</ref>;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="classCfgShader_1a43b186d97b492e71fd6d47e7ebd6d309" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgShader_1a43b186d97b492e71fd6d47e7ebd6d309" kindref="member">global_params</ref>;</highlight></codeline>
+<codeline lineno="87" refid="classCfgShader_1a8e6eedaba432f0f7ec6584cab98e9c53" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgShader_1a8e6eedaba432f0f7ec6584cab98e9c53" kindref="member">shader_params</ref>;</highlight></codeline>
+<codeline lineno="88" refid="classCfgShader_1a28238933d02d50ee18f20b32ceaccc16" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgShader_1a28238933d02d50ee18f20b32ceaccc16" kindref="member">settings_params</ref>;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><ref refid="classCfgShader" kindref="compound">CfgShader</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>name);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classCfgShader_1a68a9d7422cc4df1ca5693e84906d8f00" kindref="member">~CfgShader</ref>();</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>config<sp/>file<sp/>name<sp/>from<sp/>plugin<sp/>folder.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classCfgShader_1af916040330d237b1f39f398aee636be5" kindref="member">GetCfgFilename</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*cfg,<sp/>TCHAR<sp/>*<ref refid="classCfgReader_1a44ce811a3ca7ee7279e54da42e8d1448" kindref="member">filename</ref>);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgShader_1aee46d6e5791fe688ce137e41351bc9bf" kindref="member">GetShaderNames</ref>();</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgShader_1a2a0fd27b5fbc2df5c2c4c68b8630bae6" kindref="member">GetGlobalParams</ref>();</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgShader_1a367f84d7b6bf1139f5e5d3fd05603c97" kindref="member">GetSettingsParams</ref>();</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgShader_1a26a5264aa69fd5f2fede935ed589800d" kindref="member">GetShaderParams</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>shader);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="classCfgShader_1a69944687d77c008a92f276399c9fe882" kindref="member">GetParamOwner</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>param);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="classCfgShader_1a56390a01b587cb4c94a8eeaebe7c02e9" kindref="member">GetParamValue</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>owner,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>param);</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classCfgShader_1ad516ef5d1ffaba4eba99c7fbccd6f5eb" kindref="member">GetParamType</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>owner,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>param);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classCfgShader_1af1ed0ddf842ac33da7b595c5fd974e4b" kindref="member">GetParamStatus</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>owner,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>param);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classCfgShader_1a6283e195ac932b7330dd43398c96e0cd" kindref="member">GetParamMode</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>owner,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>param);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref><sp/><ref refid="classCfgShader_1a4ee30547e0f9031dc60e5fd17646f6c5" kindref="member">GetParamData</ref>(<ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>owner,<sp/><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/>param);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="cfg.h"/>
+  </compounddef>
+</doxygen>

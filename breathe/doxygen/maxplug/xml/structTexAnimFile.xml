@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTexAnimFile" kind="struct" language="C++" prot="public">
+    <compoundname>TexAnimFile</compoundname>
+    <includes refid="loadta_8h" local="no">loadta.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTexAnimFile_1a1048913d34b2b19a1305f1f7a0270dd3" prot="public" static="no" mutable="no">
+        <type>Tab&lt; char * &gt;</type>
+        <definition>Tab&lt;char *&gt; TexAnimFile::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>TexAnimFile::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="6" column="7" bodyfile="loadta.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTexAnimFile_1a3fc3ef99d3b9e2bafb018e66522b50a0" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; TexAnimFile::frm</definition>
+        <argsstring></argsstring>
+        <name>frm</name>
+        <qualifiedname>TexAnimFile::frm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="7" column="7" bodyfile="loadta.h" bodystart="7" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structTexAnimFile_1a2ca55b29d042c0133aba6048871a44b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TexAnimFile::~TexAnimFile</definition>
+        <argsstring>()</argsstring>
+        <name>~TexAnimFile</name>
+        <qualifiedname>TexAnimFile::~TexAnimFile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="9" column="3" bodyfile="loadta.cpp" bodystart="7" bodyend="7"/>
+      </memberdef>
+      <memberdef kind="function" id="structTexAnimFile_1a24023c034f60ba9a6e1984ebf7e3a7a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TexAnimFile::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>TexAnimFile::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="10" column="8" bodyfile="loadta.cpp" bodystart="9" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structTexAnimFile_1a022d7a2b5fafab646a33bf3b59fc728c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TexAnimFile::add_frame</definition>
+        <argsstring>(char *)</argsstring>
+        <name>add_frame</name>
+        <qualifiedname>TexAnimFile::add_frame</qualifiedname>
+        <param>
+          <type>char *</type>
+          <defname>fname</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="11" column="8" bodyfile="loadta.cpp" bodystart="171" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="structTexAnimFile_1ac73331eab3288aca93ea56a8aeeea34a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TexAnimFile::parse</definition>
+        <argsstring>(char *)</argsstring>
+        <name>parse</name>
+        <qualifiedname>TexAnimFile::parse</qualifiedname>
+        <param>
+          <type>char *</type>
+          <defname>text</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="12" column="8" bodyfile="loadta.cpp" bodystart="299" bodyend="490"/>
+      </memberdef>
+      <memberdef kind="function" id="structTexAnimFile_1ac6068bf539867162fd8e93f8e5140aa0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TexAnimFile::load</definition>
+        <argsstring>(const char *fn)</argsstring>
+        <name>load</name>
+        <qualifiedname>TexAnimFile::load</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="13" column="8" bodyfile="loadta.cpp" bodystart="492" bodyend="529"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structTexAnimFile_1a2b865b6349e7dcafef2ce19b0fd38b6c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char * TexAnimFile::getlasterr</definition>
+        <argsstring>()</argsstring>
+        <name>getlasterr</name>
+        <qualifiedname>TexAnimFile::getlasterr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="loadta.h" line="14" column="15" bodyfile="loadta.cpp" bodystart="195" bodyend="200"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="loadta.h" line="4" column="1" bodyfile="loadta.h" bodystart="5" bodyend="15"/>
+    <listofallmembers>
+      <member refid="structTexAnimFile_1a022d7a2b5fafab646a33bf3b59fc728c" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>add_frame</name></member>
+      <member refid="structTexAnimFile_1a24023c034f60ba9a6e1984ebf7e3a7a0" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>clear</name></member>
+      <member refid="structTexAnimFile_1a3fc3ef99d3b9e2bafb018e66522b50a0" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>frm</name></member>
+      <member refid="structTexAnimFile_1a2b865b6349e7dcafef2ce19b0fd38b6c" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>getlasterr</name></member>
+      <member refid="structTexAnimFile_1ac6068bf539867162fd8e93f8e5140aa0" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>load</name></member>
+      <member refid="structTexAnimFile_1ac73331eab3288aca93ea56a8aeeea34a" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>parse</name></member>
+      <member refid="structTexAnimFile_1a1048913d34b2b19a1305f1f7a0270dd3" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>tex</name></member>
+      <member refid="structTexAnimFile_1a2ca55b29d042c0133aba6048871a44b0" prot="public" virt="non-virtual"><scope>TexAnimFile</scope><name>~TexAnimFile</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

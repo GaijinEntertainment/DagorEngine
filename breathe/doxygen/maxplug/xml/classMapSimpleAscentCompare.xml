@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMapSimpleAscentCompare" kind="class" language="C++" prot="public">
+    <compoundname>MapSimpleAscentCompare</compoundname>
+    <includes refid="qsort_8h" local="no">qsort.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classMapSimpleAscentCompare_1a50d119a0ce29ebe956504b74a6e2007a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int MapSimpleAscentCompare&lt; T &gt;::compare</definition>
+        <argsstring>(const int &amp;a, const int &amp;b, T *d)</argsstring>
+        <name>compare</name>
+        <qualifiedname>MapSimpleAscentCompare::compare</qualifiedname>
+        <param>
+          <type>const int &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const int &amp;</type>
+          <declname>b</declname>
+        </param>
+        <param>
+          <type>T *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="207" column="21" bodyfile="qsort.h" bodystart="207" bodyend="215"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="qsort.h" line="204" column="1" bodyfile="qsort.h" bodystart="205" bodyend="216"/>
+    <listofallmembers>
+      <member refid="classMapSimpleAscentCompare_1a50d119a0ce29ebe956504b74a6e2007a" prot="public" virt="non-virtual"><scope>MapSimpleAscentCompare</scope><name>compare</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

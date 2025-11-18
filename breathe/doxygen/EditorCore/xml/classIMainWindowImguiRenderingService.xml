@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIMainWindowImguiRenderingService" kind="class" language="C++" prot="public">
+    <compoundname>IMainWindowImguiRenderingService</compoundname>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIMainWindowImguiRenderingService_1aa74954a6fc5a5adea8e4de0eff950b87" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned IMainWindowImguiRenderingService::HUID</definition>
+        <argsstring></argsstring>
+        <name>HUID</name>
+        <qualifiedname>IMainWindowImguiRenderingService::HUID</qualifiedname>
+        <initializer>= 0x30B1B0D1u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="66" column="29" bodyfile="ec_interface_ex.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIMainWindowImguiRenderingService_1a74cce24ba70d3e6bdb9975415f2aa0bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IMainWindowImguiRenderingService::beforeUpdateImgui</definition>
+        <argsstring>()</argsstring>
+        <name>beforeUpdateImgui</name>
+        <qualifiedname>IMainWindowImguiRenderingService::beforeUpdateImgui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="69" column="16" bodyfile="ec_interface_ex.h" bodystart="69" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classIMainWindowImguiRenderingService_1aac83f2d55934a65e4b41f08e9834241c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IMainWindowImguiRenderingService::updateImgui</definition>
+        <argsstring>()</argsstring>
+        <name>updateImgui</name>
+        <qualifiedname>IMainWindowImguiRenderingService::updateImgui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="71" column="16" bodyfile="ec_interface_ex.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_interface_ex.h" line="63" column="1" bodyfile="ec_interface_ex.h" bodystart="64" bodyend="72"/>
+    <listofallmembers>
+      <member refid="classIMainWindowImguiRenderingService_1a74cce24ba70d3e6bdb9975415f2aa0bc" prot="public" virt="virtual"><scope>IMainWindowImguiRenderingService</scope><name>beforeUpdateImgui</name></member>
+      <member refid="classIMainWindowImguiRenderingService_1aa74954a6fc5a5adea8e4de0eff950b87" prot="public" virt="non-virtual"><scope>IMainWindowImguiRenderingService</scope><name>HUID</name></member>
+      <member refid="classIMainWindowImguiRenderingService_1aac83f2d55934a65e4b41f08e9834241c" prot="public" virt="virtual"><scope>IMainWindowImguiRenderingService</scope><name>updateImgui</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

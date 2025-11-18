@@ -1,0 +1,380 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Tools</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="EditorCore" href="EditorCore/EditorCore.html" />
+    <link rel="prev" title="Stream output" href="../dagor-dshl/index/stream_output.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Dagor Tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="EditorCore/EditorCore.html">EditorCore</a></li>
+<li class="toctree-l3"><a class="reference internal" href="libTools/index.html">libTools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="maxplug/maxplug.html">3ds Max Plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html">ShaderCompiler2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API References and Documentation</a></li>
+      <li class="breadcrumb-item active">Dagor Tools</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api-references/dagor-tools/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dagor-tools">
+<h1>Dagor Tools<a class="headerlink" href="#dagor-tools" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="EditorCore/EditorCore.html">EditorCore</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N22GenericEditorAppWindow15AppEventHandlerE"><code class="docutils literal notranslate"><span class="pre">AppEventHandler</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv418ApplicationCreator"><code class="docutils literal notranslate"><span class="pre">ApplicationCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv410BoxCreator"><code class="docutils literal notranslate"><span class="pre">BoxCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv45Brush"><code class="docutils literal notranslate"><span class="pre">Brush</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416BrushEventFilter"><code class="docutils literal notranslate"><span class="pre">BrushEventFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N13TpsCameraElem3CamE"><code class="docutils literal notranslate"><span class="pre">Cam</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412CameraConfig"><code class="docutils literal notranslate"><span class="pre">CameraConfig</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416CamerasConfigDlg"><code class="docutils literal notranslate"><span class="pre">CamerasConfigDlg</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414CapsuleCreator"><code class="docutils literal notranslate"><span class="pre">CapsuleCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413CarCameraElem"><code class="docutils literal notranslate"><span class="pre">CarCameraElem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411CCameraElem"><code class="docutils literal notranslate"><span class="pre">CCameraElem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413CircleCreator"><code class="docutils literal notranslate"><span class="pre">CircleCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv415CylinderCreator"><code class="docutils literal notranslate"><span class="pre">CylinderCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N14ViewportWindow17DelayedMouseEventE"><code class="docutils literal notranslate"><span class="pre">DelayedMouseEvent</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N8Outliner14OutlinerWindow8DragDataE"><code class="docutils literal notranslate"><span class="pre">DragData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv46EcRect"><code class="docutils literal notranslate"><span class="pre">EcRect</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414EditableObject"><code class="docutils literal notranslate"><span class="pre">EditableObject</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416EditorMainWindow"><code class="docutils literal notranslate"><span class="pre">EditorMainWindow</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417EditorStartDialog"><code class="docutils literal notranslate"><span class="pre">EditorStartDialog</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv415EditorWorkspace"><code class="docutils literal notranslate"><span class="pre">EditorWorkspace</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv415FpsCameraConfig"><code class="docutils literal notranslate"><span class="pre">FpsCameraConfig</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413FpsCameraElem"><code class="docutils literal notranslate"><span class="pre">FpsCameraElem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412FPSCameraTab"><code class="docutils literal notranslate"><span class="pre">FPSCameraTab</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414FreeCameraElem"><code class="docutils literal notranslate"><span class="pre">FreeCameraElem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413FreeCameraTab"><code class="docutils literal notranslate"><span class="pre">FreeCameraTab</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417GeneralEditorData"><code class="docutils literal notranslate"><span class="pre">GeneralEditorData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv422GenericEditorAppWindow"><code class="docutils literal notranslate"><span class="pre">GenericEditorAppWindow</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416GizmoEventFilter"><code class="docutils literal notranslate"><span class="pre">GizmoEventFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N16GizmoEventFilter11GizmoParamsE"><code class="docutils literal notranslate"><span class="pre">GizmoParams</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv419GizmoSettingsDialog"><code class="docutils literal notranslate"><span class="pre">GizmoSettingsDialog</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414GridEditDialog"><code class="docutils literal notranslate"><span class="pre">GridEditDialog</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv410GridObject"><code class="docutils literal notranslate"><span class="pre">GridObject</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412IBrushClient"><code class="docutils literal notranslate"><span class="pre">IBrushClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N8Outliner14OutlinerWindow5IconsE"><code class="docutils literal notranslate"><span class="pre">Icons</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ICustomCameras"><code class="docutils literal notranslate"><span class="pre">ICustomCameras</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413IDagorConsole"><code class="docutils literal notranslate"><span class="pre">IDagorConsole</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv410IDagorGeom"><code class="docutils literal notranslate"><span class="pre">IDagorGeom</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411IDagorInput"><code class="docutils literal notranslate"><span class="pre">IDagorInput</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412IDagorRender"><code class="docutils literal notranslate"><span class="pre">IDagorRender</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411IDagorScene"><code class="docutils literal notranslate"><span class="pre">IDagorScene</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411IDagorTools"><code class="docutils literal notranslate"><span class="pre">IDagorTools</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411IEditorCore"><code class="docutils literal notranslate"><span class="pre">IEditorCore</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417IEditorCoreEngine"><code class="docutils literal notranslate"><span class="pre">IEditorCoreEngine</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv420IEnvironmentSettings"><code class="docutils literal notranslate"><span class="pre">IEnvironmentSettings</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv420IGenEditorPluginBase"><code class="docutils literal notranslate"><span class="pre">IGenEditorPluginBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416IGenEventHandler"><code class="docutils literal notranslate"><span class="pre">IGenEventHandler</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv423IGenEventHandlerWrapper"><code class="docutils literal notranslate"><span class="pre">IGenEventHandlerWrapper</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv415IGenViewportWnd"><code class="docutils literal notranslate"><span class="pre">IGenViewportWnd</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412IGizmoClient"><code class="docutils literal notranslate"><span class="pre">IGizmoClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412IGizmoObject"><code class="docutils literal notranslate"><span class="pre">IGizmoObject</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv424IHDRChangeSettingsClient"><code class="docutils literal notranslate"><span class="pre">IHDRChangeSettingsClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv432IMainWindowImguiRenderingService"><code class="docutils literal notranslate"><span class="pre">IMainWindowImguiRenderingService</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv410INamespace"><code class="docutils literal notranslate"><span class="pre">INamespace</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv47Inertia"><code class="docutils literal notranslate"><span class="pre">Inertia</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N14ViewportWindow5InputE"><code class="docutils literal notranslate"><span class="pre">Input</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414IObjectCreator"><code class="docutils literal notranslate"><span class="pre">IObjectCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412IObjectsList"><code class="docutils literal notranslate"><span class="pre">IObjectsList</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N8Outliner9IOutlinerE"><code class="docutils literal notranslate"><span class="pre">IOutliner</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417IRenderingService"><code class="docutils literal notranslate"><span class="pre">IRenderingService</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N32ViewportWindowStatSettingsDialog4ItemE"><code class="docutils literal notranslate"><span class="pre">Item</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv425IVisibilityFinderProvider"><code class="docutils literal notranslate"><span class="pre">IVisibilityFinderProvider</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411IWndManager"><code class="docutils literal notranslate"><span class="pre">IWndManager</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv423IWndManagerEventHandler"><code class="docutils literal notranslate"><span class="pre">IWndManagerEventHandler</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv424IWndManagerWindowHandler"><code class="docutils literal notranslate"><span class="pre">IWndManagerWindowHandler</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413MaxCameraElem"><code class="docutils literal notranslate"><span class="pre">MaxCameraElem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416NewProjectDialog"><code class="docutils literal notranslate"><span class="pre">NewProjectDialog</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412ObjectEditor"><code class="docutils literal notranslate"><span class="pre">ObjectEditor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv424ObjectEditorPropPanelBar"><code class="docutils literal notranslate"><span class="pre">ObjectEditorPropPanelBar</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N22GenericEditorAppWindow15OrtMultiScrDataE"><code class="docutils literal notranslate"><span class="pre">OrtMultiScrData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N22GenericEditorAppWindow11OrtScrCellsE"><code class="docutils literal notranslate"><span class="pre">OrtScrCells</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N8Outliner14OutlinerWindowE"><code class="docutils literal notranslate"><span class="pre">OutlinerWindow</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412PlaneCreator"><code class="docutils literal notranslate"><span class="pre">PlaneCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412PointCreator"><code class="docutils literal notranslate"><span class="pre">PointCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412PolygoneZone"><code class="docutils literal notranslate"><span class="pre">PolygoneZone</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv419PolygoneZoneCreator"><code class="docutils literal notranslate"><span class="pre">PolygoneZoneCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv415PolyMeshCreator"><code class="docutils literal notranslate"><span class="pre">PolyMeshCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv424RenderableEditableObject"><code class="docutils literal notranslate"><span class="pre">RenderableEditableObject</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416ScreenshotConfig"><code class="docutils literal notranslate"><span class="pre">ScreenshotConfig</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv49SelWindow"><code class="docutils literal notranslate"><span class="pre">SelWindow</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413SphereCreator"><code class="docutils literal notranslate"><span class="pre">SphereCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv418SpiralStairCreator"><code class="docutils literal notranslate"><span class="pre">SpiralStairCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413SplineCreator"><code class="docutils literal notranslate"><span class="pre">SplineCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412StairCreator"><code class="docutils literal notranslate"><span class="pre">StairCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv418SurfaceMoveCreator"><code class="docutils literal notranslate"><span class="pre">SurfaceMoveCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N13TpsCameraElem6TargetE"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413TargetCreator"><code class="docutils literal notranslate"><span class="pre">TargetCreator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ToolBarManager"><code class="docutils literal notranslate"><span class="pre">ToolBarManager</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv415TpsCameraConfig"><code class="docutils literal notranslate"><span class="pre">TpsCameraConfig</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413TpsCameraElem"><code class="docutils literal notranslate"><span class="pre">TpsCameraElem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412TPSCameraTab"><code class="docutils literal notranslate"><span class="pre">TPSCameraTab</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N12ObjectEditor14UndoAddObjectsE"><code class="docutils literal notranslate"><span class="pre">UndoAddObjects</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N24RenderableEditableObject10UndoMatrixE"><code class="docutils literal notranslate"><span class="pre">UndoMatrix</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N24RenderableEditableObject8UndoMoveE"><code class="docutils literal notranslate"><span class="pre">UndoMove</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N12ObjectEditor22UndoObjectEditorRenameE"><code class="docutils literal notranslate"><span class="pre">UndoObjectEditorRename</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N24RenderableEditableObject12UndoObjFlagsE"><code class="docutils literal notranslate"><span class="pre">UndoObjFlags</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N12ObjectEditor17UndoRemoveObjectsE"><code class="docutils literal notranslate"><span class="pre">UndoRemoveObjects</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ViewportParams"><code class="docutils literal notranslate"><span class="pre">ViewportParams</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ViewportWindow"><code class="docutils literal notranslate"><span class="pre">ViewportWindow</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv432ViewportWindowStatSettingsDialog"><code class="docutils literal notranslate"><span class="pre">ViewportWindowStatSettingsDialog</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N16GizmoEventFilter6VpInfoE"><code class="docutils literal notranslate"><span class="pre">VpInfo</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv415WorkspaceDialog"><code class="docutils literal notranslate"><span class="pre">WorkspaceDialog</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N15EditorWorkspace10WorkspacesE"><code class="docutils literal notranslate"><span class="pre">Workspaces</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N22GenericEditorAppWindow17WorldCursorParamsE"><code class="docutils literal notranslate"><span class="pre">WorldCursorParams</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv410WspLibData"><code class="docutils literal notranslate"><span class="pre">WspLibData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv47AnimV20"><code class="docutils literal notranslate"><span class="pre">AnimV20</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv44ddsx"><code class="docutils literal notranslate"><span class="pre">ddsx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ec_camera_elem"><code class="docutils literal notranslate"><span class="pre">ec_camera_elem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417editorcore_extapi"><code class="docutils literal notranslate"><span class="pre">editorcore_extapi</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413GizmoSettings"><code class="docutils literal notranslate"><span class="pre">GizmoSettings</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv48Outliner"><code class="docutils literal notranslate"><span class="pre">Outliner</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv49PropPanel"><code class="docutils literal notranslate"><span class="pre">PropPanel</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv43sgg"><code class="docutils literal notranslate"><span class="pre">sgg</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv418StaticSceneBuilder"><code class="docutils literal notranslate"><span class="pre">StaticSceneBuilder</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414capture_cursorPv"><code class="docutils literal notranslate"><span class="pre">capture_cursor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414release_cursorv"><code class="docutils literal notranslate"><span class="pre">release_cursor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411cursor_wrapRiRiPv"><code class="docutils literal notranslate"><span class="pre">cursor_wrap()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416area_cursor_wrapRK6EcRectRiRiRiRi"><code class="docutils literal notranslate"><span class="pre">area_cursor_wrap()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv412EditorCoreCM"><code class="docutils literal notranslate"><span class="pre">EditorCoreCM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416HUID_IEditorCore"><code class="docutils literal notranslate"><span class="pre">HUID_IEditorCore</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv422HUID_IRenderingService"><code class="docutils literal notranslate"><span class="pre">HUID_IRenderingService</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv429HUID_IHDRChangeSettingsClient"><code class="docutils literal notranslate"><span class="pre">HUID_IHDRChangeSettingsClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv436editor_core_initialize_input_handlerv"><code class="docutils literal notranslate"><span class="pre">editor_core_initialize_input_handler()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv428editor_core_initialize_imguiPKcPi"><code class="docutils literal notranslate"><span class="pre">editor_core_initialize_imgui()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv431editor_core_save_imgui_settingsi"><code class="docutils literal notranslate"><span class="pre">editor_core_save_imgui_settings()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv439editor_core_save_dag_imgui_blk_settingsR9DataBlock"><code class="docutils literal notranslate"><span class="pre">editor_core_save_dag_imgui_blk_settings()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv439editor_core_load_dag_imgui_blk_settingsRK9DataBlock"><code class="docutils literal notranslate"><span class="pre">editor_core_load_dag_imgui_blk_settings()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv428editor_core_load_imgui_themePKc"><code class="docutils literal notranslate"><span class="pre">editor_core_load_imgui_theme()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv440editor_core_load_window_background_colorPKc"><code class="docutils literal notranslate"><span class="pre">editor_core_load_window_background_color()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv437editor_core_update_imgui_style_editorv"><code class="docutils literal notranslate"><span class="pre">editor_core_update_imgui_style_editor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv423editor_core_imgui_beginPKcPbj"><code class="docutils literal notranslate"><span class="pre">editor_core_imgui_begin()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv435EDITOR_CORE_CURSOR_ADDITIONAL_CLICK"><code class="docutils literal notranslate"><span class="pre">EDITOR_CORE_CURSOR_ADDITIONAL_CLICK</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N19PhonyNameDueToError13EC_MK_LBUTTONE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::EC_MK_LBUTTON</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N19PhonyNameDueToError13EC_MK_RBUTTONE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::EC_MK_RBUTTON</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N19PhonyNameDueToError13EC_MK_MBUTTONE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::EC_MK_MBUTTON</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417ec_get_cursor_posv"><code class="docutils literal notranslate"><span class="pre">ec_get_cursor_pos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417ec_set_cursor_pos7IPoint2"><code class="docutils literal notranslate"><span class="pre">ec_set_cursor_pos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ec_show_cursorb"><code class="docutils literal notranslate"><span class="pre">ec_show_cursor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411ec_set_busyb"><code class="docutils literal notranslate"><span class="pre">ec_set_busy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411ec_get_busyv"><code class="docutils literal notranslate"><span class="pre">ec_get_busy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ec_is_key_down8ImGuiKey"><code class="docutils literal notranslate"><span class="pre">ec_is_key_down()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv418ec_is_alt_key_downv"><code class="docutils literal notranslate"><span class="pre">ec_is_alt_key_down()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv419ec_is_ctrl_key_downv"><code class="docutils literal notranslate"><span class="pre">ec_is_ctrl_key_down()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv420ec_is_shift_key_downv"><code class="docutils literal notranslate"><span class="pre">ec_is_shift_key_down()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414EC_WHEEL_DELTA"><code class="docutils literal notranslate"><span class="pre">EC_WHEEL_DELTA</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4I0E9RTTI_castP1TP14EditableObject"><code class="docutils literal notranslate"><span class="pre">RTTI_cast()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv411ImTextureID"><code class="docutils literal notranslate"><span class="pre">ImTextureID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv422is_sphere_hit_by_pointRK6Point34realP15IGenViewportWndii"><code class="docutils literal notranslate"><span class="pre">is_sphere_hit_by_point()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv421is_sphere_hit_by_rectRK6Point34realP15IGenViewportWndRK6EcRect"><code class="docutils literal notranslate"><span class="pre">is_sphere_hit_by_rect()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413get_world_radRK6Point3"><code class="docutils literal notranslate"><span class="pre">get_world_rad()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv428CID_RenderableEditableObject"><code class="docutils literal notranslate"><span class="pre">CID_RenderableEditableObject</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv416ScreenshotFormat"><code class="docutils literal notranslate"><span class="pre">ScreenshotFormat</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv417ScreenshotDlgMode"><code class="docutils literal notranslate"><span class="pre">ScreenshotDlgMode</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv420saveScreenshotConfigR9DataBlockRK16ScreenshotConfig"><code class="docutils literal notranslate"><span class="pre">saveScreenshotConfig()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv420loadScreenshotConfigRK9DataBlockR16ScreenshotConfig"><code class="docutils literal notranslate"><span class="pre">loadScreenshotConfig()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv424saveCubeScreenshotConfigR9DataBlockRK16ScreenshotConfig"><code class="docutils literal notranslate"><span class="pre">saveCubeScreenshotConfig()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv424loadCubeScreenshotConfigRK9DataBlockR16ScreenshotConfig"><code class="docutils literal notranslate"><span class="pre">loadCubeScreenshotConfig()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv420getFileExtFromFormat16ScreenshotFormat"><code class="docutils literal notranslate"><span class="pre">getFileExtFromFormat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N19PhonyNameDueToError21ID_START_DIALOG_COMBOE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::ID_START_DIALOG_COMBO</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N19PhonyNameDueToError29ID_START_DIALOG_ERROR_MESSAGEE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::ID_START_DIALOG_ERROR_MESSAGE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N19PhonyNameDueToError26ID_START_DIALOG_BUTTON_ADDE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::ID_START_DIALOG_BUTTON_ADD</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv4N19PhonyNameDueToError27ID_START_DIALOG_BUTTON_EDITE"><code class="docutils literal notranslate"><span class="pre">PhonyNameDueToError::ID_START_DIALOG_BUTTON_EDIT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv440startup_editor_core_select_startup_scenev"><code class="docutils literal notranslate"><span class="pre">startup_editor_core_select_startup_scene()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv444startup_editor_core_force_startup_scene_drawv"><code class="docutils literal notranslate"><span class="pre">startup_editor_core_force_startup_scene_draw()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414ViewportAxisId"><code class="docutils literal notranslate"><span class="pre">ViewportAxisId</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv427crosshair_splitter_behaviorRK6ImRectRK6ImRect7ImGuiIDPfPfPfPffff5ImU32"><code class="docutils literal notranslate"><span class="pre">crosshair_splitter_behavior()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv430render_imgui_viewport_splitterR6Point2RK6Point2fffff"><code class="docutils literal notranslate"><span class="pre">render_imgui_viewport_splitter()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv47ImGuiID"><code class="docutils literal notranslate"><span class="pre">ImGuiID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv419save_camera_objectsR9DataBlock"><code class="docutils literal notranslate"><span class="pre">save_camera_objects()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv419load_camera_objectsRK9DataBlock"><code class="docutils literal notranslate"><span class="pre">load_camera_objects()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv433show_camera_objects_config_dialogPv"><code class="docutils literal notranslate"><span class="pre">show_camera_objects_config_dialog()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv434close_camera_objects_config_dialogv"><code class="docutils literal notranslate"><span class="pre">close_camera_objects_config_dialog()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv432act_camera_objects_config_dialogv"><code class="docutils literal notranslate"><span class="pre">act_camera_objects_config_dialog()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv413ImGuiKeyChord"><code class="docutils literal notranslate"><span class="pre">ImGuiKeyChord</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="EditorCore/EditorCore.html#_CPPv414WindowSizeInit"><code class="docutils literal notranslate"><span class="pre">WindowSizeInit</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="libTools/index.html">libTools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="libTools/renderUtil.html">renderUtil</a></li>
+<li class="toctree-l2"><a class="reference internal" href="libTools/util.html">Util</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="maxplug/maxplug.html">3ds Max Plugins</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv49DataBlock"><code class="docutils literal notranslate"><span class="pre">DataBlock</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv48Matrix33"><code class="docutils literal notranslate"><span class="pre">Matrix33</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv47TMatrix"><code class="docutils literal notranslate"><span class="pre">TMatrix</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv45BBox2"><code class="docutils literal notranslate"><span class="pre">BBox2</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv45BBox3"><code class="docutils literal notranslate"><span class="pre">BBox3</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv419StaticMeshRayTracer"><code class="docutils literal notranslate"><span class="pre">StaticMeshRayTracer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv411BaseNameMap"><code class="docutils literal notranslate"><span class="pre">BaseNameMap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv47NameMap"><code class="docutils literal notranslate"><span class="pre">NameMap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="maxplug/maxplug.html#_CPPv49NameMapCI"><code class="docutils literal notranslate"><span class="pre">NameMapCI</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html">ShaderCompiler2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv435get_git_files_last_commit_timestampN3dag9ConstSpanI12SimpleStringEE"><code class="docutils literal notranslate"><span class="pre">get_git_files_last_commit_timestamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv418close_shader_classv"><code class="docutils literal notranslate"><span class="pre">close_shader_class()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv416add_shader_classP11ShaderClassRN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_shader_class()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv411add_fshaderN3dag9ConstSpanIjEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_fshader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv49add_vprogN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEEN3dag9ConstSpanIjEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_vprog()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv416add_render_stateRK18SemanticShaderPassRN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_render_state()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv410add_stcodeN3dag9ConstSpanIiEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_stcode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv426add_stcode_validation_maskiPN13shader_layout25StcodeConstValidationMaskERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">add_stcode_validation_mask()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv418count_shader_statsRjRjRjRjRjRKN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">count_shader_stats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv420load_shaders_bindumpR14ShadersBindumpRN7bindump7IReaderERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">load_shaders_bindump()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv421link_scripted_shadersPK7uint8_tiPKcPKcRN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">link_scripted_shaders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv421save_scripted_shadersPKcN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextEb"><code class="docutils literal notranslate"><span class="pre">save_scripted_shaders()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv425update_shaders_timestampsN3dag9ConstSpanI12SimpleStringEERN3shc13TargetContextE"><code class="docutils literal notranslate"><span class="pre">update_shaders_timestamps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv414ShadersBindump"><code class="docutils literal notranslate"><span class="pre">ShadersBindump</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv420ShadersBindumpHeader"><code class="docutils literal notranslate"><span class="pre">ShadersBindumpHeader</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv424CompressedShadersBindump"><code class="docutils literal notranslate"><span class="pre">CompressedShadersBindump</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="ShaderCompiler2/ShaderCompiler2.html#_CPPv47shaders"><code class="docutils literal notranslate"><span class="pre">shaders</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../dagor-dshl/index/stream_output.html" class="btn btn-neutral float-left" title="Stream output" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="EditorCore/EditorCore.html" class="btn btn-neutral float-right" title="EditorCore" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Nov 18, 2025.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

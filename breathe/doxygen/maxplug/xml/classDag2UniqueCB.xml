@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDag2UniqueCB" kind="class" language="C++" prot="public">
+    <compoundname>Dag2UniqueCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDag2UniqueCB_1ae3e8003cd19383dc8fc77ec2f128f837" prot="public" static="no" mutable="no">
+        <type><ref refid="classCfgShader" kindref="compound">CfgShader</ref> *</type>
+        <definition>CfgShader* Dag2UniqueCB::cfg</definition>
+        <argsstring></argsstring>
+        <name>cfg</name>
+        <qualifiedname>Dag2UniqueCB::cfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2037" column="13" bodyfile="util.cpp" bodystart="2037" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2UniqueCB_1a1ec0bd04cd136a2e6fda7bbc21a721f8" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Mtl * &gt;</type>
+        <definition>Tab&lt;Mtl *&gt; Dag2UniqueCB::mats</definition>
+        <argsstring></argsstring>
+        <name>mats</name>
+        <qualifiedname>Dag2UniqueCB::mats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2039" column="7" bodyfile="util.cpp" bodystart="2039" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2UniqueCB_1a18f9974ef43d7b252ee36f97d34e55fe" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* Dag2UniqueCB::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>Dag2UniqueCB::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2041" column="13" bodyfile="util.cpp" bodystart="2041" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2UniqueCB_1a004ed2de623aac001f7db83610a90603" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue Dag2UniqueCB::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <qualifiedname>Dag2UniqueCB::time</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2042" column="13" bodyfile="util.cpp" bodystart="2042" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDag2UniqueCB_1ad2a7b8a95442382779012a3573cfabd3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2UniqueCB::Dag2UniqueCB</definition>
+        <argsstring>(Interface *iptr)</argsstring>
+        <name>Dag2UniqueCB</name>
+        <qualifiedname>Dag2UniqueCB::Dag2UniqueCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>iptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2044" column="3" bodyfile="util.cpp" bodystart="2044" bodyend="2048"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2UniqueCB_1a7115fa4d5af5166ca42487c27bd895c0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2UniqueCB::~Dag2UniqueCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~Dag2UniqueCB</name>
+        <qualifiedname>Dag2UniqueCB::~Dag2UniqueCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2050" column="3" bodyfile="util.cpp" bodystart="2050" bodyend="2050"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2UniqueCB_1a8aeb84f2437c355d39d5bb5836477eff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Mtl *</type>
+        <definition>Mtl * Dag2UniqueCB::unique_mat</definition>
+        <argsstring>(Mtl *mf)</argsstring>
+        <name>unique_mat</name>
+        <qualifiedname>Dag2UniqueCB::unique_mat</qualifiedname>
+        <param>
+          <type>Mtl *</type>
+          <declname>mf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2052" column="7" bodyfile="util.cpp" bodystart="2052" bodyend="2102"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2UniqueCB_1a6fffc0a8528ecd25ae1b86a683e0867d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Dag2UniqueCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>Dag2UniqueCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2104" column="7" bodyfile="util.cpp" bodystart="2104" bodyend="2138"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dag2UniqueCB</label>
+        <link refid="classDag2UniqueCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="3">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>Dag2UniqueCB</label>
+        <link refid="classDag2UniqueCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cfg</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2034" column="1" bodyfile="util.cpp" bodystart="2035" bodyend="2139"/>
+    <listofallmembers>
+      <member refid="classDag2UniqueCB_1ae3e8003cd19383dc8fc77ec2f128f837" prot="public" virt="non-virtual"><scope>Dag2UniqueCB</scope><name>cfg</name></member>
+      <member refid="classDag2UniqueCB_1ad2a7b8a95442382779012a3573cfabd3" prot="public" virt="non-virtual"><scope>Dag2UniqueCB</scope><name>Dag2UniqueCB</name></member>
+      <member refid="classDag2UniqueCB_1a18f9974ef43d7b252ee36f97d34e55fe" prot="public" virt="non-virtual"><scope>Dag2UniqueCB</scope><name>ip</name></member>
+      <member refid="classDag2UniqueCB_1a1ec0bd04cd136a2e6fda7bbc21a721f8" prot="public" virt="non-virtual"><scope>Dag2UniqueCB</scope><name>mats</name></member>
+      <member refid="classDag2UniqueCB_1a6fffc0a8528ecd25ae1b86a683e0867d" prot="public" virt="virtual"><scope>Dag2UniqueCB</scope><name>proc</name></member>
+      <member refid="classDag2UniqueCB_1a004ed2de623aac001f7db83610a90603" prot="public" virt="non-virtual"><scope>Dag2UniqueCB</scope><name>time</name></member>
+      <member refid="classDag2UniqueCB_1a8aeb84f2437c355d39d5bb5836477eff" prot="public" virt="non-virtual"><scope>Dag2UniqueCB</scope><name>unique_mat</name></member>
+      <member refid="classDag2UniqueCB_1a7115fa4d5af5166ca42487c27bd895c0" prot="public" virt="non-virtual"><scope>Dag2UniqueCB</scope><name>~Dag2UniqueCB</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>Dag2UniqueCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

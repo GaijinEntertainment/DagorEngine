@@ -1,0 +1,139 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="autoResolutionRequest_8h" kind="file" language="C++">
+    <compoundname>autoResolutionRequest.h</compoundname>
+    <includes local="no">render/daFrameGraph/detail/autoResTypeNameId.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includes local="no">render/daFrameGraph/detail/dispatchRequestPolicy.h</includes>
+    <includedby refid="dispatchRequest_8h" local="no">dispatchRequest.h</includedby>
+    <includedby refid="resourceCreation_8h" local="no">resourceCreation.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>autoResolutionRequest.h</label>
+        <link refid="autoResolutionRequest_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="2">
+        <label>render/daFrameGraph/detail/autoResTypeNameId.h</label>
+      </node>
+      <node id="4">
+        <label>render/daFrameGraph/detail/dispatchRequestPolicy.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>autoResolutionRequest.h</label>
+        <link refid="autoResolutionRequest_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>daFG.h</label>
+        <link refid="daFG_8h"/>
+      </node>
+      <node id="2">
+        <label>dispatchRequest.h</label>
+        <link refid="dispatchRequest_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>resourceCreation.h</label>
+        <link refid="resourceCreation_8h"/>
+      </node>
+      <node id="5">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structdafg_1_1detail_1_1IPointImpl_3_012_01_4" prot="public">dafg::detail::IPointImpl&lt; 2 &gt;</innerclass>
+    <innerclass refid="structdafg_1_1detail_1_1IPointImpl_3_013_01_4" prot="public">dafg::detail::IPointImpl&lt; 3 &gt;</innerclass>
+    <innerclass refid="classdafg_1_1AutoResolutionRequest" prot="public">dafg::AutoResolutionRequest</innerclass>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <innernamespace refid="namespacedafg_1_1detail">dafg::detail</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daFrameGraph/detail/autoResTypeNameId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daFrameGraph/detail/dispatchRequestPolicy.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="namespacedafg" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ResourceProvider;</highlight></codeline>
+<codeline lineno="17" refid="namespacedafg_1_1detail" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">detail</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">VirtualResourceRequestBase;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">DispatchRequestBase;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>D&gt;</highlight></codeline>
+<codeline lineno="23" refid="structdafg_1_1detail_1_1IPointImpl" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1detail_1_1IPointImpl" kindref="compound">IPointImpl</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;&gt;</highlight></codeline>
+<codeline lineno="25" refid="structdafg_1_1detail_1_1IPointImpl_3_012_01_4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1detail_1_1IPointImpl" kindref="compound">IPointImpl</ref>&lt;2&gt;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27" refid="structdafg_1_1detail_1_1IPointImpl_3_012_01_4_1a3e22772020c1bf0cb36df45ed8c3248c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1detail_1_1IPointImpl_3_012_01_4_1a3e22772020c1bf0cb36df45ed8c3248c" kindref="member">Value</ref><sp/>=<sp/>IPoint2;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;&gt;</highlight></codeline>
+<codeline lineno="30" refid="structdafg_1_1detail_1_1IPointImpl_3_013_01_4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1detail_1_1IPointImpl" kindref="compound">IPointImpl</ref>&lt;3&gt;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="32" refid="structdafg_1_1detail_1_1IPointImpl_3_013_01_4_1a3ae09dd960d99e2d9c4ceae404f6ec1f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1detail_1_1IPointImpl_3_013_01_4_1a3ae09dd960d99e2d9c4ceae404f6ec1f" kindref="member">Value</ref><sp/>=<sp/>IPoint3;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>detail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>D&gt;</highlight></codeline>
+<codeline lineno="38" refid="namespacedafg_1adb35aa40d69bcd097576bd8f1c0f8ace" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespacedafg_1adb35aa40d69bcd097576bd8f1c0f8ace" kindref="member">IPoint</ref><sp/>=<sp/></highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1detail_1_1IPointImpl" kindref="compound">detail::IPointImpl&lt;D&gt;::Value</ref>;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>D&gt;</highlight></codeline>
+<codeline lineno="54" refid="classdafg_1_1AutoResolutionRequest" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref></highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56" refid="classdafg_1_1AutoResolutionRequest_1af224c83d458368ae6a14843794518f16" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1NameSpaceRequest" kindref="compound">NameSpaceRequest</ref>;</highlight></codeline>
+<codeline lineno="57" refid="classdafg_1_1AutoResolutionRequest_1a54e9924205db745e6c6fdb8e7b4c174c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1AutoResolutionRequest_1a54e9924205db745e6c6fdb8e7b4c174c" kindref="member">detail::VirtualResourceRequestBase</ref>;</highlight></codeline>
+<codeline lineno="58" refid="classdafg_1_1AutoResolutionRequest_1a6c8a4e6b86fd1fd7cdfdb1e3d42331f2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1AutoResolutionRequest_1a6c8a4e6b86fd1fd7cdfdb1e3d42331f2" kindref="member">detail::DispatchRequestBase</ref>;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1AutoResolutionRequest" kindref="compound">AutoResolutionRequest</ref>(AutoResTypeNameId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>mult,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ResourceProvider<sp/>*p)<sp/>:<sp/>autoResTypeId{id},<sp/>multiplier{mult},<sp/>provider{p}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="72" refid="classdafg_1_1AutoResolutionRequest_1ac635dfdf75abca15da9ccaa66aaa0108" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1adb35aa40d69bcd097576bd8f1c0f8ace" kindref="member">IPoint&lt;D&gt;</ref><sp/><ref refid="classdafg_1_1AutoResolutionRequest_1ac635dfdf75abca15da9ccaa66aaa0108" kindref="member">get</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>AutoResTypeNameId<sp/>autoResTypeId;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>multiplier<sp/>=<sp/>1.f;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ResourceProvider<sp/>*provider;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight></codeline>
+    </programlisting>
+    <location file="autoResolutionRequest.h"/>
+  </compounddef>
+</doxygen>

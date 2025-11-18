@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="unionRaytraceGeometryDescription_1_1AnyInfo" kind="union" language="C++" prot="public">
+    <compoundname>RaytraceGeometryDescription::AnyInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionRaytraceGeometryDescription_1_1AnyInfo_1af7f540e5c6b88c1dd5fe0b67044ead1e" prot="public" static="no" mutable="no">
+        <type><ref refid="structRaytraceGeometryDescription_1_1AABBsInfo" kindref="compound">AABBsInfo</ref></type>
+        <definition>AABBsInfo RaytraceGeometryDescription::AnyInfo::aabbs</definition>
+        <argsstring></argsstring>
+        <name>aabbs</name>
+        <qualifiedname>RaytraceGeometryDescription::AnyInfo::aabbs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="89" column="15" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionRaytraceGeometryDescription_1_1AnyInfo_1a2b493aa446012b943560e6573f865181" prot="public" static="no" mutable="no">
+        <type><ref refid="structRaytraceGeometryDescription_1_1TrianglesInfo" kindref="compound">TrianglesInfo</ref></type>
+        <definition>TrianglesInfo RaytraceGeometryDescription::AnyInfo::triangles</definition>
+        <argsstring></argsstring>
+        <name>triangles</name>
+        <qualifiedname>RaytraceGeometryDescription::AnyInfo::triangles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="90" column="19" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="2">
+        <label>RaytraceGeometryDescription::AABBsInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1AABBsInfo"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RaytraceGeometryDescription::AnyInfo</label>
+        <link refid="unionRaytraceGeometryDescription_1_1AnyInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>aabbs</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>triangles</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>RaytraceGeometryDescription::TrianglesInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1TrianglesInfo"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>indexBuffer</edgelabel>
+          <edgelabel>transformBuffer</edgelabel>
+          <edgelabel>vertexBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="3">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="87" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="88" bodyend="91"/>
+    <listofallmembers>
+      <member refid="unionRaytraceGeometryDescription_1_1AnyInfo_1af7f540e5c6b88c1dd5fe0b67044ead1e" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::AnyInfo</scope><name>aabbs</name></member>
+      <member refid="unionRaytraceGeometryDescription_1_1AnyInfo_1a2b493aa446012b943560e6573f865181" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::AnyInfo</scope><name>triangles</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

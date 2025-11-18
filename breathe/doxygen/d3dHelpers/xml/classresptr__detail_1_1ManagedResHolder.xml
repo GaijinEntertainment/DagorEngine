@@ -1,0 +1,164 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ManagedResHolder" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ManagedResHolder</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ManagedResType</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ManagedResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1ManagedResHolder_1ae30b2f5f4290c637f71508c8e3c13d65" prot="private" static="no">
+        <type>typename ManagedResType::resource_t</type>
+        <definition>using resptr_detail::ManagedResHolder&lt; ManagedResType &gt;::ResType =  typename ManagedResType::resource_t</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>resptr_detail::ManagedResHolder::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="498" column="3" bodyfile="dag_resPtr.h" bodystart="498" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classresptr__detail_1_1ManagedResHolder_1a357fad680cca7d48d632b31c2f9e8d54" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int resptr_detail::ManagedResHolder&lt; ManagedResType &gt;::mShaderVarId</definition>
+        <argsstring></argsstring>
+        <name>mShaderVarId</name>
+        <qualifiedname>resptr_detail::ManagedResHolder::mShaderVarId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="501" column="7" bodyfile="dag_resPtr.h" bodystart="501" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResHolder_1aa6d32fa8912f504a4d08f415d82fda25" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ManagedResHolder&lt; ManagedResType &gt;::swap</definition>
+        <argsstring>(ManagedResHolder &amp;other)</argsstring>
+        <name>swap</name>
+        <qualifiedname>resptr_detail::ManagedResHolder::swap</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ManagedResHolder" kindref="compound">ManagedResHolder</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="503" column="8" bodyfile="dag_resPtr.h" bodystart="503" bodyend="507"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResHolder_1a07fe4bd986384a4c8843f07afbf8889a" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ManagedResHolder&lt; ManagedResType &gt;::ManagedResHolder</definition>
+        <argsstring>()=default</argsstring>
+        <name>ManagedResHolder</name>
+        <qualifiedname>resptr_detail::ManagedResHolder::ManagedResHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="509" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResHolder_1a41c7e0053c58260947a9dc51bac57ccc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int resptr_detail::ManagedResHolder&lt; ManagedResType &gt;::getVarId</definition>
+        <argsstring>() const</argsstring>
+        <name>getVarId</name>
+        <qualifiedname>resptr_detail::ManagedResHolder::getVarId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="512" column="7" bodyfile="dag_resPtr.h" bodystart="512" bodyend="512"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResHolder_1a31e9999423935ef5b8decd88fe0bb84a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ManagedResHolder&lt; ManagedResType &gt;::setVar</definition>
+        <argsstring>() const</argsstring>
+        <name>setVar</name>
+        <qualifiedname>resptr_detail::ManagedResHolder::setVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="514" column="8" bodyfile="dag_resPtr.h" bodystart="514" bodyend="518"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResHolder_1ac6c47350fb7e48a894b0abd8fa90e801" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ManagedResHolder&lt; ManagedResType &gt;::setVarId</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>setVarId</name>
+        <qualifiedname>resptr_detail::ManagedResHolder::setVarId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="520" column="8" bodyfile="dag_resPtr.h" bodystart="520" bodyend="525"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedResHolder&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedResHolder&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="496" column="1" bodyfile="dag_resPtr.h" bodystart="497" bodyend="526"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a41c7e0053c58260947a9dc51bac57ccc" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResHolder</scope><name>getVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a07fe4bd986384a4c8843f07afbf8889a" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedResHolder</scope><name>ManagedResHolder</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a357fad680cca7d48d632b31c2f9e8d54" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedResHolder</scope><name>mShaderVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1ae30b2f5f4290c637f71508c8e3c13d65" prot="private" virt="non-virtual"><scope>resptr_detail::ManagedResHolder</scope><name>ResType</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1a31e9999423935ef5b8decd88fe0bb84a" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResHolder</scope><name>setVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1ac6c47350fb7e48a894b0abd8fa90e801" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResHolder</scope><name>setVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResHolder_1aa6d32fa8912f504a4d08f415d82fda25" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedResHolder</scope><name>swap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

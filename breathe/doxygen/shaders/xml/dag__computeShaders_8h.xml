@@ -1,0 +1,172 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__computeShaders_8h" kind="file" language="C++">
+    <compoundname>dag_computeShaders.h</compoundname>
+    <includes local="no">drv/3d/dag_consts.h</includes>
+    <includes local="no">3d/dag_texMgr.h</includes>
+    <includes local="no">generic/dag_DObject.h</includes>
+    <includes local="no">memory/dag_mem.h</includes>
+    <includes local="no">EASTL/array.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <includedby refid="dag__meshShaders_8h" local="no">dag_meshShaders.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_computeShaders.h</label>
+        <link refid="dag__computeShaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="6">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="7">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="5">
+        <label>memory/dag_mem.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>dag_computeShaders.h</label>
+        <link refid="dag__computeShaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_meshShaders.h</label>
+        <link refid="dag__meshShaders_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classComputeShaderElement" prot="public">ComputeShaderElement</innerclass>
+    <innerclass refid="classComputeShader" prot="public">ComputeShader</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__computeShaders_8h_1ac94fc8f56572fb878cd0b34253210050" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref> *</type>
+        <definition>ComputeShaderElement * new_compute_shader</definition>
+        <argsstring>(const char *shader_name, bool optional=false)</argsstring>
+        <name>new_compute_shader</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>optional</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_computeShaders.h" line="63" column="22" declfile="dag_computeShaders.h" declline="63" declcolumn="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_texMgr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_DObject.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory/dag_mem.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ScriptedShaderMaterial;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ScriptedShaderElement;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Sbuffer;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderElement" kindref="compound">ShaderElement</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classComputeShaderElement" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>DObject</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>decl_class_name(<ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref>)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref>(ScriptedShaderMaterial<sp/>*ssm,<sp/><ref refid="classShaderElement" kindref="compound">ShaderElement</ref><sp/>*selem<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="classComputeShaderElement" kindref="compound">~ComputeShaderElement</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getShaderClassName()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_int_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_real_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>real<sp/>v);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_color4_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/>Color4<sp/>&amp;);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_texture_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TEXTUREID<sp/>v);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_sampler_param(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>d3d::SamplerHandle<sp/>v);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getColor4Variable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>Color4<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getRealVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>real<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getIntVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getTextureVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>TEXTUREID<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getSamplerVariable(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id,<sp/>d3d::SamplerHandle<sp/>&amp;value)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>dispatch<sp/>compute<sp/>threads</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>eastl::array&lt;uint16_t,<sp/>3&gt;<sp/>getThreadGroupSizes()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatch(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tgx,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tgy,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tgz,<sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchThreads(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>threads_x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>threads_y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>threads_z,<sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>uint32_t<sp/>getWaveSize()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatch(GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="51"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dispatch(1,<sp/>1,<sp/>1,<sp/>gpu_pipeline,<sp/>set_states);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatch_indirect(Sbuffer<sp/>*args,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ofs,<sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_states<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setStates()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>ScriptedShaderMaterial<sp/>*mat;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>ScriptedShaderElement<sp/>*elem;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref><sp/>*new_compute_shader(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>optional<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classComputeShader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classComputeShader" kindref="compound">ComputeShader</ref></highlight></codeline>
+<codeline lineno="66"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;ComputeShaderElement&gt;<sp/>elem;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><ref refid="classComputeShader" kindref="compound">ComputeShader</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><ref refid="classComputeShader" kindref="compound">ComputeShader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name)<sp/>:<sp/>elem(shader_name<sp/>?<sp/>new_compute_shader(shader_name)<sp/>:<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchThreads(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>threads_x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>threads_y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>threads_z)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="73"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>elem-&gt;dispatchThreads(threads_x,<sp/>threads_y,<sp/>threads_z);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchGroups(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>groups_x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>groups_y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>groups_z)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>elem-&gt;dispatch(groups_x,<sp/>groups_y,<sp/>groups_z);<sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dispatchIndirect(Sbuffer<sp/>*args,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ofs)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>elem-&gt;dispatch_indirect(args,<sp/>ofs);<sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_computeShaders.h"/>
+  </compounddef>
+</doxygen>

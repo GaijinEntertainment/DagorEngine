@@ -1,0 +1,232 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagExport" kind="class" language="C++" prot="public">
+    <compoundname>DagExport</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">SceneExport</basecompoundref>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDagExport_1af8f71dc3ddef8746dd57d585e1089ecb" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagExport::ExtCount</definition>
+        <argsstring>() override</argsstring>
+        <name>ExtCount</name>
+        <qualifiedname>DagExport::ExtCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="193" column="7" bodyfile="expUtil.cpp" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1a8c57750b5666ff29579bcb37cdbaae2a" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExport::Ext</definition>
+        <argsstring>(int) override</argsstring>
+        <name>Ext</name>
+        <qualifiedname>DagExport::Ext</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="194" column="15" bodyfile="expUtil.cpp" bodystart="194" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1abcb77b66b99d77af080cc32800658bfc" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExport::LongDesc</definition>
+        <argsstring>() override</argsstring>
+        <name>LongDesc</name>
+        <qualifiedname>DagExport::LongDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="195" column="15" bodyfile="expUtil.cpp" bodystart="195" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1a30b8d728f84a70363441b7790e04b124" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExport::ShortDesc</definition>
+        <argsstring>() override</argsstring>
+        <name>ShortDesc</name>
+        <qualifiedname>DagExport::ShortDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="196" column="15" bodyfile="expUtil.cpp" bodystart="196" bodyend="196"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1ac73323651323f9bb3c3d60daf51a7f9b" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExport::AuthorName</definition>
+        <argsstring>() override</argsstring>
+        <name>AuthorName</name>
+        <qualifiedname>DagExport::AuthorName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="197" column="15" bodyfile="expUtil.cpp" bodystart="197" bodyend="197"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1ad549ef21a6c958fd085060ff938f2678" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExport::CopyrightMessage</definition>
+        <argsstring>() override</argsstring>
+        <name>CopyrightMessage</name>
+        <qualifiedname>DagExport::CopyrightMessage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="198" column="15" bodyfile="expUtil.cpp" bodystart="198" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1ab614791e41223ade4495907c10369aa3" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExport::OtherMessage1</definition>
+        <argsstring>() override</argsstring>
+        <name>OtherMessage1</name>
+        <qualifiedname>DagExport::OtherMessage1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="199" column="15" bodyfile="expUtil.cpp" bodystart="199" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1acb05598cb0303c4bf421d665727a25e8" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagExport::OtherMessage2</definition>
+        <argsstring>() override</argsstring>
+        <name>OtherMessage2</name>
+        <qualifiedname>DagExport::OtherMessage2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="200" column="15" bodyfile="expUtil.cpp" bodystart="200" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1a793e37d9009d4e576efcb2879ce130b2" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int DagExport::Version</definition>
+        <argsstring>() override</argsstring>
+        <name>Version</name>
+        <qualifiedname>DagExport::Version</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="201" column="16" bodyfile="expUtil.cpp" bodystart="201" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1af238cbd1b08156c13c301ad239742c00" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagExport::ShowAbout</definition>
+        <argsstring>(HWND hWnd) override</argsstring>
+        <name>ShowAbout</name>
+        <qualifiedname>DagExport::ShowAbout</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="203" column="8" bodyfile="expUtil.cpp" bodystart="203" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagExport_1aeb6965684bf230f758402fba5fc5c37a" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagExport::DoExport</definition>
+        <argsstring>(const MCHAR *name, ExpInterface *ei, Interface *i, BOOL suppressPrompts=FALSE, DWORD options=0) override</argsstring>
+        <name>DoExport</name>
+        <qualifiedname>DagExport::DoExport</qualifiedname>
+        <param>
+          <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>ExpInterface *</type>
+          <declname>ei</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>suppressPrompts</declname>
+          <defval>FALSE</defval>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>options</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="205" column="7" bodyfile="expUtil.cpp" bodystart="205" bodyend="216"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DagExport</label>
+        <link refid="classDagExport"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SceneExport</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DagExport</label>
+        <link refid="classDagExport"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SceneExport</label>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="191" column="1" bodyfile="expUtil.cpp" bodystart="192" bodyend="217"/>
+    <listofallmembers>
+      <member refid="classDagExport_1ac73323651323f9bb3c3d60daf51a7f9b" prot="private" virt="non-virtual"><scope>DagExport</scope><name>AuthorName</name></member>
+      <member refid="classDagExport_1ad549ef21a6c958fd085060ff938f2678" prot="private" virt="non-virtual"><scope>DagExport</scope><name>CopyrightMessage</name></member>
+      <member refid="classDagExport_1aeb6965684bf230f758402fba5fc5c37a" prot="private" virt="non-virtual"><scope>DagExport</scope><name>DoExport</name></member>
+      <member refid="classDagExport_1a8c57750b5666ff29579bcb37cdbaae2a" prot="private" virt="non-virtual"><scope>DagExport</scope><name>Ext</name></member>
+      <member refid="classDagExport_1af8f71dc3ddef8746dd57d585e1089ecb" prot="private" virt="non-virtual"><scope>DagExport</scope><name>ExtCount</name></member>
+      <member refid="classDagExport_1abcb77b66b99d77af080cc32800658bfc" prot="private" virt="non-virtual"><scope>DagExport</scope><name>LongDesc</name></member>
+      <member refid="classDagExport_1ab614791e41223ade4495907c10369aa3" prot="private" virt="non-virtual"><scope>DagExport</scope><name>OtherMessage1</name></member>
+      <member refid="classDagExport_1acb05598cb0303c4bf421d665727a25e8" prot="private" virt="non-virtual"><scope>DagExport</scope><name>OtherMessage2</name></member>
+      <member refid="classDagExport_1a30b8d728f84a70363441b7790e04b124" prot="private" virt="non-virtual"><scope>DagExport</scope><name>ShortDesc</name></member>
+      <member refid="classDagExport_1af238cbd1b08156c13c301ad239742c00" prot="private" virt="non-virtual"><scope>DagExport</scope><name>ShowAbout</name></member>
+      <member refid="classDagExport_1a793e37d9009d4e576efcb2879ce130b2" prot="private" virt="non-virtual"><scope>DagExport</scope><name>Version</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
